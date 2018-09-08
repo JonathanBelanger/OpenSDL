@@ -48,7 +48,6 @@ int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName);
 int sdl_module_end(SDL_CONTEXT *context, char *moduleName);
 int sdl_literal(SDL_QUEUE *literals, char *line);
 int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals);
-int sdl_sizeof(SDL_CONTEXT *context, int item);
 int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype);
 int sdl_declare(
 	SDL_CONTEXT *context,
@@ -58,7 +57,6 @@ int sdl_declare(
 	char *tag);
 __int64_t sdl_bin2int(char *binStr);
 int sdl_str2int(char *strVal, __int64_t *val);
-__int64_t sdl_not(__int64_t binVal);
-int sdl_offset(SDL_AGGREGATE *aggregate, int offsetType);
+int sdl_offset(SDL_CONTEXT *context, int offsetType);
 
 #endif	/* _OPENSDL_ACTIONS_H_ */

@@ -246,15 +246,10 @@ typedef struct _constant_
 } SDL_CONSTANT;
 
 /*
- * The following definitions are used to maintain a set of constants declared
- * with a single CONSTANT statement following by a comma-separated list of
+ * The following definition is used to maintain a constant declared with a
+ * single CONSTANT statement following by a comma-separated list of
  * constant-names to be declared.
  */
-typedef struct
-{
-    SDL_QUEUE	header;
-} SDL_CONSTANT_LIST;
-
 typedef struct
 {
     SDL_QUEUE	header;
@@ -275,6 +270,7 @@ typedef struct
     char	prefix[SDL_K_NAME_MAX_LEN];
     char	tag[SDL_K_NAME_MAX_LEN];
     int		typeID;
+    int		type;
     __int64_t	size;
 } SDL_DECLARE;
 
@@ -453,21 +449,37 @@ typedef struct
 typedef char		SDL_FILENAME[SDL_K_NAME_MAX_LEN];
 typedef struct
 {
-	SDL_AGGREATE	aggStack[SDL_K_SUBAGG_MAX];
+    SDL_AGGREGATE	*aggStack[SDL_K_SUBAGG_MAX];
     _Bool		langSpec[SDL_K_LANG_MAX];
     _Bool		langEna[SDL_K_LANG_MAX];
     SDL_FILENAME	outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
-	SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
+    SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
     SDL_QUEUE		locals;
-	SDL_CONSTANT_LIST	constants;
+    SDL_QUEUE		constants;
     SDL_DECLARE_LIST	declares;
     SDL_ITEM_LIST	items;
     SDL_AGGREGATE_LIST	aggregates;
-	SDL_ENTRY_LIST	entries;
+    SDL_ENTRY_LIST	entries;
     char		module[SDL_K_SYMB_MAX_LEN];
     char		ident[SDL_K_SYMB_MAX_LEN];
-	int			aggStackPtr;
+    int			aggStackPtr;
 } SDL_CONTEXT;
+
+#define SDL_AGGSTACK_EMPTY(p)	((p) == SDL_K_SUBAGG_MAX)
+#define SDL_AGGSTACK_FULL(p)	((p) == 0)
+#define SDL_AGGSTACK_PUSH(a, s, p)		\
+    if (SDL_AGGSTACK_FULL(p) == false)		\
+    {						\
+	(s)[(p)--] = (a);			\
+	1;					\
+    }						\
+    else					\
+	0
+#define SDL_AGGSTACK_POP(s, p)			\
+    if (SDL_AGGSTACK_EMPTY(p) == false)		\
+	(s)[(p)++];				\
+    else					\
+	NULL
 
 #endif /* __DEFSDL_H__ */

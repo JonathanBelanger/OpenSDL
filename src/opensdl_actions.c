@@ -24,7 +24,7 @@
  *  V01.000	Aug 25, 2018	Jonathan D. Belanger
  *  Initially written.
  *
- *  V01.001	Sep  6, 2018	Jonathan D. Belanger
+ *  V01.001	Sept 6, 2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
 #include "opensdl_defs.h"
@@ -72,7 +72,7 @@ static char *_defaultTag[] =
     "A",	/* POINTER_LONG */
     "A",	/* POINTER_QUAD */
     "A",	/* POINTER_HW/ADDRESS_HARDWARE */
-    "",		/* ANY (not used) */
+    "",		/* ANY */
     "C",	/* BOOLEAN (Conditional) */
     "R",	/* STRUCTURE */
     "R"		/* UNION */
@@ -87,6 +87,7 @@ static SDL_ITEM *_sdl_get_item(SDL_ITEM_LIST *item, char *name);
 static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *name);
 static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype);
 static void _sdl_trim_tag(char *tag);
+static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item);
 
 /*
  * sdl_unquote_str
@@ -518,8 +519,7 @@ int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName)
 	if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
 	    retVal = (*_outputFuncs[ii][SDL_K_MODULE_CB])(
 				context->outFP[ii],
-				moduleName,
-				identName);
+				context);
 
     /*
      * Return the results of this call back to the caller.
@@ -567,7 +567,20 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
 	    retVal = (*_outputFuncs[ii][SDL_K_END_MODULE_CB])(
 				context->outFP[ii],
-				context->module);
+				context);
+
+    /*
+     * Clean-out any unaccounted for aggregates in the aggregate stack.
+     */
+    for (ii = context->aggStackPtr; ii < SDL_K_SUBAGG_MAX; ii++)
+	free(context->aggStack[ii]);
+    context->aggStackPtr = SDL_K_SUBAGG_MAX;
+
+    /*
+     * Reset all the dimension entries.
+     */
+    for (ii = 0; ii < SDL_K_MAX_DIMENSIONS; ii++)
+	context->dimensions[ii].inUse = 0;
 
     /*
      * Clean out all the local variables.
@@ -578,6 +591,17 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 
 	SDL_REMQUE(&context->locals, local);
 	free(local);
+    }
+
+    /*
+     * Clean out all the constant definitions.
+     */
+    while(SDL_Q_EMPTY(&context->constants) == false)
+    {
+	SDL_CONSTANT *constant;
+
+	SDL_REMQUE(&context->constants, constant);
+	free(constant);
     }
 
     /*
@@ -620,6 +644,17 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 
 	SDL_REMQUE(&context->aggregates.header, aggregate);
 	free(aggregate);
+    }
+
+    /*
+     * Clean out all the entries.
+     */
+    while (SDL_Q_EMPTY(&context->entries.header) == false)
+    {
+	SDL_ENTRY *entry;
+
+	SDL_REMQUE(&context->entries.header, entry);
+	free(entry);
     }
 
     /*
@@ -761,123 +796,6 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals)
 }
 
 /*
- * sdl_sizeof
- *  This function is called to return the length of an item, based on the item
- *  indicated.  The item can be either a base type, or a user type.
- *
- * Input Parameters:
- *  item:
- *	A value indicating the item type for which we need the size.
- *
- * Output Parameters:
- *  None.
- *
- * Return Value:
- *  A value greater than or equal to zero, representing the size of the
- *  indicated type.
- */
-int sdl_sizeof(SDL_CONTEXT *context, int item)
-{
-    int		retVal = 0;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:sdl_sizeof\n", __FILE__, __LINE__);
-
-    if ((item >= SDL_K_BASE_TYPE_MIN) && (item <= SDL_K_BASE_TYPE_MAX))
-	switch (item)
-	{
-	    case SDL_K_TYPE_BYTE:
-		retVal = sizeof(char);
-		break;
-
-	    case SDL_K_TYPE_WORD:
-		retVal = sizeof(short int);
-		break;
-
-	    case SDL_K_TYPE_LONG:
-		retVal = sizeof(int);
-		break;
-
-	    case SDL_K_TYPE_QUAD:
-		retVal = sizeof(__int64_t);
-		break;
-
-	    case SDL_K_TYPE_OCTA:
-		retVal = sizeof(__int128_t);
-		break;
-
-	    case SDL_K_TYPE_TFLT:
-		retVal = sizeof(float);
-		break;
-
-	    case SDL_K_TYPE_SFLT:
-		retVal = sizeof(double);
-		break;
-
-	    case SDL_K_TYPE_DECIMAL:
-		retVal = sizeof(float);
-		break;
-
-	    case SDL_K_TYPE_CHAR:
-		retVal = sizeof(char);
-		break;
-
-	    case SDL_K_TYPE_ADDR:
-		retVal = sizeof(void *);
-		break;
-
-	    case SDL_K_TYPE_ADDRL:
-		retVal = sizeof(long int);
-		break;
-
-	    case SDL_K_TYPE_ADDRQ:
-		retVal = sizeof(long long int);
-		break;
-
-	    case SDL_K_TYPE_ADDRHW:
-		retVal = sizeof(void *);
-		break;
-
-	    case SDL_K_TYPE_BOOL:
-		retVal = sizeof(_Bool);
-		break;
-
-	    default:
-		break;
-	}
-    else if ((item >= SDL_K_DECLARE_MIN) && (item <= SDL_K_DECLARE_MAX))
-    {
-	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, item);
-
-	if (myDeclare != NULL)
-	    retVal = myDeclare->size;
-    }
-    else if ((item >= SDL_K_ITEM_MIN) && (item <= SDL_K_ITEM_MAX))
-    {
-	SDL_ITEM *myItem = sdl_get_item(&context->items, item);
-
-	if (myItem != NULL)
-	    retVal = myItem->size;
-    }
-    else if ((item >= SDL_K_AGGREGATE_MIN) && (item <= SDL_K_AGGREGATE_MAX))
-    {
-	SDL_AGGREGATE *myAggregate =
-	    sdl_get_aggregate(&context->aggregates, item);
-
-	if (myAggregate != NULL)
-	    retVal = myAggregate->size;
-    }
-
-    /*
-     * Return the results of this call back to the caller.
-     */
-    return(retVal);
-}
-
-/*
  * sdl_usertype_idx
  *  This function is called to return the user type id associated with a
  *  particular user type.
@@ -933,8 +851,8 @@ int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype)
  *	the current parsing.
  *  usertype:
  *	A pointer to a string containing the name of the type.
- *  size:
- *	A value indicating the size of the declaration.
+ *  sizeType:
+ *	A value indicating the size or datatype of the declaration.
  *  prefix:
  *	A pointer to a string to be used for prefixing definitions utilizing
  *	this declaration.
@@ -952,7 +870,7 @@ int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype)
 int sdl_declare(
 	SDL_CONTEXT *context,
 	char *name,
-	int size,
+	int sizeType,
 	char *prefix,
 	char *tag)
 {
@@ -976,22 +894,26 @@ int sdl_declare(
 	{
 	    strncpy(myDeclare->id, name, SDL_K_SYMB_MAX_LEN);
 	    myDeclare->typeID = context->declares.nextID++;
-	    myDeclare->size = size;
+	    if (sizeType < 0)
+	    {
+		myDeclare->size = -sizeType;
+		myDeclare->type = SDL_K_TYPE_CHAR;
+	    }
+	    else
+	    {
+		myDeclare->size = _sdl_sizeof(context, sizeType);
+		myDeclare->type = sizeType;
+	    }
 	    if (prefix[0] != SDL_K_NOT_PRESENT)
 		strncpy(myDeclare->prefix, prefix, SDL_K_NAME_MAX_LEN);
 	    else
 		myDeclare->prefix[0] = '\0';
-
-	    /*
-	     * TODO: We need to get the datatype copied into here from the
-	     * sizeof statement.
-	     */
 	    strcpy(
 		myDeclare->tag,
 		_sdl_get_tag(
 			context,
 			((tag[0] == SDL_K_NOT_PRESENT) ? NULL : tag),
-			0));
+			myDeclare->type));
 	    _sdl_trim_tag(myDeclare->tag);
 	    SDL_INSQUE(&context->declares.header, &myDeclare->header);
 	}
@@ -1108,33 +1030,14 @@ int sdl_str2int(char *strVal, __int64_t *val)
 }
 
 /*
- * sdl_not
- *  This function is called to perform a bit-wise not on the input value.
- *
- * Input Parameters:
- *  binVal:
- *  	A numeric value to be converted to its ones-complement.
- *
- * Output Parameters:
- *  None.
- *
- * Return Values:
- *  A number representing the converted value.
- */
-__int64_t sdl_not(__int64_t binVal)
-{
-    return(~binVal);
-}
-
-/*
  * sdl_offset
  *  This function is called to get the current offset within the current
  *  AGGREGATE definition.
  *
  * Input Parameters:
- *  aggregate:
- *	A pointer to the aggregate information for the agregate that is currently
- *	being created.
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
  *  offsetType:
  *	A value indicating the type of offset to return.  This can be one of the
  *	following values:
@@ -1149,9 +1052,10 @@ __int64_t sdl_not(__int64_t binVal)
  *  0:		if we did not find anything.
  *  >=0:	if we did find something to return.
  */
-int sdl_offset(SDL_AGGREGATE *aggregate, int offsetType)
+int sdl_offset(SDL_CONTEXT *context, int offsetType)
 {
-    int		retVal = 0;
+    SDL_AGGREGATE	*aggregate = NULL;
+    int			retVal = 0;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1159,8 +1063,9 @@ int sdl_offset(SDL_AGGREGATE *aggregate, int offsetType)
     if (trace == true)
 	printf("%s:%d:sdl_offset\n", __FILE__, __LINE__);
 
-    if (aggregate->id[0] != '\0')
+    if (SDL_AGGSTACK_EMPTY(context->aggStackPtr) == false)
     {
+	aggregate = context->aggStack[context->aggStackPtr];
 	switch (offsetType)
 	{
 	    case SDL_K_OFF_BYTE_REL:
@@ -1176,6 +1081,8 @@ int sdl_offset(SDL_AGGREGATE *aggregate, int offsetType)
 		break;
 	}
     }
+    else
+	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.
@@ -1195,6 +1102,9 @@ int sdl_offset(SDL_AGGREGATE *aggregate, int offsetType)
  *  modifier was specified.
  *
  * Input Parameter:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
  *  lbound:
  *	A value indicating the lower bound value for the dimension.
  *  hbound:
@@ -1207,7 +1117,7 @@ int sdl_offset(SDL_AGGREGATE *aggregate, int offsetType)
  *  The entry in the dimension array used to store the DIMENSION information
  *  until needed.
  */
-int sdl_dimension(size_t lbound, size_t hbound)
+int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
 {
     int		retVal = 0;
 
@@ -1222,7 +1132,7 @@ int sdl_dimension(size_t lbound, size_t hbound)
      * slot.
      */
     while ((retVal < SDL_K_MAX_DIMENSIONS) &&
-	   (_dimensions[retVal].inUse == false))
+	   (context->dimensions[retVal].inUse == false))
 	retVal++;
 
     /*
@@ -1232,9 +1142,9 @@ int sdl_dimension(size_t lbound, size_t hbound)
      */
     if (retVal < SDL_K_MAX_DIMENSIONS)
     {
-	_dimensions[retVal].lbound = lbound;
-	_dimensions[retVal].hbound = hbound;
-	_dimensions[retVal].inUse = true;
+	context->dimensions[retVal].lbound = lbound;
+	context->dimensions[retVal].hbound = hbound;
+	context->dimensions[retVal].inUse = true;
     }
 
     /*
@@ -1252,6 +1162,7 @@ int sdl_dimension(size_t lbound, size_t hbound)
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
+ *  TODO
  *
  * Output Parameters:
  *  None.
@@ -1291,7 +1202,7 @@ int sdl_item(
 	    strncpy(myItem->id, name, SDL_K_SYMB_MAX_LEN);
 	    myItem->typeID = context->items.nextID++;
 	    myItem->type = datatype;
-	    myItem->size = sdl_sizeof(context, datatype);
+	    myItem->size = _sdl_sizeof(context, datatype);
 	    myItem->commonDef = (storage & SDL_M_STOR_COMM) == SDL_M_STOR_COMM;
 	    myItem->globalDef = (storage & SDL_M_STOR_GLOB) == SDL_M_STOR_GLOB;
 	    myItem->typeDef = (storage & SDL_M_STOR_TYPED) == SDL_M_STOR_TYPED;
@@ -1299,9 +1210,9 @@ int sdl_item(
 	    myItem->dimension = dimension >= 0;
 	    if (myItem->dimension)
 	    {
-		myItem->lbound = _dimensions[dimension].lbound;
-		myItem->hbound = _dimensions[dimension].hbound;
-		_dimensions[dimension].inUse = false;
+		myItem->lbound = context->dimensions[dimension].lbound;
+		myItem->hbound = context->dimensions[dimension].hbound;
+		context->dimensions[dimension].inUse = false;
 	    }
 	    if (prefix != NULL)
 		strncpy(myItem->prefix, prefix, SDL_K_NAME_MAX_LEN);
@@ -1569,8 +1480,10 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 	 * If the datatype is a base type, then return then get the default
 	 * tag for this type.
 	 */
-	if ((datatype >= SDL_K_BASE_TYPE_MIN) &&
-	    (datatype <= SDL_K_BASE_TYPE_MAX))
+	if (datatype == SDL_K_TYPE_NONE)
+	    retVal = _defaultTag[SDL_K_TYPE_CHAR];
+	else if ((datatype >= SDL_K_BASE_TYPE_MIN) &&
+		 (datatype <= SDL_K_BASE_TYPE_MAX))
 	    retVal = _defaultTag[datatype];
 	else
 	{
@@ -1685,4 +1598,121 @@ static void _sdl_trim_tag(char *tag)
      * Return the results of this call back to the caller.
      */
     return;
+}
+
+/*
+ * _sdl_sizeof
+ *  This function is called to return the length of an item, based on the item
+ *  indicated.  The item can be either a base type, or a user type.
+ *
+ * Input Parameters:
+ *  item:
+ *	A value indicating the item type for which we need the size.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Value:
+ *  A value greater than or equal to zero, representing the size of the
+ *  indicated type.
+ */
+static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
+{
+    __int64_t	retVal = 0;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_sizeof\n", __FILE__, __LINE__);
+
+    if ((item >= SDL_K_BASE_TYPE_MIN) && (item <= SDL_K_BASE_TYPE_MAX))
+	switch (item)
+	{
+	    case SDL_K_TYPE_BYTE:
+		retVal = sizeof(char);
+		break;
+
+	    case SDL_K_TYPE_WORD:
+		retVal = sizeof(short int);
+		break;
+
+	    case SDL_K_TYPE_LONG:
+		retVal = sizeof(int);
+		break;
+
+	    case SDL_K_TYPE_QUAD:
+		retVal = sizeof(__int64_t);
+		break;
+
+	    case SDL_K_TYPE_OCTA:
+		retVal = sizeof(__int128_t);
+		break;
+
+	    case SDL_K_TYPE_TFLT:
+		retVal = sizeof(float);
+		break;
+
+	    case SDL_K_TYPE_SFLT:
+		retVal = sizeof(double);
+		break;
+
+	    case SDL_K_TYPE_DECIMAL:
+		retVal = sizeof(float);
+		break;
+
+	    case SDL_K_TYPE_CHAR:
+		retVal = sizeof(char);
+		break;
+
+	    case SDL_K_TYPE_ADDR:
+		retVal = sizeof(void *);
+		break;
+
+	    case SDL_K_TYPE_ADDRL:
+		retVal = sizeof(long int);
+		break;
+
+	    case SDL_K_TYPE_ADDRQ:
+		retVal = sizeof(long long int);
+		break;
+
+	    case SDL_K_TYPE_ADDRHW:
+		retVal = sizeof(void *);
+		break;
+
+	    case SDL_K_TYPE_BOOL:
+		retVal = sizeof(_Bool);
+		break;
+
+	    default:
+		break;
+	}
+    else if ((item >= SDL_K_DECLARE_MIN) && (item <= SDL_K_DECLARE_MAX))
+    {
+	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, item);
+
+	if (myDeclare != NULL)
+	    retVal = myDeclare->size;
+    }
+    else if ((item >= SDL_K_ITEM_MIN) && (item <= SDL_K_ITEM_MAX))
+    {
+	SDL_ITEM *myItem = sdl_get_item(&context->items, item);
+
+	if (myItem != NULL)
+	    retVal = myItem->size;
+    }
+    else if ((item >= SDL_K_AGGREGATE_MIN) && (item <= SDL_K_AGGREGATE_MAX))
+    {
+	SDL_AGGREGATE *myAggregate =
+	    sdl_get_aggregate(&context->aggregates, item);
+
+	if (myAggregate != NULL)
+	    retVal = myAggregate->size;
+    }
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
 }

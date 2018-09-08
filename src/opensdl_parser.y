@@ -83,9 +83,15 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 
 %start here
 
-/* OpenSDL Directive Keywords */
+/* OpenSDL Directive and Conditional Keywords */
 %token SDL_K_LITERAL
 %token SDL_K_END_LITERAL
+%token SDL_K_IFLANG
+%token SDL_K_ELSE
+%token SDL_K_END_IFLANG
+%token SDL_K_IFSYMB
+%token SDL_K_ELSE_IFSYMB
+%token SDL_K_END_IFSYMB
 %token SDL_K_DECLARE
 
 /* OpenSDL Declaration Keywords */
@@ -284,9 +290,9 @@ declare
 
 sizeof
 	: SDL_K_OPEN expression SDL_K_CLOSE
-		{ $$ = $2; }
+		{ $$ = -$2; }
 	| datatypes
-		{ $$ = sdl_sizeof(&context, $1); }
+		{ $$ = $1; }
 	;
 
 prefix
@@ -342,7 +348,7 @@ factor
 	: SDL_K_MINUS factor
 		{ $$ = -$2; }
 	| SDL_K_NOT factor
-		{ $$ = sdl_not($2); }
+		{ $$ = ~$2; }
 	| SDL_K_OPEN expression SDL_K_CLOSE
 		{ $$ = $2; }
 	| number
@@ -365,11 +371,11 @@ number
 	| ascii
 		{ $$ = (__int64_t) $1[0]; }
 	| SDL_K_PERIOD
-		{ $$ = sdl_offset(context, SDL_K_OFF_BYTE_REL); }
+		{ $$ = sdl_offset(&context, SDL_K_OFF_BYTE_REL); }
 	| SDL_K_COLON
-		{ $$ = sdl_offset(context, SDL_K_OFF_BYTE_BEG); }
+		{ $$ = sdl_offset(&context, SDL_K_OFF_BYTE_BEG); }
 	| SDL_K_BITS
-		{ $$ = sdl_offset(context, SDL_K_OFF_BIT); }
+		{ $$ = sdl_offset(&context, SDL_K_OFF_BIT); }
 	;
 /*
 item
@@ -455,9 +461,9 @@ dimension
 	: %empty
 		{ $$ = -1; }
 	| SDL_K_DIMENSION hbound
-		{ $$ = sdl_dimension(1, $2); }
+		{ $$ = sdl_dimension(&context, 1, $2); }
 	| SDL_K_DIMENSION lbound SDL_K_COLON hbound
-		{ $$ = sdl_dimension($2, $4); }
+		{ $$ = sdl_dimension(&context, $2, $4); }
 	;
 
 declarations
@@ -507,7 +513,7 @@ basealign
 	| SDL_K_BASEALIGN SDL_K_OPEN expression SDL_K_CLOSE
 		{ $$ = pow(2, $3); }
 	| SDL_K_BASEALIGN datatypes
-		{ $$ = sdl_sizeof(&context, $2); }
+		{ $$ = $2; }
 	;
 /*
 marker
@@ -631,5 +637,29 @@ param_opt
 	| SDL_K_OPTIONAL
 	| SDL_K_LIST
 	;
+
+iflang
+	: SDL_K_IFLANG
+		lang
+	| else
+	| SDL_K_END_IFLANG 
+	;
+
+lang
+	: ident
+	| ident lang SDL_K_EOD
+	;
+
+else
+	: SDL_K_ELSE SDL_K_EOD
+	;
+
+ifsymb
+	: SDL_K_IFSYMB ident SDL_K_EOD
+	| SDL_K_ELSE_IFSYMB ident SDL_K_EOD
+	| else
+	| SDL_END_IFSYMB SDL_K_EOD
+	;
+
 */
 %%	/* End Grammar rules */

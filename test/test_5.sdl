@@ -50,7 +50,7 @@ DECLARE test5c SIZEOF (16) PREFIX sdl_ tag h;
 {
 { Test 5d: The same expression but with prefix and tag (with underscore).
 {
-DECLARE test5d SIZEOF quadword PREFIX sdl_ tag q_;
+DECLARE test5d SIZEOF quadword PREFIX sdl_;
 
 {
 { Test 5e: The same expression but refering to a previous definition.

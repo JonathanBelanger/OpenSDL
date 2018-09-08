@@ -165,6 +165,13 @@ extern _Bool trace;
 															}
 														}
 
+<INITIAL>[iI][fF][lL][aA][nN][gG][uU][aA][gG][eE]		{ return(SDL_K_IFLANG); }
+<INITIAL>[eE][lL][sS][eE]								{ return(SDL_K_ELSE); }
+<INITIAL>[eE][nN][dD]_[iI][fF][lL][aA][nN][gG][uU][aA][gG][eE]	{ return(SDL_K_END_IFLANG); }
+<INITIAL>[iI][fF][sS][yY][mM][bB][oO][lL]				{ return(SDL_K_IFSYMB); }
+<INITIAL>[eE][lL][sS][eE]_[iI][fF][sS][yY][mM][bB][oO][lL]	{ return(SDL_K_ELSE_IFSYMB); }
+<INITIAL>[eE][nN][dD]_[iI][fF][sS][yY][mM][bB][oO][lL]	{ return(SDL_K_END_IFSYMB); }
+
 <INITIAL>[dD][eE][cC][lL][aA][rR][eE]					{ return(SDL_K_DECLARE); }
 <INITIAL>[aA][gG][gG][rR][eE][gG][aA][tT][eE]			{ return(SDL_K_AGGREGATE); }
 <INITIAL>[cC][oO][nN][sS][tT][aA][nN][tT]				{ return(SDL_K_CONSTANT); }

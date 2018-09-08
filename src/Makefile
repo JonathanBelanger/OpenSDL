@@ -23,10 +23,13 @@
 #	V01.000		18-Aug-2018	Jonathan D. Belanger
 #	Initially written.
 #
-#	V01.001	Sep  6, 2018	Jonathan D. Belanger
+#	V01.001		06-Sep-2018	Jonathan D. Belanger
 #	Updated the copyright to be GNUGPL V3 compliant.
 #
-HOME		= /cygdrive/g/git/SDL
+#	V01.002		08-Sep-2018	Jonathan D. Belanger
+#	Change the parent folder name to OpenSDL.
+#
+HOME		= /cygdrive/g/git/OpenSDL
 SRC			= $(HOME)/src
 BIN			= $(HOME)/bin
 EXE			= $(HOME)/exe

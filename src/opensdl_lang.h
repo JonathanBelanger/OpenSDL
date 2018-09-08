@@ -53,8 +53,8 @@ int sdl_c_comment(
 		_Bool lineComment,
 		_Bool startComment,
 		_Bool endComment);
-int sdl_c_module(FILE *fp, char *moduleName, char *identName);
-int sdl_c_module_end(FILE *fp, char *moduleName);
+int sdl_c_module(FILE *fp, SDL_CONTEXT *context);
+int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context);
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context);
 
 #endif	/* _OPENSDL_LANH_H_ */

@@ -555,10 +555,9 @@ int sdl_c_comment(
  * Input Parameters:
  *  fp:
  *	A pointer to the file pointer to write out the information.
- *  moduleName:
- *  	A pointer to the MODULE module-name string to be output.
- *  identString:
- *  	A pointer to the IDENT "ident-string" string to be output.
+ *  context:
+ *	A pointer to the parser context where the module name and ident
+ *	information are stored.
  *
  * Output Parameters:
  *  None.
@@ -567,7 +566,7 @@ int sdl_c_comment(
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_c_module(FILE *fp, char *moduleName, char *identName)
+int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 {
     int	retVal = 1;
 
@@ -582,15 +581,15 @@ int sdl_c_module(FILE *fp, char *moduleName, char *identName)
      */
     if (fp != NULL)
     {
-	if (fprintf(fp, _module_str[SDL_MODULE_ENT], moduleName) < 0)
+	if (fprintf(fp, _module_str[SDL_MODULE_ENT], context->module) < 0)
 	    retVal = 0;
-	else if ((identName != NULL) && (strlen(identName) > 0))
+	else if ((context->ident != NULL) && (strlen(context->ident) > 0))
 	{
-	    if (fprintf(fp, _module_str[SDL_IDENT_ENT], identName) < 0)
+	    if (fprintf(fp, _module_str[SDL_IDENT_ENT], context->ident) < 0)
 		retVal = 0;
 	}
 	if ((retVal == 1) &&
-	    (fprintf(fp, _module_str[SDL_MODC_ENT], identName) < 0))
+	    (fprintf(fp, _module_str[SDL_MODC_ENT], context->ident) < 0))
 	    retVal = 0;
 	if (retVal == 1)
 	{
@@ -599,8 +598,8 @@ int sdl_c_module(FILE *fp, char *moduleName, char *identName)
 	    else if (fprintf(
 			fp,
 			_module_str[SDL_MODCOND_ENT],
-			strupr(moduleName),
-			strupr(moduleName)) < 0)
+			strupr(context->module),
+			strupr(context->module)) < 0)
 		retVal = 0;
 	    else if (fprintf(fp, _newLine) < 0)
 		retVal = 0;
@@ -623,8 +622,9 @@ int sdl_c_module(FILE *fp, char *moduleName, char *identName)
  * Input Parameters:
  *  fp:
  *	A pointer to the file pointer to write out the information.
- *  moduleName:
- *  	A pointer to the MODULE module-name string.
+ *  context:
+ *	A pointer to the parser context where the module name information is
+ *	stored.
  *
  * Output Parameters:
  *  None.
@@ -633,7 +633,7 @@ int sdl_c_module(FILE *fp, char *moduleName, char *identName)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_c_module_end(FILE *fp, char *moduleName)
+int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
 {
     int	retVal = 1;
 
@@ -648,7 +648,7 @@ int sdl_c_module_end(FILE *fp, char *moduleName)
      */
     if (fp != NULL)
     {
-	if (fprintf(fp, _module_str[SDL_MODEND_ENT], strupr(moduleName)) < 0)
+	if (fprintf(fp, _module_str[SDL_MODEND_ENT], strupr(context->module)) < 0)
 	    retVal = 0;
 	else if (fprintf(fp, _newLine) < 0)
 	    retVal = 0;

@@ -21,14 +21,14 @@
  *  definition file.
  *
  * USAGE:
- *	$ ./sdl <input_SDL_file>
+ *	$ ./opensdl <input_SDL_file>
  *
  * Revision History:
  *
  *  V01.000	Aug 23, 2018	Jonathan D. Belanger
  *  Initially written.
  *
- *  V01.001	Sep  6, 2018	Jonathan D. Belanger
+ *  V01.001	Sept  6, 2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
 #include <stdio.h>
@@ -46,12 +46,12 @@
 /*
  * Defines and includes for enable extend trace and logging
  */
-extern int			yydebug;
-extern SDL_CONTEXT		context;
-extern SDL_QUEUE		literal;
+extern int		yydebug;
+extern SDL_CONTEXT	context;
+extern SDL_QUEUE	literal;
 
-void	*scanner = NULL;
-_Bool	trace = false;
+void			*scanner = NULL;
+_Bool			trace = false;
 
 #define SDL_K_STARS	0
 #define SDL_K_CREATED	1
@@ -107,14 +107,8 @@ int main(int argc, char *argv[])
      */
     if (trace == true)
 	printf("%s:%d:main\n", __FILE__, __LINE__);
-    memset(&constant, 0, sizeof(SDL_CONSTANT));
-    memset(&constantList, 0, sizeof(SDL_CONSTANT_LIST));
-    SDL_Q_INIT(&constantList.header);
+    memset(&context, 0, sizeof(SDL_CONTEXT));
     SDL_Q_INIT(&literal);
-    memset(&entry, 0, sizeof(SDL_ENTRY));
-    SDL_Q_INIT(&entry.parameters);
-    memset(&aggregate, 0, sizeof(SDL_AGGREGATE));
-    SDL_Q_INIT(&aggregate.members);
 
     /*
      * Get the current time as the start time.
@@ -140,40 +134,39 @@ int main(int argc, char *argv[])
 
     /*
      * Initialize the parsing context.
-     *
-     *	1) Set all the supported languages to false.
-     *	2) Set the languages specified on the command line to true
-     *	   (currently we only know about the C language).
-     *	3) Scroll through all the languages and for each one which is true do:
-     *		a) Copy the input filename to the output filename.
-     *		b) Locate the last '.' in the output filename.
-     *		c) If adding the extension will exceed the maximum string
-     *		   length, then truncate a bit further and insert a '.'.
-     *		d) Append the output file extension to the end of the filename.
-     *		e) Open the output filename.
      */
     for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
     {
 	context.langSpec[ii] = false;
 	context.langEna[ii] = true;
     }
+
+    /*
+     * Initialize the aggregate stack.
+     */
+    for (ii = 0; ii < SDL_K_SUBAGG_MAX; ii++)
+	context.aggStack[ii] = NULL;
+    context.aggStackPtr = SDL_K_SUBAGG_MAX;
     context.langSpec[SDL_K_LANG_C] = true;
 
     /*
      * Initialize the dimension array.
      */
-	for (ii = 0; ii < SDL_K_MAX_DIMENSIONS; ii++)
-		context.dimentions[ii].inUse = false;
+    for (ii = 0; ii < SDL_K_MAX_DIMENSIONS; ii++)
+	context.dimensions[ii].inUse = false;
 
     /*
      * Initialize the context queues.
      */
+    SDL_Q_INIT(&context.locals);
+    SDL_Q_INIT(&context.constants);
     SDL_Q_INIT(&context.declares.header);
     context.declares.nextID = SDL_K_DECLARE_MIN;
     SDL_Q_INIT(&context.items.header);
     context.items.nextID = SDL_K_ITEM_MIN;
     SDL_Q_INIT(&context.aggregates.header);
     context.aggregates.nextID = SDL_K_AGGREGATE_MIN;
+    SDL_Q_INIT(&context.entries.header);
 
     /*
      * Loop through each of the supported languages.

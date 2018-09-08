@@ -1,0 +1,108 @@
+/+
+// Copyright (C) Jonathan D. Belanger 2018.
+// All Rights Reserved.
+//
+// This software is furnished under a license and may be used and copied only
+// in accordance with the terms of such license and with the inclusion of the
+// above copyright notice.  This software or any other copies thereof may not
+// be provided or otherwise made available to any other person.  No title to
+// and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and
+// should not be construed as a commitment by the author or co-authors.
+//
+// The author and any co-authors assume no responsibility for the use or
+// reliability of this software.
+//
+// Description:
+//
+//  This test file contains various permutations of the definition of local
+//  variables.
+//
+// Revision History:
+//
+//  V01.000	Sept 01, 2018	Jonathan D. Belanger
+//  Initially written.
+//
+//  V01.001	Sep  6, 2018	Jonathan D. Belanger
+//  Updated the copyright to be GNUGPL V3 compliant.
+/-
+
+{
+{ Test 3: This is going to test local variables.
+{
+MODULE test_3;
+
+{ Test 3a: define a local variable.
+{	success: #test3a = 2018
+#test3a = 2018;
+
+{ Test 3b: define a local variable with an operation.
+{	success: #test3b = 4
+#test3b = 2 + 2;
+
+{ Test 3c: define a local variable with the value of another local variable.
+{	success: #test3c = 2018
+#test3c = #test3a;
+
+{ Test 3d: define a local variable then add one to it.
+{	success: #test3c = 2019
+#test3d = 2018;
+#test3d = #test3d + 1;
+
+{ Test 3e: define a local using a string.
+{	success: #test3e = 942747698 (0x0000000038313032)
+#test3e = "2018";
+
+{ Test 3f: define a local variable that uses multiple other local variables.
+{	success: #test3f = 942749721
+#test3f = #test3a + #test3b + #test3e + 1;
+
+{ Test 3g: define local variables using various prefixes.
+{	success: #test3g1 = 81985529216486895 (0x0123456789abcdef)
+{			 #test3g2 = 45954941765256 (0x29CBB7FAC688)
+{			 #test3g3 = 81985529216486895 (0x0123456789ABCDEF)
+{			 #test3g4 = 97 (0x61)
+{			 #test3g5 = 97 (0x61)
+{			 #test3g6 = 97 (0x61)
+{			 #test3g7 = 9876543210 (0x24CB016EA)
+#test3g1 = %x0123456789abcdef;
+#test3g2 = %O1234566776543210;
+#test3g3 = %b0000000100100011010001010110011110001001101010111100110111101111;
+#test3g4 = %Aa;
+#test3g5 = %A61;
+#test3g6 = %A097;
+#test3g7 = %d9876543210;
+
+{ Test 3h: define local variables then perform various operations on them.
+{	success: #test3h1 = 1
+{			 #test3h2 = 2
+{			 #test3h3 = 4
+{			 #test3h4 = 4
+{			 #test3h5 = 9
+{			 #test3h6 = 9
+{			 #test3h7 = 12
+{			 #test3h8 = -9
+{			 #test3h9 = 16
+{			 #test3h10 = 4
+{			 #test3h11 = 3
+{			 #test3h12 = 2
+{			 #test3h13 = 111
+{			 #test3h14 = 111
+#test3h1 = 1;
+#test3h2 = 2;
+#test3h3 = 4;
+#test3h4 = 4;
+
+#test3h5 = #test3h1 + #test3h2 * #test3h3;
+#test3h6 = #test3h1 + (#test3h2 * #test3h3);
+#test3h7 = (#test3h1 + #test3h2) * #test3h3;
+#test3h8 = -#test3h6;
+#test3h9 = #test3h1 @ -4;
+#test3h10 = #test3h9 @ 2;
+#test3h11 = #test3h1 ! #test3h2;
+#test3h12 = #test3h11 & 2;
+#test3h13 = %Ag + 72 / (#test3h2 * #test3h4 + 1);
+#test3h14 = #test3h13;
+
+END_MODULE test_3;

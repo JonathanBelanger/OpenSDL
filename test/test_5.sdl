@@ -1,0 +1,65 @@
+/+
+// Copyright (C) Jonathan D. Belanger 2018.
+// All Rights Reserved.
+//
+// This software is furnished under a license and may be used and copied only
+// in accordance with the terms of such license and with the inclusion of the
+// above copyright notice.  This software or any other copies thereof may not
+// be provided or otherwise made available to any other person.  No title to
+// and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and
+// should not be construed as a commitment by the author or co-authors.
+//
+// The author and any co-authors assume no responsibility for the use or
+// reliability of this software.
+//
+// Description:
+//
+//  This test file contains the DECLARE statements.
+//
+// Revision History:
+//
+//  V01.000	Sept 01, 2018	Jonathan D. Belanger
+//  Initially written.
+//
+//  V01.001	Sep  6, 2018	Jonathan D. Belanger
+//  Updated the copyright to be GNUGPL V3 compliant.
+/-
+
+{
+{ Test 5: This is going to test DECLARE.
+{
+MODULE test_5;
+
+{
+{ Test 5a: The minimum expression.
+{
+DECLARE test5a SIZEOF (16);
+
+{
+{ Test 5b: The minimum expression.
+{
+DECLARE test5b SIZEOF OCTAWORD;
+
+{
+{ Test 5c: The same expression but with prefix and tag.
+{
+DECLARE test5c SIZEOF (16) PREFIX sdl_ tag h;
+
+{
+{ Test 5d: The same expression but with prefix and tag (with underscore).
+{
+DECLARE test5d SIZEOF quadword PREFIX sdl_ tag q_;
+
+{
+{ Test 5e: The same expression but refering to a previous definition.
+{
+DECLARE test5e SIZEOF test5a PREFIX sdl_ tag q;
+
+{
+{ Test 5f: The same expression but refering to a previous definition.
+{
+DECLARE test5f SIZEOF ADDRESS(test5d) PREFIX sdl_;
+
+END_MODULE test_5;

@@ -1,0 +1,75 @@
+/+
+// Copyright (C) Jonathan D. Belanger 2018.
+// All Rights Reserved.
+//
+// This software is furnished under a license and may be used and copied only
+// in accordance with the terms of such license and with the inclusion of the
+// above copyright notice.  This software or any other copies thereof may not
+// be provided or otherwise made available to any other person.  No title to
+// and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and
+// should not be construed as a commitment by the author or co-authors.
+//
+// The author and any co-authors assume no responsibility for the use or
+// reliability of this software.
+//
+// Description:
+//
+//  This test file contains various permutations of the MODULE/END_MODULE
+//  statements.
+//
+// Revision History:
+//
+//  V01.000	Sept 01, 2018	Jonathan D. Belanger
+//  Initially written.
+//
+//  V01.001	Sep  6, 2018	Jonathan D. Belanger
+//  Updated the copyright to be GNUGPL V3 compliant.
+/-
+
+{
+{ Test 2a: The just the MODULE/END_MODULE statements.
+{	1) The MODULE statement just has a <module-name>
+{	2) The END_MODULE does not specify the <module-name>
+{
+MODULE test_2a;
+END_MODULE;
+
+{
+{ Test 2b: Same as 2a, but the END_MODULE specifies the <module-name>.
+{
+MODULE test_2b;
+END_MODULE test_2b;
+
+{
+{ Test 2c: Same as 2b, but the END_MODULE specifies the wrong <module-name>.
+{
+MODULE test_2c;
+END_MODULE test_2a;
+
+{
+{ Test 2d: Same as 2b, but the MODULE includes the IDENT <ident-string>.
+{
+MODULE test_2d IDENT "V1.0-20180902";
+END_MODULE test_2d;
+
+{
+{ The following tests are the same as 2a and 2b, but with mixed case for the
+{ MODULE/END_MODULE statements.
+{
+
+module test_2e;
+end_module;
+
+MoDuLe test_2f;
+eNd_mOdUlE;
+
+MODULE test_2g;
+end_module;
+
+module test_2h;
+end_MODULE;
+
+module test_2i;
+END_module test_2i;

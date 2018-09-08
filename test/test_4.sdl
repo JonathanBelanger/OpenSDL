@@ -1,0 +1,64 @@
+/+
+// Copyright (C) Jonathan D. Belanger 2018.
+// All Rights Reserved.
+//
+// This software is furnished under a license and may be used and copied only
+// in accordance with the terms of such license and with the inclusion of the
+// above copyright notice.  This software or any other copies thereof may not
+// be provided or otherwise made available to any other person.  No title to
+// and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and
+// should not be construed as a commitment by the author or co-authors.
+//
+// The author and any co-authors assume no responsibility for the use or
+// reliability of this software.
+//
+// Description:
+//
+//  This test file contains the LITERAL/END_LITERAL statements.
+//
+// Revision History:
+//
+//  V01.000	Sept 01, 2018	Jonathan D. Belanger
+//  Initially written.
+//
+//  V01.001	Sep  6, 2018	Jonathan D. Belanger
+//  Updated the copyright to be GNUGPL V3 compliant.
+/-
+
+{
+{ Test 4: This is going to test LITERAL/END_LITERAL.
+{
+MODULE test_4;
+
+{
+{ Test 4a: This The following just opens and closes the literal with no intermediate
+{		   lines.
+/* Line just before first LITERAL
+LITERAL;
+END_LITERAL;
+/* Line just after first END_LITERAL
+
+{
+{ Test 4b: This comment should not show up in the output file.
+{
+/* Line just second first LITERAL
+LITERAL;
+/******************************************************************************/
+{
+{ This comment should show up in the output file.
+{
+
+/+
+// As should this one.
+/-
+
+/*
+/* And finally this one.
+/*
+/******************************************************************************/
+END_LITERAL;   #count = 1;
+/* Line just after second END_LITERAL
+
+END_MODULE test_4;

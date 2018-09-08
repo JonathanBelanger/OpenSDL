@@ -1,0 +1,51 @@
+MODULE sdl_test IDENT "V1.0-20180819" ;
+
+	CONSTANT MAGIC EQUALS 1230984567 PREFIX "SDL_" TAG "M";
+
+	CONSTANT (
+		ONE,
+		TWO,
+		FIVE = 5,
+		SIX) EQUALS 1 PREFIX "SDL_" TAG "L" INCREMENT 1 RADIX HEX;
+
+	CONSTANT block_node_size EQUALS 24; 
+ 
+	CONSTANT Strcon EQUALS STRING "This is a string constant" PREFIX Jg$ 
+
+	CONSTANT 
+		xyz EQUALS 10, 
+		alpha EQUALS 0, 
+		noname EQUALS 63;
+
+	CONSTANT ( 
+        bits, 
+        bytes, 
+        words, 
+        longs, 
+        quads, 
+        octas 
+        ) EQUALS 0 INCREMENT 1 PREFIX ctx$;
+
+	CONSTANT 
+ 		(bad_block,bad_data,,,, 
+  		 overlay,rewrite) EQUALS 0 INCREMENT 4;
+
+	CONSTANT( 
+        pli,    /* PL/I 
+        c,      /* C 
+        macro   /* MACRO-32 
+        ) EQUALS 4 INCREMENT 4 PREFIX lang$;
+
+	CONSTANT ( 
+		nop, 
+		unload, 
+		loadmcode, 
+		seek, 
+		spacefile, 
+		startmproc, 
+		recal, 
+		stop, 
+		drvclr, 
+		initialize) EQUALS 0 INCREMENT 1 PREFIX "io_"; 
+
+END_MODULE sdl_test;

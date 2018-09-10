@@ -461,7 +461,7 @@ typedef struct
     SDL_FILENAME	outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
-    SDL_CONSTANT	*constStack;
+    SDL_CONSTANT	**constStack;
     SDL_CONSTANT_LIST	constList;
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;

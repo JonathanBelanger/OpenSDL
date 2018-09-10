@@ -1320,10 +1320,10 @@ SDL_IDENT *sdl_constant_eq(__int64_t value, _Bool present)
 int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal)
 {
     SDL_CONSTANT	*myConstant = calloc(1, sizeof(SDL_CONSTANT));
-    SDL_CONSTANT 	*oldStack = context->constStack;
-    SDL_CONSTANT	*newStack = calloc(
+    SDL_CONSTANT 	**oldStack = context->constStack;
+    SDL_CONSTANT	**newStack = calloc(
 					(context->constEntries + 1),
-					sizeof(SDL_CONSTANT));
+					sizeof(SDL_CONSTANT *));
     int			retVal = 1;
     int			ii;
 
@@ -1366,6 +1366,92 @@ int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal)
 }
 
 /*
+ * sdl_constant
+ *  This function is called to allocate a CONSTANT structure and initialize
+ *  the value (integer or string).  This structure is returned on the call and
+ *  will be supplied on the sdl_constant_name call where the name will be
+ *  added.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  value:
+ *	An integer value to set to the constant.
+ *  valueStr:
+ *	A pointer to a string to be used to set to the constant.  If this parameter
+ *	is NULL, then value is used.  Otherwise, this parameter is used.  Both are
+ *	never used.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Value
+ *  NULL:	Local variable not found.
+ *  !NULL:	An existing local variable.
+ */
+SDL_CONSTANT *sdl_constant(SDL_CONTEXT *context, __int64_t value, char *valueStr)
+{
+    SDL_CONSTANT	*retVal = calloc(1, sizeof(SDL_CONSTANT));
+
+    if (retVal != NULL)
+    {
+	if (valueStr != NULL)
+	{
+	    retVal->type = SDL_K_CONST_STR;
+	    strcpy(retVal->string, valueStr);
+	}
+	else
+	{
+	    retVal->type = SDL_K_CONST_NUM;
+	    retVal->value = value;
+	}
+    }
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_comment_name
+ *  This function is called to add the name to an in-process CONSTANT
+ *  definition.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  name:
+ *	A pointer to the name for the constant.
+ *  myConstant:
+ *	A pointer to a SDL_CONSTANT structure to be initialized.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Value
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_name(SDL_CONTEXT *context, char *name, SDL_CONSTANT *myConstant)
+{
+    int		retVal = 1;
+
+    if (myConstant != NULL)
+    {
+	strcpy(myConstant->id, name);
+	SDL_INSQUE(&context->constants, &myConstant->header);
+    }
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
  * sdl_constant_names
  *  This function is called to define one or more CONSTANTs.
  *
@@ -1374,7 +1460,7 @@ int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal)
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
  *  value:
- *  	A value for the first constant in the list.
+ *	A value for the first constant in the list.
  *
  * Output Parameters:
  *  None.
@@ -1389,10 +1475,246 @@ int sdl_constant_names(SDL_CONTEXT *context, __int64_t value)
 
     context->constList.value = value;
     context->constList.increment = 1;
+    context->constList.radix = SDL_K_RADIX_DEF;
     context->constList.counter[0] = '\0';
     context->constList.prefix[0] = '\0';
     context->constList.tag[0] = '\0';
     context->constList.typeName[0] = '\0';
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_constant_opts
+ *  This function is called to specify the options on a CONSTANT definition.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  prefix:
+ *	A pointer to a string containing the prefix string to be prepended to the
+ *	constant names.
+ *  tag:
+ *	A pointer to a string containing the tag string to be insterted between the
+ *	prefix and the name.
+ *  counter:
+ *	A pointer to a string containing the name of the counter to be used to
+ *	maintain the count values.
+ *  incr:
+ *	A value indicating the increment value for one number to the next.
+ *  typename:
+ *	A string containing the typename to be used for the constant definition.
+ *  radix:
+ *	A value indicating the radix to be used when writing out the constant into
+ *	the language specific file.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_opts(
+		SDL_CONTEXT *context,
+		char *prefix,
+		char *tag,
+		char *counter,
+		__int64_t incr,
+		char *typeName,
+		int radix)
+{
+    int		retVal = 1;
+
+    context->constList.increment = incr;
+    context->constList.radix = radix;
+    if (counter[0] != SDL_K_NOT_PRESENT)
+    	strcpy(context->constList.counter, counter);
+    if (prefix[0] != SDL_K_NOT_PRESENT)
+    	strcpy(context->constList.prefix, prefix);
+    if (tag[0] != SDL_K_NOT_PRESENT)
+    {
+    	strcpy(context->constList.tag, tag);
+    	_sdl_trim_tag(context->constList.tag);
+    }
+    if (typeName[0] != SDL_K_NOT_PRESENT)
+    	strcpy(context->constList.typeName, typeName);
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_constant_val
+ *  This function is just like sdl_constant_opts, except that the target
+ *  CONSTANT definition is already on the queue.  We just need to initialize
+ *  it accordingly.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  prefix:
+ *	A pointer to a string containing the prefix string to be prepended to the
+ *	constant names.
+ *  tag:
+ *	A pointer to a string containing the tag string to be insterted between the
+ *	prefix and the name.
+ *  counter:
+ *	A pointer to a string containing the name of the counter to be used to
+ *	maintain the count values.
+ *	A string containing the typename to be used for the constant definition.
+ *  radix:
+ *	A value indicating the radix to be used when writing out the constant into
+ *	the language specific file.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_val(
+		SDL_CONTEXT *context,
+		char *prefix,
+		char *tag,
+		char *counter,
+		char *typeName,
+		int radix)
+{
+    SDL_CONSTANT		*myConstant = (SDL_CONSTANT *) context->constants.blink;
+    int		retVal = 1;
+
+    if (myConstant != NULL)
+    {
+	context->constList.radix = radix;
+	if ((counter != NULL) && (counter[0] != SDL_K_NOT_PRESENT))
+	    strcpy(context->constList.counter, counter);
+	if (prefix[0] != SDL_K_NOT_PRESENT)
+	    strcpy(context->constList.prefix, prefix);
+	if (tag[0] != SDL_K_NOT_PRESENT)
+	{
+	    strcpy(context->constList.tag, tag);
+	    _sdl_trim_tag(context->constList.tag);
+	}
+	if ((typeName != NULL) && (typeName[0] != SDL_K_NOT_PRESENT))
+	    strcpy(context->constList.typeName, typeName);
+	myConstant->radix = radix;
+    }
+	else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_constant_done
+ *  This function is called when the ; on a CONSTANT definition is reached and
+ *  is when the constant definitions will all occur.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  alreadyQd:
+ *	A boolean value indicating if the constant we need to complete has already
+ *	been put in the constants queue.  If it has, all we need to do is write it
+ *	to the output files.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_done(SDL_CONTEXT *context, _Bool alreadyQd)
+{
+	SDL_CONSTANT		*myConstant;
+	SDL_LOCAL_VARIABLE	*myVariable = NULL;
+    int					retVal = 1;
+    int					ii, jj;
+
+    if (alreadyQd == false)
+    {
+	if (strlen(context->constList.counter) != 0)
+	{
+	    myVariable = sdl_set_local(
+					context,
+    				context->constList.counter,
+					context->constList.value);
+	    if (myVariable == NULL)
+	    	retVal = 0;
+	}
+	for (ii = context->constEntries; ((ii >= 0) && (retVal == 1)); ii--)
+	{
+	    myConstant = context->constStack[ii];
+	    context->constStack[ii] = NULL;
+	    if (myConstant->valueSet == false)
+	    {
+		myConstant->value = context->constList.value;
+    	myConstant->valueSet = true;
+	    }
+	    else
+		context->constList.value = myConstant->value;
+	    if (myVariable != NULL)
+		myVariable = sdl_set_local(
+						context,
+						myVariable->id,
+						myConstant->value);
+	    strcpy(myConstant->prefix, context->constList.prefix);
+	    strcpy(myConstant->tag, context->constList.tag);
+	    strcpy(myConstant->typeName, context->constList.typeName);
+	    myConstant->radix = context->constList.radix;
+	    SDL_INSQUE(&context->constants, &myConstant->header);
+	    context->constList.value += context->constList.increment;
+
+	    /*
+	     * Loop through all the possible languages and call the appropriate
+	     * output function for each of the enabled languages.
+	     */
+	    for (jj = 0; ((jj < SDL_K_LANG_MAX) && (retVal == 1)); jj++)
+		if ((context->langSpec[jj] == true) && (context->langEna[jj] == true))
+		    retVal = (*_outputFuncs[jj][SDL_K_CONSTANT_CB])(
+					context->outFP[jj],
+					myConstant,
+					context);
+	}
+	free(context->constStack);
+	context->constEntries = 0;
+	context->constList.counter[0] = '\0';
+	context->constList.prefix[0] = '\0';
+	context->constList.tag[0] = '\0';
+	context->constList.typeName[0] = '\0';
+	context->constList.value = 0;
+	context->constList.increment = 0;
+	context->constList.radix = SDL_K_RADIX_DEF;
+    }
+    else
+    {
+	myConstant = (SDL_CONSTANT *) context->constants.blink;
+
+    /*
+     * Loop through all the possible languages and call the appropriate
+     * output function for each of the enabled languages.
+     */
+    for (jj = 0; ((jj < SDL_K_LANG_MAX) && (retVal == 1)); jj++)
+	if ((context->langSpec[jj] == true) && (context->langEna[jj] == true))
+	    retVal = (*_outputFuncs[jj][SDL_K_CONSTANT_CB])(
+				context->outFP[jj],
+				myConstant,
+				context);
+    }
 
     /*
      * Return the results of this call back to the caller.

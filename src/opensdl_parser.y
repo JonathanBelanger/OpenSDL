@@ -604,21 +604,21 @@ const_list_opts
 	: prefix tag counter increment typename radix
 		{ sdl_constant_opts(&context, $1, $2, $3, $4, $5, &6); }
 	| SDL_K_EOD
-		{ sdl_constant_done(&context); }
+		{ sdl_constant_done(&context, false); }
 	;
 
 const_val_opts
 	: prefix tag counter typename radix
-		{ sdl_constant_opts(&context, $1, $2, $3, 0, $4, $5); }
+		{ sdl_constant_val(&context, $1, $2, $3, $4, $5); }
 	| SDL_K_EOD
-		{ sdl_constant_done(&context); }
+		{ sdl_constant_done(&context, true); }
 	;
 
 const_str_opts
 	: prefix tag
-		{ sdl_constant_opts(&context, $1, $2, 0, 0, 0, 0); }
+		{ sdl_constant_val(&context, $1, $2, NULL, NULL, 0); }
 	| SDL_K_EOD
-		{ sdl_constant_done(&context); }
+		{ sdl_constant_done(&context, true); }
 	;
 
 counter

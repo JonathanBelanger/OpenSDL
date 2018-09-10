@@ -71,6 +71,7 @@ typedef struct
 /*
  * These are the base types supported by OpenSDL.
  */
+#define SDL_K_TYPE_CONST	0
 #define SDL_K_TYPE_NONE		0
 #define	SDL_K_TYPE_BYTE		1
 #define	SDL_K_TYPE_WORD		2
@@ -229,13 +230,14 @@ typedef struct
  * The following definitions are used to maintain single CONSTANT declaration
  */
 #define SDL_K_SYMB_MAX_LEN	256+1
-typedef struct _constant_
+typedef struct
 {
     SDL_QUEUE	header;
     char	id[SDL_K_SYMB_MAX_LEN];
     char	prefix[SDL_K_NAME_MAX_LEN];
     char	tag[SDL_K_NAME_MAX_LEN];
     char	comment[SDL_K_SYMB_MAX_LEN];
+    char	typeName[SDL_K_SYMB_MAX_LEN];
     int		radix;
     int		type;				/* Numeric or String */
     union
@@ -243,22 +245,8 @@ typedef struct _constant_
 	char		string[SDL_K_SYMB_MAX_LEN];
 	__int64_t	value;
     };
+    _Bool	valueSet;
 } SDL_CONSTANT;
-
-/*
- * The following definition is used to maintain a constant declared with a
- * single CONSTANT statement following by a comma-separated list of
- * constant-names to be declared.
- */
-typedef struct
-{
-    SDL_QUEUE	header;
-    char	prefix[SDL_K_NAME_MAX_LEN];
-    char	tag[SDL_K_NAME_MAX_LEN];
-    char	comment[SDL_K_SYMB_MAX_LEN];
-    __int64_t	currentValue;
-    __int64_t	incrementValue;
-} SDL_CONSTANT_ITEMS;
 
 /*
  * The following definitions are used to declare a set of DECLARE items.
@@ -444,9 +432,27 @@ typedef struct
 /*
  * The following definition is used to maintain context during the parsing.
  */
+typedef struct
+{
+    __int64_t	value;
+    _Bool	present;
+} SDL_IDENT;
+
+typedef struct
+{
+    char 	counter[SDL_K_NAME_MAX_LEN];	/* Variable name	*/
+    char	prefix[SDL_K_NAME_MAX_LEN];
+    char	tag[SDL_K_NAME_MAX_LEN];
+    char	typeName[SDL_K_SYMB_MAX_LEN];
+    __int64_t	value;
+    __int64_t	increment;
+    int		radix;
+} SDL_CONSTANT_LIST;
+
 #define SDL_TIMESTR_LEN		20+1	/* dd-MMM-yyyy hh:mm:ss		*/
 #define SDL_K_SUBAGG_MAX	8+1
 typedef char		SDL_FILENAME[SDL_K_NAME_MAX_LEN];
+
 typedef struct
 {
     SDL_AGGREGATE	*aggStack[SDL_K_SUBAGG_MAX];
@@ -455,6 +461,8 @@ typedef struct
     SDL_FILENAME	outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
+    SDL_CONSTANT	*constStack;
+    SDL_CONSTANT_LIST	constList;
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;
     SDL_DECLARE_LIST	declares;
@@ -464,6 +472,7 @@ typedef struct
     char		module[SDL_K_SYMB_MAX_LEN];
     char		ident[SDL_K_SYMB_MAX_LEN];
     int			aggStackPtr;
+    int			constEntries;
 } SDL_CONTEXT;
 
 #define SDL_AGGSTACK_EMPTY(p)	((p) == SDL_K_SUBAGG_MAX)

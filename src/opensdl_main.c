@@ -156,6 +156,12 @@ int main(int argc, char *argv[])
 	context.dimensions[ii].inUse = false;
 
     /*
+     * Initialize the constant stack.
+     */
+    context.constTotal = context.constPtr = 0;
+    context.constStack = NULL;
+
+    /*
      * Initialize the context queues.
      */
     SDL_Q_INIT(&context.locals);

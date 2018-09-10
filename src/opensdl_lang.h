@@ -32,7 +32,7 @@
 
 #include <time.h>
 
-#define SDL_K_FUNC_PER_LANG	4
+#define SDL_K_FUNC_PER_LANG	5
 #define SDL_K_COMMENT_LEN	80+1
 
 /*
@@ -56,5 +56,6 @@ int sdl_c_comment(
 int sdl_c_module(FILE *fp, SDL_CONTEXT *context);
 int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context);
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context);
+int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context);
 
 #endif	/* _OPENSDL_LANH_H_ */

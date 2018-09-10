@@ -227,17 +227,22 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %type <bval> objecttype
 %type <bval> address
 %type <bval> basealign
+%type <bval> increment
+%type <bval> radix
+%type <bval> ident_equal
+%type <bval> const_val
 
 %type <tval> tag
 %type <tval> prefix
+%type <tval> counter
+%type <tval> typename
+
 /*
-%type <bval> inc
 %type <bval> lbound
 %type <bval> hbound
 %type <bval> syntypes
 %type <bval> signspec
 %type <bval> align
-%type <bval> radix
 */
 
 /*
@@ -258,8 +263,8 @@ line
 	| literal
 	| declare
 /*	| item
-	| declarations
-*/	;
+*/	| declarations
+	;
 
 module
 	: SDL_K_MODULE ident SDL_K_EOD
@@ -465,16 +470,16 @@ dimension
 	| SDL_K_DIMENSION lbound SDL_K_COLON hbound
 		{ $$ = sdl_dimension(&context, $2, $4); }
 	;
-
+*/
 declarations
-	: aggregate
-	| constant
+	: constant
+/*	| aggregate
 	| entry
 	| item
 	| struct
 	| union
-	;
-
+*/	;
+/*
 aggregate
 	: SDL_K_AGGREGATE ident aggregate_type datatypes storage based alignment dimension marker prefix tag origin fill SDL_K_EOD
 		{ sdl_aggregate(&context, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13); }
@@ -561,14 +566,86 @@ agg_opt
 	: %empty
 	: datatypes alignment dimension marker prefix tag fill SDL_K_EOD
 	;
+*/
 
 constant
-	: SDL_K_CONSTANT ident SDL_K_EQUALS value prefix tag counter typename SDL_K_EOD
-	| SDL_K_CONSTANT ident SDL_K_EQUALS SDL_K_STRING ident prefix tag SDL_K_EOD
-	| SDL_K_CONSTANT const_list SDL_K_EOD
-	| SDL_K_CONSTANT SDL_K_OPEN list SDL_K_CLOSE SDL_K_EQUALS increment prefix tag counter typename SDL_K_EOD
+	: SDL_K_CONSTANT const_names SDL_K_EQUALS expression
+		{ sdl_constant_names(&context, $4); }
+		const_list_opts
+	| SDL_K_CONSTANT ident SDL_K_EQUALS const_val
+		{ sdl_constant_name(&context, $2, $4); }
 	;
 
+const_val
+	: expression
+		{ $$ = sdl_constant(&context, $1, NULL); }
+		const_val_opts
+	| SDL_K_STRING string
+		{ $$ = sdl_constant(&context, 0, $2); }
+		const_str_opts
+	;
+
+const_names
+	: ident ident_equal
+		{ sdl_constant_add(&context, $1, $2); }
+		const_names
+	| SDL_K_COMMA const_names
+	| SDL_K_CLOSE
+	;
+
+ident_equal
+	: %empty
+		{ $$ = sdl_constant_eq(0, false); }
+	| SDL_K_EQUALS expression
+		{ $$ = sdl_constant_eq($2, true); }
+	;
+
+const_list_opts
+	: prefix tag counter increment typename radix
+		{ sdl_constant_opts(&context, $1, $2, $3, $4, $5, &6); }
+	| SDL_K_EOD
+		{ sdl_constant_done(&context); }
+	;
+
+const_val_opts
+	: prefix tag counter typename radix
+		{ sdl_constant_opts(&context, $1, $2, $3, 0, $4, $5); }
+	| SDL_K_EOD
+		{ sdl_constant_done(&context); }
+	;
+
+const_str_opts
+	: prefix tag
+		{ sdl_constant_opts(&context, $1, $2, 0, 0, 0, 0); }
+	| SDL_K_EOD
+		{ sdl_constant_done(&context); }
+	;
+
+counter
+	: %empty
+		{ $$[0] = SDL_K_NOT_PRESENT; }
+	| SDL_K_COUNTER variable
+		{ $$ = $2; }
+	;
+
+increment
+	: %empty
+		{ $$ = 0; }
+	| SDL_K_INCR expression
+		{ %% = $2; }
+	;
+
+radix
+	: %empty
+		{ $$ = SDL_K_RADIX_DEF; }
+	| SDL_K_RADIX SDL_K_DEC
+		{ $$ = SDL_K_RADIX_DEC; }
+	| SDL_K_RADIX SDL_K_OCT
+		{ $$ = SDL_K_RADIX_OCT; }
+	| SDL_K_RADIX SDL_K_HEX
+		{ $$ = SDL_K_RADIX_HEX; }
+	;
+/*
 entry
 	: SDL_K_ENTRY ident alias parameter linkage variable returns typename SDL_K_EOD
 	;
@@ -603,7 +680,7 @@ returns
 	: %empty
 	| SDL_K_RETURNS datatype named
 	;
-
+*/
 typename
 	: %empty
 		{ $$[0] = SDL_K_NOT_PRESENT; }
@@ -611,7 +688,7 @@ typename
 		{ $$ = $2; }
 	;
 
-*
+/*
  * TODO: Need to make this into a list.
  *
 param_desc

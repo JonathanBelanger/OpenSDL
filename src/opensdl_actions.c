@@ -42,6 +42,7 @@ extern _Bool trace;
 #define SDL_K_MODULE_CB		1
 #define SDL_K_END_MODULE_CB	2
 #define SDL_K_ITEM_CB		3
+#define SDL_K_CONSTANT_CB	4
 
 static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 {
@@ -49,7 +50,13 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
     /*
      * For the C/C++ languages.
      */
-    {&sdl_c_comment, &sdl_c_module, &sdl_c_module_end, &sdl_c_item}
+    {
+	&sdl_c_comment,
+	&sdl_c_module,
+	&sdl_c_module_end,
+	&sdl_c_item,
+	&sdl_c_constant
+    }
 };
 
 /*
@@ -583,6 +590,13 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	context->dimensions[ii].inUse = 0;
 
     /*
+     * Free up any names that are still allocated.
+     */
+    if (context->names != NULL)
+	free(context->names);
+    context->nameSize = context->namePtr = 0;
+
+    /*
      * Clean out all the local variables.
      */
     while(SDL_Q_EMPTY(&context->locals) == false)
@@ -849,7 +863,7 @@ int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype)
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
- *  usertype:
+ *  name:
  *	A pointer to a string containing the name of the type.
  *  sizeType:
  *	A value indicating the size or datatype of the declaration.
@@ -1239,6 +1253,146 @@ int sdl_item(
 	else
 	    retVal = 0;
     }
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_constant_eq
+ *  This function is called to add a value or let OpenSDL set it as part of
+ *  defining one or more constants.
+ *
+ * Input Parameters:
+ *  value:
+ *	A value to set to the constant being defined.
+ *  present:
+ *	A boolean value indicating that the value is real (true) or not
+ *	(false).
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  NULL:	Failed to allocate the memory.
+ *  !NULL:	Address of the initialize structure.
+ */
+SDL_IDENT *sdl_constant_eq(__int64_t value, _Bool present)
+{
+    SDL_IDENT	*retVal = calloc(1, sizeof(SDL_IDENT));
+
+    if (retVal != NULL)
+    {
+	retVal->value = value;
+	retVal->present = present;
+    }
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_constant_add
+ *  This function is called to add a constant to the currently defined set of
+ *  constants.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  name:
+ *	A pointer to a string containing the name of the constant.
+ *  initVal:
+ *  	A pointer to a structure allocated by the sdl_constant_eq function.
+ *  	This memory will be deallocated prior to returning to the caller.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal)
+{
+    SDL_CONSTANT	*myConstant = calloc(1, sizeof(SDL_CONSTANT));
+    SDL_CONSTANT 	*oldStack = context->constStack;
+    SDL_CONSTANT	*newStack = calloc(
+					(context->constEntries + 1),
+					sizeof(SDL_CONSTANT));
+    int			retVal = 1;
+    int			ii;
+
+    if (newStack != NULL)
+    {
+	for (ii = 0; ii < context->constEntries; ii++)
+	    newStack[ii+1] = oldStack[ii];
+	context->constEntries++;
+	context->constStack = newStack;
+	free(oldStack);
+    }
+
+    /*
+     * If the constant block was allocated, then initialize it and push it onto
+     * the stack.
+     */
+    if ((myConstant != NULL) && (newStack != NULL))
+    {
+	strcpy(myConstant->id, name);
+	myConstant->prefix[0] = '\0';
+	strcpy(myConstant->tag, _defaultTag[SDL_K_TYPE_CONST]);
+	myConstant->type = SDL_K_CONST_NUM;
+	myConstant->valueSet = initVal->present;
+	if (initVal->present == true)
+	    myConstant->value = initVal->value;
+	context->constStack[0] = myConstant;
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Free the initial value structure.  We no longer need it.
+     */
+    free(initVal);
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_constant_names
+ *  This function is called to define one or more CONSTANTs.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  value:
+ *  	A value for the first constant in the list.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_names(SDL_CONTEXT *context, __int64_t value)
+{
+    int		retVal = 1;
+
+    context->constList.value = value;
+    context->constList.increment = 1;
+    context->constList.counter[0] = '\0';
+    context->constList.prefix[0] = '\0';
+    context->constList.tag[0] = '\0';
+    context->constList.typeName[0] = '\0';
 
     /*
      * Return the results of this call back to the caller.

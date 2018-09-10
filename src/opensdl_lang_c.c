@@ -68,7 +68,7 @@ static char	*_comments[] =
 
 static char	*_constant[] = {"#define %s ", "%d", "0x%x", "0%o", "\"%s\""};
 #define SDL_DEFINE_ENT	0
-#define SDL_DECIMAL_ENT	1
+#define SDL_DEC_ENT	1
 #define SDL_HEX_ENT	2
 #define SDL_OCT_ENT	3
 #define SDL_STR_ENT	4
@@ -747,6 +747,103 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
     /*
      * TODO: Complete this code.
      */
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_c_constant
+ *  This function is called when it gets a CONSTANT keyword.  It writes out a
+ *  declaration consistent with the information provided on the CONSTANT.
+ *
+ * Input Parameters:
+ *  fp:
+ *	A pointer to the file pointer to write out the information.
+ *  constant:
+ *  	A pointer to the CONSTANT record.
+ *  context:
+ *	A pointer to the context block to be used to determine the type string.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
+{
+    char	nameBuf[SDL_K_SYMB_MAX_LEN];
+    int		retVal = 1;
+
+    /*
+     * Start building the constant name in the form of <prefix><tag>_<name>.
+     */
+    sprintf(nameBuf, "%s%s_%s", constant->prefix, constant->tag, constant->id);
+
+    /*
+     * Now let's do some output.
+     *
+     * First the #define <name> portion.
+     */
+    if (fprintf(fp, _constant[SDL_DEFINE_ENT], nameBuf) < 0)
+	retVal = 0;
+
+    /*
+     * If name was successful and this is a string constant, then output the
+     * string value.
+     */
+    else if (constant->type == SDL_K_CONST_STR)
+    {
+	if (fprintf(fp, _constant[SDL_STR_ENT], constant->string) < 0)
+	    retVal = 0;
+    }
+
+    /*
+     * It isn't a string, so it much be a value.  Output the value based on the
+     * request RADIX.
+     */
+    else
+    {
+	switch (constant->radix)
+	{
+	    case SDL_K_RADIX_DEC:
+		if (fprintf(fp, _constant[SDL_DEC_ENT], constant->value) < 0)
+		    retVal = 0;
+		break;
+
+	    case SDL_K_RADIX_OCT:
+		if (fprintf(fp, _constant[SDL_OCT_ENT], constant->value) < 0)
+		    retVal = 0;
+		break;
+
+	    case SDL_K_RADIX_HEX:
+		if (fprintf(fp, _constant[SDL_HEX_ENT], constant->value) < 0)
+		    retVal = 0;
+		break;
+
+	    default:
+		retVal = 0;
+		break;
+	}
+    }
+
+    /*
+     * If there was a comment associated with this constant, then output that
+     * as well.
+     */
+    if ((retVal == 1) && (strlen(constant->comment) > 0))
+	if (fprintf(fp, _comments[SDL_LINE_COMMENT], constant) < 0)
+	    retVal = 0;
+
+    /*
+     * Move to the next line in the output file.
+     */
+    if ((retVal == 1) && (fprintf(fp, _newLine) < 0))
+	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.

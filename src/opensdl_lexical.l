@@ -248,23 +248,23 @@ extern _Bool trace;
 <INITIAL>[vV][aA][rR][yY][iI][nN][gG]					{ return(SDL_K_VARY); }
 <INITIAL>[pP][rR][eE][cC][iI][sS]i[oO][nN]				{ return(SDL_K_PRECISION); }
 
-<INITIAL>"+"												{ return SDL_K_PLUS; }
-<INITIAL>"-"												{ return SDL_K_MINUS; }
-<INITIAL>"*"												{ return SDL_K_MULT; }
-<INITIAL>"/"												{ return SDL_K_DIVIDE; }
-<INITIAL>"@"												{ return SDL_K_SHIFT; }
-<INITIAL>"&"												{ return SDL_K_AND; }
-<INITIAL>"!"												{ return SDL_K_OR; }
-<INITIAL>"~"												{ return SDL_K_NOT; }
-<INITIAL>"."												{ return SDL_K_PERIOD; }
-<INITIAL>"^"												{ return SDL_K_BITS; }
-<INITIAL>"="												{ return SDL_K_EQ; }
+<INITIAL>"+"											{ return(SDL_K_PLUS); }
+<INITIAL>"-"											{ return(SDL_K_MINUS); }
+<INITIAL>"*"											{ return(SDL_K_MULT); }
+<INITIAL>"/"											{ return(SDL_K_DIVIDE); }
+<INITIAL>"@"											{ return(SDL_K_SHIFT); }
+<INITIAL>"&"											{ return(SDL_K_AND); }
+<INITIAL>"!"											{ return(SDL_K_OR); }
+<INITIAL>"~"											{ return(SDL_K_NOT); }
+<INITIAL>"."											{ return(SDL_K_PERIOD); }
+<INITIAL>"^"											{ return(SDL_K_BITS); }
+<INITIAL>"="											{ return(SDL_K_EQ); }
 
-<INITIAL>";"												{ return(SDL_K_EOD); }
-<INITIAL>"("												{ return(SDL_K_OPEN); }
-<INITIAL>")"												{ return(SDL_K_CLOSE); }
-<INITIAL>","												{ return(SDL_K_COMMA); }
-<INITIAL>":"												{ return SDL_K_COLON; }
+<INITIAL>";"											{ return(SDL_K_EOD); }
+<INITIAL>"("											{ return(SDL_K_OPEN); }
+<INITIAL>")"											{ return(SDL_K_CLOSE); }
+<INITIAL>","											{ return(SDL_K_COMMA); }
+<INITIAL>":"											{ return(SDL_K_COLON); }
 
 <INITIAL>[rR][aA][dD][iI][xX]							{ return(SDL_K_RADIX); }
 <INITIAL>[dD][eE][cC]									{ return(SDL_K_DEC); }

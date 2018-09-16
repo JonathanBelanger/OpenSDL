@@ -1,0 +1,203 @@
+Printable		::= [ !"#$%&'()*+,#x2D./0-9:;<=>?@A-Z[\#x5D^_`a-z{|}~#x0009]
+Alpha			::= [A-Za-z]
+Alphanum		::= Alpha [0-9]
+Cr_lf			::= #x0D#x0A | #x0A#x0D
+
+Integer			::= [0] | ('%'[dD] | [1-9])[0-9]*
+Hexadecimal		::= [%0] [xX] [0-9a-fA-F]+
+Octal			::= ( '%' [oO] | '0' ) [0-7]+
+Binary			::= '%' [bB] [0-1]+
+Ascii			::= '%' [aA] ( [0-9] [0-9] [0-9] | [0-9A-Za-z] [0-9A-Za-z] )
+Str			::= '"' Printable* '"'
+File_spec		::= Alphanum* ' '* '/'* '.'*
+Name			::= [_$a-zA-Z][_$a-zA-Z0-9]*
+Variable		::= '#'Name
+
+Local_comment		::= "{" Printable* Cr_lf
+Output_comment_1	::= "/*" Printable* Cr_lf
+Output_comment_2	::= "/+" (Printable* | Cr_lf* | "//"*)* "/-"
+Line_comment		::= Local_comment | Output_comment_1
+Comments		::= (Line_comment* | Output_comment_2*)*
+
+Expression		::= Expr '+' Terminal | Expr '-' Terminal | Terminal
+Expr			::= Expression
+Terminal		::= Term '*' Condition | Term '/' Condition | Condition
+Term			::= Terminal
+Condition		::= Cond '&' Bit_op | Cond '|' Bit_op | Bit_op
+Cond			::= Condition
+Bit_op			::= Bit '@' Factor | Factor
+Bit			::= Bit_op
+Factor			::= ( '-' | '~' ) Fact | '(' Expression ')' | Number | Str
+Fact			::= Factor
+Number			::= Integer | Variable | Hexadecimal | Octal | Binary |
+			    Ascii | '.' | ':' | '^'
+Local_var		::= Variable '=' Expression ';'
+
+Sign			::= (Signed | Unsigned)
+Byte			::= ([iI][nN][tT][eE][gG][eE][rR]_)? [bB][yY][tT][eE] Sign?
+Word			::= ([iI][nN][tT][eE][gG][eE][rR]_)? [wW][oO][rR][dD] Sign?
+Long			::= ([lL][oO][nN][gG][wW][oO][rR][dD] | [iI][nN][tT][eE][gG][eE][rR] (_[lL][oO][nN][gG])?) Sign?
+Quad			::= ([qQ][uU][aA][dD][wW][oO][rR] | [iI][nN][tT][eE][gG][eE][rR]_[Qq][uU][aA]) [dD] Sign?
+Octa			::= ([oO][cC][tT][aA][wW][oO][rR][dD] Sign?)
+Int_hw			::= ([iI][nN][tT][eE][gG][eE][rR]_[hH][wW] |
+			     [hH][aA][rR][dD][wW][aA][rR][eE]_[iI][nN][tT][eE][gG][eE][rR]) Sign?
+S_float			::= ([sS]_[fF][lL][oO][aA][tT] Complex?)
+T_float			::= ([tT]_[fF][lL][oO][aA][tT] Complex?)
+Decimal			::= ([dD][eE][cC][iI][mM][aA][lL] Precision
+			     '('Expression','Expression')')
+Bitfield		::= ([bB][iI][tT][fF][iI][eE][lL][dD] (Length Expression)?
+			     Mask? Sign?)
+Char			::= ([cC][hH][aA][rR][aA][cC][tT][eE][rR] (Length
+			     (Expression | '*'))? Varying?)
+Addr			::= ([aA][dD][dD][rR][eE][sS][sS] |
+			     [pP][oO][iI][nN][tT][eE][rR])
+Addr_l			::= [pP][oO][iI][nN][tT][eE][rR]_[lL][oO][nN][gG]
+Addr_q			::= [pP][oO][iI][nN][tT][eE][rR]_[qQ][uU][aA][dD]
+Addr_hw			::= ([pP][oO][iI][nN][tT][eE][rR]_[hH][wW] |
+			     [hH][aA][rR][dD][wW][aA][rR][eE]_[aA][dD][dD][rR][eE][sS][sS])
+Any			::= [aA][nN][yY]
+Boolean			::= [bB][oO][oO][lL][eE][aA][nN]
+Signed			::= [sS][iI][gG][nN][eE][dD]
+Unsigned		::= [uU][nN][sS][iI][gG][nN][eE][dD]
+Complex			::= [cC][oO][mM][pP][lL][eE][xX]
+Length			::= [lL][eE][nN][gG][tT][hH]
+Mask			::= [mM][aA][sS][kK]
+Varying			::= [vV][aA][rR][yY][iI][nN][gG]
+Precision		::= [pP][rR][eE][cC][iI][sS]i[oO][nN]
+
+Integer_datatypes	::= Byte | Word | Long | Quad | Int_hw | Octa
+Fp_datatypes		::= S_float | T_float
+Address_datatypes	::= Addr | Addr_l | Addr_q | Addr_hw
+
+Language_name		::= [cC]
+Symbol_name		::= Name
+Iflang			::= [iI][fF][lL][aA][nN][gG][uU][aA][gG][eE]
+			    Language_name+ ';'
+Else			::= [eE][lL][sS][eE]';'
+End_iflang		::= [eE][nN][dD]_[iI][fF][lL][aA][nN][gG][uU][aA][gG][eE]
+			    Language_name? ';'
+Ifsymb			::= [iI][fF][sS][yY][mM][bB][oO][lL] Symbol_name ';'
+Else_ifsymb		::= [eE][lL][sS][eE]_[iI][fF][sS][yY][mM][bB][oO][lL]
+			    Symbol_name ';'
+End_ifsymb		::= [eE][nN][dD]_[iI][fF][sS][yY][mM][bB][oO][lL] ';'
+Cond_lang		::= Iflang | Else | End_iflang
+Cond_symb		::= Ifsymb | Else_ifsymb | Else | End_ifsymb
+
+Literal			::= [lL][iI][tT][eE][rR][aA][lL] ';'
+End_literal		::= [eE][nN][dD]_[lL][iI][tT][eE][rR][aA][lL] ';'
+Literal_construct	::= Literal | End_literal
+
+Include			::= [iI][nN][cC][lL][uU][dD][eE] File_spec ';'
+
+Module_name		::= Name
+Module			::= [mM][oO][dD][uU][lL][eE] Module_name
+			    ([iI][dD][eE][nN][tT] Str)? ';'
+End_module		::= [eE][nN][dD]_[mM][oO][dD][uU][lL][eE] Module_name? ';'
+
+Pointer_name		::= Name
+Member_name		::= Name
+Prefix			::= ([pP][rR][eE][fF][iI][xX] Str)
+Tag			::= ([tT][aA][gG] Str)
+Align			::= ([aA][lL][iI][gG][nN] | [nN][oO][aA][lL][iI][gG][nN])
+Basealign		::= [bB][aA][sS][eE][aA][lL][iI][gG][nN]
+Storage			::= ([cC][oO][mM][mM][oO][nN] | [gG][lL][oO][bB][aA][lL])
+Based			::= ([bB][aA][sS][eE][dD] Pointer_name)
+Typedef			::= [tT][yY][pP][eE][dD][eE][fF]
+Dimension		::= ([dD][iI][mM][eE][nN][sS][iI][oO][nN]
+			     (Expression ':')? Expression)
+Fill			::= [fF][iI][lL][lL]
+Marker			::= ([mM][aA][rR][kK][eE][rR] Str)
+Origin			::= ([oO][rR][iI][gG][iI][nN] Member_name)
+Counter			::= ([cC][oO][uU][nN][tT][eE][rR] Variable)
+Equals			::= [eE][qQ][uU][aA][lL][sS]
+String			::= [sS][tT][rR][iI][nN][gG]
+Increment		::= ([iI][nN][cC][rR][eE][mM][eE][nN][tT] Expression)
+Typename		::= ([tT][yY][pP][eE][nN][aA][mM][eE] Name)
+Structure		::= [sS][tT][rR][uU][cC][tT][uU][rR][eE]
+Union			::= [uU][nN][iI][oO][nN]
+End			::= [eE][nN][dD]
+
+Basealign_attribute	::= Basealign '(' Number ')'
+Object_type		::= Data_type | Any | Name (Dimension)?
+Pointer_type		::= Address_datatypes
+			    ('(' Object_type Basealign_attribute? ')')?
+Data_type		::= Integer_datatypes | Fp_datatypes | Pointer_type |
+			    Decimal | Boolean | Char
+
+Item_name		::= Name
+User_type		::= Name
+Declare			::= [dD][eE][cC][lL][aA][rR][eE] User_type
+			    [sS][iI][zZ][eE][oO][fF]
+			    (User_type | Data_type | ('(' Expression ')')) Prefix?
+			    Tag? ';'
+
+Item			::= [iI][tT][eE][mM] Item_name (Data_type | User_type)
+			    (Storage | Typedef)? Basealign? Dimension? Prefix?
+			    Tag? ';'
+
+Options			::= (Storage | Typedef | Based)? (Align | Basealign)?
+			    Dimension? Marker? Prefix? Tag? Origin? Fill?
+Aggregate_name		::= Name
+Aggr			::= [aA][gG][gG][rR][eE][gG][aA][tT][eE] Aggregate_name
+						(Structure | Union) Options ';'
+End_aggr		::= End Aggregate_name ';'
+
+Subaggregate		::= Member_name (Structure | Union) Options ';'
+Implicit_union		::= Member_name Structure Data_type Options ';'
+End_subaggr		::= [eE][nN][dD] Member_name ';'
+Member			::= Member_name
+			    (Data_type | Aggregate_name | User_type | Bitfield)
+			    Options ';'
+
+Sub_aggr_body		::= (Subaggregate | Implicit_union) Member+ End_subaggr
+
+Aggregate_body		::= (Member | Sub_aggr_body)+
+
+Aggregate		::= Aggr Aggregate_body End_aggr
+
+Constant_name		::= Came
+Constant_names		::= Constant_name |
+			    ('(' Constant_name (',' Constant_name)* ')')
+Constant_class		::=  Equals (Expression Numeric_options | String Str String_options)
+String_options		::= Prefix? Tag?
+Numeric_options		::= String_options Counter? Typename?
+Increment_options	::= Increment? Numeric_options
+
+Constant_list		::= Constant_names Equals Expression Increment_options
+Constant_set		::= Constant_names Equals Expression
+			    (',' Constand_names Equals Expression)*
+
+Constant		::= [cC][oO][nN][sS][tT][aA][nN][tT] (Constant_name Constant_class | Constant_list | Constant_set) ';'
+
+Module_body		::= Item | Aggregate | Constant | Entry | Local_var |
+			    Comments | Include | Declare | Cond_lang | Cond_symb |
+			    Literal_construct
+
+Internal_name		::= Name
+Linkage_name		::= Name
+Param_name		::= Name
+Named			::= ([nN][aA][mM][eE][dD] Param_name)
+Alias			::= ([Aa][lL][iI][aA][sS] Internal_name)
+Linkage			::= ([lL][iI][nN][kK][aA][gG][eE] Linkage_name)
+Entry_variable		::= [vV][aA][rR][iI][aA][bB][lL][eE]
+Returns			::= ([rR][eE][tT][uU][rR][nN][sS] Return_datatype Named?)
+Return_datatype		::= (Data_type | User_type | ([vV][oO][iI][dD]))
+
+Value			::= [vV][aA][lL][uU][eE]
+Reference		::= [rR][eE][fF][eE][rR][eE][nN][cC][eE]
+Entry_dim		::= ([dD][iI][mM][eE][nN][sS][iI][oO][nN]
+			     (Expression | '*'))
+Default			::= ([dD][eE][fF][aA][uU][lL][tT] Expression)
+
+Param_desc		::= (Data_type | Aggregate_name) (Value | Reference)?
+			    ([iI][nN])? ([oO][uU][tT])? Named? Entry_dim? Default?
+			    Typename? ([oO][pP][tT][iI][oO][nN][aA][lL])?
+			    ([lL][iI][sS][tT])?
+Parameter		::= ([pP][aA][rR][aA][mM][eE][tT][eE][rR] '(' Param_desc
+			     (',' Param_desc)* ')')
+
+Entry_name		::= Name
+Entry			::= [eE][nN][tT][rR][yY] Entry_name Alias? Parameter?
+			    Linkage? Entry_variable? Returns? Typename?
+
+File_layout		::= Comments Module Module_body End_module

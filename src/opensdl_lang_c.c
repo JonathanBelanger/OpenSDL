@@ -52,9 +52,9 @@ static char	*_module_str[] =
 
 static char	*_comments[] =
 {
-    "/*%s*/",
-    "/*\n *%s",
-    "/*",
+    "/*%s */",
+    "\n/*\n *%s",
+    "\n/*",
     " *%s",
     " *%s\n */",
     " */"
@@ -279,7 +279,7 @@ static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_c_commentStars(FILE *fp, _Bool twoNL)
+int sdl_c_commentStars(FILE *fp)
 {
     char	str[SDL_K_COMMENT_LEN];
     int		retVal = 1;
@@ -307,11 +307,6 @@ int sdl_c_commentStars(FILE *fp, _Bool twoNL)
      */
     if (fprintf(fp, "%s\n", str) < 0)
 	retVal = 0;
-    else if (twoNL == true)
-    {
-	if (fprintf(fp, _newLine) < 0)
-	    retVal = 0;
-    }
 
     /*
      * Return back to the caller.
@@ -504,7 +499,7 @@ int sdl_c_comment(
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_c_comment\n", __FILE__, __LINE__);
+	printf("%s:%d:sdl_c_comment('%s')\n", __FILE__, __LINE__, comment);
 
     /*
      * Determine the type of comment being used.
@@ -600,8 +595,6 @@ int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 			_module_str[SDL_MODCOND_ENT],
 			strupr(context->module),
 			strupr(context->module)) < 0)
-		retVal = 0;
-	    else if (fprintf(fp, _newLine) < 0)
 		retVal = 0;
 	}
     }

@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 extern _Bool trace;
 
@@ -51,7 +52,7 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
      * For the C/C++ languages.
      */
     {
-	&sdl_c_comment,
+	(SDL_FUNC) &sdl_c_comment,
 	&sdl_c_module,
 	&sdl_c_module_end,
 	&sdl_c_item,
@@ -95,6 +96,12 @@ static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *na
 static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype);
 static void _sdl_trim_tag(char *tag);
 static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item);
+static void _sdl_trim_str(char *str, int type);
+
+#define SDL_M_LEAD	0x00000001	/* remove leading spaces */
+#define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */
+#define SDL_M_COMPRESS	0x00000004	/* remove duplicate spaces */
+#define SDL_M_COLLAPSE	0x00000008	/* remove all spaces */
 
 /*
  * sdl_unquote_str
@@ -409,30 +416,20 @@ int sdl_comment(SDL_CONTEXT *context, char *comment)
     int	retVal = 1;
     int ii;
     int startOfComment = 2;	/* Need to skip past the '/[*+-/]'.	*/
-    size_t len = strlen(comment);
     _Bool lineComment = false;
     _Bool startComment = false;
     _Bool endComment = false;
 
     /*
-     * Before we go too far, strip ending control characters.
+     * Trim all trailing space characters.
      */
-    while (((comment[len-1] == '\n') ||
-	    (comment[len-1] == '\f') ||
-	    (comment[len-1] == '\r')) &&
-	   (len > 0))
-	comment[--len] = '\0';
-    if (comment[len-1] != ' ')
-    {
-	comment[len++] = ' ';
-	comment[len++] = '\0';
-    }
+    _sdl_trim_str(comment, SDL_M_TRAIL);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_comment\n", __FILE__, __LINE__);
+	printf("%s:%d:sdl_comment('%s' - after trimming\n", __FILE__, __LINE__, comment);
 
     /*
      * Determine the type of comment by the second character:
@@ -590,13 +587,6 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	context->dimensions[ii].inUse = 0;
 
     /*
-     * Free up any names that are still allocated.
-     */
-    if (context->names != NULL)
-	free(context->names);
-    context->nameSize = context->namePtr = 0;
-
-    /*
      * Clean out all the local variables.
      */
     while(SDL_Q_EMPTY(&context->locals) == false)
@@ -610,31 +600,50 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
     /*
      * Clean out all the constant definitions.
      */
+    ii = 1;
     while(SDL_Q_EMPTY(&context->constants) == false)
     {
 	SDL_CONSTANT *constant;
 
 	SDL_REMQUE(&context->constants, constant);
+	printf(
+		"\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n\t    typename: %s\n\t    valueSet: %s\n\t    type: %s\n",
+		ii,
+		constant->id,
+		constant->prefix,
+		constant->tag,
+		constant->typeName,
+		(constant->valueSet ? "True" : "False"),
+		(constant->type == SDL_K_CONST_STR ? "String" : "Number"));
+	if (constant->type == SDL_K_CONST_STR)
+	{
+	    printf(
+		"\t    value: %s\n",
+		constant->string);
+
+	}
+	else
+	{
+	    printf(
+		"\t    value: %ld (%s)\n",
+		constant->value,
+		(constant->radix <= SDL_K_RADIX_DEC ? "Decimal" :
+		    (constant->radix == SDL_K_RADIX_OCT ? "Octal" :
+			(constant->radix == SDL_K_RADIX_HEX ? "Hexidecimal" :
+			    "Invalid"))));
+	}
+	ii++;
 	free(constant);
     }
 
     /*
      * Clean out all the declares.
      */
-    ii = 1;
     while (SDL_Q_EMPTY(&context->declares.header) == false)
     {
 	SDL_DECLARE *declare;
 
 	SDL_REMQUE(&context->declares.header, declare);
-	printf(
-		"\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n\t    ID: %d\n\t    size: %ld\n",
-		ii++,
-		declare->id,
-		declare->prefix,
-		declare->tag,
-		declare->typeID,
-		declare->size);
 	free(declare);
     }
 
@@ -1283,6 +1292,17 @@ SDL_IDENT *sdl_constant_eq(__int64_t value, _Bool present)
 {
     SDL_IDENT	*retVal = calloc(1, sizeof(SDL_IDENT));
 
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf(
+	    "%s:%d:sdl_constant_eq(%ld, %s)\n",
+	    __FILE__,
+	    __LINE__,
+	    value,
+	    (present ? "True" : "False"));
+
     if (retVal != NULL)
     {
 	retVal->value = value;
@@ -1327,6 +1347,18 @@ int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal)
     int			retVal = 1;
     int			ii;
 
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf(
+	    "%s:%d:sdl_constant_add(%s, (%ld, %s))\n",
+	    __FILE__,
+	    __LINE__,
+	    name,
+	    initVal->value,
+	    (initVal->present ? "True" : "False"));
+
     if (newStack != NULL)
     {
 	for (ii = 0; ii < context->constEntries; ii++)
@@ -1368,9 +1400,8 @@ int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal)
 /*
  * sdl_constant
  *  This function is called to allocate a CONSTANT structure and initialize
- *  the value (integer or string).  This structure is returned on the call and
- *  will be supplied on the sdl_constant_name call where the name will be
- *  added.
+ *  the value (integer or string).  This structure is queued onto the constant
+ *  queue and the call to sdl_constant_name will add the name.
  *
  * Input Parameters:
  *  context:
@@ -1387,26 +1418,43 @@ int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal)
  *  None.
  *
  * Return Value
- *  NULL:	Local variable not found.
- *  !NULL:	An existing local variable.
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
  */
-SDL_CONSTANT *sdl_constant(SDL_CONTEXT *context, __int64_t value, char *valueStr)
+int sdl_constant(SDL_CONTEXT *context, __int64_t value, char *valueStr)
 {
-    SDL_CONSTANT	*retVal = calloc(1, sizeof(SDL_CONSTANT));
+    SDL_CONSTANT	*myConstant = calloc(1, sizeof(SDL_CONSTANT));
+    int			retVal = 1;
 
-    if (retVal != NULL)
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf(
+	    "%s:%d:sdl_constant(%ld, %s)\n",
+	    __FILE__,
+	    __LINE__,
+	    value,
+	    (valueStr != NULL? valueStr : "''"));
+
+    if (myConstant != NULL)
     {
+	strcpy(myConstant->tag, _defaultTag[SDL_K_TYPE_CONST]);
 	if (valueStr != NULL)
 	{
-	    retVal->type = SDL_K_CONST_STR;
-	    strcpy(retVal->string, valueStr);
+	    myConstant->type = SDL_K_CONST_STR;
+	    strcpy(myConstant->string, valueStr);
 	}
 	else
 	{
-	    retVal->type = SDL_K_CONST_NUM;
-	    retVal->value = value;
+	    myConstant->type = SDL_K_CONST_NUM;
+	    myConstant->value = value;
 	}
+	myConstant->valueSet = true;
+	SDL_INSQUE(&context->constants, &myConstant->header);
     }
+    else
+	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.
@@ -1435,15 +1483,25 @@ SDL_CONSTANT *sdl_constant(SDL_CONTEXT *context, __int64_t value, char *valueStr
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_constant_name(SDL_CONTEXT *context, char *name, SDL_CONSTANT *myConstant)
+int sdl_constant_name(SDL_CONTEXT *context, char *name)
 {
-    int		retVal = 1;
+    SDL_CONSTANT	*myConstant = (SDL_CONSTANT *) context->constants.blink;
+    int			retVal = 1;
 
-    if (myConstant != NULL)
-    {
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf(
+	    "%s:%d:sdl_constant_name(%s)\n",
+	    __FILE__,
+	    __LINE__,
+	    name);
+
+    if ((myConstant != NULL) && (strlen(myConstant->id) == 0))
 	strcpy(myConstant->id, name);
-	SDL_INSQUE(&context->constants, &myConstant->header);
-    }
+    else
+	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.
@@ -1461,6 +1519,22 @@ int sdl_constant_name(SDL_CONTEXT *context, char *name, SDL_CONSTANT *myConstant
  *	the current parsing.
  *  value:
  *	A value for the first constant in the list.
+ *  prefix:
+ *	A pointer to a string containing the prefix string to be prepended to the
+ *	constant names.
+ *  tag:
+ *	A pointer to a string containing the tag string to be inserted between the
+ *	prefix and the name.
+ *  counter:
+ *	A pointer to a string containing the name of the counter to be used to
+ *	maintain the count values.
+ *  incr:
+ *	A value indicating the increment value for one number to the next.
+ *  typename:
+ *	A string containing the typename to be used for the constant definition.
+ *  radix:
+ *	A value indicating the radix to be used when writing out the constant into
+ *	the language specific file.
  *
  * Output Parameters:
  *  None.
@@ -1469,17 +1543,50 @@ int sdl_constant_name(SDL_CONTEXT *context, char *name, SDL_CONSTANT *myConstant
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_constant_names(SDL_CONTEXT *context, __int64_t value)
+int sdl_constant_names(
+		SDL_CONTEXT *context,
+		__int64_t value,
+		char *prefix,
+		char *tag,
+		char *counter,
+		__int64_t incr,
+		char *typeName,
+		int radix)
 {
     int		retVal = 1;
 
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf(
+	    "%s:%d:sdl_constant_names(%ld)\n",
+	    __FILE__,
+	    __LINE__,
+	    value);
+
     context->constList.value = value;
-    context->constList.increment = 1;
-    context->constList.radix = SDL_K_RADIX_DEF;
-    context->constList.counter[0] = '\0';
-    context->constList.prefix[0] = '\0';
-    context->constList.tag[0] = '\0';
-    context->constList.typeName[0] = '\0';
+    context->constList.increment = incr;
+    context->constList.radix = radix;
+    if (counter[0] != SDL_K_NOT_PRESENT)
+    	strcpy(context->constList.counter, counter);
+    else
+	context->constList.counter[0] = '\0';
+    if (prefix[0] != SDL_K_NOT_PRESENT)
+    	strcpy(context->constList.prefix, prefix);
+    else
+	context->constList.prefix[0] = '\0';
+    if (tag[0] != SDL_K_NOT_PRESENT)
+    {
+    	strcpy(context->constList.tag, tag);
+    	_sdl_trim_tag(context->constList.tag);
+    }
+    else
+	context->constList.tag[0] = '\0';
+    if (typeName[0] != SDL_K_NOT_PRESENT)
+    	strcpy(context->constList.typeName, typeName);
+    else
+	context->constList.typeName[0] = '\0';
 
     /*
      * Return the results of this call back to the caller.
@@ -1499,7 +1606,7 @@ int sdl_constant_names(SDL_CONTEXT *context, __int64_t value)
  *	A pointer to a string containing the prefix string to be prepended to the
  *	constant names.
  *  tag:
- *	A pointer to a string containing the tag string to be insterted between the
+ *	A pointer to a string containing the tag string to be inserted between the
  *	prefix and the name.
  *  counter:
  *	A pointer to a string containing the name of the counter to be used to
@@ -1529,6 +1636,12 @@ int sdl_constant_opts(
 		int radix)
 {
     int		retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_constant_opts\n", __FILE__, __LINE__);
 
     context->constList.increment = incr;
     context->constList.radix = radix;
@@ -1564,7 +1677,7 @@ int sdl_constant_opts(
  *	A pointer to a string containing the prefix string to be prepended to the
  *	constant names.
  *  tag:
- *	A pointer to a string containing the tag string to be insterted between the
+ *	A pointer to a string containing the tag string to be inserted between the
  *	prefix and the name.
  *  counter:
  *	A pointer to a string containing the name of the counter to be used to
@@ -1589,26 +1702,41 @@ int sdl_constant_val(
 		char *typeName,
 		int radix)
 {
-    SDL_CONSTANT		*myConstant = (SDL_CONSTANT *) context->constants.blink;
-    int		retVal = 1;
+    SDL_CONSTANT	*myConstant = (SDL_CONSTANT *) context->constants.blink;
+    int			retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+    {
+	printf(
+	    "%s:%d:sdl_constant_val(%s, %s, %s, %s, %d)\n",
+	    __FILE__,
+	    __LINE__,
+	    (prefix[0] == SDL_K_NOT_PRESENT ? "''" : prefix),
+	    (tag[0] == SDL_K_NOT_PRESENT ? "''" : tag),
+	    (((counter == NULL) || (counter[0] == SDL_K_NOT_PRESENT)) ? "''" : counter),
+	    (((typeName == NULL) || (typeName[0] == SDL_K_NOT_PRESENT)) ? "''" : typeName),
+	    radix);
+    }
 
     if (myConstant != NULL)
     {
-	context->constList.radix = radix;
+	myConstant->radix = radix;
 	if ((counter != NULL) && (counter[0] != SDL_K_NOT_PRESENT))
-	    strcpy(context->constList.counter, counter);
+	    retVal = sdl_set_local(context, counter, myConstant->value);
 	if (prefix[0] != SDL_K_NOT_PRESENT)
-	    strcpy(context->constList.prefix, prefix);
+	    strcpy(myConstant->prefix, prefix);
 	if (tag[0] != SDL_K_NOT_PRESENT)
 	{
-	    strcpy(context->constList.tag, tag);
-	    _sdl_trim_tag(context->constList.tag);
+	    strcpy(myConstant->tag, tag);
+	    _sdl_trim_tag(myConstant->tag);
 	}
 	if ((typeName != NULL) && (typeName[0] != SDL_K_NOT_PRESENT))
-	    strcpy(context->constList.typeName, typeName);
-	myConstant->radix = radix;
+	    strcpy(myConstant->typeName, typeName);
     }
-	else
+    else
 	retVal = 0;
 
     /*
@@ -1640,19 +1768,27 @@ int sdl_constant_val(
  */
 int sdl_constant_done(SDL_CONTEXT *context, _Bool alreadyQd)
 {
-	SDL_CONSTANT		*myConstant;
-	SDL_LOCAL_VARIABLE	*myVariable = NULL;
-    int					retVal = 1;
-    int					ii, jj;
+    SDL_CONSTANT	*myConstant;
+    SDL_LOCAL_VARIABLE	*myVariable = NULL;
+    int			retVal = 1;
+    int			ii, jj;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_constant_done\n", __FILE__, __LINE__);
 
     if (alreadyQd == false)
     {
 	if (strlen(context->constList.counter) != 0)
 	{
-	    myVariable = sdl_set_local(
-					context,
-    				context->constList.counter,
-					context->constList.value);
+	    retVal = sdl_set_local(
+			context,
+			context->constList.counter,
+			context->constList.value);
+	    if (retVal == 1)
+		myVariable = _sdl_get_local(context, context->constList.counter);
 	    if (myVariable == NULL)
 	    	retVal = 0;
 	}
@@ -1663,32 +1799,35 @@ int sdl_constant_done(SDL_CONTEXT *context, _Bool alreadyQd)
 	    if (myConstant->valueSet == false)
 	    {
 		myConstant->value = context->constList.value;
-    	myConstant->valueSet = true;
+		myConstant->valueSet = true;
 	    }
 	    else
 		context->constList.value = myConstant->value;
 	    if (myVariable != NULL)
-		myVariable = sdl_set_local(
-						context,
-						myVariable->id,
-						myConstant->value);
-	    strcpy(myConstant->prefix, context->constList.prefix);
-	    strcpy(myConstant->tag, context->constList.tag);
-	    strcpy(myConstant->typeName, context->constList.typeName);
-	    myConstant->radix = context->constList.radix;
-	    SDL_INSQUE(&context->constants, &myConstant->header);
-	    context->constList.value += context->constList.increment;
+		retVal = sdl_set_local(
+				context,
+				myVariable->id,
+				myConstant->value);
+	    if (retVal == 1)
+	    {
+		strcpy(myConstant->prefix, context->constList.prefix);
+		strcpy(myConstant->tag, context->constList.tag);
+		strcpy(myConstant->typeName, context->constList.typeName);
+		myConstant->radix = context->constList.radix;
+		SDL_INSQUE(&context->constants, &myConstant->header);
+		context->constList.value += context->constList.increment;
 
-	    /*
-	     * Loop through all the possible languages and call the appropriate
-	     * output function for each of the enabled languages.
-	     */
-	    for (jj = 0; ((jj < SDL_K_LANG_MAX) && (retVal == 1)); jj++)
-		if ((context->langSpec[jj] == true) && (context->langEna[jj] == true))
-		    retVal = (*_outputFuncs[jj][SDL_K_CONSTANT_CB])(
-					context->outFP[jj],
-					myConstant,
-					context);
+		/*
+		 * Loop through all the possible languages and call the appropriate
+		 * output function for each of the enabled languages.
+		 */
+		for (jj = 0; ((jj < SDL_K_LANG_MAX) && (retVal == 1)); jj++)
+		    if ((context->langSpec[jj] == true) && (context->langEna[jj] == true))
+			retVal = (*_outputFuncs[jj][SDL_K_CONSTANT_CB])(
+						context->outFP[jj],
+						myConstant,
+						context);
+	    }
 	}
 	free(context->constStack);
 	context->constEntries = 0;
@@ -2191,4 +2330,87 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
      * Return the results of this call back to the caller.
      */
     return(retVal);
+}
+
+/*
+ * _sdl_trim_str
+ *  This function is called to remove space characters from a string.  If can
+ *  perform 4 kinds of space removal (any one or all at the same time).
+ *
+ *	SDL_M_LEAD	Remove all leading spaces
+ *	SDL_M_TRAIL	Remove all trailing spaces
+ *	SDL_M_COMPRESS	Convert repeating space characters to a single one
+ *	SDL_M_COLLAPSE	Remove all space characters
+ *
+ * Input Parameters:
+ *  str:
+ *	A pointer to the string to be trimmed.
+ *  type:
+ *	A value mask indicating the type of space trimming to be performed.
+ *
+ * Output Parameters:
+ *  str:
+ *	A pointer to the updated string (modified in place)
+ *
+ * Return Values:
+ *  None.
+ */
+static void _sdl_trim_str(char *str, int type)
+{
+    int		srcIdx = 0;
+    int		destIdx = 0;
+
+    /*
+     * If we are stripping leading or compressing multiple or removing all
+     * spaces, then we start from the beginning of the string and work out way
+     * to the end.  Otherwise, we are probably stripping trailing spaces, in
+     * which case, we are stripping from the end of the string forward.
+     */
+    if ((type & (SDL_M_LEAD | SDL_M_COMPRESS | SDL_M_COLLAPSE)) != 0)
+	while (str[srcIdx] != '\0')
+	{
+	    if ((type == SDL_M_LEAD) && (destIdx == 0))
+	    {
+		if (isspace(str[srcIdx]))
+		    srcIdx++;
+		else
+		    str[destIdx++] = str[srcIdx++];
+	    }
+	    if ((type == SDL_M_COMPRESS) && (destIdx > 0))
+	    {
+		if (isspace(str[destIdx - 1]) && isspace(str[srcIdx]))
+		    srcIdx++;
+		else
+		    str[destIdx++] = str[srcIdx++];
+	    }
+	    if (type == SDL_M_COLLAPSE)
+	    {
+		if (isspace(str[srcIdx]))
+		    srcIdx++;
+		else
+		    str[destIdx++] = str[srcIdx++];
+	    }
+	}
+    else
+	destIdx = strlen(str);
+
+    /*
+     * Make sure we terminate the string with a null-character.
+     */
+    str[destIdx] = '\0';
+
+    /*
+     * If we are stripping spaces from the end of the string, then we will just
+     * convert the space characters to a null-character.
+     */
+    if (type == SDL_M_TRAIL)
+    {
+	while (isspace(str[--destIdx]))
+	    str[destIdx] = '\0';
+    }
+
+    /*
+     * Return back to the caller.
+     */
+    return;
 }

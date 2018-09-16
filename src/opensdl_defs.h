@@ -51,11 +51,19 @@ typedef struct
 
 #define SDL_Q_INIT(q)	((q)->flink = (q)->blink = (void *) (q))
 #define SDL_Q_EMPTY(q)	(((q)->flink == (q)->blink) && ((q)->flink == (q)))
+
+/*
+ * Insert at the end of the queue (blink).
+ */
 #define SDL_INSQUE(q, e)				\
     SDL_QUEUE	*p = (SDL_QUEUE *) (q)->blink;		\
     (e)->flink = (void *) (q);				\
     (e)->blink = (void *) p;				\
     (q)->blink = p->flink = (void *) e
+
+/*
+ * Remove from the beginning of the queue (flink).
+ */
 #define SDL_REMQUE(q, e)				\
     if (SDL_Q_EMPTY((q)) == false)			\
     {							\

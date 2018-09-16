@@ -63,7 +63,7 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
     /*
      * For the C/C++ languages.
      */
-    {(_SDL_FUNC) &sdl_c_commentStars, &sdl_c_createdByInfo, &sdl_c_fileInfo, NULL}
+    {(SDL_FUNC) &sdl_c_commentStars, &sdl_c_createdByInfo, &sdl_c_fileInfo, NULL}
 };
 
 static char *_extensions[] =
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     /*
      * Initialize the constant stack.
      */
-    context.constTotal = context.constPtr = 0;
+    context.constEntries = 0;
     context.constStack = NULL;
 
     /*
@@ -251,8 +251,7 @@ int main(int argc, char *argv[])
 		 * comments.  First starting with a row of '*'s.
 		 */
 		if ((*_outputFuncs[ii][SDL_K_STARS])(
-				context.outFP[ii],
-				false) == 1)
+				context.outFP[ii]) == 1)
 		{
 
 		    /*
@@ -303,8 +302,7 @@ int main(int argc, char *argv[])
 			     * generation.
 			     */
 			    if ((_outputFuncs[ii][SDL_K_STARS])(
-					context.outFP[ii],
-					true) == 0)
+					context.outFP[ii]) == 0)
 				return(-1);
 			}
 			else

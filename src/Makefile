@@ -49,7 +49,7 @@ debug: all
 all: $(EXE)/opensdl.exe
 
 $(BIN)/opensdl_parser.c $(BIN)/opensdl_parser.h : $(SRC)/opensdl_parser.y
-	bison $(YFLAGS) -d -Lc -o $@ $<
+	bison $(YFLAGS) -v --report=lookahead -d -Lc -o $@ $<
 #	rm -f $(BIN)/*.output
 
 $(BIN)/opensdl_parser.o : $(BIN)/opensdl_parser.c $(BIN)/opensdl_parser.h $(BIN)/opensdl_lexical.h $(SDLDEFS)

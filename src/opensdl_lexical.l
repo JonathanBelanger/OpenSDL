@@ -75,6 +75,7 @@ char *curfilename;
 
 int newfile(char *fn);
 int popfile(void);
+void str_unquote(char *, char *, size_t);
 
 extern void *scanner;
 extern _Bool trace;
@@ -272,12 +273,11 @@ extern _Bool trace;
 <INITIAL>[oO][cC][tT]									{ return(SDL_K_OCT); }
 
 <INITIAL>{output_comment}			{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return comment; }
-<INITIAL>{quoted_string}				{ strncpy(yylval->tval, &yytext[1], sizeof(yylval->tval)); return string; }
-<INITIAL>{names}						{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return ident; }
+<INITIAL>{quoted_string}			{ str_unquote(yylval->tval, yytext, sizeof(yylval->tval)); return string; }
+<INITIAL>{names}					{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return ident; }
 <INITIAL>"#"{names}					{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return variable; }
-<INITIAL>{local_comment}				{ /* eat local comments... */ }
+<INITIAL>{local_comment}			{ /* eat local comments... */ }
 <INITIAL>{white_spaces}				{ /* eat white spaces... */ }
-
 <INITIAL>"%"[dD][0-9]{1,20}			{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
 <INITIAL>([0])|([1-9][0-9]{0,19})	{ yylval->bval = strtol(yytext, NULL, 10); return decimal; }
 <INITIAL>"%"[xX][0-9a-fA-F]{1,16}	{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
@@ -286,7 +286,7 @@ extern _Bool trace;
 <INITIAL>[0][0-7]{1,22}				{ strcpy(yylval->tval, &yytext[1]); return octal; }
 <INITIAL>"%"[bB][0-1]{1,64}			{ strcpy(yylval->tval, &yytext[2]); return binary; }
 <INITIAL>"%"[aA]{printable}			{ strcpy(yylval->tval, &yytext[2]); return ascii; }
-<INITIAL>"%"[aA][0-9]{3}				{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
+<INITIAL>"%"[aA][0-9]{3}			{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
 <INITIAL>"%"[aA][0-9a-fA-F]{2}		{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
 
 %%
@@ -404,4 +404,33 @@ int popfile(void)
 	 * Return the outcome back to the caller.
 	 */
 	return(retVal);
+}
+
+void str_unquote(char *dest, char *src, size_t maxLen)
+{
+	char	*ptr;
+
+	/*
+	 * Copy everything but the first character.
+	 */
+	strncpy(dest, &src[1], maxLen);
+
+	/*
+	 * Now find the last double-quote character.
+	 */
+	ptr = dest + strlen(dest);
+	while ((*ptr != '\"') && (ptr != dest))
+		ptr--;
+
+	/*
+	 * If we found the last double-quote character, then convert it to a null
+	 * character.
+	 */
+	if (*ptr == '\"')
+		*ptr = '\0';
+
+	/*
+	 * Return back to the caller.
+	 */
+	return;
 }

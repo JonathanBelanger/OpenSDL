@@ -66,6 +66,7 @@
 
 SDL_CONTEXT			context;
 SDL_QUEUE			literal;		/* A list of lines in the between LITERAL/END_LITERAL */
+SDL_IDENT			_ident;
 
 _Bool				literalState = false;
 
@@ -227,16 +228,14 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %type <bval> objecttype
 %type <bval> address
 %type <bval> basealign
-%type <bval> increment
+/* %type <bval> increment
 %type <bval> radix
-%type <bval> ident_equal
-%type <bval> const_val
-
+*/
 %type <tval> tag
 %type <tval> prefix
-%type <tval> counter
+/* %type <tval> counter
 %type <tval> typename
-
+*/
 /*
 %type <bval> lbound
 %type <bval> hbound
@@ -569,70 +568,111 @@ agg_opt
 */
 
 constant
-	: SDL_K_CONSTANT const_names SDL_K_EQUALS expression
-		{ sdl_constant_names(&context, $4); }
-		const_list_opts
-	| SDL_K_CONSTANT ident SDL_K_EQUALS const_val
-		{ sdl_constant_name(&context, $2, $4); }
+	: SDL_K_CONSTANT const_set SDL_K_EOD
+		{ printf("\nCONSTANT\n"); }
+	| SDL_K_CONSTANT ident SDL_K_EQUALS expression SDL_K_EOD
+		{ printf("\nCONSTANT %s EQUALS %ld\n", $2, $4); }
 	;
 
-const_val
-	: expression
-		{ $$ = sdl_constant(&context, $1, NULL); }
-		const_val_opts
-	| SDL_K_STRING string
-		{ $$ = sdl_constant(&context, 0, $2); }
-		const_str_opts
+const_set
+	: names_equal
+	| const_set SDL_K_COMMA names_equal
 	;
 
-const_names
-	: ident ident_equal
-		{ sdl_constant_add(&context, $1, $2); }
-		const_names
-	| SDL_K_COMMA const_names
+names_equal
+	: ident_set SDL_K_EQUALS expression
+		{ printf("\nEQUALS %dl\n", $3); }
+	;
+
+ident_set
+	: ident
+		{ printf("\n%s\n", $1); }
+	| SDL_K_OPEN ident ident_list
+		{ printf("\n(%s\n", $2); }
+	;
+
+ident_list
+	: ident_list SDL_K_COMMA ident
+		{ printf("\n, %s\n", $3); }
 	| SDL_K_CLOSE
+		{ printf("\n)\n"); }
 	;
 
-ident_equal
-	: %empty
-		{ $$ = sdl_constant_eq(0, false); }
-	| SDL_K_EQUALS expression
-		{ $$ = sdl_constant_eq($2, true); }
+/*
+constant
+	: SDL_K_CONSTANT const_set
+		{ printf("\nCONSTANT\n"); }
 	;
 
-const_list_opts
-	: prefix tag counter increment typename radix
-		{ sdl_constant_opts(&context, $1, $2, $3, $4, $5, &6); }
-	| SDL_K_EOD
-		{ sdl_constant_done(&context, false); }
+idents
+	: SDL_K_OPEN ident_loop SDL_K_CLOSE
+		{ printf("\n()\n"); }
 	;
 
-const_val_opts
-	: prefix tag counter typename radix
-		{ sdl_constant_val(&context, $1, $2, $3, $4, $5); }
-	| SDL_K_EOD
-		{ sdl_constant_done(&context, true); }
+ident_loop
+	: ident
+		{ printf("\n%s\n", $1); }
+	| ident_loop SDL_K_COMMA ident
+		{ printf("\n, %s\n", $3); }
 	;
 
-const_str_opts
-	: prefix tag
-		{ sdl_constant_val(&context, $1, $2, NULL, NULL, 0); }
-	| SDL_K_EOD
-		{ sdl_constant_done(&context, true); }
+const_set
+	: more_consts
+	| idents incr_const
+	| ident one_const
+		{ printf("\n%s\n", $1); }
+	;
+
+more_consts
+	: ident SDL_K_EQUALS expression
+		{ printf("\n%s EQUALS %ld\n", $1, $3); }
+	| idents SDL_K_EQUALS expression
+		{ printf("\nEQUALS %ld\n", $3); }
+	| more_consts SDL_K_COMMA ident SDL_K_EQUALS expression
+		{ printf("\n%s EQUALS %ld\n", $3, $5); }
+	| more_consts SDL_K_COMMA idents SDL_K_EQUALS expression
+		{ printf("EQUALS %ld\n", $5); }
+	;
+
+incr_const
+	: SDL_K_EQUALS expression increment_options
+		{ printf("\nEQUALS %ld\n", $2); }
+	;
+
+one_const
+	: SDL_K_EQUALS expression numeric_options
+		{ printf("\nEQUALS %ld\n", $2); }
+	| SDL_K_EQUALS SDL_K_STRING string string_options
+		{ printf("\nEQUALS %s\n", $3); }
+	;
+
+string_options
+	: prefix tag SDL_K_EOD
+		{ printf("\n[PREFIX TAG]\n"); }
+	;
+
+numeric_options
+	: prefix tag counter typename radix SDL_K_EOD
+		{ printf("\n[COUNTER TYPENAME RADIX]\n"); }
+	;
+
+increment_options
+	: prefix tag counter typename radix increment SDL_K_EOD
+		{ printf("\n[INCREMENT]\n"); }
 	;
 
 counter
 	: %empty
 		{ $$[0] = SDL_K_NOT_PRESENT; }
 	| SDL_K_COUNTER variable
-		{ $$ = $2; }
+		{ strcpy($$, $2); }
 	;
 
 increment
 	: %empty
 		{ $$ = 0; }
 	| SDL_K_INCR expression
-		{ %% = $2; }
+		{ $$ = $2; }
 	;
 
 radix
@@ -645,7 +685,7 @@ radix
 	| SDL_K_RADIX SDL_K_HEX
 		{ $$ = SDL_K_RADIX_HEX; }
 	;
-/*
+*/ /*
 entry
 	: SDL_K_ENTRY ident alias parameter linkage variable returns typename SDL_K_EOD
 	;
@@ -680,15 +720,15 @@ returns
 	: %empty
 	| SDL_K_RETURNS datatype named
 	;
-*/
+*
 typename
 	: %empty
 		{ $$[0] = SDL_K_NOT_PRESENT; }
 	| SDL_K_TYPENAME ident
-		{ $$ = $2; }
+		{ strcpy($$, $2); }
 	;
 
-/*
+*
  * TODO: Need to make this into a list.
  *
 param_desc
@@ -739,4 +779,5 @@ ifsymb
 	;
 
 */
+
 %%	/* End Grammar rules */

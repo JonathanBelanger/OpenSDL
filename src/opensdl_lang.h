@@ -38,13 +38,13 @@
 /*
  * Typedefs to define output function calling arrays.
  */
-typedef	int (*_SDL_FUNC)();
-typedef _SDL_FUNC SDL_LANG_FUNC[SDL_K_FUNC_PER_LANG];
+typedef	int (*SDL_FUNC)();
+typedef SDL_FUNC SDL_LANG_FUNC[SDL_K_FUNC_PER_LANG];
 
 /*
  * Define the C/C++ output function prototypes.
  */
-int sdl_c_commentStars(FILE *fp, _Bool twoNL);
+int sdl_c_commentStars(FILE *fp);
 int sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo);
 int sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath);
 int sdl_c_comment(

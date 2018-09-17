@@ -98,6 +98,7 @@ Pointer_name		::= Name
 Member_name		::= Name
 Prefix			::= ([pP][rR][eE][fF][iI][xX] Str)
 Tag			::= ([tT][aA][gG] Str)
+Radix			::= [rR][aA][dD][iI][xX] ([dD][eE][cC] | [oO][cC][tT] | [hH][eE][xX])
 Align			::= ([aA][lL][iI][gG][nN] | [nN][oO][aA][lL][iI][gG][nN])
 Basealign		::= [bB][aA][sS][eE][aA][lL][iI][gG][nN]
 Storage			::= ([cC][oO][mM][mM][oO][nN] | [gG][lL][oO][bB][aA][lL])
@@ -160,7 +161,7 @@ Constant_names		::= Constant_name |
 			    ('(' Constant_name (',' Constant_name)* ')')
 Constant_class		::=  Equals (Expression Numeric_options | String Str String_options)
 String_options		::= Prefix? Tag?
-Numeric_options		::= String_options Counter? Typename?
+Numeric_options		::= String_options Counter? Typename? Radix?
 Increment_options	::= Increment? Numeric_options
 
 Constant_list		::= Constant_names Equals Expression Increment_options

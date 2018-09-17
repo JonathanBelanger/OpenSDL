@@ -1,4 +1,4 @@
-Printable		::= [ !"#$%&'()*+,#x2D./0-9:;<=>?@A-Z[\#x5D^_`a-z{|}~#x0009]
+Printable		::= [ !"#$%&'()*+,#x002D./0-9:;<=>?@A-Z[\#x005D^_`a-z{|}~#x0009]
 Alpha			::= [A-Za-z]
 Alphanum		::= Alpha [0-9]
 Cr_lf			::= #x000D#x000A | #x000A#x000D

@@ -1,209 +1,319 @@
+/*
+ * Useful Definitions for various character types.  We use the hex code for the ASCII
+ * characters to avoid conflicts between a letter being used and needing to be specified.
+ */
 Allowed			::= [#x0009][#x000A][#x000C][#x000D][#x0020-#x007E]
-Space			::= [#x0009][#x000A][#x000C][#x000D][#x0020]
+Spaces			::= [#x0009][#x000A][#x000C][#x000D][#x0020]
+Cr_lf			::= #x000D#x000A | #x000A#x000D
 Printable		::= [#x0020-#x007E]
 Alpha			::= [#x0041-#x005A][#x0061-#x007A]
 Numbers			::= [#x0030-#x0039]
-Hexchars		::= Numbers ([#x0041-#x0046] | [#x0061-#x0066]
+Binchars		::= [#x0030-#x0031]
+Octchars		::= [#x0030-#x0037]
+Hexchars		::= Numbers ([#x0041-#x0046] | [#x0061-#x0066])
 Symbols			::= [#x0021-#x002F][#x003A-#x0040][#x005B-#x0060][#x007B-#x007E]
 Alphanum		::= Alpha Numbers
-Cr_lf			::= #x000D#x000A | #x000A#x000D
+A			::= #x0041 | #x0061
+B			::= #x0042 | #x0062
+C			::= #x0043 | #x0063
+D			::= #x0044 | #x0064
+E			::= #x0045 | #x0065
+F			::= #x0046 | #x0066
+G			::= #x0047 | #x0067
+H			::= #x0048 | #x0068
+I			::= #x0049 | #x0069
+J			::= #x004A | #x006A
+K			::= #x004B | #x006B
+L			::= #x004C | #x006C
+M			::= #x004D | #x006D
+N			::= #x004E | #x006E
+O			::= #x004F | #x006F
+P			::= #x0050 | #x0070
+Q			::= #x0051 | #x0071
+R			::= #x0052 | #x0072
+S			::= #x0053 | #x0073
+T			::= #x0054 | #x0074
+U			::= #x0055 | #x0075
+V			::= #x0056 | #x0076
+W			::= #x0057 | #x0077
+X			::= #x0058 | #x0078
+Y			::= #x0059 | #x0079
+Z			::= #x005A | #x007A
+Space			::= #x0020
+Double_quote		::= #x0022
+Pound			::= #x0023
+Dollar			::= #x0024
+Percent			::= #x0025
+And			::= #x0026
+Single_quote		::= #x0027
+Openp			::= #x0028
+Closep			::= #x0029
+Star			::= #x002A
+Plus			::= #x002B
+Comma			::= #x002C
+Minus			::= #x002D
+Dot			::= #x002E
+Fwd_slash		::= #x002F
+Zero			::= #x0030
+Full			::= #x003A
+Semi			::= #x003B
+Eq			::= #x003D
+At			::= #x0040
+Carat			::= #x005E
+Underscore		::= #x005F
+Openb			::= #x007B
+Or			::= #x007C
+Closeb			::= #x007D
+Not			::= #x007E
 
-Integer			::= [0] | ('%'[dD] | [1-9])Numbers*
-Hexadecimal		::= [%0] [xX] [0-9a-fA-F]+
-Octal			::= ( '%' [oO] | '0' ) [0-7]+
-Binary			::= '%' [bB] [0-1]+
-Ascii			::= '%' [aA] ( [0-9] [0-9] [0-9] | [0-9A-Za-z] [0-9A-Za-z] )
-Str			::= '"' Printable* '"'
-File_spec		::= Alphanum* ' '* '/'* '.'*
-Name			::= [_$a-zA-Z][_$a-zA-Z0-9]*
-Variable		::= '#'Name
+/*
+ * These are defintions for the various types of values (numbers and strings).
+ */
+Integer			::= zero | ((Percent D)? | [#x0031-#x0039] Numbers*)
+Hexadecimal		::= (Precent | Zero) X Hexchars+
+Octal			::= (Percent O | Zero) Octchars+
+Binary			::= Percent B Binchars+
+Ascii			::= Percent A ( Numbers Numbers Numbers | Hexchars Hexchars )
+Str			::= Double_quote Printable* Double_qupote
+File_spec		::= Alphanum* Space* Fwd_slash* Dot*
 
-Local_comment		::= "{" Printable* Cr_lf
-Output_comment_1	::= "/*" Printable* Cr_lf
-Output_comment_2	::= "/+" (Printable* | Cr_lf* | "//"*)* "/-"
+/*
+ * There are 3 types of comments.  Two line and 1 block comment.
+ */
+Local_comment		::= Openb Printable* Cr_lf
+Output_comment_1	::= Fwd_slash Star Printable* Cr_lf
+Output_comment_2	::= Fwd_slash Plus (Printable* | Cr_lf* | (Fwd_slash Fwd_slash)*)* Fwd_slash Minus
 Line_comment		::= Local_comment | Output_comment_1
 Comments		::= (Line_comment* | Output_comment_2*)*
 
-Expression		::= Expr '+' Terminal | Expr '-' Terminal | Terminal
+/*
+ * Now for some math.  The organization of this is significant, as it supports
+ * precidence needs.
+ */
+Expression		::= Expr Plus Terminal | Expr Minus Terminal | Terminal
 Expr			::= Expression
-Terminal		::= Term '*' Condition | Term '/' Condition | Condition
+Terminal		::= Term Star Condition | Term Fwd_slash Condition | Condition
 Term			::= Terminal
-Condition		::= Cond '&' Bit_op | Cond '|' Bit_op | Bit_op
+Condition		::= Cond and Bit_op | Cond Or Bit_op | Bit_op
 Cond			::= Condition
-Bit_op			::= Bit '@' Factor | Factor
+Bit_op			::= Bit At Factor | Factor
 Bit			::= Bit_op
-Factor			::= ( '-' | '~' ) Fact | '(' Expression ')' | Number | Str
+Factor			::= ( Minus | Not ) Fact | Openp Expression Closep | Number | Str
 Fact			::= Factor
 Number			::= Integer | Variable | Hexadecimal | Octal | Binary |
-			    Ascii | '.' | ':' | '^'
-Local_var		::= Variable '=' Expression ';'
+			    Ascii | Dot | Full | Carat
 
-Sign			::= (Signed | Unsigned)
-Byte			::= ([iI][nN][tT][eE][gG][eE][rR]_)? [bB][yY][tT][eE] Sign?
-Word			::= ([iI][nN][tT][eE][gG][eE][rR]_)? [wW][oO][rR][dD] Sign?
-Long			::= ([lL][oO][nN][gG][wW][oO][rR][dD] | [iI][nN][tT][eE][gG][eE][rR] (_[lL][oO][nN][gG])?) Sign?
-Quad			::= ([qQ][uU][aA][dD][wW][oO][rR] | [iI][nN][tT][eE][gG][eE][rR]_[Qq][uU][aA]) [dD] Sign?
-Octa			::= ([oO][cC][tT][aA][wW][oO][rR][dD] Sign?)
-Int_hw			::= ([iI][nN][tT][eE][gG][eE][rR]_[hH][wW] |
-			     [hH][aA][rR][dD][wW][aA][rR][eE]_[iI][nN][tT][eE][gG][eE][rR]) Sign?
-S_float			::= ([sS]_[fF][lL][oO][aA][tT] Complex?)
-T_float			::= ([tT]_[fF][lL][oO][aA][tT] Complex?)
-Decimal			::= ([dD][eE][cC][iI][mM][aA][lL] Precision
-			     '('Expression','Expression')')
-Bitfield		::= ([bB][iI][tT][fF][iI][eE][lL][dD] (Length Expression)?
-			     Mask? Sign?)
-Char			::= ([cC][hH][aA][rR][aA][cC][tT][eE][rR] (Length
-			     (Expression | '*'))? Varying?)
-Addr			::= ([aA][dD][dD][rR][eE][sS][sS] |
-			     [pP][oO][iI][nN][tT][eE][rR])
-Addr_l			::= [pP][oO][iI][nN][tT][eE][rR]_[lL][oO][nN][gG]
-Addr_q			::= [pP][oO][iI][nN][tT][eE][rR]_[qQ][uU][aA][dD]
-Addr_hw			::= ([pP][oO][iI][nN][tT][eE][rR]_[hH][wW] |
-			     [hH][aA][rR][dD][wW][aA][rR][eE]_[aA][dD][dD][rR][eE][sS][sS])
-Any			::= [aA][nN][yY]
-Boolean			::= [bB][oO][oO][lL][eE][aA][nN]
-Signed			::= [sS][iI][gG][nN][eE][dD]
-Unsigned		::= [uU][nN][sS][iI][gG][nN][eE][dD]
-Complex			::= [cC][oO][mM][pP][lL][eE][xX]
-Length			::= [lL][eE][nN][gG][tT][hH]
-Mask			::= [mM][aA][sS][kK]
-Varying			::= [vV][aA][rR][yY][iI][nN][gG]
-Precision		::= [pP][rR][eE][cC][iI][sS]i[oO][nN]
+/*
+ * This is probably the most signficiant definition.  It is used everywhere because
+ * everything has a name.
+ */
+Name			::= Dollar | Underscore | Alpha (Dollar Underscore Alphanum)*
 
+/*
+ * Local Symbols allow for maintaining internal values that can be calculated and
+ * incremented throughout the processing the input files.
+ */
+Variable		::= Pound Name
+Local_var		::= Variable Eq Expression Semi
+
+/*
+ * Define qualifiers for the various data types
+ */
+Complex			::= C O M P L E X
+Length			::= L E N G T H
+Mask			::= M A S K
+Varying			::= V A R Y I N G
+Precision		::= P R E C I S I O N
+Signed			::= S I G N E D
+Unsigned		::= U N Signed
+Sign			::= Signed | Unsigned
+
+/*
+ * Define the various data types that can be used to declare a variable or element
+ * in a structure or union.
+ */
+Byte			::= (I N T E G E R _)? B Y T E Sign?
+Word			::= (I N T E G E R _)? W O R D Sign?
+Long			::= (L O N G W O R D | I N T E G E R (_ L O N G)?) Sign?
+Quad			::= (Q U A D W O R | I N T E G E R _ Q U A) D Sign?
+Octa			::= O C T A W O R D Sign?
+Int_hw			::= (I N T E G E R _ H W | H A R D W A R E _ I N T E G E R) Sign?
+S_float			::= S _ F L O A T Complex?
+T_float			::= T _ F L A A T Complex?
+Decimal			::= D E C I M A L Precision Openp Expression Comma Expression Closep
+Bitfield		::= B I T F I E L D (Length Expression)? Mask? Sign?
+Char			::= C H A R A C T E R (Length (Expression | Star))? Varying?
+Addr			::= A D D R E S S | P O I N T E R
+Addr_l			::= P O I N T E R _ L O N G
+Addr_q			::= P O I N T E R _ Q U A D
+Addr_hw			::= P O I N T E R _ H W | H A R D W A R E _ A D D R E S S
+Any			::= A N Y
+Boolean			::= B O O L E A N
+
+/*
+ * Define the data type categories.
+ */
 Integer_datatypes	::= Byte | Word | Long | Quad | Int_hw | Octa
 Fp_datatypes		::= S_float | T_float
 Address_datatypes	::= Addr | Addr_l | Addr_q | Addr_hw
 
-Language_name		::= [cC]
+/*
+ * Define the file layout.
+ */
+File_layout		::= Comments Module Module_body End_module Comments
+
+/*
+ * Define the format of the INCLUDE statement.  NOTE: We are not
+ * going to support the read statement.
+ */
+Include			::= I N C L U D E File_spec Semi
+
+/*
+ * List the supported programming languages for output.
+ */
+Language_name		::= C
+
+/*
+ * Define the conditional compiling constructs.
+ */
 Symbol_name		::= Name
-Iflang			::= [iI][fF][lL][aA][nN][gG][uU][aA][gG][eE]
-			    Language_name+ ';'
-Else			::= [eE][lL][sS][eE]';'
-End_iflang		::= [eE][nN][dD]_[iI][fF][lL][aA][nN][gG][uU][aA][gG][eE]
-			    Language_name? ';'
-Ifsymb			::= [iI][fF][sS][yY][mM][bB][oO][lL] Symbol_name ';'
-Else_ifsymb		::= [eE][lL][sS][eE]_[iI][fF][sS][yY][mM][bB][oO][lL]
-			    Symbol_name ';'
-End_ifsymb		::= [eE][nN][dD]_[iI][fF][sS][yY][mM][bB][oO][lL] ';'
+Iflang			::= I F L A N G U A G E
+			    Language_name+ Semi
+Else			::= E L S E Semi
+End_iflang		::= E N D _ I F L A N G Language_name? Semi
+Ifsymb			::= I F S Y M B O L Symbol_name Semi
+Else_ifsymb		::= E L S E _ I F S Y M B O L Symbol_name Semi
+End_ifsymb		::= E N D _ I F S Y M B O L Semi
 Cond_lang		::= Iflang | Else | End_iflang
 Cond_symb		::= Ifsymb | Else_ifsymb | Else | End_ifsymb
 
-Literal			::= [lL][iI][tT][eE][rR][aA][lL] ';'
-End_literal		::= [eE][nN][dD]_[lL][iI][tT][eE][rR][aA][lL] ';'
+/*
+ * Define the LITERAL constructs.
+ */
+Literal			::= L I T E R A L Semi
+End_literal		::= E N D _ L I T E R A L Semi
 Literal_construct	::= Literal | End_literal
 
-Include			::= [iI][nN][cC][lL][uU][dD][eE] File_spec ';'
-
+/*
+ * Define the MODULE constructs.
+ */
 Module_name		::= Name
-Module			::= [mM][oO][dD][uU][lL][eE] Module_name
-			    ([iI][dD][eE][nN][tT] Str)? ';'
-End_module		::= [eE][nN][dD]_[mM][oO][dD][uU][lL][eE] Module_name? ';'
-
-Pointer_name		::= Name
-Member_name		::= Name
-Prefix			::= ([pP][rR][eE][fF][iI][xX] Str)
-Tag			::= ([tT][aA][gG] Str)
-Radix			::= [rR][aA][dD][iI][xX] ([dD][eE][cC] | [oO][cC][tT] | [hH][eE][xX])
-Align			::= ([aA][lL][iI][gG][nN] | [nN][oO][aA][lL][iI][gG][nN])
-Basealign		::= [bB][aA][sS][eE][aA][lL][iI][gG][nN]
-Storage			::= ([cC][oO][mM][mM][oO][nN] | [gG][lL][oO][bB][aA][lL])
-Based			::= ([bB][aA][sS][eE][dD] Pointer_name)
-Typedef			::= [tT][yY][pP][eE][dD][eE][fF]
-Dimension		::= ([dD][iI][mM][eE][nN][sS][iI][oO][nN]
-			     (Expression ':')? Expression)
-Fill			::= [fF][iI][lL][lL]
-Marker			::= ([mM][aA][rR][kK][eE][rR] Str)
-Origin			::= ([oO][rR][iI][gG][iI][nN] Member_name)
-Counter			::= ([cC][oO][uU][nN][tT][eE][rR] Variable)
-Equals			::= [eE][qQ][uU][aA][lL][sS]
-String			::= [sS][tT][rR][iI][nN][gG]
-Increment		::= ([iI][nN][cC][rR][eE][mM][eE][nN][tT] Expression)
-Typename		::= ([tT][yY][pP][eE][nN][aA][mM][eE] Name)
-Structure		::= [sS][tT][rR][uU][cC][tT][uU][rR][eE]
-Union			::= [uU][nN][iI][oO][nN]
-End			::= [eE][nN][dD]
-
-Basealign_attribute	::= Basealign '(' Number ')'
-Object_type		::= Data_type | Any | Name (Dimension)?
-Pointer_type		::= Address_datatypes
-			    ('(' Object_type Basealign_attribute? ')')?
-Data_type		::= Integer_datatypes | Fp_datatypes | Pointer_type |
-			    Decimal | Boolean | Char
-
-Item_name		::= Name
-User_type		::= Name
-Declare			::= [dD][eE][cC][lL][aA][rR][eE] User_type
-			    [sS][iI][zZ][eE][oO][fF]
-			    (User_type | Data_type | ('(' Expression ')')) Prefix?
-			    Tag? ';'
-
-Item			::= [iI][tT][eE][mM] Item_name (Data_type | User_type)
-			    (Storage | Typedef)? Basealign? Dimension? Prefix?
-			    Tag? ';'
-
-Options			::= (Storage | Typedef | Based)? (Align | Basealign)?
-			    Dimension? Marker? Prefix? Tag? Origin? Fill?
-Aggregate_name		::= Name
-Aggr			::= [aA][gG][gG][rR][eE][gG][aA][tT][eE] Aggregate_name
-						(Structure | Union) Options ';'
-End_aggr		::= End Aggregate_name ';'
-
-Subaggregate		::= Member_name (Structure | Union) Options ';'
-Implicit_union		::= Member_name Structure Data_type Options ';'
-End_subaggr		::= [eE][nN][dD] Member_name ';'
-Member			::= Member_name
-			    (Data_type | Aggregate_name | User_type | Bitfield)
-			    Options ';'
-
-Sub_aggr_body		::= (Subaggregate | Implicit_union) Member+ End_subaggr
-
-Aggregate_body		::= (Member | Sub_aggr_body)+
-
-Aggregate		::= Aggr Aggregate_body End_aggr
-
-Constant_name		::= Came
-Constant_names		::= Constant_name |
-			    ('(' Constant_name (',' Constant_name)* ')')
-Constant_class		::=  Equals (Expression Numeric_options | String Str String_options)
-String_options		::= Prefix? Tag?
-Numeric_options		::= String_options Counter? Typename? Radix?
-Increment_options	::= Increment? Numeric_options
-
-Constant_list		::= Constant_names Equals Expression Increment_options
-Constant_set		::= Constant_names Equals Expression
-			    (',' Constand_names Equals Expression)*
-
-Constant		::= [cC][oO][nN][sS][tT][aA][nN][tT] (Constant_name Constant_class | Constant_list | Constant_set) ';'
-
+Module			::= M O D U L E Module_name
+			    (I D E N T Str)? Semi
 Module_body		::= (Item | Aggregate | Constant | Entry | Local_var |
 			     Comments | Include | Declare | Cond_lang | Cond_symb |
 			     Literal_construct)+
+End_module		::= E N D _ M O D U L E Module_name? Semi
 
+/*
+ * Define the various options for the variable and element definitions.
+ */
+Pointer_name		::= Name
+Member_name		::= Name
+Prefix			::= P R E F I X Str
+Tag			::= T A G Str
+Radix			::= R A D I X (D E C | O C T | H E X)
+Align			::= (A L I G | N O A L I G) N
+Basealign		::= B A S E A L I G N
+Storage			::= (C O M M O N | G L O B A L)
+Based			::= B A S E D Pointer_name
+Typedef			::= T Y P E D E F
+Dimension		::= D I M E N S I O N (Expression Full)? Expression
+Fill			::= F I L L
+Marker			::= M A R K E R Str
+Origin			::= O R I G I N Member_name
+Counter			::= C O U N T E R Variable
+Equals			::= E Q U A L S
+String			::= S T R I N G
+Increment		::= I N C R E M E N T Expression
+Typename		::= T Y P E N A M E Name
+Structure		::= S T R U C T U R E
+Union			::= U N I O N
+End			::= E N D
+Basealign_attribute	::= Basealign Openp Number Closep
+
+/*
+ * Define the various categories of data types.
+ */
+Object_type		::= Data_type | Any | Name (Dimension)?
+Pointer_type		::= Address_datatypes
+			    (Openp Object_type Basealign_attribute? Closep)?
+Data_type		::= Integer_datatypes | Fp_datatypes | Pointer_type |
+			    Decimal | Boolean | Char
+/*
+ * Define the ITEM construct.
+ */
+Item_name		::= Name
+User_type		::= Name
+Declare			::= D E C L A R E User_type S I Z E O F
+			    (User_type | Data_type | (Openp Expression Closep)) Prefix?
+			    Tag? Semi
+Item			::= I T E M Item_name (Data_type | User_type)
+			    (Storage | Typedef)? Basealign? Dimension? Prefix?
+			    Tag? Semi
+
+/*
+ * Define the AGGREGATE construct elements.
+ */
+Options			::= (Storage | Typedef | Based)? (Align | Basealign)?
+			    Dimension? Marker? Prefix? Tag? Origin? Fill?
+Aggregate_name		::= Name
+Aggr			::= A G G R E G A T E Aggregate_name
+			    (Structure | Union) Options Semi
+End_aggr		::= End Aggregate_name Semi
+Subaggregate		::= Member_name (Structure | Union) Options Semi
+Implicit_union		::= Member_name Structure Data_type Options Semi
+End_subaggr		::= End Member_name Semi
+Member			::= Member_name
+			    (Data_type | Aggregate_name | User_type | Bitfield)
+			    Options Semi
+/*
+ * Define the AGGREGATE Subaggregate construct.
+ */
+Sub_aggr_body		::= (Subaggregate | Implicit_union) Member+ End_subaggr
+Aggregate_body		::= (Member | Sub_aggr_body)+
+
+/*
+ * Define the overall AGGREGATE construct.
+ */
+Aggregate		::= Aggr Aggregate_body End_aggr
+
+/*
+ * Define the CONSTANT construct.
+ */
+Constant_name		::= Name
+Constant_names		::= Constant_name |
+			    (Openp Constant_name (Comma Constant_name)* Closep)
+Constant_class		::= Equals (Expression Numeric_options | String Str String_options)
+String_options		::= Prefix? Tag?
+Numeric_options		::= String_options Counter? Typename? Radix?
+Increment_options	::= Increment? Numeric_options
+Constant_list		::= Constant_names Equals Expression Increment_options
+Constant_set		::= Constant_names Equals Expression
+			    (Comma Constand_names Equals Expression)*
+Constant		::= C O N S T A N T (Constant_name Constant_class | Constant_list | Constant_set) Semi
+
+/*
+ * Define the ENTRY construct.
+ */
 Internal_name		::= Name
 Linkage_name		::= Name
 Param_name		::= Name
-Named			::= ([nN][aA][mM][eE][dD] Param_name)
-Alias			::= ([Aa][lL][iI][aA][sS] Internal_name)
-Linkage			::= ([lL][iI][nN][kK][aA][gG][eE] Linkage_name)
-Entry_variable		::= [vV][aA][rR][iI][aA][bB][lL][eE]
-Returns			::= ([rR][eE][tT][uU][rR][nN][sS] Return_datatype Named?)
-Return_datatype		::= (Data_type | User_type | ([vV][oO][iI][dD]))
+Named			::= N A M E D Param_name
+Alias			::= A L I A S Internal_name
+Linkage			::= L I N K A G E Linkage_name
+Entry_variable		::= V A R I A B L E
+Returns			::= R E T U R N S Return_datatype Named?
+Return_datatype		::= Data_type | User_type | (V O I D)
 
-Value			::= [vV][aA][lL][uU][eE]
-Reference		::= [rR][eE][fF][eE][rR][eE][nN][cC][eE]
-Entry_dim		::= ([dD][iI][mM][eE][nN][sS][iI][oO][nN]
-			     (Expression | '*'))
-Default			::= ([dD][eE][fF][aA][uU][lL][tT] Expression)
-
+Value			::= V A L U E
+Reference		::= R E F E R E N C E
+Entry_dim		::= D I M E N S I O N (Expression | Star)
+Default			::= D E F A U L T Expression
 Param_desc		::= (Data_type | Aggregate_name) (Value | Reference)?
-			    ([iI][nN])? ([oO][uU][tT])? Named? Entry_dim? Default?
-			    Typename? ([oO][pP][tT][iI][oO][nN][aA][lL])?
-			    ([lL][iI][sS][tT])?
-Parameter		::= ([pP][aA][rR][aA][mM][eE][tT][eE][rR] '(' Param_desc
-			     (',' Param_desc)* ')')
-
+			    (I N)? (O U T)? Named? Entry_dim? Default?
+			    Typename? (O P T I O N A L)? (L I S T)?
+Parameter		::= P A R A M E T E R Openp Param_desc (Comma Param_desc)* Closep
 Entry_name		::= Name
-Entry			::= [eE][nN][tT][rR][yY] Entry_name Alias? Parameter?
-			    Linkage? Entry_variable? Returns? Typename?
-
-File_layout		::= Comments Module Module_body End_module Comments
+Entry			::= E N T R Y Entry_name Alias? Parameter?
+			    Linkage? Entry_variable? Returns? Typename? Semi

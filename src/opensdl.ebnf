@@ -1,9 +1,14 @@
-Printable		::= [ !"#$%&'()*+,#x002D./0-9:;<=>?@A-Z[\#x005D^_`a-z{|}~#x0009]
-Alpha			::= [A-Za-z]
-Alphanum		::= Alpha [0-9]
+Allowed			::= [#x0009][#x000A][#x000C][#x000D][#x0020-#x007E]
+Space			::= [#x0009][#x000A][#x000C][#x000D][#x0020]
+Printable		::= [#x0020-#x007E]
+Alpha			::= [#x0041-#x005A][#x0061-#x007A]
+Numbers			::= [#x0030-#x0039]
+Hexchars		::= Numbers ([#x0041-#x0046] | [#x0061-#x0066]
+Symbols			::= [#x0021-#x002F][#x003A-#x0040][#x005B-#x0060][#x007B-#x007E]
+Alphanum		::= Alpha Numbers
 Cr_lf			::= #x000D#x000A | #x000A#x000D
 
-Integer			::= [0] | ('%'[dD] | [1-9])[0-9]*
+Integer			::= [0] | ('%'[dD] | [1-9])Numbers*
 Hexadecimal		::= [%0] [xX] [0-9a-fA-F]+
 Octal			::= ( '%' [oO] | '0' ) [0-7]+
 Binary			::= '%' [bB] [0-1]+

@@ -1,7 +1,7 @@
 Printable		::= [ !"#$%&'()*+,#x2D./0-9:;<=>?@A-Z[\#x5D^_`a-z{|}~#x0009]
 Alpha			::= [A-Za-z]
 Alphanum		::= Alpha [0-9]
-Cr_lf			::= #x0D#x0A | #x0A#x0D
+Cr_lf			::= #x000D#x000A | #x000A#x000D
 
 Integer			::= [0] | ('%'[dD] | [1-9])[0-9]*
 Hexadecimal		::= [%0] [xX] [0-9a-fA-F]+

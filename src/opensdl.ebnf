@@ -169,9 +169,9 @@ Constant_set		::= Constant_names Equals Expression
 
 Constant		::= [cC][oO][nN][sS][tT][aA][nN][tT] (Constant_name Constant_class | Constant_list | Constant_set) ';'
 
-Module_body		::= Item | Aggregate | Constant | Entry | Local_var |
-			    Comments | Include | Declare | Cond_lang | Cond_symb |
-			    Literal_construct
+Module_body		::= (Item | Aggregate | Constant | Entry | Local_var |
+			     Comments | Include | Declare | Cond_lang | Cond_symb |
+			     Literal_construct)+
 
 Internal_name		::= Name
 Linkage_name		::= Name
@@ -200,4 +200,4 @@ Entry_name		::= Name
 Entry			::= [eE][nN][tT][rR][yY] Entry_name Alias? Parameter?
 			    Linkage? Entry_variable? Returns? Typename?
 
-File_layout		::= Comments Module Module_body End_module
+File_layout		::= Comments Module Module_body End_module Comments

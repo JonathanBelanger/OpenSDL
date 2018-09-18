@@ -84,12 +84,17 @@ Octal			::= (Percent O | Zero) Octchars+
 Binary			::= Percent B Binchars+
 Ascii			::= Percent A ( Numbers Numbers Numbers | Hexchars Hexchars )
 Str			::= Double_quote Printable* Double_qupote
-File_spec		::= Alphanum* Space* Fwd_slash* Dot*
+File_spec		::= (Alphanum | Space | Fwd_slash | Dot)+
 
 /*
  * There are 3 types of comments.  Two line and 1 block comment.
+ * Comments either start with a comment character and end with a
+ * new-line, or start with a start comment string and end with an
+ * and end comment string, and may have zero or more middle
+ * comment strings.  So comments have all the Printable characters
+ * except CR/LF (new-line) after the start of the comment.
  */
-TextNoCrlf		::= (Alphanum | Spaces | Symbols)
+TextNoCrlf		::= Alphanum | Spaces | Symbols
 Text2EOL		::= TextNoCrlf* Cr_lf
 
 /*

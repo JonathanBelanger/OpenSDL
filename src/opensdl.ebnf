@@ -109,7 +109,7 @@ Line_comment		::= Local_comment | Output_comment
 Start_comment		::= Fwd_slash Plus TextNoCrlf*
 Middle_comment_1	::= Cr_lf Fwd_slash Fwd_slash TextNoCrlf*
 Middle_comment_2	::= Cr_lf TextNoCrlf*
-End_comment		::= Fwd_slash Minus
+End_comment		::= Cr_lf? Fwd_slash Minus
 Block_comment		::= Start_comment (Middle_comment_1 | Middle_comment_2)* End_comment
 
 Comments		::= (Line_comment | Output_comment | Block_comment)

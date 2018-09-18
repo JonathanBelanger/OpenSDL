@@ -89,8 +89,8 @@ File_spec		::= Alphanum* Space* Fwd_slash* Dot*
 /*
  * There are 3 types of comments.  Two line and 1 block comment.
  */
-TextNoEOL		::= (Alphanum | Spaces | Symbols)*
-Text2EOL		::= TextNoEOL Cr_lf
+TextNoCrlf		::= (Alphanum | Spaces | Symbols)
+Text2EOL		::= TextNoCrlf* Cr_lf
 
 /*
  * Line comments (one not written and one written to output file)
@@ -106,13 +106,13 @@ Line_comment		::= Local_comment | Output_comment
  * symbol (//) only at the very beginning of the line, or just a
  * line of text
  */
-Start_comment		::= Fwd_slash Plus TextNoEOL*
-Middle_comment_1	::= Cr_lf Fwd_slash Fwd_slash TextNoEOL*
-Middle_comment_2	::= Cr_lf TextNoEOL*
+Start_comment		::= Fwd_slash Plus TextNoCrlf*
+Middle_comment_1	::= Cr_lf Fwd_slash Fwd_slash TextNoCrlf*
+Middle_comment_2	::= Cr_lf TextNoCrlf*
 End_comment		::= Fwd_slash Minus
 Block_comment		::= Start_comment (Middle_comment_1 | Middle_comment_2)* End_comment
 
-Comments		::= (Line_comment | Output_comment | Block_comment)*
+Comments		::= (Line_comment | Output_comment | Block_comment)
 
 /*
  * Now for some math.  The organization of this is significant, as it supports
@@ -188,7 +188,7 @@ Address_datatypes	::= Addr | Addr_l | Addr_q | Addr_hw
 /*
  * Define the file layout.
  */
-File_layout		::= Comments Module Module_body End_module Comments
+File_layout		::= Comments* Module Module_body End_module Comments*
 
 /*
  * Define the format of the INCLUDE statement.  NOTE: We are not
@@ -229,7 +229,7 @@ Module_name		::= Name
 Module			::= M O D U L E Module_name
 			    (I D E N T Str)? Semi
 Module_body		::= (Item | Aggregate | Constant | Entry | Local_var |
-			     Comments | Include | Declare | Cond_lang | Cond_symb |
+			     Comments* | Include | Declare | Cond_lang | Cond_symb |
 			     Literal_construct)+
 End_module		::= E N D _ M O D U L E Module_name? Semi
 

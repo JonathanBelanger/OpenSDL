@@ -21,12 +21,8 @@
  *
  * Revision History:
  *
- *  V01.000	Aug 23, 2018	Jonathan D. Belanger
+ *  V01.000	19-SEP-2018	Jonathan D. Belanger
  *  Initially written.
- *
- *  V01.001	Sep  6, 2018	Jonathan D. Belanger
- *  Updated the copyright to be GNUGPL V3 compliant.  Also, no need for two
- *  copyright sections (one should be sufficient, even for the generated file).
  */
 #include <stdio.h>
 #include <ctype.h>
@@ -57,250 +53,304 @@ quoted_string	\"(\\.|[^"\\])*\"
 literal_string	.*\n
 printable		[[:print:]]
 
-%x LITERAL
-%x INCLUDE
+%x ST_LIT
+%x ST_INCL
+%x ST_CONST
 
 %{
-typedef struct _bs_
+
+/*
+ * The following definitions are used to maintain various aspects of the
+ * parsing being performed.  The first is a Start State stack, which is used
+ * to push and pop the Start State whenever it is changed from one to another.
+ * The second is a file list, pushed any time an INCLUDE is detected and
+ * popped at End-Of-File (EOF).
+ *
+ * The following structure is used to maintain the parsing information needed
+ * when we hit an EOF and need to go back to where we left off in the previous
+ * file (if there was one).
+ */
+typedef struct _file_list_
 {
-	struct _bs_		*prev;
-	YY_BUFFER_STATE	bufState;
-	int				lineno;
-	char			*filename;
-	FILE			*fp;
-} SDL_BUFFER_STACK;
+	struct _file_list_	*previous;
+	FILE				*fp;
+	char				*fileName;
+	YY_BUFFER_STATE		bufferState;
+	int					lineNumber;
+} SDL_FILE_LIST;
 
-SDL_BUFFER_STACK *curbs = NULL;
-char *curfilename;
+static int 				*_sdl_start_state = NULL;
+static int				_sdl_state_size = 0;
+static int				_sdl_state_inuse = 0;
+static SDL_FILE_LIST	*_sdl_file_list = NULL;
 
-int newfile(char *fn);
-int popfile(void);
-void str_unquote(char *, char *, size_t);
+/*
+ * This is for the currently being parsed file name.  It is used when
+ * reporting errors back to the caller.
+ */
+static char *currentFileName = NULL;
 
+/*
+ * Now for some function prototypes.  These functions are defined un the user
+ * code definition section.
+ */
+static bool _sdl_push_file(char *newFileName);
+static bool _sdl_pop_file(void);
+static void _sdl_str_unquote(char **dest, char *src);
+static bool _sdl_push_start_state(int current_state);
+static int _sdl_pop_start_state(void);
+
+/*
+ * These are external declarations for variables defined outside of this file.
+ */
 extern void *scanner;
 extern _Bool trace;
 %}
 
 %%
-<INITIAL>[iI][nN][cC][lL][uU][dD][eE]					{ BEGIN(INCLUDE); }
-<INCLUDE>[^ \t\n\"]+									{
-															int c;
+INCLUDE					{ BEGIN(ST_INCL); }
+<ST_INCL>[^ \t\n\"]+	{
+							int c;
 
-															while ((c = input(scanner)) && (c != '\n'))
-																;
-															yylineno++;
-															if (newfile(yytext) == 0)
-																yyterminate();
-															BEGIN(INITIAL);
-														}
-<INCLUDE>.|\n											{ fprintf(stderr, "%4d bad include line\n", yylineno); yyterminate(); }
-<INITIAL><<EOF>>											{
-															if (popfile() == 0)
-																yyterminate();
-														}
-<INITIAL>[lL][iI][tT][eE][rR][aA][lL][";"]				{
-															int c;
+							while ((c = input(scanner)) && (c != '\n'))
+								;
+							yylineno++;
+							if (newfile(yytext) == 0)
+								yyterminate();
+							BEGIN(INITIAL);
+						}
+<ST_INCL>.|\n			{
+							fprintf(
+								stderr,
+								"%4d bad include line\n",
+								yylineno);
+							yyterminate();
+						}
+<<EOF>>					{
+							if (popfile() == 0)
+								yyterminate();
+						}
+LITERAL[";"]			{
+							int c;
 
-															BEGIN(LITERAL);
+							BEGIN(ST_LIT);
 
-															/*
-															 * If the next character is a new-line or return, then eat it.
-															 * Otherwise put it back.
-															 */
-															c = input(scanner);
-															if ((c != '\n') && (c != '\r'))
-																unput(c);
-															return(SDL_K_LITERAL);
-														}
-<LITERAL>{literal_string}								{
-															char *ptr, *yycopy;
-															int ii;
+							/*
+							 * If the next character is a new-line or return, then eat it.
+							 * Otherwise put it back.
+							 */
+							c = input(scanner);
+							if ((c != '\n') && (c != '\r'))
+								unput(c);
+							return(SDL_K_LITERAL);
+						}
+<ST_LIT>{literal_string}{
+							char *ptr, *yycopy;
+							int ii;
 
-															yycopy = calloc(1, yyleng);
+							yycopy = calloc(1, yyleng);
 
-															/*
-															 * Upcase the copy of yytext.
-															 */
-															for (ii = 0; ii < yyleng; ii++)
-																yycopy[ii] = toupper(yytext[ii]);
+							/*
+							 * Upcase the copy of yytext.
+							 */
+							for (ii = 0; ii < yyleng; ii++)
+								yycopy[ii] = toupper(yytext[ii]);
 
-															/*
-															 * Try and locate END_LITERAL in the text.
-															 */
-															ptr = strstr(yycopy, "END_LITERAL");
+							/*
+							 * Try and locate END_LITERAL in the text.
+							 */
+							ptr = strstr(yycopy, "END_LITERAL");
 
-															/*
-															 * If it is not found, then we are not terminating any thing.  Process
-															 * the string as literal text.  Otherwise, there is an END_LITERAL in
-															 * the string.
-															 */
-															if (ptr == NULL)
-															{
-																free(yycopy);
-																strncpy(yylval->tval, yytext, sizeof(yylval->tval));
-																return lit_val;
-															}
-															else
-															{
-																int putBackTo = ptr - yycopy;
+							/*
+							 * If it is not found, then we are not terminating any thing.  Process
+							 * the string as literal text.  Otherwise, there is an END_LITERAL in
+							 * the string.
+							 */
+							if (ptr == NULL)
+							{
+								free(yycopy);
+								strncpy(yylval->tval, yytext, sizeof(yylval->tval));
+								return lit_val;
+							}
+							else
+							{
+								int putBackTo = ptr - yycopy;
 
-																/*
-																 * We have 1 of 2 options.  Either END_LITERAL was at byte 0 of
-																 * the string or it was not.  If it is at the beginning, unput all
-																 * the characters to and including the ;.  Otherwise, put
-																 * everything back up to and including END_LITERAL.
-																 */
-																if (ptr == yycopy)
-																	putBackTo += 11;
+								/*
+								 * We have 1 of 2 options.  Either END_LITERAL was at byte 0 of
+								 * the string or it was not.  If it is at the beginning, unput all
+								 * the characters to and including the ;.  Otherwise, put
+								 * everything back up to and including END_LITERAL.
+								 */
+								if (ptr == yycopy)
+									putBackTo += 11;
 
-																/*
-																 * In order to do this correctly we have to recopy yytext and then
-																 * put the copy chracters back.  This preserves the original case.
-																 */
-																strcpy(yycopy, yytext);
-																for (ii = yyleng - 1; ii >= putBackTo; ii--)
-																	unput(yycopy[ii]);
-																free(yycopy);
-																BEGIN(INITIAL);
-																return(SDL_K_END_LITERAL);
-															}
-														}
+								/*
+								 * In order to do this correctly we have to recopy yytext and then
+								 * put the copy chracters back.  This preserves the original case.
+								 */
+								strcpy(yycopy, yytext);
+								for (ii = yyleng - 1; ii >= putBackTo; ii--)
+									unput(yycopy[ii]);
+								free(yycopy);
+								BEGIN(INITIAL);
+								return(SDL_K_END_LITERAL);
+							}
+						}
 
-<INITIAL>[iI][fF][lL][aA][nN][gG][uU][aA][gG][eE]		{ return(SDL_K_IFLANG); }
-<INITIAL>[eE][lL][sS][eE]								{ return(SDL_K_ELSE); }
-<INITIAL>[eE][nN][dD]_[iI][fF][lL][aA][nN][gG][uU][aA][gG][eE]	{ return(SDL_K_END_IFLANG); }
-<INITIAL>[iI][fF][sS][yY][mM][bB][oO][lL]				{ return(SDL_K_IFSYMB); }
-<INITIAL>[eE][lL][sS][eE]_[iI][fF][sS][yY][mM][bB][oO][lL]	{ return(SDL_K_ELSE_IFSYMB); }
-<INITIAL>[eE][nN][dD]_[iI][fF][sS][yY][mM][bB][oO][lL]	{ return(SDL_K_END_IFSYMB); }
+IFLANGUAGE				{ return(SDL_K_IFLANG); }
+ELSE					{ return(SDL_K_ELSE); }
+END_IFLANGUAGE			{ return(SDL_K_END_IFLANG); }
+IFSYMBOL				{ return(SDL_K_IFSYMB); }
+ELSE_IFSYMBOL			{ return(SDL_K_ELSE_IFSYMB); }
+END_IFSYMBOL			{ return(SDL_K_END_IFSYMB); }
 
-<INITIAL>[dD][eE][cC][lL][aA][rR][eE]					{ return(SDL_K_DECLARE); }
-<INITIAL>[aA][gG][gG][rR][eE][gG][aA][tT][eE]			{ return(SDL_K_AGGREGATE); }
-<INITIAL>[cC][oO][nN][sS][tT][aA][nN][tT]				{ return(SDL_K_CONSTANT); }
-<INITIAL>[eE][nN][dD]									{ return(SDL_K_END); }
-<INITIAL>[eE][nN][dD]_[mM][oO][dD][uU][lL][eE]			{ return(SDL_K_END_MODULE); }
-<INITIAL>[eE][nN][tT][rR][yY]							{ return(SDL_K_ENTRY); }
-<INITIAL>[iI][tT][eE][mM]								{ return(SDL_K_ITEM); }
-<INITIAL>[mM][oO][dD][uU][lL][eE]						{ return(SDL_K_MODULE); }
-<INITIAL>[sS][tT][rR][uU][cC][tT][uU][rR][eE]			{ return(SDL_K_STRUCTURE); }
-<INITIAL>[uU][nN][iI][oO][nN]							{ return(SDL_K_UNION); }
+DECLARE					{ return(SDL_K_DECLARE); }
+AGGREGATE				{ return(SDL_K_AGGREGATE); }
+CONSTANT				{ return(SDL_K_CONSTANT); }
+END						{ return(SDL_K_END); }
+END_MODULE				{ return(SDL_K_END_MODULE); }
+ENTRY					{ return(SDL_K_ENTRY); }
+ITEM					{ return(SDL_K_ITEM); }
+MODULE					{ return(SDL_K_MODULE); }
+STRUCTURE				{ return(SDL_K_STRUCTURE); }
+UNION					{ return(SDL_K_UNION); }
 
-<INITIAL>[iI][dD][eE][nN][tT]							{ return(SDL_K_IDENT); }
+IDENT					{ return(SDL_K_IDENT); }
 
-<INITIAL>[aA][lL][iI][gG][nN]							{ return(SDL_KWD_ALIGN); }
-<INITIAL>[nN][oO][aA][lL][iI][gG][nN]					{ return(SDL_KWD_NOALIGN); }
-<INITIAL>[bB][aA][sS][eE][aA][lL][iI][gG][nN]			{ return(SDL_K_BASEALIGN); }
-<INITIAL>[cC][oO][mM][mM][oO][nN]						{ return(SDL_K_COMMON); }
-<INITIAL>[gG][lL][oO][bB][aA][lL]						{ return(SDL_K_GLOBAL); }
-<INITIAL>[dD][iI][mM][eE][nN][sS][iI][oO][nN]			{ return(SDL_K_DIMENSION); }
-<INITIAL>[pP][rR][eE][fF][iI][xX]						{ return(SDL_K_PREFIX); }
-<INITIAL>[tT][aA][gG]									{ return(SDL_K_TAG); }
-<INITIAL>[sS][iI][zZ][eE][oO][fF]						{ return(SDL_K_SIZEOF); }
+ALIGN					{ return(SDL_KWD_ALIGN); }
+NOALIGN					{ return(SDL_KWD_NOALIGN); }
+BASEALIGN				{ return(SDL_K_BASEALIGN); }
+COMMON					{ return(SDL_K_COMMON); }
+GLOBAL					{ return(SDL_K_GLOBAL); }
+DIMENSION				{ return(SDL_K_DIMENSION); }
+PREFIX					{ return(SDL_K_PREFIX); }
+TAG						{ return(SDL_K_TAG); }
+SIZEOF					{ return(SDL_K_SIZEOF); }
 
-<INITIAL>[bB][aA][sS][eE][dD]							{ return(SDL_K_BASED); }
-<INITIAL>[tT][yY][pP][eE][dD][eE][fF]					{ return(SDL_K_TYPEDEF); }
-<INITIAL>[fF][iI][lL][lL]								{ return(SDL_K_FILL); }
-<INITIAL>[mM][aA][rR][kK][eE][rR]						{ return(SDL_K_MARKER); }
-<INITIAL>[oO][rR][iI][gG][iI][nN]						{ return(SDL_K_ORIGIN); }
-<INITIAL>[cC][oO][uU][nN][tT][eE][rR]					{ return(SDL_K_COUNTER); }
-<INITIAL>[eE][qQ][uU][aA][lL][sS]						{ return(SDL_K_EQUALS); }
-<INITIAL>[sS][tT][rR][iI][nN][gG]						{ return(SDL_K_STRING); }
-<INITIAL>[iI][nN][cC][rR][eE][mM][eE][nN][tT]			{ return(SDL_K_INCR); }
-<INITIAL>[tT][yY][pP][eE][nN][aA][mM][eE]				{ return(SDL_K_TYPENAME); }
+BASED					{ return(SDL_K_BASED); }
+TYPEDEF					{ return(SDL_K_TYPEDEF); }
+FILL					{ return(SDL_K_FILL); }
+MARKER					{ return(SDL_K_MARKER); }
+ORIGIN					{ return(SDL_K_ORIGIN); }
+COUNTER					{ return(SDL_K_COUNTER); }
+EQUALS					{ return(SDL_K_EQUALS); }
+STRING					{ return(SDL_K_STRING); }
+INCREMENT				{ return(SDL_K_INCR); }
+TYPENAME				{ return(SDL_K_TYPENAME); }
 
-<INITIAL>[dD][eE][sS][cC][rR][iI][pP][tT][oO][rR]		{ return(SDL_K_DSC); }
-<INITIAL>[rR][eE][fF][eE][rR][eE][nN][cC][eE]			{ return(SDL_K_REF); }
-<INITIAL>[rR][tT][lL]_[sS][tT][rR]_[dD][eE][sS][cC]		{ return(SDL_K_STR_DSC); }
-<INITIAL>[vV][aA][lL][uU][eE]							{ return(SDL_K_VALUE); }
-<INITIAL>[iI][nN]										{ return(SDL_K_IN); }
-<INITIAL>[oO][uU][tT]									{ return(SDL_K_OUT); }
-<INITIAL>[dD][eE][fF][aA][uU][lL][tT]					{ return(SDL_K_DEFAULT); }
-<INITIAL>[lL][iI][sS][tT]								{ return(SDL_K_LIST); }
-<INITIAL>[nN][aA][mM][eE][dD]							{ return(SDL_K_NAMED); }
-<INITIAL>[oO][pP][tT][iI][oO][nN][aA][lL]				{ return(SDL_K_OPT); }
-<INITIAL>[rR][eE][tT][uU][rR][nN][sS]					{ return(SDL_K_RETURNS); }
-<INITIAL>[aA][lL][iI][aA][sS]							{ return(SDL_K_ALIAS); }
-<INITIAL>[pP][aA][rR][aA][mM][eE][tT][eE][rR]			{ return(SDL_K_PARAM); }
-<INITIAL>[vV][aA][rR][iI][aA][bB][lL][eE]				{ return(SDL_K_VARIABLE); }
+DESCRIPTOR				{ return(SDL_K_DSC); }
+REFERENCE				{ return(SDL_K_REF); }
+RTL_STR_DESC			{ return(SDL_K_STR_DSC); }
+VALUE					{ return(SDL_K_VALUE); }
+IN						{ return(SDL_K_IN); }
+OUT						{ return(SDL_K_OUT); }
+DEFAULT					{ return(SDL_K_DEFAULT); }
+LIST					{ return(SDL_K_LIST); }
+NAMED					{ return(SDL_K_NAMED); }
+OPTIONAL				{ return(SDL_K_OPT); }
+RETURNS					{ return(SDL_K_RETURNS); }
+ALIAS					{ return(SDL_K_ALIAS); }
+PARAMETER				{ return(SDL_K_PARAM); }
+VARIABLE				{ return(SDL_K_VARIABLE); }
 
-<INITIAL>[bB][yY][tT][eE]								{ return(SDL_K_BYTE); }
-<INITIAL>[wW][oO][rR][dD]								{ return(SDL_K_WORD); }
-<INITIAL>[lL][oO][nN][gG][wW][oO][rR][dD]				{ return(SDL_K_LONG); }
-<INITIAL>[qQ][uU][aA][dD][wW][oO][rR][dD]				{ return(SDL_K_QUAD); }
-<INITIAL>[oO][cC][tT][aA][wW][oO][rR][dD]				{ return(SDL_K_OCTA); }
-<INITIAL>[sS]_[fF][lL][oO][aA][tT]						{ return(SDL_K_SFLOAT); }
-<INITIAL>[tT]_[fF][lL][oO][aA][tT]						{ return(SDL_K_TFLOAT); }
-<INITIAL>[dD][eE][cC][iI][mM][aA][lL]					{ return(SDL_K_DECIMAL); }
-<INITIAL>[bB][iI][tT][fF]i[eE][lL][dD]					{ return(SDL_K_BITFIELD); }
-<INITIAL>[cC][hH][aA][rR][aA][cC][tT][eE][rR]			{ return(SDL_K_CHAR); }
-<INITIAL>[aA][dD][dD][rR][eE][sS][sS]					{ return(SDL_K_ADDR); }
-<INITIAL>[pP][oO][iI][nN][tT][eE][rR]					{ return(SDL_K_ADDR); }
-<INITIAL>[pP][oO][iI][nN][tT][eE][rR]_[lL][oO][nN][gG]	{ return(SDL_K_ADDRL); }
-<INITIAL>[pP][oO][iI][nN][tT][eE][rR]_[qQ][uU][aA][dD]	{ return(SDL_K_ADDRQ); }
-<INITIAL>[pP][oO][iI][nN][tT][eE][rR]_[hH][wW]			{ return(SDL_K_ADDR_HW); }
-<INITIAL>[hH][aA][rR][dD][wW][aA][rR][eE]_[aA][dD][dD][rR][eE][sS][sS]	{ return(SDL_K_ADDR_HW); }
-<INITIAL>[aA][nN][yY]									{ return(SDL_K_ANY); }
-<INITIAL>[bB][oO][oO][lL][eE][aA][nN]					{ return(SDL_K_BOOL); }
+BYTE					{ return(SDL_K_BYTE); }
+WORD					{ return(SDL_K_WORD); }
+LONGWORD				{ return(SDL_K_LONG); }
+QUADWORD				{ return(SDL_K_QUAD); }
+OCTAWORD				{ return(SDL_K_OCTA); }
+S_FLOAT					{ return(SDL_K_SFLOAT); }
+T_FLOAT					{ return(SDL_K_TFLOAT); }
+DECIMAL					{ return(SDL_K_DECIMAL); }
+BITFiELD				{ return(SDL_K_BITFIELD); }
+CHARACTER				{ return(SDL_K_CHAR); }
+ADDRESS					{ return(SDL_K_ADDR); }
+POINTER					{ return(SDL_K_ADDR); }
+POINTER_LONG			{ return(SDL_K_ADDRL); }
+POINTER_QUAD			{ return(SDL_K_ADDRQ); }
+POINTER_HW				{ return(SDL_K_ADDR_HW); }
+HARDWARE_ADDRESS		{ return(SDL_K_ADDR_HW); }
+ANY						{ return(SDL_K_ANY); }
+BOOLEAN					{ return(SDL_K_BOOL); }
 
-<INITIAL>[sS][iI][gG][nN][eE][dD]						{ return(SDL_K_SIGNED); }
-<INITIAL>[uU][nN][sS][iI][gG][nN][eE][dD]				{ return(SDL_K_UNSIGNED); }
-<INITIAL>[cC][oO][mM][pP][lL][eE][xX]					{ return(SDL_K_COMPLEX); }
-<INITIAL>[lL][eE][nN][gG][tT][hH]						{ return(SDL_K_LENGTH); }
-<INITIAL>[mM][aA][sS][kK]								{ return(SDL_K_MASK); }
-<INITIAL>[vV][aA][rR][yY][iI][nN][gG]					{ return(SDL_K_VARY); }
-<INITIAL>[pP][rR][eE][cC][iI][sS]i[oO][nN]				{ return(SDL_K_PRECISION); }
+SIGNED					{ return(SDL_K_SIGNED); }
+UNSIGNED				{ return(SDL_K_UNSIGNED); }
+COMPLEX					{ return(SDL_K_COMPLEX); }
+LENGTH					{ return(SDL_K_LENGTH); }
+MASK					{ return(SDL_K_MASK); }
+VARYING					{ return(SDL_K_VARY); }
+PRECISION				{ return(SDL_K_PRECISION); }
 
-<INITIAL>"+"											{ return(SDL_K_PLUS); }
-<INITIAL>"-"											{ return(SDL_K_MINUS); }
-<INITIAL>"*"											{ return(SDL_K_MULT); }
-<INITIAL>"/"											{ return(SDL_K_DIVIDE); }
-<INITIAL>"@"											{ return(SDL_K_SHIFT); }
-<INITIAL>"&"											{ return(SDL_K_AND); }
-<INITIAL>"!"											{ return(SDL_K_OR); }
-<INITIAL>"~"											{ return(SDL_K_NOT); }
-<INITIAL>"."											{ return(SDL_K_PERIOD); }
-<INITIAL>"^"											{ return(SDL_K_BITS); }
-<INITIAL>"="											{ return(SDL_K_EQ); }
+"+"						{ return(SDL_K_PLUS); }
+"-"						{ return(SDL_K_MINUS); }
+"*"						{ return(SDL_K_MULT); }
+"/"						{ return(SDL_K_DIVIDE); }
+"@"						{ return(SDL_K_SHIFT); }
+"&"						{ return(SDL_K_AND); }
+"!"						{ return(SDL_K_OR); }
+"~"						{ return(SDL_K_NOT); }
+"."						{ return(SDL_K_PERIOD); }
+"^"						{ return(SDL_K_BITS); }
+"="						{ return(SDL_K_EQ); }
 
-<INITIAL>";"											{ return(SDL_K_EOD); }
-<INITIAL>"("											{ return(SDL_K_OPEN); }
-<INITIAL>")"											{ return(SDL_K_CLOSE); }
-<INITIAL>","											{ return(SDL_K_COMMA); }
-<INITIAL>":"											{ return(SDL_K_COLON); }
+";"						{ return(SDL_K_EOD); }
+"("						{ return(SDL_K_OPEN); }
+")"						{ return(SDL_K_CLOSE); }
+","						{ return(SDL_K_COMMA); }
+":"						{ return(SDL_K_COLON); }
 
-<INITIAL>[rR][aA][dD][iI][xX]							{ return(SDL_K_RADIX); }
-<INITIAL>[dD][eE][cC]									{ return(SDL_K_DEC); }
-<INITIAL>[hH][eE][xX]									{ return(SDL_K_HEX); }
-<INITIAL>[oO][cC][tT]									{ return(SDL_K_OCT); }
+RADIX					{ return(SDL_K_RADIX); }
+DEC						{ return(SDL_K_DEC); }
+HEX						{ return(SDL_K_HEX); }
+OCT						{ return(SDL_K_OCT); }
 
-<INITIAL>"#"{names}					{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return variable; }
-<INITIAL>{local_comment}			{ /* eat local comments... */ }
-<INITIAL>{white_spaces}				{ /* eat white spaces... */ }
-<INITIAL>"%"[dD][0-9]{1,20}			{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
-<INITIAL>([0])|([1-9][0-9]{0,19})	{ yylval->bval = strtol(yytext, NULL, 10); return decimal; }
-<INITIAL>"%"[xX][0-9a-fA-F]{1,16}	{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
-<INITIAL>[0][xX][0-9a-fA-F]{1,16}	{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
-<INITIAL>"%"[oO][0-7]{1,22}			{ strcpy(yylval->tval, &yytext[2]); return octal; }
-<INITIAL>[0][0-7]{1,22}				{ strcpy(yylval->tval, &yytext[1]); return octal; }
-<INITIAL>"%"[bB][0-1]{1,64}			{ strcpy(yylval->tval, &yytext[2]); return binary; }
-<INITIAL>"%"[aA]{printable}			{ strcpy(yylval->tval, &yytext[2]); return ascii; }
-<INITIAL>"%"[aA][0-9]{3}			{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
-<INITIAL>"%"[aA][0-9a-fA-F]{2}		{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
+"#"{names}				{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return variable; }
+{local_comment}			{ /* eat local comments... */ }
+{white_spaces}			{ /* eat white spaces... */ }
+"%"D[0-9]{1,20}			{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
+([0])|([1-9][0-9]{0,19}){ yylval->bval = strtol(yytext, NULL, 10); return decimal; }
+"%"X[0-9a-fA-F]{1,16}	{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
+[0]X[0-9a-fA-F]{1,16}	{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
+"%"O[0-7]{1,22}			{ strcpy(yylval->tval, &yytext[2]); return octal; }
+[0][0-7]{1,22}			{ strcpy(yylval->tval, &yytext[1]); return octal; }
+"%"B[0-1]{1,64}			{ strcpy(yylval->tval, &yytext[2]); return binary; }
+"%"A{printable}			{ strcpy(yylval->tval, &yytext[2]); return ascii; }
+"%"A[0-9]{3}			{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
+"%"A[0-9a-fA-F]{2}		{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
 
 %%
 
+/*
+ * _sdl_push_file
+ *  This function is called when an include statement has been parsed and the
+ *  include filename extracted from the input stream.  This function will push
+ *  the current file parsing state onto a list, open the new file and set it
+ *  up to be parsed.
+ *
+ * Input Parameters:
+ *  newFileName:
+ *		A pointer to a string specifying the next file to be opened for
+ *		parsing.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  true:	Normal Successful Completion.
+ *	false:	An error occurred.
+ */
 #define yyg ((struct yyguts_t *) scanner)
-
-int newfile(char *fn)
+static bool _sdl_push_file(char *newFileName)
 {
-	FILE				*fp = fopen(fn, "r");
-	SDL_BUFFER_STACK	*bs = malloc(sizeof(SDL_BUFFER_STACK));
-	int					retVal = 1;
+	FILE			*fp = fopen(newFileName, "r");
+	SDL_FILE_LIST	*entry = calloc(1, sizeof(SDL_FILE_LIST));
+	bool			retVal = true;
 
 	/*
 	 * If tracing is turned on, write out this call (calls only, no returns).
 	 */
 	if (trace == true)
-		printf("%s:%d:newfile\n", __FILE__, __LINE__);
+		printf("%s:%d:_sdl_push_file\n", __FILE__, __LINE__);
 
 	/*
 	 * Get out if there is no file or memory allocation did not allocate
@@ -308,10 +358,10 @@ int newfile(char *fn)
 	 */
 	if (fp == NULL)
 	{
-		perror(fn);
-		retVal = 0;
+		perror(newFileName);
+		retVal = false;
 	}
- 	if ((bs == NULL) && (retVal == 1))
+ 	if ((entry == NULL) && (retVal == true))
  	{
  		perror("malloc");
  		exit(1);
@@ -321,79 +371,100 @@ int newfile(char *fn)
 	 * OK, if we get here and we still have a success, go initialize the new
 	 * current entry.
 	 */
-	if (retVal == 1)
+	if (retVal == true)
 	{
 
 	 	/*
-	 	 * Remember the state
+	 	 * Remember the line number we left off of in the current file.
 	 	 */
-		if (curbs != NULL)
-			curbs->lineno = yylineno;
-		bs->prev = curbs;
+		if (_sdl_file_list != NULL)
+			_sdl_file_list->lineNumber = yylineno;
+
+		/*
+		 * Insert this entry onto the beginning of the file list.
+		 */
+		entry->previous = _sdl_file_list;
+		_sdl_file_list = entry;
 
 		/*
 		 * Set up the new current entry
 		 */
-		bs->bufState = yy_create_buffer(fp, YY_BUF_SIZE, scanner);
-		bs->fp = fp;
-		bs->filename = fn;
-		yy_switch_to_buffer(bs->bufState, scanner);
-		curbs = bs;
+		entry->bufferState = yy_create_buffer(fp, YY_BUF_SIZE, scanner);
+		entry->fp = fp;
+		entry->fileName = strdup(newFileName);
+		yy_switch_to_buffer(entry->bufferState, scanner);
 		yylineno = 1;
-		curfilename = fn;
+		currentFileName = newFileName;
 	}
 
 	/*
 	 * Return the result back to the caller
 	 */
-	return(1);
+	return(retVal);
 }
 
-int popfile(void)
+/*
+ * _sdl_pop_file
+ *  This function is called when an EOF has been parsed from the input stream.
+ *  This function will pop the previous file off of the list, and set it up so
+ *  that it can continue to be parsed.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  true:	Normal Successful Completion.
+ *	false:	EOF on the top file was detected.
+ */
+static bool _sdl_pop_file(void)
 {
-	SDL_BUFFER_STACK	*bs = curbs;
-	SDL_BUFFER_STACK	*prev;
-	int					retVal = 1;
+	SDL_FILE_LIST	*entry = _sdl_file_list;
+	SDL_FILE_LIST	*prev;
+	bool			retVal = true;
 
 	/*
 	 * If tracing is turned on, write out this call (calls only, no returns).
 	 */
 	if (trace == true)
-		printf("%s:%d:popfile\n", __FILE__, __LINE__);
+		printf("%s:%d:_sdl_pop_file\n", __FILE__, __LINE__);
 
 	/*
 	 * If there is nothing to free, we return an error.
 	 */
-	if (bs == NULL)
-		retVal = 0;
+	if (entry == NULL)
+		retVal = false;
 	else
 	{
 
 		/*
 		 * Get rid of current entry and all its associated memory.
 		 */
-		fclose(bs->fp);
-		yy_delete_buffer(bs->bufState, scanner);
+		fclose(entry->fp);
+		yy_delete_buffer(entry->bufferState, scanner);
 
 		/*
-		 * Before we free up the current bufstack, get the pointer to the
+		 * Before we free up the current file entry, get the pointer to the
 		 * previous one, then free up current one.
 		 */
-		prev = bs->prev;
-		free(bs);
+		prev = entry->previous;
+		free(entry->fileName);
+		free(entry);
 
 		/*
-		 * If there is no previous bufstack, then return the error.  Otherwise,
+		 * If there is no previous entry, then return an error.  Otherwise,
 		 * make the previous one the current one.
 		 */
 		if(prev == NULL)
-			retVal = 0;
+			retVal = false;
 		else
 		{
-			yy_switch_to_buffer(prev->bufState, scanner);
-			curbs = prev;
-			yylineno = curbs->lineno;
-			curfilename = curbs->filename;
+			yy_switch_to_buffer(prev->bufferState, scanner);
+			_sdl_file_list = prev;
+			yylineno = prev->lineNumber;
+			currentFileName = prev->fileName;
 		}
 	}
 
@@ -403,20 +474,41 @@ int popfile(void)
 	return(retVal);
 }
 
-void str_unquote(char *dest, char *src, size_t maxLen)
+/*
+ * _sdl_str_unquote
+ *  This function is called to remove the leading an trailing double quote
+ *  characters from a string.  This is very simplified, in that the
+ *  parsing will place the double quotes as the first and last characters
+ *  in the string.
+ *
+ * Input Parameters:
+ *  src:
+ *		A pointer to the string to have its leading and trailing double quotes
+ *		removed.
+ *  maxLen:
+ *		A value indicating the maximum possible length for the string.
+ *
+ * Output Parameters:
+ *  dest:
+ *		A pointer to the address to receive the allocated buffer.
+ *
+ * Return Values:
+ *  None.
+ */
+static void _sdl_str_unquote(char **dest, char *src)
 {
 	char	*ptr;
 
 	/*
 	 * Copy everything but the first character.
 	 */
-	strncpy(dest, &src[1], maxLen);
+	*dest = strdup(&src[1]);
 
 	/*
 	 * Now find the last double-quote character.
 	 */
-	ptr = dest + strlen(dest);
-	while ((*ptr != '\"') && (ptr != dest))
+	ptr = *dest + strlen(*dest);
+	while ((*ptr != '\"') && (ptr != *dest))
 		ptr--;
 
 	/*
@@ -430,4 +522,115 @@ void str_unquote(char *dest, char *src, size_t maxLen)
 	 * Return back to the caller.
 	 */
 	return;
+}
+
+/*
+ * _sdl_push_start_state
+ *  This function is called to push the current start state onto a stack
+ *  because we are changing start states and want to come back to the current
+ *  one.
+ *
+ * Input Parameters:
+ *  current_state:
+ *		A value indicating the current start state to be pushed onto the
+ *      stack.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  true:	Normal Successful Completion.
+ *  false:	Failed to allocate enough memory to save the state.
+ */
+static bool _sdl_push_start_state(int current_state)
+{
+	bool	retVal = true;
+	int		index = _sdl_state_size - _sdl_state_inuse - 1;
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no returns).
+	 */
+	if (trace == true)
+		printf("%s:%d:_sdl_push_start_state\n", __FILE__, __LINE__);
+
+	/*
+	 * If the index is negative, there is no more room on the stack.  Allocate
+	 * a new stack, copy the items below, making room for a new entry at the
+	 * top, free the old stack, and finally make the new stack the current
+	 * one.
+	 */
+	if (index < 0)
+	{
+		int	*newStack = calloc((_sdl_state_size + 1), sizeof(int));
+
+		if (newStack != NULL)
+		{
+			int	ii;
+
+			_sdl_state_size++;
+			for (ii = 1; ii < _sdl_state_size; ii++)
+				newStack[ii] = _sdl_start_state[ii - 1];
+			free(_sdl_start_state);
+			_sdl_start_state = newStack;
+			index = 0;
+		}
+		else
+		{
+	 		perror("calloc");
+			retVal = false;
+ 		}
+	}
+	if (retVal == true)
+	{
+		_sdl_start_state[index] = current_state;
+		_sdl_state_inuse++;
+	}
+
+	/*
+	 * Return the outcome back to the caller.
+	 */
+	return(retVal);
+}
+
+/*
+ * _sdl_pop_start_state
+ *  This function is called to pop the previous start state off of a stack
+ *  because we are done with the current start state and need to go back to
+ *  the previous one.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  0:		The INITIAL state (returned when there is nothing on the stack).
+ *  >=0:	The previous start state (which may be INITIAL).
+ */
+static int _sdl_pop_start_state(void)
+{
+	int		retVal = 0;
+	int		index = _sdl_state_size - _sdl_state_inuse;
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no returns).
+	 */
+	if (trace == true)
+		printf("%s:%d:_sdl_pop_start_state\n", __FILE__, __LINE__);
+
+	/*
+	 * If any of the entries are in-use, then return the top one and
+	 * decrement the in-use counter;
+	 */
+	if (_sdl_state_inuse > 0)
+	{
+		retVal = _sdl_start_state[index];
+		_sdl_state_inuse--;
+	}
+
+	/*
+	 * Return the outcome back to the caller.
+	 */
+	return(retVal);
 }

@@ -272,9 +272,6 @@ extern _Bool trace;
 <INITIAL>[hH][eE][xX]									{ return(SDL_K_HEX); }
 <INITIAL>[oO][cC][tT]									{ return(SDL_K_OCT); }
 
-<INITIAL>{output_comment}			{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return comment; }
-<INITIAL>{quoted_string}			{ str_unquote(yylval->tval, yytext, sizeof(yylval->tval)); return string; }
-<INITIAL>{names}					{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return ident; }
 <INITIAL>"#"{names}					{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return variable; }
 <INITIAL>{local_comment}			{ /* eat local comments... */ }
 <INITIAL>{white_spaces}				{ /* eat white spaces... */ }

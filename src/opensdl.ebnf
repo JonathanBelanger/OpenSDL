@@ -100,9 +100,9 @@ Text2EOL		::= TextNoCrlf* Cr_lf
 /*
  * Line comments (one not written and one written to output file)
  */
-Local_comment		::= Openb Text2EOL
-Output_comment		::= Fwd_slash Star Text2EOL
-Line_comment		::= Local_comment | Output_comment
+Local_comment	::= Openb Text2EOL
+Output_comment	::= Fwd_slash Star Text2EOL
+Line_comment	::= Local_comment | Output_comment
 
 /*
  * Block comment.
@@ -111,11 +111,11 @@ Line_comment		::= Local_comment | Output_comment
  * symbol (//) only at the very beginning of the line, or just a
  * line of text
  */
-Start_comment		::= Fwd_slash Plus TextNoCrlf*
+Start_comment	::= Fwd_slash Plus TextNoCrlf*
 Middle_comment_1	::= Cr_lf Fwd_slash Fwd_slash TextNoCrlf*
 Middle_comment_2	::= Cr_lf TextNoCrlf*
 End_comment		::= Cr_lf? Fwd_slash Minus
-Block_comment		::= Start_comment (Middle_comment_1 | Middle_comment_2)* End_comment
+Block_comment	::= Start_comment (Middle_comment_1 | Middle_comment_2)* End_comment
 
 Comments		::= (Line_comment | Output_comment | Block_comment)
 
@@ -130,17 +130,17 @@ Term			::= Terminal
 Condition		::= Cond and Bit_op | Cond Or Bit_op | Bit_op
 Cond			::= Condition
 Bit_op			::= Bit At Factor | Factor
-Bit			::= Bit_op
+Bit				::= Bit_op
 Factor			::= ( Minus | Not ) Fact | Openp Expression Closep | Number | Str
 Fact			::= Factor
 Number			::= Integer | Variable | Hexadecimal | Octal | Binary |
-			    Ascii | Dot | Full | Carat
+			    	Ascii | Dot | Full | Carat
 
 /*
  * This is probably the most signficiant definition.  It is used everywhere because
  * everything has a name.
  */
-Name			::= Dollar | Underscore | Alpha (Dollar Underscore Alphanum)*
+Name			::= Dollar | Underscore | Alpha (Dollar | Underscore | Alphanum)*
 
 /*
  * Local Symbols allow for maintaining internal values that can be calculated and
@@ -180,7 +180,7 @@ Addr			::= A D D R E S S | P O I N T E R
 Addr_l			::= P O I N T E R _ L O N G
 Addr_q			::= P O I N T E R _ Q U A D
 Addr_hw			::= P O I N T E R _ H W | H A R D W A R E _ A D D R E S S
-Any			::= A N Y
+Any				::= A N Y
 Boolean			::= B O O L E A N
 
 /*
@@ -330,7 +330,7 @@ Numeric_options		::= String_options Counter? Typename? Radix?
 Increment_options	::= Increment? Numeric_options
 Constant_list		::= Constant_names Equals Expression Increment_options
 Constant_set		::= Constant_names Equals Expression Output_comment?
-			    (Comma Constand_names Equals Expression Output_comment?)*
+			    (Comma Constant_names Equals Expression Output_comment?)*
 Constant		::= C O N S T A N T (Constant_name Constant_class | Constant_list | Constant_set) Semi Output_comment?
 
 /*

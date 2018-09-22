@@ -21,14 +21,15 @@
  *
  * Revision History:
  *
- *  V01.000	Aug 25, 2018	Jonathan D. Belanger
+ *  V01.000	25-AUG-2018	Jonathan D. Belanger
  *  Initially written.
  *
- *  V01.001	Sept 6, 2018	Jonathan D. Belanger
+ *  V01.001	08-SEP-2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
 #include "opensdl_defs.h"
 #include "opensdl_lang.h"
+#include "opensdl_actions.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +38,7 @@
 extern _Bool trace;
 
 /*
- * Define the language specific entrypoints.
+ * Define the language specific entry-points.
  */
 #define SDL_K_COMMENT_CB	0
 #define SDL_K_MODULE_CB		1
@@ -96,12 +97,6 @@ static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *na
 static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype);
 static void _sdl_trim_tag(char *tag);
 static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item);
-static void _sdl_trim_str(char *str, int type);
-
-#define SDL_M_LEAD	0x00000001	/* remove leading spaces */
-#define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */
-#define SDL_M_COMPRESS	0x00000004	/* remove duplicate spaces */
-#define SDL_M_COLLAPSE	0x00000008	/* remove all spaces */
 
 /*
  * sdl_unquote_str
@@ -423,7 +418,7 @@ int sdl_comment(SDL_CONTEXT *context, char *comment)
     /*
      * Trim all trailing space characters.
      */
-    _sdl_trim_str(comment, SDL_M_TRAIL);
+    sdl_trim_str(comment, SDL_M_TRAIL);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -2333,7 +2328,7 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
 }
 
 /*
- * _sdl_trim_str
+ * sdl_trim_str
  *  This function is called to remove space characters from a string.  If can
  *  perform 4 kinds of space removal (any one or all at the same time).
  *
@@ -2355,7 +2350,7 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
  * Return Values:
  *  None.
  */
-static void _sdl_trim_str(char *str, int type)
+void sdl_trim_str(char *str, int type)
 {
     int		srcIdx = 0;
     int		destIdx = 0;

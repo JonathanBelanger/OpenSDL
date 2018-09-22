@@ -101,6 +101,7 @@ int main(int argc, char *argv[])
      * Turn on tracing
      */
     trace = true;
+    yydebug = 1;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).

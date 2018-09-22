@@ -28,6 +28,7 @@
 #include <ctype.h>
 #include "opensdl_defs.h"
 #include "opensdl_parser.h"
+#include "opensdl_actions.h"
 
 extern bool literal_state;
 
@@ -45,17 +46,21 @@ extern bool literal_state;
 %option case-insensitive
 %option 8bit
 
-white_spaces	[ \t\n\r\v\f]+
-names			[$_a-zA-Z][$_a-zA-Z0-9]*
-local_comment	("{").*
-output_comment	("/*"|"/+"|"//"|"/-").*
-quoted_string	\"(\\.|[^"\\])*\"
-literal_string	.*\n
-printable		[[:print:]]
+White_spaces	[:space:]+
+Names			[$_[:alpha:]][$_[:alnum:]]*
+Local_comment	("{").*
+Output_comment	("/*").*
+Block_comment	("/+").*("/-")
+Quoted_string	\"(\\.|[^"\\])*\"
+Literal_string	.*\n
+Printable		[:print:]
 
 %x ST_LIT
 %x ST_INCL
 %x ST_CONST
+%x ST_CONST_NAME
+%x ST_CONST_LIST
+%x ST_CONST_RAD
 
 %{
 
@@ -108,16 +113,20 @@ extern _Bool trace;
 %}
 
 %%
-INCLUDE					{ BEGIN(ST_INCL); }
+INCLUDE					{
+							if (_sdl_push_start_state(YY_START) == false)
+								yyterminate();
+							BEGIN(ST_INCL);
+						}
 <ST_INCL>[^ \t\n\"]+	{
 							int c;
 
 							while ((c = input(scanner)) && (c != '\n'))
 								;
 							yylineno++;
-							if (newfile(yytext) == 0)
+							if (_sdl_push_file(yytext) == 0)
 								yyterminate();
-							BEGIN(INITIAL);
+							BEGIN(_sdl_pop_start_state());
 						}
 <ST_INCL>.|\n			{
 							fprintf(
@@ -127,12 +136,14 @@ INCLUDE					{ BEGIN(ST_INCL); }
 							yyterminate();
 						}
 <<EOF>>					{
-							if (popfile() == 0)
+							if (_sdl_pop_file() == 0)
 								yyterminate();
 						}
 LITERAL[";"]			{
 							int c;
 
+							if (_sdl_push_start_state(YY_START) == false)
+								yyterminate();
 							BEGIN(ST_LIT);
 
 							/*
@@ -144,7 +155,7 @@ LITERAL[";"]			{
 								unput(c);
 							return(SDL_K_LITERAL);
 						}
-<ST_LIT>{literal_string}{
+<ST_LIT>{Literal_string}	{
 							char *ptr, *yycopy;
 							int ii;
 
@@ -169,8 +180,8 @@ LITERAL[";"]			{
 							if (ptr == NULL)
 							{
 								free(yycopy);
-								strncpy(yylval->tval, yytext, sizeof(yylval->tval));
-								return lit_val;
+								yylval->tval = strdup(yytext);
+								return(t_literal_string);
 							}
 							else
 							{
@@ -193,11 +204,97 @@ LITERAL[";"]			{
 								for (ii = yyleng - 1; ii >= putBackTo; ii--)
 									unput(yycopy[ii]);
 								free(yycopy);
-								BEGIN(INITIAL);
+								BEGIN(_sdl_pop_start_state());
 								return(SDL_K_END_LITERAL);
 							}
 						}
+CONSTANT				{
+							if (_sdl_push_start_state(YY_START) == false)
+								yyterminate();
+							printf("%s:%d >>>> START STATE %d --> %d\n",
+										__FILE__,
+										__LINE__,
+										YY_START,
+										ST_CONST_NAME);
+							BEGIN(ST_CONST_NAME);
+							return(SDL_K_CONSTANT);
+						}
+<ST_CONST_NAME>{Names}	{
+							yylval->tval = strdup(yytext);
+							printf("%s:%d >>>> START STATE %d <-> %d\n",
+										__FILE__,
+										__LINE__,
+										YY_START,
+										ST_CONST);
+							BEGIN(ST_CONST);
+							return t_constant_name;
+						}
+<ST_CONST_NAME>[(]		{
+							if (_sdl_push_start_state(YY_START) == false)
+								yyterminate();
+							printf("%s:%d >>>> START STATE %d --> %d\n",
+										__FILE__,
+										__LINE__,
+										YY_START,
+										ST_CONST_LIST);
+							BEGIN(ST_CONST_LIST);
+						}
+<ST_CONST_LIST>[^)]*	{
+							int c;
 
+							while ((c = input(scanner)) && (c != ')'))
+								if (c == '\n')
+									yylineno++;
+							sdl_trim_str(yytext, SDL_M_COLLAPSE);
+							yylval->tval = strdup(yytext);
+							BEGIN(_sdl_pop_start_state());
+							return(t_constant_names);
+						}
+<ST_CONST_LIST>[)]		{ BEGIN(_sdl_pop_start_state()); }
+<ST_CONST>EQUALS		{
+							printf("\n????? AT EQUALS state = %d ?????\n\n", YY_START);
+							return(SDL_K_EQUALS);
+						}
+<ST_CONST>STRING		{ return(SDL_K_STRING); }
+<ST_CONST>COUNTER		{ return(SDL_K_COUNTER); }
+<ST_CONST>INCREMENT		{ return(SDL_K_INCR); }
+<ST_CONST>RADIX			{
+							if (_sdl_push_start_state(YY_START) == false)
+								yyterminate();
+							printf("%s:%d >>>> START STATE %d --> %d\n",
+										__FILE__,
+										__LINE__,
+										YY_START,
+										ST_CONST_RAD);
+							BEGIN(ST_CONST_RAD);
+							return(SDL_K_RADIX);
+						}
+<ST_CONST_RAD>DEC		{
+							BEGIN(_sdl_pop_start_state());
+							return(SDL_K_DEC);
+						}
+<ST_CONST_RAD>HEX		{
+							BEGIN(_sdl_pop_start_state());
+							return(SDL_K_HEX);
+						}
+<ST_CONST_RAD>OCT		{
+							BEGIN(_sdl_pop_start_state());
+							return(SDL_K_OCT);
+						}
+<ST_CONST>[,]			{
+							printf("%s:%d >>>> START STATE %d <-> %d\n",
+										__FILE__,
+										__LINE__,
+										YY_START,
+										ST_CONST_NAME);
+							BEGIN(ST_CONST_NAME);
+							return(SDL_K_COMMA);
+						}
+<ST_CONST>[;]			{
+							BEGIN(_sdl_pop_start_state());
+							return(SDL_K_END_CONSTANT);
+						}
+<ST_CONST>.\n			{ /* Eat unexpected characters */ }
 IFLANGUAGE				{ return(SDL_K_IFLANG); }
 ELSE					{ return(SDL_K_ELSE); }
 END_IFLANGUAGE			{ return(SDL_K_END_IFLANG); }
@@ -207,12 +304,20 @@ END_IFSYMBOL			{ return(SDL_K_END_IFSYMB); }
 
 DECLARE					{ return(SDL_K_DECLARE); }
 AGGREGATE				{ return(SDL_K_AGGREGATE); }
-CONSTANT				{ return(SDL_K_CONSTANT); }
 END						{ return(SDL_K_END); }
 END_MODULE				{ return(SDL_K_END_MODULE); }
 ENTRY					{ return(SDL_K_ENTRY); }
 ITEM					{ return(SDL_K_ITEM); }
-MODULE					{ return(SDL_K_MODULE); }
+MODULE					{ 
+							printf("\n\tStart  = Value\n\t-----    -----\n");
+							printf("\tST_LIT = %d\n", ST_LIT);
+							printf("\tST_INCL = %d\n", ST_INCL);
+							printf("\tST_CONST = %d\n", ST_CONST);
+							printf("\tST_CONST_NAME = %d\n", ST_CONST_NAME);
+							printf("\tST_CONST_LIST = %d\n", ST_CONST_LIST);
+							printf("\tST_CONST_RAD = %d\n\n", ST_CONST_RAD);
+							return(SDL_K_MODULE);
+						}
 STRUCTURE				{ return(SDL_K_STRUCTURE); }
 UNION					{ return(SDL_K_UNION); }
 
@@ -224,8 +329,8 @@ BASEALIGN				{ return(SDL_K_BASEALIGN); }
 COMMON					{ return(SDL_K_COMMON); }
 GLOBAL					{ return(SDL_K_GLOBAL); }
 DIMENSION				{ return(SDL_K_DIMENSION); }
-PREFIX					{ return(SDL_K_PREFIX); }
-TAG						{ return(SDL_K_TAG); }
+<*>PREFIX				{ return(SDL_K_PREFIX); }
+<*>TAG					{ return(SDL_K_TAG); }
 SIZEOF					{ return(SDL_K_SIZEOF); }
 
 BASED					{ return(SDL_K_BASED); }
@@ -233,15 +338,9 @@ TYPEDEF					{ return(SDL_K_TYPEDEF); }
 FILL					{ return(SDL_K_FILL); }
 MARKER					{ return(SDL_K_MARKER); }
 ORIGIN					{ return(SDL_K_ORIGIN); }
-COUNTER					{ return(SDL_K_COUNTER); }
-EQUALS					{ return(SDL_K_EQUALS); }
-STRING					{ return(SDL_K_STRING); }
-INCREMENT				{ return(SDL_K_INCR); }
-TYPENAME				{ return(SDL_K_TYPENAME); }
+<*>TYPENAME				{ return(SDL_K_TYPENAME); }
 
-DESCRIPTOR				{ return(SDL_K_DSC); }
 REFERENCE				{ return(SDL_K_REF); }
-RTL_STR_DESC			{ return(SDL_K_STR_DSC); }
 VALUE					{ return(SDL_K_VALUE); }
 IN						{ return(SDL_K_IN); }
 OUT						{ return(SDL_K_OUT); }
@@ -262,7 +361,7 @@ OCTAWORD				{ return(SDL_K_OCTA); }
 S_FLOAT					{ return(SDL_K_SFLOAT); }
 T_FLOAT					{ return(SDL_K_TFLOAT); }
 DECIMAL					{ return(SDL_K_DECIMAL); }
-BITFiELD				{ return(SDL_K_BITFIELD); }
+BITFIELD				{ return(SDL_K_BITFIELD); }
 CHARACTER				{ return(SDL_K_CHAR); }
 ADDRESS					{ return(SDL_K_ADDR); }
 POINTER					{ return(SDL_K_ADDR); }
@@ -281,42 +380,76 @@ MASK					{ return(SDL_K_MASK); }
 VARYING					{ return(SDL_K_VARY); }
 PRECISION				{ return(SDL_K_PRECISION); }
 
-"+"						{ return(SDL_K_PLUS); }
-"-"						{ return(SDL_K_MINUS); }
-"*"						{ return(SDL_K_MULT); }
-"/"						{ return(SDL_K_DIVIDE); }
-"@"						{ return(SDL_K_SHIFT); }
-"&"						{ return(SDL_K_AND); }
-"!"						{ return(SDL_K_OR); }
-"~"						{ return(SDL_K_NOT); }
-"."						{ return(SDL_K_PERIOD); }
-"^"						{ return(SDL_K_BITS); }
-"="						{ return(SDL_K_EQ); }
-
-";"						{ return(SDL_K_EOD); }
-"("						{ return(SDL_K_OPEN); }
-")"						{ return(SDL_K_CLOSE); }
+";"						{ return(SDL_K_SEMI); }
+<*>"("					{ return(SDL_K_OPENP); }
+<*>")"					{ return(SDL_K_CLOSEP); }
 ","						{ return(SDL_K_COMMA); }
 ":"						{ return(SDL_K_COLON); }
 
-RADIX					{ return(SDL_K_RADIX); }
-DEC						{ return(SDL_K_DEC); }
-HEX						{ return(SDL_K_HEX); }
-OCT						{ return(SDL_K_OCT); }
+<*>{Quoted_string}		{
+							_sdl_str_unquote(&yylval->tval, yytext);\
+							return(t_string);
+						}
+<*>{Names}				{
+							yylval->tval = strdup(yytext);
+							return t_name;
+						}
+<*>"#"{Names}			{
 
-"#"{names}				{ strncpy(yylval->tval, yytext, sizeof(yylval->tval)); return variable; }
-{local_comment}			{ /* eat local comments... */ }
-{white_spaces}			{ /* eat white spaces... */ }
-"%"D[0-9]{1,20}			{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
-([0])|([1-9][0-9]{0,19}){ yylval->bval = strtol(yytext, NULL, 10); return decimal; }
-"%"X[0-9a-fA-F]{1,16}	{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
-[0]X[0-9a-fA-F]{1,16}	{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
-"%"O[0-7]{1,22}			{ strcpy(yylval->tval, &yytext[2]); return octal; }
-[0][0-7]{1,22}			{ strcpy(yylval->tval, &yytext[1]); return octal; }
-"%"B[0-1]{1,64}			{ strcpy(yylval->tval, &yytext[2]); return binary; }
-"%"A{printable}			{ strcpy(yylval->tval, &yytext[2]); return ascii; }
-"%"A[0-9]{3}			{ yylval->bval = strtol(&yytext[2], NULL, 10); return decimal; }
-"%"A[0-9a-fA-F]{2}		{ strcpy(yylval->tval, &yytext[2]); return hexadecimal; }
+							yylval->tval = strdup(yytext);
+							return(t_variable);
+						}
+{Output_comment}		{
+							yylval->tval = strdup(yytext);
+							return(t_line_comment);
+						}
+{Block_comment}			{
+							yylval->tval = strdup(yytext);
+							return(t_block_comment);
+						}
+{Local_comment}			{ /* eat local comments... */ }
+<*>{White_spaces}		{ /* eat white spaces... */ }
+<*>"%"D[0-9]{1,20}		{
+							yylval->ival = strtol(&yytext[2], NULL, 10);
+							return(v_int);
+						}
+<*>([0])|([1-9][0-9]{0,19})	{
+							yylval->ival = strtol(yytext, NULL, 10);
+							printf("\n????????  Here 1 (%ld) state = %d ????????\n", yylval->ival, YY_START);
+							return(v_int);
+						}
+<*>"%"X[0-9a-fA-F]{1,16}	{
+							yylval->tval = strdup(&yytext[2]);
+							return(t_hex);
+						}
+<*>[0]X[0-9a-fA-F]{1,16}	{
+							yylval->tval = strdup(&yytext[2]);
+							return(t_hex);
+						}
+<*>"%"O[0-7]{1,22}		{
+							yylval->tval = strdup(&yytext[2]);
+							return(t_octal);
+						}
+<*>[0][0-7]{1,22}		{
+							yylval->tval = strdup(&yytext[1]);
+							return(t_octal);
+						}
+<*>"%"B[0-1]{1,64}		{
+							yylval->tval = strdup(&yytext[2]);
+							return(t_binary);
+						}
+<*>"%"A{Printable}		{
+							yylval->tval = strdup(&yytext[2]);
+							return(t_ascii);
+						}
+<*>"%"A[0-9]{3}			{
+							yylval->ival = strtol(&yytext[2], NULL, 10);
+							return(v_int);
+						}
+<*>"%"A[0-9a-fA-F]{2}	{
+							yylval->tval = strdup(&yytext[2]);
+							return(t_hex);
+						}
 
 %%
 
@@ -551,7 +684,11 @@ static bool _sdl_push_start_state(int current_state)
 	 * If tracing is turned on, write out this call (calls only, no returns).
 	 */
 	if (trace == true)
-		printf("%s:%d:_sdl_push_start_state\n", __FILE__, __LINE__);
+		printf(
+			"%s:%d:_sdl_push_start_state(%d)\n",
+			__FILE__,
+			__LINE__,
+			current_state);
 
 	/*
 	 * If the index is negative, there is no more room on the stack.  Allocate
@@ -617,7 +754,7 @@ static int _sdl_pop_start_state(void)
 	 * If tracing is turned on, write out this call (calls only, no returns).
 	 */
 	if (trace == true)
-		printf("%s:%d:_sdl_pop_start_state\n", __FILE__, __LINE__);
+		printf("%s:%d:_sdl_pop_start_state(", __FILE__, __LINE__);
 
 	/*
 	 * If any of the entries are in-use, then return the top one and
@@ -628,6 +765,12 @@ static int _sdl_pop_start_state(void)
 		retVal = _sdl_start_state[index];
 		_sdl_state_inuse--;
 	}
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no returns).
+	 */
+	if (trace == true)
+		printf("%d) from %d\n", retVal, YY_START);
 
 	/*
 	 * Return the outcome back to the caller.

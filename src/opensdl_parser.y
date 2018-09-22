@@ -25,6 +25,7 @@
  *  V01.000	20-Sep-2018	Jonathan D. Belanger
  *  Initially written.
  */
+%verbose
 %define parse.lac	full
 %define parse.error verbose
 %define api.pure true
@@ -54,17 +55,12 @@
 #include "opensdl_parser.h"
 #include "opensdl_actions.h"
 
-#ifdef YYDEBUG
-#undef YYDEBUG
-#endif
-#define	YYDEBUG			1
-#define	YYERROR_VERBOSE	1
-#define	YYLSP_NEEDED	1
-
 SDL_CONTEXT			context;
 SDL_QUEUE			literal;		/* A list of lines in the between LITERAL/END_LITERAL */
 
 bool				literalState = false;
+static char			__outBuf[512];
+static int			__offset = 0;
 
 void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %}
@@ -102,6 +98,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 
 %token SDL_K_AGGREGATE
 %token SDL_K_CONSTANT
+%token SDL_K_END_CONSTANT
 %token SDL_K_ITEM
 %token SDL_K_ENTRY
 
@@ -192,7 +189,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %token SDL_K_OR
 %token SDL_K_NOT
 
-%token <ival> v_integer
+%token <ival> v_int
 %token <tval> t_hex
 %token <tval> t_octal
 %token <tval> t_binary
@@ -203,8 +200,16 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %token <tval> t_block_comment
 %token <tval> t_string
 %token <tval> t_name
+%token <tval> t_constant_name
+%token <tval> t_constant_names
 %token <tval> t_variable
-%token <tval> t_constant
+
+%type <ival> v_expression
+%type <ival> v_number
+%type <ival> v_terminal
+%type <ival> v_factor
+%type <ival> v_bit_op
+%type <ival> v_boolean
 
 /*
  * We have types on the bison side of the house.
@@ -228,21 +233,111 @@ line
 
 module
 	: SDL_K_MODULE t_name SDL_K_SEMI
-		{ printf("MODULE %s ;\n", $2); free($2); }
+		{ printf("\nMODULE %s;\n", $2); free($2); }
 	| SDL_K_MODULE t_name SDL_K_IDENT t_string SDL_K_SEMI
-		{ printf("MODULE %s IDENT \"%s\";\n", $2, $4); free($2); free($4);}
+		{ printf("\nMODULE %s IDENT \"%s\";\n", $2, $4); free($2); free($4);}
 	;
 
 end_module
 	: SDL_K_END_MODULE SDL_K_SEMI
-		{ printf("END_MODULE;\n"); }
+		{ printf("\nEND_MODULE;\n"); }
 	| SDL_K_END_MODULE t_name SDL_K_SEMI
-		{ printf("END_MODULE %s ;\n", $2); free($2); }
+		{ printf("\nEND_MODULE %s ;\n", $2); free($2); }
 	;
 
 module_body
-	: t_constant
-		{ printf("CONSTANT %s\n", $1); free($1); }
+	: constant
+	;
+
+constant
+	: SDL_K_CONSTANT
+		{ __offset = sprintf(__outBuf, "**** CONSTANT "); }
+	| t_constant_name
+		{ __offset += sprintf(&__outBuf[__offset], "%s", $1); free($1); }
+	| t_constant_names
+		{ __offset += sprintf(&__outBuf[__offset], "(%s)", $1); free($1); }
+	| SDL_K_COMMA
+		{ printf("\n%s;\n\n", __outBuf); __offset = sprintf(__outBuf, "**** CONSTANT "); }
+	| SDL_K_EQUALS v_expression
+		{ __offset += sprintf(&__outBuf[__offset], " EQUALS %ld", $2); printf("\n????????  Here 2 ????????\n");}
+	| SDL_K_EQUALS SDL_K_STRING t_string
+		{ __offset += sprintf(&__outBuf[__offset], " STRING \"%s\"", $3); free($3); }
+	| SDL_K_COUNTER t_variable
+		{ __offset += sprintf(&__outBuf[__offset], " COUNTER %s", $2); free($2); }
+	| SDL_K_INCR v_expression
+		{ __offset += sprintf(&__outBuf[__offset], " INCREMENT %ld", $2); }
+	| SDL_K_TYPENAME t_name
+		{ __offset += sprintf(&__outBuf[__offset], " TYPENAME %s", $2); free($2); }
+	| SDL_K_PREFIX t_name
+		{ __offset += sprintf(&__outBuf[__offset], " PREFIX %s", $2); free($2); }
+	| SDL_K_TAG t_name
+		{ __offset += sprintf(&__outBuf[__offset], " TAG %s", $2); free($2); }
+	| SDL_K_END_CONSTANT
+		{ printf("\n%s;\n\n", __outBuf); }
+	;
+
+v_expression
+	: v_expression SDL_K_PLUS v_terminal
+		{ $$ = $1 + $3; }
+	| v_expression SDL_K_MINUS v_terminal
+		{ $$ = $1 - $3; }
+	| v_terminal
+	;
+
+v_terminal
+	: v_terminal SDL_K_MULT v_boolean
+		{ $$ = $1 * $3; }
+	| v_terminal SDL_K_DIVIDE v_boolean
+		{ $$ = $1 / $3; }
+	| v_boolean
+	;
+
+v_boolean
+	: v_boolean SDL_K_AND v_bit_op
+		{ $$ = $1 & $3; }
+	| v_boolean SDL_K_OR v_bit_op
+		{ $$ = $1 | $3; }
+	| v_bit_op
+	;
+	
+v_bit_op
+	: v_bit_op SDL_K_SHIFT v_factor
+		{ if ($3 >= 0) $$ = $1 >> $3; else $$ = $1 << abs($3); }
+	| v_factor
+	;
+
+v_factor
+	: SDL_K_MINUS v_factor
+		{ $$ = -$2; }
+	| SDL_K_NOT v_factor
+		{ $$ = ~$2; }
+	| SDL_K_OPENP v_expression SDL_K_CLOSEP
+		{ $$ = $2; }
+	| v_number
+		{ $$ = $1; }
+	| t_string
+		{ sdl_str2int(sdl_unquote_str($1), &$$); free($1); }
+	;
+
+v_number
+	: v_int
+		{ $$ = $1; }
+	| t_variable
+		{ sdl_get_local(&context, $1, &$$); free($1); }
+	| t_hex
+		{ sscanf($1, "%lx", &$$); free($1); }
+	| t_octal
+		{ sscanf($1, "%lo", &$$); free($1); }
+	| t_binary
+		{ $$ = sdl_bin2int($1); free($1); }
+	| t_ascii
+		{ $$ = (__int64_t) $1[0]; free($1); }
+	| SDL_K_PERIOD
+		{ $$ = sdl_offset(&context, SDL_K_OFF_BYTE_REL); }
+	| SDL_K_COLON
+		{ $$ = sdl_offset(&context, SDL_K_OFF_BYTE_BEG); }
+	| SDL_K_BITS
+		{ $$ = sdl_offset(&context, SDL_K_OFF_BIT); }
 	;
 
 %%	/* End Grammar rules */

@@ -41,22 +41,27 @@ END_LITERAL;
 /* Line just after first END_LITERAL
 
 {
-{ Test 4b: This comment should not show up in the output file.
+{ Text 4b: This is a LITERAL and END_LITERAL on the same line.
+{
+LITERAL;END_LITERAL;
+
+{
+{ Test 4c: This comment should not show up in the output file.
 {
 /* Line just second first LITERAL
 LITERAL;
 /******************************************************************************/
-{
-{ This comment should show up in the output file.
-{
-
-/+
-// As should this one.
-/-
+/*
+ * This comment should show up in the output file.
+ */
 
 /*
-/* And finally this one.
-/*
+ * As should this one.
+ */
+
+/*	*/
+/* And finally this one.	*/
+/*	*/
 /******************************************************************************/
 END_LITERAL;   #count = 1;
 /* Line just after second END_LITERAL

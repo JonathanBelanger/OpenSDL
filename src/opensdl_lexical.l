@@ -30,8 +30,6 @@
 #include "opensdl_parser.h"
 #include "opensdl_actions.h"
 
-extern bool literal_state;
-
 }
 
 %option bison-bridge
@@ -47,15 +45,11 @@ extern bool literal_state;
 %option debug
 %option perf-report
 
-White_spaces	[:space:]+
 Names			[$_[:alpha:]][$_[:alnum:]]*
 Local_comment	("{").*
 Output_comment	("/*").*
-Block_start		("/+")
-Block_end		("/-")
+Block_comment	("/+")(.|\n)*("/-")
 Quoted_string	\"(\\.|[^"\\])*\"
-Literal_string	.*\n
-Printable		[:print:]
 
 %x ST_LIT
 %x ST_INCL
@@ -142,101 +136,203 @@ INCLUDE					{
 							if (_sdl_pop_file() == 0)
 								yyterminate();
 						}
-LITERAL[";"]			{
-							int c;
-
+LITERAL([:space:]*)[;]	{
 							if (_sdl_push_start_state() == false)
 								yyterminate();
 							BEGIN(ST_LIT);
-
-							/*
-							 * If the next character is a new-line or return, then eat it.
-							 * Otherwise put it back.
-							 */
-							c = input(scanner);
-							if ((c != '\n') && (c != '\r'))
-								unput(c);
 							return(SDL_K_LITERAL);
 						}
-<ST_LIT>{Literal_string}	{
-							char *ptr, *yycopy;
-							int ii;
-
-							yycopy = calloc(1, yyleng);
+<ST_LIT>.*\n			{
+							int		len = yyleng;
+							char	*ptr, *yycopy;
+							int		retVal = t_literal_string;
 
 							/*
-							 * Upcase the copy of yytext.
+							 * Make a duplication of yytext.
 							 */
-							for (ii = 0; ii < yyleng; ii++)
-								yycopy[ii] = toupper(yytext[ii]);
+							yycopy = strdup(yytext);
 
 							/*
-							 * Try and locate END_LITERAL in the text.
+							 * Upcase the entire string.
+							 */
+							for (ptr = yycopy; *ptr != '\0'; ptr++);
+								*ptr = toupper(*ptr);
+
+							/*
+							 * Look for the uppercase END_LITERAL in the copy
+							 * of yytext.
 							 */
 							ptr = strstr(yycopy, "END_LITERAL");
 
 							/*
-							 * If it is not found, then we are not terminating any thing.  Process
-							 * the string as literal text.  Otherwise, there is an END_LITERAL in
-							 * the string.
+							 * Restore the copy of the copy of yytext to its
+							 * case-original version.
 							 */
-							if (ptr == NULL)
+							strcpy(yycopy, yytext);
+
+							/*
+							 * OK, if we found END_LITERAL, then we have some
+							 * more processing to perform.
+							 */
+							if (ptr != NULL)
 							{
-								free(yycopy);
-								yylval->tval = strdup(yytext);
-								return(t_literal_string);
-							}
-							else
-							{
-								int putBackTo = ptr - yycopy;
 
 								/*
-								 * We have 1 of 2 options.  Either END_LITERAL was at byte 0 of
-								 * the string or it was not.  If it is at the beginning, unput all
-								 * the characters to and including the ;.  Otherwise, put
-								 * everything back up to and including END_LITERAL.
+								 * If END_LITERAL is at the very start of
+								 * yytext, then we can swallow it and indicate
+								 * that we are at the end of the literal
+								 * section.
 								 */
 								if (ptr == yycopy)
-									putBackTo += 11;
+								{
+
+									/*
+									 * TODO: We really need to allow for the
+									 * situaltion where END_LITERAL does not
+									 * have the ';' immediately after it.
+									 * There may be some spaces between the end
+									 * of END_LITERAL and the ';', which should
+									 * be acceptable.  We may also what to
+									 * consider where the ';' is on one or more
+									 * lines after the line where the
+									 * END_LITERAL is located.
+									 */
+									ptr += 12;
+									BEGIN(_sdl_pop_start_state());
+									retVal = SDL_K_END_LITERAL;
+								}
 
 								/*
-								 * In order to do this correctly we have to recopy yytext and then
-								 * put the copy chracters back.  This preserves the original case.
+								 * Unput everything, in reverse order, that
+								 * remains in the buffer.  This will allow this
+								 * data to be processed as part of the rest of
+								 * the file.
 								 */
-								strcpy(yycopy, yytext);
-								for (ii = yyleng - 1; ii >= putBackTo; ii--)
-									unput(yycopy[ii]);
-								free(yycopy);
-								BEGIN(_sdl_pop_start_state());
-								return(SDL_K_END_LITERAL);
+								len--;
+								while (&yycopy[len] != (ptr - 1))
+									unput(yycopy[len--]);
+
+								/*
+								 * Move the null-termination to the point where
+								 * the last unput byte was located.
+								 */
+								yycopy[len + 1] = '\0';
 							}
+
+							/*
+							 * If we are at the end of the LITERAL section,
+							 * then we do not need the copy of yytext anymore.
+							 * Otherwise, store the copy of yytext to where
+							 * Bison can find it.
+							 */
+							if (retVal == SDL_K_END_LITERAL)
+								free(yycopy);
+							else
+								yylval->tval = yycopy;
+							return(retVal);
 						}
 CONSTANT				{
+
+							/*
+							 * Push the current state onto the state stack.
+							 */
 							if (_sdl_push_start_state() == false)
 								yyterminate();
+
+							/*
+							 * Change the start state to one specific for
+							 * parsing the 2 forms of constant-names.
+							 */
 							BEGIN(ST_CONST_NAME);
+
+							/*
+							 * Return the value indicating that a CONSTANT
+							 * declaration has started.
+							 */
 							return(SDL_K_CONSTANT);
 						}
 <ST_CONST_NAME>{Names}	{
+
+							/*
+							 * We have just a single name, so just duplicate
+							 * it.
+							 */
 							yylval->tval = strdup(yytext);
+
+							/*
+							 * Change the start state to one for parsing the
+							 * remaining CONSTANT declaration.  Note, we do not
+							 * push the previous state onto the stack, we just
+							 * change it.
+							 */
 							BEGIN(ST_CONST);
+
+							/*
+							 * Return the value indicating that we have a
+							 * single constant-name.
+							 */
 							return t_constant_name;
 						}
-<ST_CONST_NAME>[(]		{ BEGIN(ST_CONST_LIST); }
+<ST_CONST_NAME>[(]		{
+
+							/*
+							 * We have just a multiple names being defined.
+							 * Change the start state to one for parsing the
+							 * parenthesized and comma separated list of
+							 * constant-names.  Note, we do not push the
+							 * previous state onto the stack, we just change
+							 * it.
+							 */
+							BEGIN(ST_CONST_LIST);
+						}
 <ST_CONST_LIST>[^)]*	{
 							int c;
 
+							/*
+							 * OK, we got everything up to, but not including,
+							 * the close parenthesis.
+							 */
 							while ((c = input(scanner)) && (c != ')'))
 								if (c == '\n')
 									yylineno++;
+
+							/*
+							 * Trim leading and trailing spaces, compress
+							 * multiple space characters to a single one, and
+							 * convert control characters to a space character.
+							 */
 							sdl_trim_str(
 								yytext,
 								(SDL_M_CONVERT | SDL_M_TRIM | SDL_M_COMPRESS));
+
+							/*
+							 * Make a copy of the name string.
+							 */
 							yylval->tval = strdup(yytext);
+
+							/*
+							 * Put the close parenthesis back onto the input
+							 * stream.
+							 */
 							unput(c);
+
+							/*
+							 * Return the value indicating that we have
+							 * multiple constant-names.  Note, the open and
+							 * close parentheses are not included.
+							 */
 							return(t_constant_names);
 						}
-<ST_CONST_LIST>[)]		{ BEGIN(ST_CONST); }
+<ST_CONST_LIST>[)]		{ 
+
+							/*
+							 * Change the start state to one for parsing the
+							 * remaining CONSTANT declaration.  Note, we do not
+							 * push the previous state onto the stack, we just
+							 * change it.
+							 */
+							BEGIN(ST_CONST);
+						}
 <ST_CONST>EQUALS		{ return(SDL_K_EQUALS); }
 <ST_CONST>STRING		{ return(SDL_K_STRING); }
 <ST_CONST>COUNTER		{ return(SDL_K_COUNTER); }
@@ -268,48 +364,6 @@ CONSTANT				{
 							return(SDL_K_END_CONSTANT);
 						}
 <ST_CONST>.\n			{ /* Eat unexpected characters */ }
-{Block_start}			{
-							if (_sdl_push_start_state() == false)
-								yyterminate();
-							BEGIN(ST_BLOCK);
-							printf("Comment Started!\n");
-						}
-<ST_BLOCK>[^/]+[^-]		{
-							int 	c;
-							bool	done = false;
-							bool	next = false;
-
-							while ((c = input(scanner)) && (done == false))
-							{
-								printf("%c", c);
-								switch (c)
-								{
-									case '/':
-										next = next == false;
-										break;
-
-									case '-':
-										done = next;
-										break;
-
-									case '\n':
-										yylineno++;
-										break;
-
-									default:
-										break;
-								}
-							}
-							printf("yytext length = %ld\n", strlen(yytext));
-							yylval->tval = calloc(strlen(yytext)+3, 1);
-							yylval->tval[0] = '/';
-							yylval->tval[1] = '+';
-							strcpy(&yylval->tval[2], yytext);
-							printf("yylval->tval length = %ld\n", strlen(yylval->tval));
-							printf("%s\n", yylval->tval);
-							BEGIN(_sdl_pop_start_state());
-							return(t_block_comment);
-						}
 IFLANGUAGE				{ return(SDL_K_IFLANG); }
 ELSE					{ return(SDL_K_ELSE); }
 END_IFLANGUAGE			{ return(SDL_K_END_IFLANG); }
@@ -394,7 +448,7 @@ PRECISION				{ return(SDL_K_PRECISION); }
 <*>"*"					{ return(SDL_K_MULT); }
 <*>"/"					{ return(SDL_K_DIVIDE); }
 <*>"&"					{ return(SDL_K_AND); }
-<*>"|"					{ return(SDL_K_OR); }
+<*>"!"					{ return(SDL_K_OR); }
 <*>"@"					{ return(SDL_K_AT); }
 <*>"~"					{ return(SDL_K_NOT); }
 <*>"."					{ return(SDL_K_DOT); }
@@ -420,8 +474,49 @@ PRECISION				{ return(SDL_K_PRECISION); }
 							yylval->tval = strdup(yytext);
 							return(t_line_comment);
 						}
+{Block_comment}			{
+							char	*ptr, *yycopy;
+							int		ii;
+
+							yycopy = strdup(yytext);
+
+							/*
+							 * Try and locate "/-" in the text.
+							 */
+							ptr = strstr(yycopy, "/-");
+							
+							/*
+							 * If we didn't find the "/-" in the string, the we
+							 * must have hit the EOF.  For now, we'll do
+							 * nothing.  We may have to come back and revisit
+							 * this.
+							 */
+							if (ptr != NULL)
+							{
+								int putBackTo = ptr - yycopy + 2;
+								int len = yyleng;
+
+								/*
+								 * Return each of the characters back
+								 */
+								for (ii = len - 1; ii >= putBackTo; ii--)
+									unput(yycopy[ii]);
+
+								/*
+								 * Add a null character to just after the "/-".
+								 */
+								ptr[2] = '\0';
+
+								/*
+								 * No need to duplicate the string, we already
+								 * did.
+								 */
+								yylval->tval = yycopy;
+							}
+							return(t_block_comment);
+						}
 {Local_comment}			{ /* eat local comments... */ }
-<*>{White_spaces}		{ /* eat white spaces... */ }
+<*>[:space:]+			{ /* eat white spaces... */ }
 <*>"%"D[0-9]{1,20}		{
 							yylval->ival = strtol(&yytext[2], NULL, 10);
 							return(v_int);
@@ -450,7 +545,7 @@ PRECISION				{ return(SDL_K_PRECISION); }
 							yylval->tval = strdup(&yytext[2]);
 							return(t_binary);
 						}
-<*>"%"A{Printable}		{
+<*>"%"A[\x20-\x7E]		{
 							yylval->tval = strdup(&yytext[2]);
 							return(t_ascii);
 						}

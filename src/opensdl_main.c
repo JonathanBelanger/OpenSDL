@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 	     * line.  NOTE: We may need to truncate the name to fit the field
 	     * we have for it (32 characters lone).
 	     */
-	    strncpy(context.outFileName[ii], argv[1], SDL_K_NAME_MAX_LEN);
+	    context.outFileName[ii] = strdup(argv[1]);
 
 	    /*
 	     * Go find the last '.' in the file name, this will be where the
@@ -214,16 +214,6 @@ int main(int argc, char *argv[])
 	     */
 	    if (jj <= 0)
 		jj = strlen(context.outFileName[ii]);
-
-	    /*
-	     * If adding the extension will exceed the buffer length, then
-	     * truncate to accommodate.
-	     */
-	    if ((jj + strlen(_extensions[ii]) + 1) > SDL_K_NAME_MAX_LEN)
-	    {
-		jj = SDL_K_NAME_MAX_LEN - strlen(_extensions[ii]) - 2;
-		context.outFileName[ii][jj++] = '.';
-	    }
 
 	    /*
 	     * Copy the extension for this language after the last '.' (or the
@@ -324,8 +314,8 @@ int main(int argc, char *argv[])
 	    context.outFP[ii] = NULL;
     }
     SDL_Q_INIT(&context.locals);
-    context.module[0] = '\0';
-    context.ident[0] = '\0';
+    context.module = NULL;
+    context.ident = NULL;
 
     /*
      * Start parsing ...
@@ -353,8 +343,12 @@ int main(int argc, char *argv[])
      * Go close all the files.
      */
     for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+    {
 	if ((context.langSpec[ii] == true) && (context.outFP[ii] != NULL))
 	    fclose(context.outFP[ii]);
+	if (context.outFileName[ii] != NULL)
+	    free(context.outFileName[ii]);
+    }
 
     /*
      * Return the results back to the caller.

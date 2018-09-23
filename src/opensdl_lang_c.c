@@ -21,10 +21,10 @@
  *
  * Revision History:
  *
- *  V01.000	Aug 26, 2018	Jonathan D. Belanger
+ *  V01.000	26-AUG-2018	Jonathan D. Belanger
  *  Initially written.
  *
- *  V01.001	Sep  6, 2018	Jonathan D. Belanger
+ *  V01.001	06-SEP-2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
 #include <stdio.h>
@@ -32,6 +32,10 @@
 #include "opensdl_defs.h"
 #include "opensdl_lang.h"
 #include "opensdl_actions.h"
+
+/*
+ * TODO: We need to move away from static buffers.  Search for "512".
+ */
 
 extern char *sdl_months[];
 extern _Bool trace;
@@ -677,8 +681,8 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
  */
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
-    char	firstName[SDL_K_SYMB_MAX_LEN];
-    char	secondName[SDL_K_SYMB_MAX_LEN];
+    char firstName[512];
+    char secondName[512];
     size_t	copyLen;
     int		retVal = 1;
 
@@ -697,8 +701,8 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
     {
 	copyLen =
 	    4 + strlen(item->prefix) + strlen(item->tag) + strlen(item->id);
-	if (copyLen > SDL_K_SYMB_MAX_LEN)
-	    copyLen = strlen(item->id) - (copyLen - SDL_K_SYMB_MAX_LEN);
+	if (copyLen > 512)
+	    copyLen = strlen(item->id) - (copyLen - 512);
 	else
 	    copyLen = strlen(item->id);
 	sprintf(
@@ -709,8 +713,8 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	    copyLen, item->id);
 	copyLen =
 	    2 + strlen(item->prefix) + strlen(item->tag) + strlen(item->id);
-	if (copyLen > SDL_K_SYMB_MAX_LEN)
-	    copyLen = strlen(item->id) - (copyLen - SDL_K_SYMB_MAX_LEN);
+	if (copyLen > 512)
+	    copyLen = strlen(item->id) - (copyLen - 512);
 	else
 	    copyLen = strlen(item->id);
 	sprintf(
@@ -724,8 +728,8 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
     {
 	copyLen =
 	    2 + strlen(item->prefix) + strlen(item->tag) + strlen(item->id);
-	if (copyLen > SDL_K_SYMB_MAX_LEN)
-	    copyLen = strlen(item->id) - (copyLen - SDL_K_SYMB_MAX_LEN);
+	if (copyLen > 512)
+	    copyLen = strlen(item->id) - (copyLen - 512);
 	else
 	    copyLen = strlen(item->id);
 	sprintf(
@@ -769,7 +773,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
  */
 int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 {
-    char	nameBuf[SDL_K_SYMB_MAX_LEN];
+    char nameBuf[512];
     int		retVal = 1;
 
     /*

@@ -299,7 +299,7 @@ int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
     if ((local != NULL) && (value != NULL))
 	*value = local->value;
     else
-	retVal = 0;
+	free(name);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -317,6 +317,7 @@ int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
     /*
      * Return the results of this call back to the caller.
      */
+    free(name);
     return(retVal);
 }
 
@@ -370,11 +371,14 @@ int sdl_set_local(SDL_CONTEXT *context, char *name, __int64_t value)
 	local = calloc(1, sizeof(SDL_LOCAL_VARIABLE));
 	if (local != NULL)
 	{
-	    strncpy(local->id, name, SDL_K_NAME_MAX_LEN);
+	    local->id = name;
 	    SDL_INSQUE(&context->locals, &local->header);
 	}
 	else
+	{
+	    free(name);
 	    retVal = 0;
+	}
     }
 
     /*
@@ -464,6 +468,7 @@ int sdl_comment(SDL_CONTEXT *context, char *comment)
     /*
      * Return the results of this call back to the caller.
      */
+    free(comment);
     return(retVal);
 }
 
@@ -502,13 +507,12 @@ int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName)
     /*
      * Save the MODULE's module-name
      */
-    strncpy(context->module, moduleName, SDL_K_SYMB_MAX_LEN);
+    context->module = moduleName;
 
     /*
-     * If the IDENT's indent-name was supplied, then save it as well.
+     * Save the IDENT's indent-name.
      */
-    if (identName != NULL)
-	strncpy(context->ident, identName, SDL_K_SYMB_MAX_LEN);
+    context->ident = identName;
 
     /*
      * Loop through all the possible languages and call the appropriate output
@@ -572,7 +576,18 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
      * Clean-out any unaccounted for aggregates in the aggregate stack.
      */
     for (ii = context->aggStackPtr; ii < SDL_K_SUBAGG_MAX; ii++)
+    {
+	free(context->aggStack[ii]->id);
+	if (context->aggStack[ii]->prefix != NULL)
+	    free(context->aggStack[ii]->prefix);
+	if (context->aggStack[ii]->tag != NULL)
+	    free(context->aggStack[ii]->tag);
+	if (context->aggStack[ii]->marker != NULL)
+	    free(context->aggStack[ii]->marker);
+	if (context->aggStack[ii]->comment != NULL)
+	    free(context->aggStack[ii]->comment);
 	free(context->aggStack[ii]);
+    }
     context->aggStackPtr = SDL_K_SUBAGG_MAX;
 
     /*
@@ -589,6 +604,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_LOCAL_VARIABLE *local;
 
 	SDL_REMQUE(&context->locals, local);
+	free(local->id);
 	free(local);
     }
 
@@ -628,6 +644,15 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 			    "Invalid"))));
 	}
 	ii++;
+	free(constant->id);
+	if (constant->prefix != NULL)
+	    free(constant->prefix);
+	if (constant->tag != NULL)
+	    free(constant->tag);
+	if (constant->comment != NULL)
+	    free(constant->comment);
+	if (constant->typeName != NULL)
+	    free(constant->typeName);
 	free(constant);
     }
 
@@ -639,6 +664,11 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_DECLARE *declare;
 
 	SDL_REMQUE(&context->declares.header, declare);
+	free(declare->id);
+	if (declare->prefix != NULL)
+	    free(declare->prefix);
+	if (declare->tag != NULL)
+	    free(declare->tag);
 	free(declare);
     }
 
@@ -650,6 +680,13 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_ITEM *item;
 
 	SDL_REMQUE(&context->items.header, item);
+	free(item->id);
+	if (item->prefix != NULL)
+	    free(item->prefix);
+	if (item->tag != NULL)
+	    free(item->tag);
+	if (item->comment != NULL)
+	    free(item->comment);
 	free(item);
     }
 
@@ -661,6 +698,17 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_AGGREGATE *aggregate;
 
 	SDL_REMQUE(&context->aggregates.header, aggregate);
+	free(aggregate->id);
+	if (aggregate->prefix != NULL)
+	    free(aggregate->prefix);
+	if (aggregate->tag != NULL)
+	    free(aggregate->tag);
+	if (aggregate->marker != NULL)
+	    free(aggregate->marker);
+	if (aggregate->comment != NULL)
+	    free(aggregate->comment);
+	if (aggregate->basedPtrName != NULL)
+	    free(aggregate->basedPtrName);
 	free(aggregate);
     }
 
@@ -672,14 +720,26 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_ENTRY *entry;
 
 	SDL_REMQUE(&context->entries.header, entry);
+	free(entry->id);
+	if (entry->comment != NULL)
+	    free(entry->comment);
+	if (entry->alias != NULL)
+	    free(entry->alias);
+	if (entry->linkage != NULL)
+	    free(entry->linkage);
+	if (entry->typeName != NULL)
+	    free(entry->typeName);
 	free(entry);
     }
 
     /*
      * Reset the module-name and ident-string to zero length.
      */
-    context->module[0] = '\0';
-    context->ident[0] = '\0';
+    free(context->module);
+    context->module = NULL;
+    if (context->ident != NULL)
+	free(context->ident);
+    context->ident = NULL;
 
     /*
      * Return the results of this call back to the caller.
@@ -730,20 +790,14 @@ int sdl_literal(SDL_QUEUE *literals, char *line)
     literalLine = (SDL_LITERAL *) calloc(1, sizeof(SDL_LITERAL));
     if (literalLine != NULL)
     {
-	literalLine->line = calloc(1, strlen(line));
-	if (literalLine->line != NULL)
-	{
-	    strcpy(literalLine->line, line);
-	    SDL_INSQUE(literals, &literalLine->header);
-	}
-	else
-	{
-	    free(literalLine);
-	    retVal = 0;
-	}
+	literalLine->line = line;
+	SDL_INSQUE(literals, &literalLine->header);
     }
     else
+    {
 	retVal = 0;
+	free(line);
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -855,6 +909,7 @@ int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype)
     /*
      * Return the results of this call back to the caller.
      */
+    free(usertype);
     return(retVal);
 }
 
@@ -910,7 +965,7 @@ int sdl_declare(
 
 	if (myDeclare != NULL)
 	{
-	    strncpy(myDeclare->id, name, SDL_K_SYMB_MAX_LEN);
+	    myDeclare->id = name;
 	    myDeclare->typeID = context->declares.nextID++;
 	    if (sizeType < 0)
 	    {
@@ -922,21 +977,20 @@ int sdl_declare(
 		myDeclare->size = _sdl_sizeof(context, sizeType);
 		myDeclare->type = sizeType;
 	    }
-	    if (prefix[0] != SDL_K_NOT_PRESENT)
-		strncpy(myDeclare->prefix, prefix, SDL_K_NAME_MAX_LEN);
-	    else
-		myDeclare->prefix[0] = '\0';
-	    strcpy(
-		myDeclare->tag,
-		_sdl_get_tag(
-			context,
-			((tag[0] == SDL_K_NOT_PRESENT) ? NULL : tag),
-			myDeclare->type));
+	    myDeclare->prefix = prefix;
+	    myDeclare->tag = _sdl_get_tag(context, tag, myDeclare->type);
 	    _sdl_trim_tag(myDeclare->tag);
 	    SDL_INSQUE(&context->declares.header, &myDeclare->header);
 	}
 	else
+	{
 	    retVal = 0;
+	    free(name);
+	    if (prefix != NULL)
+		free(prefix);
+	    if (tag != NULL)
+		free(tag);
+	}
     }
 
     /*
@@ -980,6 +1034,7 @@ __int64_t sdl_bin2int(char *binStr)
     /*
      * Return the results of this call back to the caller.
      */
+    free(binStr);
     return(retVal);
 }
 
@@ -1044,6 +1099,7 @@ int sdl_str2int(char *strVal, __int64_t *val)
     /*
      * Return the results of this call back to the caller.
      */
+    free(val);
     return(retVal);
 }
 
@@ -1217,7 +1273,7 @@ int sdl_item(
 
 	if (myItem != NULL)
 	{
-	    strncpy(myItem->id, name, SDL_K_SYMB_MAX_LEN);
+	    myItem->id = name;
 	    myItem->typeID = context->items.nextID++;
 	    myItem->type = datatype;
 	    myItem->size = _sdl_sizeof(context, datatype);
@@ -1232,14 +1288,8 @@ int sdl_item(
 		myItem->hbound = context->dimensions[dimension].hbound;
 		context->dimensions[dimension].inUse = false;
 	    }
-	    if (prefix != NULL)
-		strncpy(myItem->prefix, prefix, SDL_K_NAME_MAX_LEN);
-	    else
-		myItem->prefix[0] = '\0';
-	    strncpy(
-		myItem->tag,
-		_sdl_get_tag(context, tag, datatype),
-		SDL_K_NAME_MAX_LEN);
+	    myItem->prefix = prefix;
+	    myItem->tag = _sdl_get_tag(context, tag, datatype);
 	    _sdl_trim_tag(myItem->tag);
 	    SDL_INSQUE(&context->items.header, &myItem->header);
 
@@ -1369,8 +1419,8 @@ int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal)
      */
     if ((myConstant != NULL) && (newStack != NULL))
     {
-	strcpy(myConstant->id, name);
-	myConstant->prefix[0] = '\0';
+	myConstant->id = name;
+	myConstant->prefix = NULL;
 	strcpy(myConstant->tag, _defaultTag[SDL_K_TYPE_CONST]);
 	myConstant->type = SDL_K_CONST_NUM;
 	myConstant->valueSet = initVal->present;
@@ -1438,7 +1488,7 @@ int sdl_constant(SDL_CONTEXT *context, __int64_t value, char *valueStr)
 	if (valueStr != NULL)
 	{
 	    myConstant->type = SDL_K_CONST_STR;
-	    strcpy(myConstant->string, valueStr);
+	    myConstant->string = valueStr;
 	}
 	else
 	{
@@ -1458,7 +1508,7 @@ int sdl_constant(SDL_CONTEXT *context, __int64_t value, char *valueStr)
 }
 
 /*
- * sdl_comment_name
+ * sdl_constant_name
  *  This function is called to add the name to an in-process CONSTANT
  *  definition.
  *
@@ -1494,9 +1544,12 @@ int sdl_constant_name(SDL_CONTEXT *context, char *name)
 	    name);
 
     if ((myConstant != NULL) && (strlen(myConstant->id) == 0))
-	strcpy(myConstant->id, name);
+	myConstant->id = name;
     else
+    {
+	free(name);
 	retVal = 0;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -1563,25 +1616,12 @@ int sdl_constant_names(
     context->constList.value = value;
     context->constList.increment = incr;
     context->constList.radix = radix;
-    if (counter[0] != SDL_K_NOT_PRESENT)
-    	strcpy(context->constList.counter, counter);
-    else
-	context->constList.counter[0] = '\0';
-    if (prefix[0] != SDL_K_NOT_PRESENT)
-    	strcpy(context->constList.prefix, prefix);
-    else
-	context->constList.prefix[0] = '\0';
-    if (tag[0] != SDL_K_NOT_PRESENT)
-    {
-    	strcpy(context->constList.tag, tag);
-    	_sdl_trim_tag(context->constList.tag);
-    }
-    else
-	context->constList.tag[0] = '\0';
-    if (typeName[0] != SDL_K_NOT_PRESENT)
-    	strcpy(context->constList.typeName, typeName);
-    else
-	context->constList.typeName[0] = '\0';
+    context->constList.counter = counter;
+    context->constList.prefix = prefix;
+    context->constList.tag = tag;
+    if (tag != NULL)
+	_sdl_trim_tag(context->constList.tag);
+    context->constList.typeName = typeName;
 
     /*
      * Return the results of this call back to the caller.
@@ -1640,17 +1680,12 @@ int sdl_constant_opts(
 
     context->constList.increment = incr;
     context->constList.radix = radix;
-    if (counter[0] != SDL_K_NOT_PRESENT)
-    	strcpy(context->constList.counter, counter);
-    if (prefix[0] != SDL_K_NOT_PRESENT)
-    	strcpy(context->constList.prefix, prefix);
-    if (tag[0] != SDL_K_NOT_PRESENT)
-    {
-    	strcpy(context->constList.tag, tag);
+    context->constList.counter = counter;
+    context->constList.prefix = prefix;
+    context->constList.tag = tag;
+    if (tag != NULL)
     	_sdl_trim_tag(context->constList.tag);
-    }
-    if (typeName[0] != SDL_K_NOT_PRESENT)
-    	strcpy(context->constList.typeName, typeName);
+    context->constList.typeName = typeName;
 
     /*
      * Return the results of this call back to the caller.
@@ -1709,34 +1744,40 @@ int sdl_constant_val(
 	    "%s:%d:sdl_constant_val(%s, %s, %s, %s, %d)\n",
 	    __FILE__,
 	    __LINE__,
-	    (prefix[0] == SDL_K_NOT_PRESENT ? "''" : prefix),
-	    (tag[0] == SDL_K_NOT_PRESENT ? "''" : tag),
-	    (((counter == NULL) || (counter[0] == SDL_K_NOT_PRESENT)) ? "''" : counter),
-	    (((typeName == NULL) || (typeName[0] == SDL_K_NOT_PRESENT)) ? "''" : typeName),
+	        (prefix ? "''" : prefix),
+	        (tag ? "''" : tag),
+	        (counter ? "''" : counter),
+	        (typeName == NULL ? "''" : typeName),
 	    radix);
     }
 
     if (myConstant != NULL)
     {
 	myConstant->radix = radix;
-	if ((counter != NULL) && (counter[0] != SDL_K_NOT_PRESENT))
+	if (counter != NULL)
 	    retVal = sdl_set_local(context, counter, myConstant->value);
-	if (prefix[0] != SDL_K_NOT_PRESENT)
-	    strcpy(myConstant->prefix, prefix);
-	if (tag[0] != SDL_K_NOT_PRESENT)
-	{
-	    strcpy(myConstant->tag, tag);
+	myConstant->prefix = prefix;
+	myConstant->tag = tag;
+	if (tag != NULL)
 	    _sdl_trim_tag(myConstant->tag);
-	}
-	if ((typeName != NULL) && (typeName[0] != SDL_K_NOT_PRESENT))
-	    strcpy(myConstant->typeName, typeName);
+	myConstant->typeName = typeName;
     }
     else
+    {
+	if (prefix != NULL)
+	    free(prefix);
+	if (tag != NULL)
+	    free(tag);
+	if (typeName != NULL)
+	    free(typeName);
 	retVal = 0;
+    }
 
     /*
      * Return the results of this call back to the caller.
      */
+    if (counter != NULL)
+	free(counter);
     return(retVal);
 }
 
@@ -1826,10 +1867,18 @@ int sdl_constant_done(SDL_CONTEXT *context, _Bool alreadyQd)
 	}
 	free(context->constStack);
 	context->constEntries = 0;
-	context->constList.counter[0] = '\0';
-	context->constList.prefix[0] = '\0';
-	context->constList.tag[0] = '\0';
-	context->constList.typeName[0] = '\0';
+	if (context->constList.counter != NULL)
+	    free(context->constList.counter);
+	if (context->constList.prefix != NULL)
+	    free(context->constList.prefix);
+	if (context->constList.tag != NULL)
+	    free(context->constList.tag);
+	if (context->constList.typeName != NULL)
+	    free(context->constList.typeName);
+	context->constList.counter = NULL;
+	context->constList.prefix = NULL;
+	context->constList.tag = NULL;
+	context->constList.typeName = NULL;
 	context->constList.value = 0;
 	context->constList.increment = 0;
 	context->constList.radix = SDL_K_RADIX_DEF;
@@ -2091,10 +2140,10 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 	 * tag for this type.
 	 */
 	if (datatype == SDL_K_TYPE_NONE)
-	    retVal = _defaultTag[SDL_K_TYPE_CHAR];
+	    retVal = strdup(_defaultTag[SDL_K_TYPE_CHAR]);
 	else if ((datatype >= SDL_K_BASE_TYPE_MIN) &&
 		 (datatype <= SDL_K_BASE_TYPE_MAX))
-	    retVal = _defaultTag[datatype];
+	    retVal = strdup(_defaultTag[datatype]);
 	else
 	{
 
@@ -2112,12 +2161,12 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 		if (myDeclare != NULL)
 		{
 		    if (strlen(myDeclare->tag) > 0)
-			retVal = myDeclare->tag;
+			retVal = strdup(myDeclare->tag);
 		    else
 			retVal = _sdl_get_tag(context, tag, myDeclare->typeID);
 		}
 		else
-		    retVal = _defaultTag[SDL_K_TYPE_ANY];
+		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
 	    }
 	    else if ((datatype >= SDL_K_ITEM_MIN) &&
 		     (datatype <= SDL_K_ITEM_MAX))
@@ -2127,12 +2176,12 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 		if (myItem != NULL)
 		{
 		    if (strlen(myItem->tag) > 0)
-			retVal = myItem->tag;
+			retVal = strdup(myItem->tag);
 		    else
 			retVal = _sdl_get_tag(context, tag, myItem->typeID);
 		}
 		else
-		    retVal = _defaultTag[SDL_K_TYPE_ANY];
+		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
 	    }
 	    else if ((datatype >= SDL_K_AGGREGATE_MIN) &&
 		     (datatype <= SDL_K_AGGREGATE_MAX))
@@ -2143,7 +2192,7 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 		if (myAggregate != NULL)
 		{
 		    if (strlen(myAggregate->tag) > 0)
-			retVal = myAggregate->tag;
+			retVal = strdup(myAggregate->tag);
 		    else
 			retVal = _sdl_get_tag(
 					context,
@@ -2151,7 +2200,7 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 					myAggregate->typeID);
 		}
 		else
-		    retVal = _defaultTag[SDL_K_TYPE_ANY];
+		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
 	    }
 	}
     }

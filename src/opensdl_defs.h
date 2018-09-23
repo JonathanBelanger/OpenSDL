@@ -207,20 +207,14 @@ typedef struct
 #define	SDL_K_OFF_BIT		3	/* bit offset from previous */
 
 /*
- * Represent a non-specific string value.
- */
-#define SDL_K_NOT_PRESENT	-1
-
-/*
  * The following definitions are used to maintain a list of zero or more local
  * variables
  */
-#define SDL_K_NAME_MAX_LEN	32+1
 typedef struct
 {
     SDL_QUEUE	header;
-    char 	id[SDL_K_NAME_MAX_LEN];		/* Variable name	*/
-    __int64_t	value;				/* Variable value	*/
+    char *id; /* Variable name	*/
+    __int64_t value; /* Variable value	*/
 } SDL_LOCAL_VARIABLE;
 
 /*
@@ -237,20 +231,19 @@ typedef struct
 /*
  * The following definitions are used to maintain single CONSTANT declaration
  */
-#define SDL_K_SYMB_MAX_LEN	256+1
 typedef struct
 {
     SDL_QUEUE	header;
-    char	id[SDL_K_SYMB_MAX_LEN];
-    char	prefix[SDL_K_NAME_MAX_LEN];
-    char	tag[SDL_K_NAME_MAX_LEN];
-    char	comment[SDL_K_SYMB_MAX_LEN];
-    char	typeName[SDL_K_SYMB_MAX_LEN];
+    char *id;
+    char *prefix;
+    char *tag;
+    char *comment;
+    char *typeName;
     int		radix;
-    int		type;				/* Numeric or String */
+    int type; /* Numeric or String */
     union
     {
-	char		string[SDL_K_SYMB_MAX_LEN];
+	char *string;
 	__int64_t	value;
     };
     _Bool	valueSet;
@@ -262,9 +255,9 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE	header;
-    char	id[SDL_K_SYMB_MAX_LEN];
-    char	prefix[SDL_K_NAME_MAX_LEN];
-    char	tag[SDL_K_NAME_MAX_LEN];
+    char *id;
+    char *prefix;
+    char *tag;
     int		typeID;
     int		type;
     __int64_t	size;
@@ -282,10 +275,10 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE	header;
-    char	id[SDL_K_SYMB_MAX_LEN];
-    char	prefix[SDL_K_NAME_MAX_LEN];
-    char	tag[SDL_K_NAME_MAX_LEN];
-    char	comment[SDL_K_SYMB_MAX_LEN];
+    char *id;
+    char *prefix;
+    char *tag;
+    char *comment;
     int		typeID;
     int		alignment;
     _Bool	commonDef;
@@ -306,14 +299,14 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE	header;
-    char	name[SDL_K_SYMB_MAX_LEN];
-    char	comment[SDL_K_SYMB_MAX_LEN];
-    char	typeName[SDL_K_SYMB_MAX_LEN];
+    char *name;
+    char *comment;
+    char *typeName;
     int		type;
     union
     {
 	int	data;
-	char	aggrName[SDL_K_SYMB_MAX_LEN];
+	char *aggrName;
     };
     _Bool	in;
     _Bool	out;
@@ -329,11 +322,11 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE	header;
-    char	id[SDL_K_SYMB_MAX_LEN];
-    char	comment[SDL_K_SYMB_MAX_LEN];
-    char	alias[SDL_K_SYMB_MAX_LEN];
-    char	linkage[SDL_K_SYMB_MAX_LEN];
-    char	typeName[SDL_K_SYMB_MAX_LEN];
+    char *id;
+    char *comment;
+    char *alias;
+    char *linkage;
+    char *typeName;
     _Bool	variable;
     _Bool	returns;
     SDL_QUEUE	parameters;
@@ -350,14 +343,14 @@ typedef struct
  */
 typedef struct
 {
-    char	id[SDL_K_SYMB_MAX_LEN];
-    char	prefix[SDL_K_NAME_MAX_LEN];
-    char	tag[SDL_K_NAME_MAX_LEN];
+    char *id;
+    char *prefix;
+    char *tag;
     int		type;
     union
     {
 	int	data;
-	char	name[SDL_K_SYMB_MAX_LEN];
+	char *name;
     };
     int		alignment;
     _Bool	fill;
@@ -370,13 +363,13 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE	header;
-    char	id[SDL_K_SYMB_MAX_LEN];
-    char	prefix[SDL_K_NAME_MAX_LEN];
-    char	tag[SDL_K_NAME_MAX_LEN];
-    char	marker[SDL_K_NAME_MAX_LEN];
-    char	comment[SDL_K_SYMB_MAX_LEN];
+    char *id;
+    char *prefix;
+    char *tag;
+    char *marker;
+    char *comment;
+    char *basedPtrName;
     SDL_ORIGIN	origin;
-    char	basedPtrName[SDL_K_SYMB_MAX_LEN];
     int		typeID;
     int		unionType;		/* for implied unions 		*/
     int		alignment;
@@ -448,10 +441,10 @@ typedef struct
 
 typedef struct
 {
-    char 	counter[SDL_K_NAME_MAX_LEN];	/* Variable name	*/
-    char	prefix[SDL_K_NAME_MAX_LEN];
-    char	tag[SDL_K_NAME_MAX_LEN];
-    char	typeName[SDL_K_SYMB_MAX_LEN];
+    char *counter; /* Variable name	*/
+    char *prefix;
+    char *tag;
+    char *typeName;
     __int64_t	value;
     __int64_t	increment;
     int		radix;
@@ -459,14 +452,13 @@ typedef struct
 
 #define SDL_TIMESTR_LEN		20+1	/* dd-MMM-yyyy hh:mm:ss		*/
 #define SDL_K_SUBAGG_MAX	8+1
-typedef char		SDL_FILENAME[SDL_K_NAME_MAX_LEN];
 
 typedef struct
 {
     SDL_AGGREGATE	*aggStack[SDL_K_SUBAGG_MAX];
     _Bool		langSpec[SDL_K_LANG_MAX];
     _Bool		langEna[SDL_K_LANG_MAX];
-    SDL_FILENAME	outFileName[SDL_K_LANG_MAX];
+    char *outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
     SDL_CONSTANT	**constStack;
@@ -477,8 +469,8 @@ typedef struct
     SDL_ITEM_LIST	items;
     SDL_AGGREGATE_LIST	aggregates;
     SDL_ENTRY_LIST	entries;
-    char		module[SDL_K_SYMB_MAX_LEN];
-    char		ident[SDL_K_SYMB_MAX_LEN];
+    char *module;
+    char *ident;
     int			aggStackPtr;
     int			constEntries;
 } SDL_CONTEXT;

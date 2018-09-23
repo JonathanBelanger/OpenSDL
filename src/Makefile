@@ -33,6 +33,7 @@ HOME		= /cygdrive/g/git/OpenSDL
 SRC			= $(HOME)/src
 BIN			= $(HOME)/bin
 EXE			= $(HOME)/exe
+TST			= $(HOME)/test
 
 CFLAGS		= -m64 -std=gnu99 -Wall -I$(SRC) -I$(BIN)
 LFLAGS		=
@@ -72,4 +73,4 @@ $(EXE)/opensdl.exe : $(SRC)/opensdl_main.c $(OBJS) $(BIN)/opensdl_parser.h $(BIN
 
 .PHONY: clean
 clean:
-	rm -f $(BIN)/* $(EXE)/*
+	rm -f $(BIN)/* $(EXE)/* $(TST)/*.h $(HOME)/*/*.stackdump

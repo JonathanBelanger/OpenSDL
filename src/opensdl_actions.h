@@ -92,6 +92,8 @@ int sdl_constant_done(SDL_CONTEXT *context, _Bool alreadyQd);
 #define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */
 #define SDL_M_COMPRESS	0x00000004	/* remove duplicate spaces */
 #define SDL_M_COLLAPSE	0x00000008	/* remove all spaces */
+#define SDL_M_CONVERT	0x00000010	/* make sure only spaces are used */
+#define SDL_M_TRIM	(SDL_M_LEAD | SDL_M_TRAIL)
 void sdl_trim_str(char *str, int type);
 
 #endif	/* _OPENSDL_ACTIONS_H_ */

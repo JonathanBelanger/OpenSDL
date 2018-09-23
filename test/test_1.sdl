@@ -87,7 +87,7 @@
 {  Initially written.
 {
 /*  V01.001	Sep  6, 2018	Jonathan D. Belanger
-//  Updated the copyright to be GNUGPL V3 compliant.
+/+  Updated the copyright to be GNUGPL V3 compliant. /-
 {
 /+ Test 1d:  This is an output comment but one that helps defined a block comment
 //

@@ -2356,6 +2356,20 @@ void sdl_trim_str(char *str, int type)
     int		destIdx = 0;
 
     /*
+     * If we are to convert control characters to spaces, do so now.
+     */
+    if ((type & SDL_M_CONVERT) != 0)
+    {
+	while (str[srcIdx] != '\0')
+	{
+	    if (iscntrl(str[srcIdx]) != 0)
+		str[srcIdx] = ' ';
+	    srcIdx++;
+	}
+	srcIdx = 0;
+    }
+
+    /*
      * If we are stripping leading or compressing multiple or removing all
      * spaces, then we start from the beginning of the string and work out way
      * to the end.  Otherwise, we are probably stripping trailing spaces, in
@@ -2364,26 +2378,39 @@ void sdl_trim_str(char *str, int type)
     if ((type & (SDL_M_LEAD | SDL_M_COMPRESS | SDL_M_COLLAPSE)) != 0)
 	while (str[srcIdx] != '\0')
 	{
-	    if ((type == SDL_M_LEAD) && (destIdx == 0))
+
+	    /*
+	     * Collapsing removes all spaces, so it automatically includes
+	     * leading, trailing, and repeated space removal.
+	     */
+	    if ((type & SDL_M_COLLAPSE) != 0)
 	    {
 		if (isspace(str[srcIdx]))
 		    srcIdx++;
 		else
 		    str[destIdx++] = str[srcIdx++];
 	    }
-	    if ((type == SDL_M_COMPRESS) && (destIdx > 0))
+	    else
 	    {
-		if (isspace(str[destIdx - 1]) && isspace(str[srcIdx]))
-		    srcIdx++;
-		else
-		    str[destIdx++] = str[srcIdx++];
-	    }
-	    if (type == SDL_M_COLLAPSE)
-	    {
-		if (isspace(str[srcIdx]))
-		    srcIdx++;
-		else
-		    str[destIdx++] = str[srcIdx++];
+		bool skipCompress = false;
+
+		if (((type & SDL_M_LEAD) != 0) && (destIdx == 0))
+		{
+		    skipCompress = true;
+		    if (isspace(str[srcIdx]))
+			srcIdx++;
+		    else
+			str[destIdx++] = str[srcIdx++];
+		}
+		if (((type & SDL_M_COMPRESS) != 0) && (skipCompress == false))
+		{
+		    if (destIdx == 0)
+			str[destIdx++] = str[srcIdx++];
+		    else if (isspace(str[destIdx - 1]) && isspace(str[srcIdx]))
+			srcIdx++;
+		    else
+			str[destIdx++] = str[srcIdx++];
+		}
 	    }
 	}
     else
@@ -2398,7 +2425,7 @@ void sdl_trim_str(char *str, int type)
      * If we are stripping spaces from the end of the string, then we will just
      * convert the space characters to a null-character.
      */
-    if (type == SDL_M_TRAIL)
+    if (((type & SDL_M_TRAIL) != 0) && ((type & SDL_M_COLLAPSE) == 0))
     {
 	while (isspace(str[--destIdx]))
 	    str[destIdx] = '\0';

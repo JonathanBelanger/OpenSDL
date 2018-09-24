@@ -97,6 +97,16 @@ static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *na
 static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype);
 static void _sdl_trim_tag(char *tag);
 static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item);
+static SDL_CONSTANT *_sdl_create_constant(
+        char *id,
+        char *prefix,
+        char *tag,
+        char *comment,
+        char *typeName,
+        int radix,
+        __int64_t value,
+        char *string);
+static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst);
 
 /*
  * sdl_unquote_str
@@ -616,13 +626,12 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 
 	SDL_REMQUE(&context->constants, constant);
 	printf(
-		"\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n\t    typename: %s\n\t    valueSet: %s\n\t    type: %s\n",
+	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n\t    typeName: %s\n\t    type: %s\n",
 		ii,
 		constant->id,
 		constant->prefix,
 		constant->tag,
 		constant->typeName,
-		(constant->valueSet ? "True" : "False"),
 		(constant->type == SDL_K_CONST_STR ? "String" : "Number"));
 	if (constant->type == SDL_K_CONST_STR)
 	{
@@ -1322,6 +1331,343 @@ int sdl_item(
     return(retVal);
 }
 
+/*
+ * sdl_constant
+ *  This function is called to create a definition record for a CONSTANT.  If
+ *  one is already there, then the existing one is re-initialized.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant(SDL_CONTEXT *context)
+{
+    int retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_constant\n", __FILE__, __LINE__);
+
+    /*
+     * If we don't have a CONSTANT definition record handy, then go allocate
+     * one now.
+     */
+    if (context->constDef == NULL)
+    {
+	context->constDef = calloc(1, sizeof(SDL_CONSTANT_DEF));
+	if (context->constDef == NULL)
+	    retVal = 0;
+    }
+    else
+	retVal = sdl_constant_end(context, true);
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * sdl_constant_str
+ *  This function is called to add a string definition information to a
+ *  constant declaration.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  what:
+ *	A value indicating what the information provided in the str parameter
+ *	represents.
+ *  str:
+ *	A pointer to the string to store someplace.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_str(SDL_CONTEXT *context, int what, char *str)
+{
+    int retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_constant_str\n", __FILE__, __LINE__);
+
+    /*
+     * If we don't have a place to store this, then we need to return an error.
+     */
+    if (context->constDef != NULL)
+    {
+	switch (what)
+	{
+	case SDL_K_CONST_NAME:
+	case SDL_K_CONST_NAMES:
+	    context->constDef->name_s = str;
+	    break;
+
+	case SDL_K_CONST_STRING:
+	    context->constDef->type = SDL_K_CONST_STR;
+	    context->constDef->strValue = str;
+	    break;
+
+	case SDL_K_CONST_COUNTER:
+	    context->constDef->counter = str;
+	    break;
+
+	case SDL_K_CONST_TYPENAME:
+	    context->constDef->typeName = str;
+	    break;
+
+	case SDL_K_CONST_PREFIX:
+	    context->constDef->prefix = str;
+	    break;
+
+	case SDL_K_CONST_TAG:
+	    context->constDef->tag = str;
+	    break;
+
+	default:
+	    retVal = 0;
+	    break;
+	}
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * sdl_constant_num
+ *  This function is called to add a numeric definition information to a
+ *  constant declaration.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  what:
+ *	A value indicating what the information provided in the value parameter
+ *	represents.
+ *  value:
+ *	A value to be stored someplace.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_num(SDL_CONTEXT *context, int what, __int64_t value)
+{
+    int retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_constant_num\n", __FILE__, __LINE__);
+
+    /*
+     * If we don't have a place to store this, then we need to return an error.
+     */
+    if (context->constDef != NULL)
+    {
+	switch (what)
+	{
+	case SDL_K_CONST_EQUALS:
+	    context->constDef->type = SDL_K_CONST_NUM;
+	    context->constDef->value = value;
+	    break;
+
+	case SDL_K_CONST_INCR:
+	    context->constDef->increment = value;
+	    context->constDef->incrPresent = true;
+	    break;
+
+	case SDL_K_CONST_RADIX:
+	    context->constDef->radix = value;
+	    break;
+
+	default:
+	    retVal = 0;
+	    break;
+	}
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * sdl_constant_end
+ *  This function is called to perform the processing required to actually
+ *  create one or more constant values.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  keep:
+ *	A boolean value to indicate if the constant definition block should be
+ *	kept and initialized or deallocated (true == keep and initialize; false
+ *	== deallocate).
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_constant_end(SDL_CONTEXT *context, bool keep)
+{
+    SDL_CONSTANT_DEF *constDef = context->constDef;
+    int retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_constant_end\n", __FILE__, __LINE__);
+
+    /*
+     * If we don't have a CONSTANT definition record handy, then return an
+     * error.
+     */
+    if (constDef != NULL)
+    {
+	SDL_CONSTANT *myConst;
+	char *comma = strchr(constDef->name_s, ',');
+
+	/*
+	 * Before we go too far, we need to determine what kind of definition
+	 * we have.  First let's see if there is one or multiple names needing
+	 * to be created.
+	 */
+	if (comma == NULL)
+	{
+	    myConst = _sdl_create_constant(
+		    constDef->name_s,
+		    constDef->prefix,
+		    constDef->tag,
+		    NULL,
+		    constDef->typeName,
+		    constDef->radix,
+		    constDef->value,
+		    constDef->strValue);
+	    retVal = _sdl_queue_constant(context, myConst);
+	}
+	else
+	{
+	    char *ptr = constDef->name_s;
+	    __int64_t value = constDef->value;
+
+	    /*
+	     * We have multiple names to process through.  First we need
+	     * go through the name_s string and pull out the individual
+	     * name/comment data.
+	     */
+	    while (((comma = strchr(ptr, ',')) != NULL) && (retVal == 1))
+	    {
+		char *name;
+		char *comment = NULL;
+
+		*comma = '\0';
+		if (strlen(ptr) > 0)
+		{
+		    name = strdup(ptr);
+		    if (name != NULL)
+		    {
+			char *commentStart = strstr(ptr, "/*");
+
+			if (commentStart != NULL)
+			    comment = strdup(commentStart);
+			else
+			{
+			    commentStart = strstr(ptr, "{");
+			    if (commentStart != NULL)
+				*commentStart = '\0';
+			}
+			myConst = _sdl_create_constant(
+			        name,
+			        constDef->prefix,
+			        constDef->tag,
+			        comment,
+			        constDef->typeName,
+			        constDef->radix,
+			        value,
+			        NULL);
+			retVal = _sdl_queue_constant(context, myConst);
+			free(name);
+			if (comment != NULL)
+			    free(comment);
+			ptr = comma + 1;
+		    }
+		    else
+			retVal = 0;
+		}
+		value += (constDef->incrPresent ? constDef->increment : 0);
+	    }
+	}
+
+	/*
+	 * Either re-initialize or deallocate all the memory.
+	 */
+	free(constDef->name_s);
+	constDef->name_s = NULL;
+	if (constDef->prefix != NULL)
+	    free(constDef->prefix);
+	constDef->prefix = NULL;
+	if (constDef->tag != NULL)
+	    free(constDef->tag);
+	constDef->tag = NULL;
+	if (constDef->typeName != NULL)
+	    free(constDef->typeName);
+	constDef->typeName = NULL;
+	constDef->type = 0;
+	constDef->increment = 0;
+	constDef->incrPresent = false;
+	constDef->radix = 0;
+	if (keep == false)
+	{
+	    free(constDef);
+	    context->constDef = NULL;
+	}
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
 /************************************************************************/
 /* Local Functions							*/
 /************************************************************************/
@@ -1901,4 +2247,151 @@ void sdl_trim_str(char *str, int type)
      * Return back to the caller.
      */
     return;
+}
+
+/*
+ * _sdl_create_constant
+ *  This function is called to create a constant record and return it back to
+ *  the caller.
+ *
+ * Input Parameters:
+ *  id:
+ *  	A pointer to the constant identifier string.
+ *  prefix:
+ *	A pointer to the prefix to be prepended before the tag and id.
+ *  tag:
+ *	A pointer to the tag to be added between the prefix and the id.
+ *  comment:
+ *	A pointer to a comment string to be associated with this constant.
+ *  typeName:
+ *	A pointer to the typename associated to this constant.
+ *  radix:
+ *	A value indicating the radix the value is to be displayed.
+ *  value:
+ *	A value for the actual constant.
+ *  string:
+ *	A pointer to a string value for the actual constant.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  NULL:	Failed to allocate the memory required.
+ *  !NULL:	Normal Successful Completion.
+ */
+static SDL_CONSTANT *_sdl_create_constant(
+        char *id,
+        char *prefix,
+        char *tag,
+        char *comment,
+        char *typeName,
+        int radix,
+        __int64_t value,
+        char *string)
+{
+    SDL_CONSTANT *retVal = calloc(1, sizeof(SDL_CONSTANT));
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_create_constant\n", __FILE__, __LINE__);
+
+    /*
+     * Initialize the constant information.
+     */
+    if (retVal != NULL)
+    {
+	retVal->id = strdup(id);
+	if (prefix != NULL)
+	    retVal->prefix = strdup(prefix);
+	else
+	    retVal->prefix = NULL;
+	if (tag != NULL)
+	    retVal->tag = strdup(prefix);
+	else
+	    retVal->tag = NULL;
+	if (comment != NULL)
+	    retVal->comment = strdup(prefix);
+	else
+	    retVal->comment = NULL;
+	if (typeName != NULL)
+	    retVal->typeName = strdup(prefix);
+	else
+	    retVal->typeName = NULL;
+	retVal->radix = radix;
+	if (string == NULL)
+	{
+	    retVal->type = SDL_K_CONST_NUM;
+	    retVal->value = value;
+	}
+	else
+	{
+	    retVal->type = SDL_K_CONST_STR;
+	    retVal->string = string;
+	}
+    }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * _sdl_queue_constant
+ *  This function is called to queue a newly defined CONSTANT into the list in
+ *  the context and then call the language specific routines to write out the
+ *  language specific definition.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  myConst:
+ *	A pointer to the constant structure to be queued upo and put put.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst)
+{
+    int retVal = 0;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_queue_constant\n", __FILE__, __LINE__);
+
+    if (myConst != NULL)
+    {
+	int ii;
+
+	SDL_INSQUE(&context->constants, &myConst->header);
+
+	/*
+	 * Loop through all the possible languages and call the
+	 * appropriate output function for each of the enabled
+	 * languages.
+	 */
+	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    if ((context->langSpec[ii] == true)
+		    && (context->langEna[ii] == true))
+		retVal = (*_outputFuncs[ii][SDL_K_CONSTANT_CB])(
+		        context->outFP[ii],
+		        myConst,
+		        context);
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results back to the caller.
+     */
+    return (retVal);
 }

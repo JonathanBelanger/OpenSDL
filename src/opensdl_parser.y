@@ -272,29 +272,31 @@ module_body
 
 constant
 	: SDL_K_CONSTANT
-	    { printf("\nSDL_K_CONSTANT\n\n"); }
+	    { sdl_constant(&context); }
 	| t_constant_name
-	    { printf("\nt_constant_name = '%s'\n\n", $1); free($1); }
+	    { sdl_constant_str(&context, SDL_K_CONST_NAME, $1); }
 	| t_constant_names
-	    { printf("\nt_constant_names = '%s'\n\n", $1); free($1); }
+	    { sdl_constant_str(&context, SDL_K_CONST_NAMES, $1); }
 	| SDL_K_COMMA
-	    { printf("\nSDL_K_COMMA\n\n"); }
+	    { sdl_constant(&context); }
 	| SDL_K_EQUALS _v_expression
-	    { printf("\nSDL_K_EQUALS %ld\n\n", $2); }
+	    { sdl_constant_num(&context, SDL_K_CONST_EQUALS, $2); }
 	| SDL_K_EQUALS SDL_K_STRING t_string
-	    { printf("\nSDL_K_EQUALS SDL_K_STRING \"%s\"\n\n", $3); free($3); }
+	    { sdl_constant_str(&context, SDL_K_CONST_STRING, $3); }
 	| SDL_K_COUNTER t_variable
-	    { printf("\nSDL_K_COUNTER %s\n\n", $2); free($2); }
+	    { sdl_constant_str(&context, SDL_K_CONST_COUNTER, $2); }
 	| SDL_K_INCR _v_expression
-	    { printf("\nSDL_K_INCR %ld\n\n", $2); }
+	    { sdl_constant_num(&context, SDL_K_CONST_INCR, $2); }
 	| SDL_K_TYPENAME t_name
-	    { printf("\nSDL_K_TYPENAME %s\n\n", $2); free($2); }
+	    { sdl_constant_str(&context, SDL_K_CONST_TYPENAME, $2); }
 	| SDL_K_PREFIX t_name
-	    { printf("\nSDL_K_PREFIX %s\n\n", $2); free($2); }
+	    { sdl_constant_str(&context, SDL_K_CONST_PREFIX, $2); }
 	| SDL_K_TAG t_name
-	    { printf("\nSDL_K_TAG %s\n\n", $2); free($2); }
+	    { sdl_constant_str(&context, SDL_K_CONST_TAG, $2); }
+	| SDL_K_RADIX v_int
+	    { sdl_constant_num(&context, SDL_K_CONST_RADIX, $2); }
 	| SDL_K_END_CONSTANT
-	    { printf("\nSDL_K_END_CONSTANT\n\n"); }
+	    { sdl_constant_end(&context, false); }
 	;
 
 _v_expression

@@ -246,7 +246,6 @@ typedef struct
 	char *string;
 	__int64_t	value;
     };
-    _Bool	valueSet;
 } SDL_CONSTANT;
 
 /*
@@ -281,10 +280,10 @@ typedef struct
     char *comment;
     int		typeID;
     int		alignment;
-    _Bool	commonDef;
-    _Bool	globalDef;
-    _Bool	typeDef;
-    _Bool	dimension;
+    bool commonDef;
+    bool globalDef;
+    bool typeDef;
+    bool dimension;
     __int64_t	lbound;
     __int64_t	hbound;
     __int64_t	size;
@@ -308,12 +307,12 @@ typedef struct
 	int	data;
 	char *aggrName;
     };
-    _Bool	in;
-    _Bool	out;
-    _Bool	optional;
-    _Bool	list;
-    _Bool	defaultPresent;
-    _Bool	dimension;
+    bool in;
+    bool out;
+    bool optional;
+    bool list;
+    bool defaultPresent;
+    bool dimension;
     __int64_t	bound;
     __int64_t	defaultValue;
     int		radix;
@@ -327,8 +326,8 @@ typedef struct
     char *alias;
     char *linkage;
     char *typeName;
-    _Bool	variable;
-    _Bool	returns;
+    bool variable;
+    bool returns;
     SDL_QUEUE	parameters;
     int		type;
 } SDL_ENTRY;
@@ -353,8 +352,8 @@ typedef struct
 	char *name;
     };
     int		alignment;
-    _Bool	fill;
-    _Bool	dimension;
+    bool fill;
+    bool dimension;
     __int64_t	lbound;
     __int64_t	hbound;
     __int64_t	offset;
@@ -375,12 +374,12 @@ typedef struct
     int		alignment;
     int		type;
     SDL_QUEUE	members;
-    _Bool	originPresent;
-    _Bool	commonDef;
-    _Bool	globalDef;
-    _Bool	typeDef;
-    _Bool	fill;
-    _Bool	dimension;
+    bool originPresent;
+    bool commonDef;
+    bool globalDef;
+    bool typeDef;
+    bool fill;
+    bool dimension;
     __int64_t	lbound;
     __int64_t	hbound;
     __int64_t	currentOffset;
@@ -425,44 +424,40 @@ typedef struct
 } SDL_DIMENSION;
 
 /*
- * Supported languages
+ * Supported languages and other useful definitions.
  */
 #define SDL_K_LANG_C		0
 #define SDL_K_LANG_MAX		1
-
-/*
- * The following definition is used to maintain context during the parsing.
- */
-typedef struct
-{
-    __int64_t	value;
-    _Bool	present;
-} SDL_IDENT;
-
-typedef struct
-{
-    char *counter; /* Variable name	*/
-    char *prefix;
-    char *tag;
-    char *typeName;
-    __int64_t	value;
-    __int64_t	increment;
-    int		radix;
-} SDL_CONSTANT_LIST;
-
 #define SDL_TIMESTR_LEN		20+1	/* dd-MMM-yyyy hh:mm:ss		*/
 #define SDL_K_SUBAGG_MAX	8+1
 
 typedef struct
 {
+    char *name_s;
+    int type; /* Number or String */
+    union
+    {
+	__int64_t value;
+	char *strValue;
+    };
+    char *prefix;
+    char *tag;
+    char *counter;
+    char *typeName;
+    __int64_t increment;
+    __int64_t radix;
+    bool incrPresent;
+} SDL_CONSTANT_DEF;
+
+typedef struct
+{
     SDL_AGGREGATE	*aggStack[SDL_K_SUBAGG_MAX];
-    _Bool		langSpec[SDL_K_LANG_MAX];
-    _Bool		langEna[SDL_K_LANG_MAX];
+    bool langSpec[SDL_K_LANG_MAX];
+    bool langEna[SDL_K_LANG_MAX];
     char *outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
+    SDL_CONSTANT_DEF *constDef;
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
-    SDL_CONSTANT	**constStack;
-    SDL_CONSTANT_LIST	constList;
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;
     SDL_DECLARE_LIST	declares;
@@ -472,7 +467,6 @@ typedef struct
     char *module;
     char *ident;
     int			aggStackPtr;
-    int			constEntries;
 } SDL_CONTEXT;
 
 #define SDL_AGGSTACK_EMPTY(p)	((p) == SDL_K_SUBAGG_MAX)

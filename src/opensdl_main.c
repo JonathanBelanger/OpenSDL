@@ -157,10 +157,9 @@ int main(int argc, char *argv[])
 	context.dimensions[ii].inUse = false;
 
     /*
-     * Initialize the constant stack.
+     * Initialize the CONSTANT definition location.
      */
-    context.constEntries = 0;
-    context.constStack = NULL;
+    context.constDef = NULL;
 
     /*
      * Initialize the context queues.

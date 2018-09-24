@@ -81,9 +81,13 @@ typedef struct _file_list_
 	int					lineNumber;
 } SDL_FILE_LIST;
 
+#define SDL_LIT_LINES	42
+static char				*_sdl_lit_lines[SDL_LIT_LINES];
 static int 				*_sdl_start_state = NULL;
+static int				_sdl_lit_idx = 0;
 static int				_sdl_state_size = 0;
 static int				_sdl_state_inuse = 0;
+static bool				_sdl_end_literal = false;
 static SDL_FILE_LIST	*_sdl_file_list = NULL;
 
 /*
@@ -136,9 +140,14 @@ INCLUDE					{
 							if (_sdl_pop_file() == 0)
 								yyterminate();
 						}
-LITERAL([:space:]*)[;]	{
+LITERAL[ \t\v\f\n\r]*[;]	{
+							int ii;
+
 							if (_sdl_push_start_state() == false)
 								yyterminate();
+							for (ii = 0; ii < SDL_LIT_LINES; ii++)
+								_sdl_lit_lines[ii] = NULL;
+							_sdl_lit_idx = 0;
 							BEGIN(ST_LIT);
 							return(SDL_K_LITERAL);
 						}
@@ -174,7 +183,7 @@ LITERAL([:space:]*)[;]	{
 							 * OK, if we found END_LITERAL, then we have some
 							 * more processing to perform.
 							 */
-							if (ptr != NULL)
+							if ((ptr != NULL) || (_sdl_end_literal == true))
 							{
 
 								/*
@@ -183,23 +192,98 @@ LITERAL([:space:]*)[;]	{
 								 * that we are at the end of the literal
 								 * section.
 								 */
-								if (ptr == yycopy)
+								if ((ptr == yycopy) ||
+									(_sdl_end_literal == true))
 								{
+									bool	done;
+									char	*ptr2 = ptr +
+												(_sdl_end_literal ? 0 : 11);
+									ptr2 = (ptr == NULL) ? yycopy : ptr2;
 
 									/*
-									 * TODO: We really need to allow for the
-									 * situaltion where END_LITERAL does not
-									 * have the ';' immediately after it.
-									 * There may be some spaces between the end
-									 * of END_LITERAL and the ';', which should
-									 * be acceptable.  We may also what to
-									 * consider where the ';' is on one or more
-									 * lines after the line where the
-									 * END_LITERAL is located.
+									 * OK, we found the END_LITERAL for the
+									 * first time and at the beginning of the
+									 * buffer.  We got here because either we
+									 * already saw this and put it back on the
+									 * input stream so that we could get here,
+									 * or that's just how it got read in, or we
+									 * are still looking for the first
+									 * non-space character.  Either way, we
+									 * need to find the next non-space
+									 * character.  If it is a ';', then we are
+									 * done here.  Otherwise, all the lines
+									 * that were read in are moved to be
+									 * processed by the Bison code.
 									 */
-									ptr += 12;
-									BEGIN(_sdl_pop_start_state());
-									retVal = SDL_K_END_LITERAL;
+									done = (ptr2 - yycopy) >= len;
+									while ((done == false) &&
+										   (isspace(*ptr2) != 0))
+									{
+										ptr2++;
+										done = (ptr2 - yycopy) >= len;
+									}
+
+									/*
+									 * If we did not reach the end of the text
+									 * and we did find a ';', then we are done
+									 * here and can skip past the ';'.
+									 */
+									if ((done == false) && (*ptr2 == ';'))
+									{
+										int	ii;
+
+										_sdl_end_literal = false;
+										ptr = ptr2 + 1;
+										BEGIN(_sdl_pop_start_state());
+										retVal = SDL_K_END_LITERAL;
+										for (ii = 0; ii < _sdl_lit_idx; ii++)
+										{
+											free(_sdl_lit_lines[ii]);
+											_sdl_lit_lines[ii] = NULL;
+										}
+									}
+
+									/*
+									 * If we reached the end of the text, then
+									 * we have to save the current string and
+									 * indicate that we need to come back here.
+									 */
+									else if (done == true) 
+									{
+										_sdl_end_literal = true;
+										_sdl_lit_lines[_sdl_lit_idx++] =
+											yycopy;
+										ptr = yycopy = NULL;
+									}
+
+									/*
+									 * We get here if we found a non-space
+									 * character that is not ';'.  In this case
+									 * we will ignore the previous END_LITERAL
+									 * and put all the saved strings and send
+									 * the lot to Bison.
+									 */
+									else
+									{
+										char *newyy;
+										int ii, catLen = len;
+
+										_sdl_end_literal = false;
+										for (ii = 0; ii < _sdl_lit_idx; ii++)
+											catLen += strlen(_sdl_lit_lines[ii]);
+										newyy = calloc(1, len);
+										for (ii = 0; ii < _sdl_lit_idx; ii++)
+										{
+											strcat(newyy, _sdl_lit_lines[ii]);
+											free(_sdl_lit_lines[ii]);
+											_sdl_lit_lines[ii] = NULL;
+										}
+										strcat(newyy, yycopy);
+										free(yycopy);
+										yycopy = newyy;
+										len = catLen;
+										ptr = &yycopy[len];
+									}
 								}
 
 								/*
@@ -208,15 +292,18 @@ LITERAL([:space:]*)[;]	{
 								 * data to be processed as part of the rest of
 								 * the file.
 								 */
-								len--;
-								while (&yycopy[len] != (ptr - 1))
-									unput(yycopy[len--]);
+								if (yycopy != NULL)
+								{
+									len--;
+									while (&yycopy[len] != (ptr - 1))
+										unput(yycopy[len--]);
 
-								/*
-								 * Move the null-termination to the point where
-								 * the last unput byte was located.
-								 */
-								yycopy[len + 1] = '\0';
+									/*
+									 * Move the null-termination to the point where
+									 * the last unput byte was located.
+									 */
+									yycopy[len + 1] = '\0';
+								}
 							}
 
 							/*
@@ -225,11 +312,14 @@ LITERAL([:space:]*)[;]	{
 							 * Otherwise, store the copy of yytext to where
 							 * Bison can find it.
 							 */
-							if (retVal == SDL_K_END_LITERAL)
-								free(yycopy);
-							else
-								yylval->tval = yycopy;
-							return(retVal);
+							if (yycopy != NULL)
+							{
+								if (retVal == SDL_K_END_LITERAL)
+									free(yycopy);
+								else
+									yylval->tval = yycopy;
+								return(retVal);
+							}
 						}
 CONSTANT				{
 
@@ -323,7 +413,7 @@ CONSTANT				{
 							 */
 							return(t_constant_names);
 						}
-<ST_CONST_LIST>[)]		{ 
+<ST_CONST_LIST>")"		{ 
 
 							/*
 							 * Change the start state to one for parsing the

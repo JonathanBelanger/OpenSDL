@@ -49,7 +49,8 @@ LITERAL;END_LITERAL;
 { Test 4c: This comment should not show up in the output file.
 {
 /* Line just second first LITERAL
-LITERAL;
+LITERAL 
+;
 /******************************************************************************/
 /*
  * This comment should show up in the output file.
@@ -63,7 +64,8 @@ LITERAL;
 /* And finally this one.	*/
 /*	*/
 /******************************************************************************/
-END_LITERAL;   #count = 1;
+END_LITERAL
+;   #count = 1;
 /* Line just after second END_LITERAL
 
 END_MODULE test_4;

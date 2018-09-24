@@ -58,35 +58,6 @@ int sdl_declare(
 __int64_t sdl_bin2int(char *binStr);
 int sdl_str2int(char *strVal, __int64_t *val);
 int sdl_offset(SDL_CONTEXT *context, int offsetType);
-SDL_IDENT *sdl_constant_eq(__int64_t value, _Bool present);
-int sdl_constant_add(SDL_CONTEXT *context, char *name, SDL_IDENT *initVal);
-int sdl_constant(SDL_CONTEXT *context, __int64_t value, char *valueStr);
-int sdl_constant_name(SDL_CONTEXT *context, char *name);
-int sdl_constant_names(
-		SDL_CONTEXT *context,
-		__int64_t value,
-		char *prefix,
-		char *tag,
-		char *counter,
-		__int64_t incr,
-		char *typeName,
-		int radix);
-int sdl_constant_opts(
-		SDL_CONTEXT *context,
-		char *prefix,
-		char *tag,
-		char *counter,
-		__int64_t incr,
-		char *typeName,
-		int radix);
-int sdl_constant_val(
-		SDL_CONTEXT *context,
-		char *prefix,
-		char *tag,
-		char *counter,
-		char *typeName,
-		int radix);
-int sdl_constant_done(SDL_CONTEXT *context, _Bool alreadyQd);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
 #define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */

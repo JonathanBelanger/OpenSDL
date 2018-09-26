@@ -58,16 +58,25 @@ int sdl_declare(
 __int64_t sdl_bin2int(char *binStr);
 int sdl_str2int(char *strVal, __int64_t *val);
 int sdl_offset(SDL_CONTEXT *context, int offsetType);
-int sdl_constant(SDL_CONTEXT *context);
-int sdl_constant_str(SDL_CONTEXT *context, int what, char *str);
-int sdl_constant_num(SDL_CONTEXT *context, int what, __int64_t value);
-int sdl_constant_end(SDL_CONTEXT *context, bool keep);
+int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound);
+int sdl_constant(
+		SDL_CONTEXT *context,
+		char *id,
+		__int64_t value,
+		char *valueStr,
+		char *prefix,
+		char *tag,
+		char *counter,
+		char *typeName,
+		__int64_t *increment,
+		__int64_t radix);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
 #define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */
 #define SDL_M_COMPRESS	0x00000004	/* remove duplicate spaces */
 #define SDL_M_COLLAPSE	0x00000008	/* remove all spaces */
 #define SDL_M_CONVERT	0x00000010	/* make sure only spaces are used */
+#define SDL_M_KEEP_NL	0x00000020	/* keep new-lines, if present */
 #define SDL_M_TRIM	(SDL_M_LEAD | SDL_M_TRAIL)
 void sdl_trim_str(char *str, int type);
 
@@ -84,5 +93,6 @@ void sdl_trim_str(char *str, int type);
 #define SDL_K_CONST_EQUALS	8
 #define SDL_K_CONST_INCR	9
 #define SDL_K_CONST_RADIX	10
+__int64_t *sdl_increment(__int64_t value);
 
 #endif	/* _OPENSDL_ACTIONS_H_ */

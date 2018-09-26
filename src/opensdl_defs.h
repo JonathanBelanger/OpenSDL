@@ -433,30 +433,11 @@ typedef struct
 
 typedef struct
 {
-    char *name_s;
-    int type; /* Number or String */
-    union
-    {
-	__int64_t value;
-	char *strValue;
-    };
-    char *prefix;
-    char *tag;
-    char *counter;
-    char *typeName;
-    __int64_t increment;
-    __int64_t radix;
-    bool incrPresent;
-} SDL_CONSTANT_DEF;
-
-typedef struct
-{
     SDL_AGGREGATE	*aggStack[SDL_K_SUBAGG_MAX];
-    bool langSpec[SDL_K_LANG_MAX];
-    bool langEna[SDL_K_LANG_MAX];
-    char *outFileName[SDL_K_LANG_MAX];
+    bool		langSpec[SDL_K_LANG_MAX];
+    bool		langEna[SDL_K_LANG_MAX];
+    char		*outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
-    SDL_CONSTANT_DEF *constDef;
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;

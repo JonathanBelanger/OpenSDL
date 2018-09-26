@@ -1,33 +1,62 @@
+/+
+// Copyright (C) Jonathan D. Belanger 2018.
+// All Rights Reserved.
+//
+// This software is furnished under a license and may be used and copied only
+// in accordance with the terms of such license and with the inclusion of the
+// above copyright notice.  This software or any other copies thereof may not
+// be provided or otherwise made available to any other person.  No title to
+// and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and
+// should not be construed as a commitment by the author or co-authors.
+//
+// The author and any co-authors assume no responsibility for the use or
+// reliability of this software.
+//
+// Description:
+//
+//  This test file contains the CONSTANT statements.
+//
+// Revision History:
+//
+//  V01.000	Sept 01, 2018	Jonathan D. Belanger
+//  Initially written.
+//
+//  V01.001	Sep  6, 2018	Jonathan D. Belanger
+//  Updated the copyright to be GNUGPL V3 compliant.
+/-
+
+/+
+// Test 7: This is going to test ITEM.
+/-
 MODULE test_6;
 
-CONSTANT block_node_size1 EQUALS 24;
-CONSTANT Strcon1 EQUALS STRING "This is a string constant";
-CONSTANT Strcon2 EQUALS STRING "This is a second string constant" PREFIX Jg$;
-#block_size = 24;
-CONSTANT block_node_size2 EQUALS #block_size;
-CONSTANT
-	xyz EQUALS 10,
-	alpha EQUALS 0,
-	noname EQUALS 63;
-CONSTANT (
-	bits,
-	bytes,
-	words,
-	longs,
-	quads,
-	octas
-	) EQUALS 0 INCREMENT 1 PREFIX ctx$;
-CONSTANT
-	(bad_block,bad_data,,,,
-	overlay,rewrite) EQUALS 0 INCREMENT 4;
-CONSTANT (pli,c,bliss,macro)
-	EQUALS 4 INCREMENT 4 PREFIX lang$
-	COUNTER #lang;
-CONSTANT (basic,pascal,fortran)
-	EQUALS #lang + 4 INCREMENT 4 PREFIX lang$;
-CONSTANT( 
-	pli,    /* PL/I
-	c,      /* C
-	macro   /* MACRO-32
-	) EQUALS 4 INCREMENT 4 PREFIX lang$;
-END_MODULE test_6;
+DECLARE foobar SIZEOF OCTAWORD;
+
+/+
+// Test 7a: Basic Constants, one for number one for string.
+/-
+ITEM current_node_ptr ADDRESS;
+
+/+
+// Test 7b: Basic Constants, one for number one for string.
+/-
+ITEM block_list_id WORD; 
+
+/+
+// Test 7c: Basic Constants, one for number one for string.
+/-
+ITEM block_list_id foobar; 
+
+/+
+// Test 7d: Basic Constants, one for number one for string.
+/-
+ITEM block_list_ids WORD DIMENSION 12 PREFIX itm_ TAG w;
+
+/+
+// Test 7d: Basic Constants, one for number one for string.
+/-
+ITEM string BYTE DIMENSION 42 PREFIX str_ TAG t TYPEDEF;
+
+END_MODULE test_7;

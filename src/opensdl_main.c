@@ -157,11 +157,6 @@ int main(int argc, char *argv[])
 	context.dimensions[ii].inUse = false;
 
     /*
-     * Initialize the CONSTANT definition location.
-     */
-    context.constDef = NULL;
-
-    /*
      * Initialize the context queues.
      */
     SDL_Q_INIT(&context.locals);

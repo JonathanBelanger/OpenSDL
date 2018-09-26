@@ -377,6 +377,11 @@ CONSTANT				{
 						}
 <ST_CONST_LIST>[^)]*	{
 							int c;
+							int mask =
+								SDL_M_CONVERT |
+								SDL_M_KEEP_NL |
+								SDL_M_TRIM |
+								SDL_M_COMPRESS;
 
 							/*
 							 * OK, we got everything up to, but not including,
@@ -391,9 +396,7 @@ CONSTANT				{
 							 * multiple space characters to a single one, and
 							 * convert control characters to a space character.
 							 */
-							sdl_trim_str(
-								yytext,
-								(SDL_M_CONVERT | SDL_M_TRIM | SDL_M_COMPRESS));
+							sdl_trim_str(yytext, mask);
 
 							/*
 							 * Make a copy of the name string.

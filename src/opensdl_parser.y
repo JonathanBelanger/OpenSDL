@@ -213,9 +213,16 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %type <ival> _v_address
 %type <ival> _v_object
 %type <ival> _v_basealign
+%type <ival> _v_storage
+%type <ival> _v_dimension
+%type <ival> _v_radix
 
 %type <tval> _t_prefix
 %type <tval> _t_tag
+%type <tval> _t_counter
+%type <tval> _t_typename
+
+%type <aval> _a_increment
 
 /*
  * We have types on the bison side of the house.
@@ -268,35 +275,7 @@ module_body
 	| varset
 	| literal
 	| declare
-	;
-
-constant
-	: SDL_K_CONSTANT
-	    { sdl_constant(&context); }
-	| t_constant_name
-	    { sdl_constant_str(&context, SDL_K_CONST_NAME, $1); }
-	| t_constant_names
-	    { sdl_constant_str(&context, SDL_K_CONST_NAMES, $1); }
-	| SDL_K_COMMA
-	    { sdl_constant(&context); }
-	| SDL_K_EQUALS _v_expression
-	    { sdl_constant_num(&context, SDL_K_CONST_EQUALS, $2); }
-	| SDL_K_EQUALS SDL_K_STRING t_string
-	    { sdl_constant_str(&context, SDL_K_CONST_STRING, $3); }
-	| SDL_K_COUNTER t_variable
-	    { sdl_constant_str(&context, SDL_K_CONST_COUNTER, $2); }
-	| SDL_K_INCR _v_expression
-	    { sdl_constant_num(&context, SDL_K_CONST_INCR, $2); }
-	| SDL_K_TYPENAME t_name
-	    { sdl_constant_str(&context, SDL_K_CONST_TYPENAME, $2); }
-	| SDL_K_PREFIX t_name
-	    { sdl_constant_str(&context, SDL_K_CONST_PREFIX, $2); }
-	| SDL_K_TAG t_name
-	    { sdl_constant_str(&context, SDL_K_CONST_TAG, $2); }
-	| SDL_K_RADIX v_int
-	    { sdl_constant_num(&context, SDL_K_CONST_RADIX, $2); }
-	| SDL_K_END_CONSTANT
-	    { sdl_constant_end(&context, false); }
+	| item
 	;
 
 _v_expression
@@ -393,6 +372,8 @@ _t_prefix
 	    { $$ = NULL; }
 	| SDL_K_PREFIX t_name
 	    { $$ = $2; }
+	| SDL_K_PREFIX t_string
+	    { $$ = sdl_unquote_str($2); }
 	;
 
 _t_tag
@@ -400,6 +381,124 @@ _t_tag
 	    { $$ = NULL; }
 	| SDL_K_TAG t_name
 	    { $$ = $2; }
+	;
+
+_t_counter
+	: %empty
+	    { $$ = NULL; }
+	| SDL_K_COUNTER t_variable
+	    { $$ = $2; }
+	;
+
+_t_typename
+	: %empty
+	    { $$ = NULL; }
+	| SDL_K_TYPENAME t_name
+	    { $$ = $2; }
+	;
+
+_v_radix
+	: %empty
+	    { $$ = SDL_K_RADIX_DEF; }
+	| SDL_K_RADIX v_int
+	    { $$ = $2; }
+	;
+
+_a_increment
+	: %empty
+	    { $$ = NULL; }
+	| SDL_K_INCR _v_expression
+	    { $$ = sdl_increment($2); }
+	;
+
+constant
+	: SDL_K_CONSTANT _constant_body SDL_K_END_CONSTANT
+	;
+
+_constant_body
+	: _complex_clause
+	| _clause_list
+	;
+
+_clause_list
+	: _clause SDL_K_COMMA _clause
+	| _clause_list SDL_K_COMMA _clause
+	;
+
+_clause
+	: t_constant_name SDL_K_EQUALS _v_expression
+	    {
+		sdl_constant(
+			&context,
+			$1,			/* id */
+			$3,			/* value */
+			NULL,			/* valueStr */
+			NULL,			/* prefix */
+			NULL,			/* tag */
+			NULL,			/* counter */
+			NULL,			/* typename */
+			NULL,			/* increment */
+			SDL_K_RADIX_DEF);	/* radix */
+	    }
+	| t_constant_names SDL_K_EQUALS _v_expression
+	    {
+		sdl_constant(
+			&context,
+			$1,			/* id */
+			$3,			/* value */
+			NULL,			/* valueStr */
+			NULL,			/* prefix */
+			NULL,			/* tag */
+			NULL,			/* counter */
+			NULL,			/* typename */
+			NULL,			/* increment */
+			SDL_K_RADIX_DEF);	/* radix */
+	    }
+	;
+
+_complex_clause
+	: t_constant_name SDL_K_EQUALS SDL_K_STRING t_string _t_prefix _t_tag
+	    {
+		sdl_constant(
+			&context,
+			$1,			/* id */
+			0,			/* value */
+			$4,			/* valueStr */
+			$5,			/* prefix */
+			$6,			/* tag */
+			NULL,			/* counter */
+			NULL,			/* typename */
+			NULL,			/* increment */
+			SDL_K_RADIX_DEF);	/* radix */
+	    }
+	| t_constant_name SDL_K_EQUALS _v_expression _t_prefix _t_tag _t_counter _t_typename _v_radix
+	    {
+		sdl_constant(
+			&context,
+			$1,			/* id */
+			$3,			/* value */
+			NULL,			/* valueStr */
+			$4,			/* prefix */
+			$5,			/* tag */
+			$6,			/* counter */
+			$7,			/* typename */
+			NULL,			/* increment */
+			$8);			/* radix */
+	    }
+	| t_constant_names SDL_K_EQUALS _v_expression  _a_increment _t_prefix _t_tag _t_counter _t_typename _v_radix
+	    {
+		sdl_constant(
+			&context,
+			$1,			/* id */
+			$3,			/* value */
+			NULL,			/* valueStr */
+			$5,			/* prefix */
+			$6,			/* tag */
+			$7,			/* counter */
+			$8,			/* typename */
+			$4,			/* increment */
+			$9);			/* radix */
+	    }
 	;
 
 _v_datatypes
@@ -445,13 +544,13 @@ _v_basetypes
 	;
 
 _v_address
-	: SDL_K_ADDR _v_object _v_basealign
+	: SDL_K_ADDR _v_object
 	    { $$ = SDL_K_TYPE_ADDR; }
-	| SDL_K_ADDRL _v_object _v_basealign
+	| SDL_K_ADDRL _v_object
 	    { $$ = SDL_K_TYPE_ADDRL; }
-	| SDL_K_ADDRQ _v_object _v_basealign
+	| SDL_K_ADDRQ _v_object
 	    { $$ = SDL_K_TYPE_ADDRQ; }
-	| SDL_K_ADDR_HW _v_object _v_basealign
+	| SDL_K_ADDR_HW _v_object
 	    { $$ = SDL_K_TYPE_ADDRHW; }
 	;
 
@@ -469,6 +568,45 @@ _v_basealign
 	    { $$ = pow(2, $3); }
 	| SDL_K_BASEALIGN _v_datatypes
 	    { $$ = $2; }
+	;
+
+item
+	: SDL_K_ITEM t_name _v_datatypes _v_storage _v_basealign _v_dimension _t_prefix _t_tag SDL_K_SEMI
+	    {
+		printf("ITEM %s %ld %ld BASEALIGN %ld", $2, $3, $4, $5);
+		if ($6 >= 0)
+		{
+		    printf(
+			" DIMENSION %ld:%ld",
+			context.dimensions[$6].lbound,
+			context.dimensions[$6].hbound);
+		}
+		if ($7 != NULL)
+		    printf(" PREFIX %s", $7);
+		if ($8 != NULL)
+		    printf(" TAG %s", $8);
+		printf("\n");
+	    }
+	;
+
+_v_storage
+	: %empty
+	    { $$ = SDL_M_STOR_NONE; }
+	| SDL_K_COMMON
+	    { $$ = SDL_M_STOR_COMM; }
+	| SDL_K_GLOBAL
+	    { $$ = SDL_M_STOR_GLOB; }
+	| SDL_K_TYPEDEF
+	    { $$ = SDL_M_STOR_TYPED; }
+	;
+
+_v_dimension
+	: %empty
+	    { $$ = -1; }
+	| SDL_K_DIMENSION v_int
+	    { $$ = sdl_dimension(&context, 1, $2); }
+	| SDL_K_DIMENSION v_int SDL_K_FULL v_int
+	    { $$ = sdl_dimension(&context, $2, $4); }
 	;
 
 %%	/* End Grammar rules */

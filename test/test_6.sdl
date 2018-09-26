@@ -84,5 +84,15 @@ CONSTANT(
 	c,      /* C
 	macro   /* MACRO-32
 	) EQUALS 4 INCREMENT 4 PREFIX lang$;
-
+CONSTANT (
+    nop, 
+    unload, 
+    loadmcode, 
+    seek, 
+    spacefile, 
+    startmproc, 
+    recal, 
+    stop, 
+    drvclr, 
+    initialize) EQUALS 0 INCREMENT 1 PREFIX "io$";
 END_MODULE test_6;

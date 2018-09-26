@@ -94,8 +94,11 @@ static SDL_DECLARE *_sdl_get_declare(SDL_DECLARE_LIST *declare, char *name);
 static SDL_LOCAL_VARIABLE *_sdl_get_local(SDL_CONTEXT *context, char *name);
 static SDL_ITEM *_sdl_get_item(SDL_ITEM_LIST *item, char *name);
 static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *name);
-static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype);
-static void _sdl_trim_tag(char *tag);
+static char *_sdl_get_tag(
+        SDL_CONTEXT *context,
+        char *tag,
+        int datatype,
+        bool lower);
 static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item);
 static SDL_CONSTANT *_sdl_create_constant(
         char *id,
@@ -107,6 +110,7 @@ static SDL_CONSTANT *_sdl_create_constant(
         __int64_t value,
         char *string);
 static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst);
+static bool _sdl_all_lower(const char *str);
 
 /*
  * sdl_unquote_str
@@ -638,7 +642,6 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	    printf(
 		"\t    value: %s\n",
 		constant->string);
-
 	}
 	else
 	{
@@ -650,6 +653,10 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 			(constant->radix == SDL_K_RADIX_HEX ? "Hexidecimal" :
 			    "Invalid"))));
 	}
+	if (constant->comment != NULL)
+	    printf(
+		"\t    comment: %s\n",
+		constant->comment);
 	ii++;
 	free(constant->id);
 	if (constant->prefix != NULL)
@@ -995,8 +1002,11 @@ int sdl_declare(
 		myDeclare->type = sizeType;
 	    }
 	    myDeclare->prefix = prefix;
-	    myDeclare->tag = _sdl_get_tag(context, tag, myDeclare->type);
-	    _sdl_trim_tag(myDeclare->tag);
+	    myDeclare->tag = _sdl_get_tag(
+		    context,
+		    tag,
+		    myDeclare->type,
+		    _sdl_all_lower(name));
 	    SDL_INSQUE(&context->declares.header, &myDeclare->header);
 	}
 	else
@@ -1306,8 +1316,11 @@ int sdl_item(
 		context->dimensions[dimension].inUse = false;
 	    }
 	    myItem->prefix = prefix;
-	    myItem->tag = _sdl_get_tag(context, tag, datatype);
-	    _sdl_trim_tag(myItem->tag);
+	    myItem->tag = _sdl_get_tag(
+		    context,
+		    tag,
+		    datatype,
+		    _sdl_all_lower(name));
 	    SDL_INSQUE(&context->items.header, &myItem->header);
 
 	    /*
@@ -1333,13 +1346,36 @@ int sdl_item(
 
 /*
  * sdl_constant
- *  This function is called to create a definition record for a CONSTANT.  If
- *  one is already there, then the existing one is re-initialized.
+ *  This function is called to define one or more constant values.
  *
  * Input Parameters:
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
+ *  id:
+ *	A pointer the the name/names of the constants to be defined.
+ *  value:
+ *	A value to be associated with the constant.
+ *  valueStr:
+ *	A pointer to a string to be associated with the constant.  If this is
+ *	NULL, then value is used.  Otherwise, this is used.
+ *  prefix:
+ *	A pointer to a string containing the prefix to be prepended before the
+ *	tag, if present, or the id, if tag is not present.
+ *  tag
+ *	A pointer to a string containing the tag to be between the prefix and
+ *	id.
+ *  counter:
+ *	A pointer to the name of the counter to be utilized.  This is
+ *	initialized to the value.
+ *  typeName:
+ *	A pointer to the type-name to be associated with this constant.
+ *  increment:
+ *  	A pointer to the increment value to be used hen defining more than one
+ *  	constant.
+ *  radix:
+ *  	A value indicating the radix to be used when writing out the constant
+ *  	value.
  *
  * Output Parameters:
  *  None.
@@ -1348,319 +1384,201 @@ int sdl_item(
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_constant(SDL_CONTEXT *context)
+#define _SDL_OUTPUT_COMMENT	0
+#define _SDL_COMMA_		2
+#define _SDL_COMMENT_LIST_NULL	3
+int sdl_constant(
+		SDL_CONTEXT *context,
+		char *id,
+		__int64_t value,
+		char *valueStr,
+		char *prefix,
+		char *tag,
+		char *counter,
+		char *typeName,
+		__int64_t *increment,
+		__int64_t radix)
 {
-    int retVal = 1;
+    SDL_CONSTANT	*myConst;
+    char		*comma = strchr(id, ',');
+    static char		*commentList[] = {"/*", "{", ",", NULL};
+    int			ii, retVal = 1;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
 	printf("%s:%d:sdl_constant\n", __FILE__, __LINE__);
+    if (counter != NULL)
+	retVal = sdl_set_local(context, counter, value);
 
     /*
-     * If we don't have a CONSTANT definition record handy, then go allocate
-     * one now.
+     * Before we go too far, we need to determine what kind of definition
+     * we have.  First let's see if there is one or multiple names needing
+     * to be created.
      */
-    if (context->constDef == NULL)
+    if (comma == NULL)
     {
-	context->constDef = calloc(1, sizeof(SDL_CONSTANT_DEF));
-	if (context->constDef == NULL)
-	    retVal = 0;
-    }
-    else
-	retVal = sdl_constant_end(context, true);
-
-    /*
-     * Return the results of this call back to the caller.
-     */
-    return (retVal);
-}
-
-/*
- * sdl_constant_str
- *  This function is called to add a string definition information to a
- *  constant declaration.
- *
- * Input Parameters:
- *  context:
- *	A pointer to the context structure where we maintain information about
- *	the current parsing.
- *  what:
- *	A value indicating what the information provided in the str parameter
- *	represents.
- *  str:
- *	A pointer to the string to store someplace.
- *
- * Output Parameters:
- *  None.
- *
- * Return Values:
- *  1:	Normal Successful Completion.
- *  0:	An error occurred.
- */
-int sdl_constant_str(SDL_CONTEXT *context, int what, char *str)
-{
-    int retVal = 1;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:sdl_constant_str\n", __FILE__, __LINE__);
-
-    /*
-     * If we don't have a place to store this, then we need to return an error.
-     */
-    if (context->constDef != NULL)
-    {
-	switch (what)
+	if (tag == NULL)
+	    tag = _sdl_get_tag(
+			context,
+			NULL,
+			SDL_K_TYPE_CONST,
+			_sdl_all_lower(id));
+	myConst = _sdl_create_constant(
+				id,
+				prefix,
+				tag,
+				NULL,
+				typeName,
+				radix,
+				value,
+				valueStr);
+	if (myConst != NULL)
 	{
-	case SDL_K_CONST_NAME:
-	case SDL_K_CONST_NAMES:
-	    context->constDef->name_s = str;
-	    break;
-
-	case SDL_K_CONST_STRING:
-	    context->constDef->type = SDL_K_CONST_STR;
-	    context->constDef->strValue = str;
-	    break;
-
-	case SDL_K_CONST_COUNTER:
-	    context->constDef->counter = str;
-	    break;
-
-	case SDL_K_CONST_TYPENAME:
-	    context->constDef->typeName = str;
-	    break;
-
-	case SDL_K_CONST_PREFIX:
-	    context->constDef->prefix = str;
-	    break;
-
-	case SDL_K_CONST_TAG:
-	    context->constDef->tag = str;
-	    break;
-
-	default:
-	    retVal = 0;
-	    break;
-	}
-    }
-    else
-	retVal = 0;
-
-    /*
-     * Return the results of this call back to the caller.
-     */
-    return (retVal);
-}
-
-/*
- * sdl_constant_num
- *  This function is called to add a numeric definition information to a
- *  constant declaration.
- *
- * Input Parameters:
- *  context:
- *	A pointer to the context structure where we maintain information about
- *	the current parsing.
- *  what:
- *	A value indicating what the information provided in the value parameter
- *	represents.
- *  value:
- *	A value to be stored someplace.
- *
- * Output Parameters:
- *  None.
- *
- * Return Values:
- *  1:	Normal Successful Completion.
- *  0:	An error occurred.
- */
-int sdl_constant_num(SDL_CONTEXT *context, int what, __int64_t value)
-{
-    int retVal = 1;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:sdl_constant_num\n", __FILE__, __LINE__);
-
-    /*
-     * If we don't have a place to store this, then we need to return an error.
-     */
-    if (context->constDef != NULL)
-    {
-	switch (what)
-	{
-	case SDL_K_CONST_EQUALS:
-	    context->constDef->type = SDL_K_CONST_NUM;
-	    context->constDef->value = value;
-	    break;
-
-	case SDL_K_CONST_INCR:
-	    context->constDef->increment = value;
-	    context->constDef->incrPresent = true;
-	    break;
-
-	case SDL_K_CONST_RADIX:
-	    context->constDef->radix = value;
-	    break;
-
-	default:
-	    retVal = 0;
-	    break;
-	}
-    }
-    else
-	retVal = 0;
-
-    /*
-     * Return the results of this call back to the caller.
-     */
-    return (retVal);
-}
-
-/*
- * sdl_constant_end
- *  This function is called to perform the processing required to actually
- *  create one or more constant values.
- *
- * Input Parameters:
- *  context:
- *	A pointer to the context structure where we maintain information about
- *	the current parsing.
- *  keep:
- *	A boolean value to indicate if the constant definition block should be
- *	kept and initialized or deallocated (true == keep and initialize; false
- *	== deallocate).
- *
- * Output Parameters:
- *  None.
- *
- * Return Values:
- *  1:	Normal Successful Completion.
- *  0:	An error occurred.
- */
-int sdl_constant_end(SDL_CONTEXT *context, bool keep)
-{
-    SDL_CONSTANT_DEF *constDef = context->constDef;
-    int retVal = 1;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:sdl_constant_end\n", __FILE__, __LINE__);
-
-    /*
-     * If we don't have a CONSTANT definition record handy, then return an
-     * error.
-     */
-    if (constDef != NULL)
-    {
-	SDL_CONSTANT *myConst;
-	char *comma = strchr(constDef->name_s, ',');
-
-	/*
-	 * Before we go too far, we need to determine what kind of definition
-	 * we have.  First let's see if there is one or multiple names needing
-	 * to be created.
-	 */
-	if (comma == NULL)
-	{
-	    myConst = _sdl_create_constant(
-		    constDef->name_s,
-		    constDef->prefix,
-		    constDef->tag,
-		    NULL,
-		    constDef->typeName,
-		    constDef->radix,
-		    constDef->value,
-		    constDef->strValue);
 	    retVal = _sdl_queue_constant(context, myConst);
+	    if ((retVal == 1) && (counter != NULL))
+		retVal = sdl_set_local(context, counter, value);
 	}
 	else
-	{
-	    char *ptr = constDef->name_s;
-	    __int64_t value = constDef->value;
-
-	    /*
-	     * We have multiple names to process through.  First we need
-	     * go through the name_s string and pull out the individual
-	     * name/comment data.
-	     */
-	    while (((comma = strchr(ptr, ',')) != NULL) && (retVal == 1))
-	    {
-		char *name;
-		char *comment = NULL;
-
-		*comma = '\0';
-		if (strlen(ptr) > 0)
-		{
-		    name = strdup(ptr);
-		    if (name != NULL)
-		    {
-			char *commentStart = strstr(ptr, "/*");
-
-			if (commentStart != NULL)
-			    comment = strdup(commentStart);
-			else
-			{
-			    commentStart = strstr(ptr, "{");
-			    if (commentStart != NULL)
-				*commentStart = '\0';
-			}
-			myConst = _sdl_create_constant(
-			        name,
-			        constDef->prefix,
-			        constDef->tag,
-			        comment,
-			        constDef->typeName,
-			        constDef->radix,
-			        value,
-			        NULL);
-			retVal = _sdl_queue_constant(context, myConst);
-			free(name);
-			if (comment != NULL)
-			    free(comment);
-			ptr = comma + 1;
-		    }
-		    else
-			retVal = 0;
-		}
-		value += (constDef->incrPresent ? constDef->increment : 0);
-	    }
-	}
-
-	/*
-	 * Either re-initialize or deallocate all the memory.
-	 */
-	free(constDef->name_s);
-	constDef->name_s = NULL;
-	if (constDef->prefix != NULL)
-	    free(constDef->prefix);
-	constDef->prefix = NULL;
-	if (constDef->tag != NULL)
-	    free(constDef->tag);
-	constDef->tag = NULL;
-	if (constDef->typeName != NULL)
-	    free(constDef->typeName);
-	constDef->typeName = NULL;
-	constDef->type = 0;
-	constDef->increment = 0;
-	constDef->incrPresent = false;
-	constDef->radix = 0;
-	if (keep == false)
-	{
-	    free(constDef);
-	    context->constDef = NULL;
-	}
+	    retVal = 0;
     }
     else
-	retVal = 0;
+    {
+	char 		*ptr = id;
+	char		*nl;
+	bool		freeTag = tag == NULL;
+	bool		done = false;
+
+	sdl_trim_str(ptr, SDL_M_LEAD);
+	while ((done == false) && (retVal == 1))
+	{
+	    char	*name = ptr;
+	    char	*comment;
+
+	    ii = 0;
+	    while (commentList[ii] != NULL)
+	    {
+		comment = strstr(name, commentList[ii]);
+		if ((comment != NULL) || (ii == _SDL_COMMA_))
+		{
+		    if ((comment != NULL) && (*comment != ','))
+		    {
+			comment += strlen(commentList[ii]);
+			nl = strchr(comment, '\n');
+			if (nl != NULL)
+			{
+			    ptr = nl + 1;
+			    if (ii == _SDL_OUTPUT_COMMENT)
+				*nl = '\0';	/* Null-terminate comment */
+			    else
+				comment = NULL; /* Local comment, ignore */
+			}
+			else
+			    ptr = strchr(comment, '\0');
+		    }
+		    else
+			comment = NULL;
+		    nl = name;
+		    while (isalnum(*nl) || (*nl == '_') || (*nl == '$'))
+			nl++;
+		    if (ii == _SDL_COMMA_)
+			ptr = (*nl == '\0') ? nl : (nl + 1);
+		    *nl = '\0';		/* Null-terminate name */
+		    ii = _SDL_COMMENT_LIST_NULL;
+		}
+		else
+		    ii++;
+	    }
+	    if (strlen(name) > 0)
+	    {
+		if (freeTag == true)
+		    tag = _sdl_get_tag(
+				context,
+				NULL,
+				SDL_K_TYPE_CONST,
+				_sdl_all_lower(id));
+		myConst = _sdl_create_constant(
+					name,
+					prefix,
+					tag,
+					comment,
+					typeName,
+					radix,
+					value,
+					NULL);
+		if (myConst != NULL)
+		{
+		    retVal = _sdl_queue_constant(context, myConst);
+		    if ((retVal == 1) && (counter != NULL))
+			retVal = sdl_set_local(context, counter, value);
+		}
+		else
+		    retVal = 0;
+		if (freeTag == true)
+		{
+		    free(tag);
+		    tag = NULL;
+		}
+	    }
+	    if (increment != NULL)
+		value += *increment;
+	    sdl_trim_str(ptr, SDL_M_LEAD);
+	    done = *ptr == '\0';
+	}
+    }
+
+    /*
+     * Deallocate all the memory.
+     */
+    free(id);
+    if (valueStr != NULL)
+	free(valueStr);
+    if (prefix != NULL)
+	free(prefix);
+    if (tag != NULL)
+	free(tag);
+    if (counter != NULL)
+	free(counter);
+    if (typeName != NULL)
+	free(typeName);
+    if (increment != NULL)
+	free(increment);
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * sdl_increment
+ *  This function is called when an INCREMENT statement is present.  It is
+ *  used to determine when an INCREMENT is specified and what it is not.
+ *
+ * Input Parameters:
+ *  value:
+ *	The increment value.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Value:
+ *  NULL:	Unable to allocate memory.
+ *  !NULL:	Normal successful completion.
+ */
+int64_t *sdl_increment(__int64_t value)
+{
+    __int64_t	*retVal = calloc(1, sizeof(__int64_t));
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_increment\n", __FILE__, __LINE__);
+
+    if (retVal != NULL)
+	*retVal = value;
 
     /*
      * Return the results of this call back to the caller.
@@ -1875,6 +1793,9 @@ static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *na
  *	An integer indicating either a base type or a user type.  If a base,
  *	get the default.  If a user, we may need to call ourselves again to
  *	get what we came to get.
+ *  lower:
+ *	A boolean value to indicate that the defaulted tag should be lower
+ *	case.
  *
  * Output Parameters:
  *  None.
@@ -1882,7 +1803,8 @@ static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *na
  * Return Values:
  *  A pointer to a user specified tag or a default tag.
  */
-static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
+static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype,
+bool lower)
 {
     char	*retVal = tag;
 
@@ -1902,8 +1824,8 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 	 * If the datatype is a base type, then return then get the default
 	 * tag for this type.
 	 */
-	if (datatype == SDL_K_TYPE_NONE)
-	    retVal = strdup(_defaultTag[SDL_K_TYPE_CHAR]);
+	if (datatype == SDL_K_TYPE_CONST)
+	    retVal = strdup(_defaultTag[SDL_K_TYPE_CONST]);
 	else if ((datatype >= SDL_K_BASE_TYPE_MIN) &&
 		 (datatype <= SDL_K_BASE_TYPE_MAX))
 	    retVal = strdup(_defaultTag[datatype]);
@@ -1919,14 +1841,20 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 	    if ((datatype >= SDL_K_DECLARE_MIN) &&
 		(datatype <= SDL_K_DECLARE_MAX))
 	    {
-		SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, datatype);
+		SDL_DECLARE *myDeclare = sdl_get_declare(
+		        &context->declares,
+		        datatype);
 
 		if (myDeclare != NULL)
 		{
 		    if (strlen(myDeclare->tag) > 0)
 			retVal = strdup(myDeclare->tag);
 		    else
-			retVal = _sdl_get_tag(context, tag, myDeclare->typeID);
+			retVal = _sdl_get_tag(
+			        context,
+			        tag,
+			        myDeclare->typeID,
+			        lower);
 		}
 		else
 		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
@@ -1941,7 +1869,11 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 		    if (strlen(myItem->tag) > 0)
 			retVal = strdup(myItem->tag);
 		    else
-			retVal = _sdl_get_tag(context, tag, myItem->typeID);
+			retVal = _sdl_get_tag(
+			        context,
+			        tag,
+			        myItem->typeID,
+			        lower);
 		}
 		else
 		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
@@ -1960,66 +1892,46 @@ static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype)
 			retVal = _sdl_get_tag(
 					context,
 					tag,
-					myAggregate->typeID);
+					myAggregate->typeID,
+					lower);
 		}
 		else
 		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
 	    }
+	}
+	if (lower == true)
+	{
+	    int ii, len = strlen(retVal);
+
+	    for (ii = 0; ii < len; ii++)
+		retVal[ii] = tolower(retVal[ii]);
+	}
+    }
+    else
+    {
+	size_t len = strlen(retVal);
+	size_t ii;
+	_Bool done = false;
+
+	/*
+	 * Start at the end of the tag string and if the last character is an
+	 * underscore, then change it to a null character.  Then check the next
+	 * until we come across something other than an underscore or we run out
+	 * of characters to check.
+	 */
+	for (ii = len - 1; ((ii > 0) && (done == false)); ii--)
+	{
+	    if (retVal[ii] == '_')
+		retVal[ii] = '\0';
+	    else
+		done = true;
 	}
     }
 
     /*
      * Return the results of this call back to the caller.
      */
-    return(retVal);
-}
-
-/*
- * _sdl_trim_tag
- *  This function is called to remove all trailing underscores from the tag
- *  string.  A single underscore will be used when generating the symbol.
- *
- * Input Parameters:
- *  tag:
- *	A pointer to the tag to be trimmed.
- *
- * Output Parameters:
- *  tag:
- *	A pointer to the potentially updated string.
- *
- * Return Values:
- *  None.
- */
-static void _sdl_trim_tag(char *tag)
-{
-    size_t	len = strlen(tag);
-    size_t	ii;
-    _Bool	done = false;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:_sdl_trim_tag\n", __FILE__, __LINE__);
-
-    /*
-     * Start at the end of the tag string and if the last character is an
-     * underscore, then change it to a null character.  Then check the next
-     * until we come across something other than an underscore or we run out
-     * of characters to check.
-     */
-    for (ii = len - 1; ((ii > 0) && (done == false)); ii--)
-    {
-	if (tag[ii] == '_')
-	    tag[ii] = '\0';
-	else
-	    done = true;
-    }
-
-    /*
-     * Return the results of this call back to the caller.
-     */
-    return;
+    return (retVal);
 }
 
 /*
@@ -2144,10 +2056,12 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
  *  This function is called to remove space characters from a string.  If can
  *  perform 4 kinds of space removal (any one or all at the same time).
  *
- *	SDL_M_LEAD	Remove all leading spaces
- *	SDL_M_TRAIL	Remove all trailing spaces
- *	SDL_M_COMPRESS	Convert repeating space characters to a single one
- *	SDL_M_COLLAPSE	Remove all space characters
+ *	SDL_M_LEAD	Remove all leading spaces.
+ *	SDL_M_TRAIL	Remove all trailing spaces.
+ *	SDL_M_COMPRESS	Convert repeating space characters to a single one.
+ *	SDL_M_COLLAPSE	Remove all space characters.
+ *	SDL_M_CONVERT	Convert control characters to spaces.
+ *	SDL_M_KEEP_NL	Keep the new-line characters.
  *
  * Input Parameters:
  *  str:
@@ -2166,16 +2080,33 @@ void sdl_trim_str(char *str, int type)
 {
     int		srcIdx = 0;
     int		destIdx = 0;
+    bool	leading = (type & SDL_M_LEAD) != 0;
+    bool	trailing = (type & SDL_M_TRAIL) != 0;
+    bool	compress = (type & SDL_M_COMPRESS) != 0;
+    bool	collapse = (type & SDL_M_COLLAPSE) != 0;
+    bool	convert = (type & SDL_M_CONVERT) != 0;
+    bool	keepNL = (type & SDL_M_KEEP_NL) != 0;
 
     /*
-     * If we are to convert control characters to spaces, do so now.
+     * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if ((type & SDL_M_CONVERT) != 0)
+    if (trace == true)
+	printf("%s:%d:sdl_trim(%d)\n", __FILE__, __LINE__, type);
+
+    /*
+     * If we are to convert control characters to spaces, do so now.  If we are
+     * keeping new-line characters, just skip over them.
+     */
+    if (convert == true)
     {
 	while (str[srcIdx] != '\0')
 	{
 	    if (iscntrl(str[srcIdx]) != 0)
-		str[srcIdx] = ' ';
+	    {
+		if (((keepNL == true) && (str[srcIdx] != '\n')) ||
+		    (keepNL == false))
+		    str[srcIdx] = ' ';
+	    }
 	    srcIdx++;
 	}
 	srcIdx = 0;
@@ -2187,15 +2118,16 @@ void sdl_trim_str(char *str, int type)
      * to the end.  Otherwise, we are probably stripping trailing spaces, in
      * which case, we are stripping from the end of the string forward.
      */
-    if ((type & (SDL_M_LEAD | SDL_M_COMPRESS | SDL_M_COLLAPSE)) != 0)
+    if ((leading == true) || (compress == true) || (collapse == true))
 	while (str[srcIdx] != '\0')
 	{
 
 	    /*
 	     * Collapsing removes all spaces, so it automatically includes
-	     * leading, trailing, and repeated space removal.
+	     * leading, trailing, and repeated space removal.  It also ignores
+	     * keeping new-lines.
 	     */
-	    if ((type & SDL_M_COLLAPSE) != 0)
+	    if (collapse == true)
 	    {
 		if (isspace(str[srcIdx]))
 		    srcIdx++;
@@ -2206,20 +2138,64 @@ void sdl_trim_str(char *str, int type)
 	    {
 		bool skipCompress = false;
 
-		if (((type & SDL_M_LEAD) != 0) && (destIdx == 0))
+		/*
+		 * If we are trimming leading spaces, then we need to skip to
+		 * the first non-space character.  We are going to strip any
+		 * new-line as well, so don't worry about the setting of that
+		 * particular flag.
+		 */
+		if (leading == true)
 		{
 		    skipCompress = true;
-		    if (isspace(str[srcIdx]))
+		    if ((isspace(str[srcIdx])) && (destIdx == 0))
 			srcIdx++;
 		    else
 			str[destIdx++] = str[srcIdx++];
 		}
-		if (((type & SDL_M_COMPRESS) != 0) && (skipCompress == false))
+
+		/*
+		 * If we are compressing, then make sure that only one space
+		 * character makes it.  Also, if we are keeping new-lines, then
+		 * allow one, if present, over all other possible space
+		 * characters.
+		 */
+		if ((compress == true) && (skipCompress == false))
 		{
+
+		    /*
+		     * Always skip over the first character in the string.
+		     */
 		    if (destIdx == 0)
-			str[destIdx++] = str[srcIdx++];
-		    else if (isspace(str[destIdx - 1]) && isspace(str[srcIdx]))
+			destIdx++;
+		    if (srcIdx == 0)
 			srcIdx++;
+
+		    /*
+		     * If the previously copied character is a space and the
+		     * next one to copy is also a space, then unless we are
+		     * keeping new-lines, skip over the next character to copy.
+		     */
+		    if (isspace(str[destIdx - 1]) && isspace(str[srcIdx]))
+		    {
+
+			/*
+			 * If we are keeping new-lines and the character to be
+			 * copied is a new-line, then determine if we should
+			 * replace the previous space character with the new-
+			 * line character.
+			 */
+			if ((keepNL == true) && (str[srcIdx] == '\n'))
+			{
+
+			    /*
+			     * If we previously did not copy in a new-line,
+			     * then replace it with the new-line we just hit.
+			     */
+			    if (str[destIdx - 1] != '\n')
+				str[destIdx - 1] = str[srcIdx];
+			}
+			srcIdx++;
+		    }
 		    else
 			str[destIdx++] = str[srcIdx++];
 		}
@@ -2237,7 +2213,7 @@ void sdl_trim_str(char *str, int type)
      * If we are stripping spaces from the end of the string, then we will just
      * convert the space characters to a null-character.
      */
-    if (((type & SDL_M_TRAIL) != 0) && ((type & SDL_M_COLLAPSE) == 0))
+    if ((trailing == true) && (collapse == false))
     {
 	while (isspace(str[--destIdx]))
 	    str[destIdx] = '\0';
@@ -2307,16 +2283,13 @@ static SDL_CONSTANT *_sdl_create_constant(
 	    retVal->prefix = strdup(prefix);
 	else
 	    retVal->prefix = NULL;
-	if (tag != NULL)
-	    retVal->tag = strdup(prefix);
-	else
-	    retVal->tag = NULL;
+	retVal->tag = strdup(tag);
 	if (comment != NULL)
-	    retVal->comment = strdup(prefix);
+	    retVal->comment = strdup(comment);
 	else
 	    retVal->comment = NULL;
 	if (typeName != NULL)
-	    retVal->typeName = strdup(prefix);
+	    retVal->typeName = strdup(typeName);
 	else
 	    retVal->typeName = NULL;
 	retVal->radix = radix;
@@ -2360,7 +2333,7 @@ static SDL_CONSTANT *_sdl_create_constant(
  */
 static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst)
 {
-    int retVal = 0;
+    int retVal = 1;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -2389,6 +2362,39 @@ static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst)
     }
     else
 	retVal = 0;
+
+    /*
+     * Return the results back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * _sdl_all_lower
+ *  This function is called to determine if the supplied string is all lower
+ *  case.
+ *
+ * Input Parameters:
+ *  str:
+ *	A pointer to the string to check.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  true:	'str' is all lower case.
+ *  false:	'str' is either all uppercase or mixed case.
+ */
+static bool _sdl_all_lower(const char *str)
+{
+    int ii, len = (str ? strlen(str) : 0);
+    bool retVal = true;
+
+    for (ii = 0; ((ii < len) && (retVal == true)); ii++)
+    {
+	if (isalpha(str[ii]) == true)
+	    retVal = islower(str[ii]);
+    }
 
     /*
      * Return the results back to the caller.

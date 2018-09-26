@@ -70,12 +70,15 @@ static char	*_comments[] =
 #define SDL_END1_COMMENT	4
 #define SDL_END2_COMMENT	5
 
-static char	*_constant[] = {"#define %s ", "%d", "0x%x", "0%o", "\"%s\""};
+static char *_constant[] =
+{"#define ", "%s%s_%s\t", "%s%s\t", "%d\t", "0x%x\t", "0%o\t", "\"%s\"\t"};
 #define SDL_DEFINE_ENT	0
-#define SDL_DEC_ENT	1
-#define SDL_HEX_ENT	2
-#define SDL_OCT_ENT	3
-#define SDL_STR_ENT	4
+#define SDL_CONST_TAG	1
+#define SDL_CONST_NOTAG	2
+#define SDL_DEC_ENT	3
+#define SDL_HEX_ENT	4
+#define SDL_OCT_ENT	5
+#define SDL_STR_ENT	6
 
 static char	*_entry[] = {"%s %s(", ");"};
 #define SDL_ENTRY_ENT	0
@@ -773,27 +776,47 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
  */
 int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 {
-    char nameBuf[512];
+    char *prefix = (constant->prefix ? constant->prefix : "");
     int		retVal = 1;
 
     /*
-     * Start building the constant name in the form of <prefix><tag>_<name>.
+     * If tracing is turned on, write out this call (calls only, no returns).
      */
-    sprintf(nameBuf, "%s%s_%s", constant->prefix, constant->tag, constant->id);
+    if (trace == true)
+	printf("%s:%d:sdl_c_constant\n", __FILE__, __LINE__);
 
     /*
      * Now let's do some output.
      *
-     * First the #define <name> portion.
+     * First the #define portion.
      */
-    if (fprintf(fp, _constant[SDL_DEFINE_ENT], nameBuf) < 0)
+    if (fprintf(fp, _constant[SDL_DEFINE_ENT]) < 0)
 	retVal = 0;
+
+    /*
+     * Next the <name> portion.
+     */
+    if (strlen(constant->tag) > 0)
+    {
+	if (fprintf(
+	        fp,
+	        _constant[SDL_CONST_TAG],
+	        prefix,
+	        constant->tag,
+	        constant->id) < 0)
+	    retVal = 0;
+    }
+    else
+    {
+	if (fprintf(fp, _constant[SDL_CONST_NOTAG], prefix, constant->id) < 0)
+	    retVal = 0;
+    }
 
     /*
      * If name was successful and this is a string constant, then output the
      * string value.
      */
-    else if (constant->type == SDL_K_CONST_STR)
+    if ((retVal == 1) && (constant->type == SDL_K_CONST_STR))
     {
 	if (fprintf(fp, _constant[SDL_STR_ENT], constant->string) < 0)
 	    retVal = 0;
@@ -803,7 +826,7 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
      * It isn't a string, so it much be a value.  Output the value based on the
      * request RADIX.
      */
-    else
+    else if (retVal == 1)
     {
 	switch (constant->radix)
 	{
@@ -832,8 +855,8 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
      * If there was a comment associated with this constant, then output that
      * as well.
      */
-    if ((retVal == 1) && (strlen(constant->comment) > 0))
-	if (fprintf(fp, _comments[SDL_LINE_COMMENT], constant) < 0)
+    if ((retVal == 1) && (constant->comment != NULL))
+	if (fprintf(fp, _comments[SDL_LINE_COMMENT], constant->comment) < 0)
 	    retVal = 0;
 
     /*

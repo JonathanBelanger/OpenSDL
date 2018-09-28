@@ -274,16 +274,16 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE	header;
-    char *id;
-    char *prefix;
-    char *tag;
-    char *comment;
+    char	*id;
+    char	*prefix;
+    char	*tag;
+    char	*comment;
     int		typeID;
     int		alignment;
-    bool commonDef;
-    bool globalDef;
-    bool typeDef;
-    bool dimension;
+    bool	commonDef;
+    bool	globalDef;
+    bool	typeDef;
+    bool	dimension;
     __int64_t	lbound;
     __int64_t	hbound;
     __int64_t	size;
@@ -424,12 +424,95 @@ typedef struct
 } SDL_DIMENSION;
 
 /*
+ * Options can come in any order, so we are never quite sure which ones we are
+ * getting when.  So, we will create a structure to store them as they come and
+ * when we reach the end of a definition, they will be used for that
+ * definition.
+ */
+
+/*
+ * Available options allowed on declarations.
+ */
+typedef enum
+{
+    None,
+    Align,
+    NoAlign,
+    BaseAlign,
+    Common,
+    Global,
+    Prefix,
+    Tag,
+    Based,
+    Typedef,
+    Fill,
+    Marker,
+    Origin,
+    Counter,
+    Increment,
+    TypeName,
+    Reference,
+    Value,
+    In,
+    Out,
+    Default,
+    List,
+    Named,
+    Optional,
+    Returns,
+    Alias,
+    Linkage,
+    Parameter,
+    Variable,
+    Radix,
+    Dimension
+} SDL_OPTION_TYPE;
+#define SDL_K_MAX_OPTIONS	8
+typedef struct
+{
+    SDL_OPTION_TYPE	option;
+    union
+    {
+	__int64_t	value;
+	char		*string;
+    };
+} SDL_OPTION;
+
+/*
  * Supported languages and other useful definitions.
  */
 #define SDL_K_LANG_C		0
 #define SDL_K_LANG_MAX		1
 #define SDL_TIMESTR_LEN		20+1	/* dd-MMM-yyyy hh:mm:ss		*/
 #define SDL_K_SUBAGG_MAX	8+1
+
+typedef enum
+{
+    Initial,
+    Module,
+    Comment,
+    Literal,
+    Local,
+    Declare,
+    Constant,
+    Item,
+    Aggregate,
+    Entry,
+    IfLanguage,
+    IfSymbol,
+    DefinitionEnd
+} SDL_STATE;
+
+typedef struct
+{
+    char	*id;
+    bool	string;
+    union
+    {
+	__int64_t value;
+	char	*valueStr;
+    };
+} SDL_CONSTANT_DEF;
 
 typedef struct
 {
@@ -439,15 +522,19 @@ typedef struct
     char		*outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
+    SDL_OPTION		options[SDL_K_MAX_OPTIONS];
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;
     SDL_DECLARE_LIST	declares;
     SDL_ITEM_LIST	items;
     SDL_AGGREGATE_LIST	aggregates;
     SDL_ENTRY_LIST	entries;
-    char *module;
-    char *ident;
+    SDL_CONSTANT_DEF	constDef;
+    SDL_STATE		state;
+    char 		*module;
+    char 		*ident;
     int			aggStackPtr;
+    int			optionsIdx;
 } SDL_CONTEXT;
 
 #define SDL_AGGSTACK_EMPTY(p)	((p) == SDL_K_SUBAGG_MAX)

@@ -61,14 +61,18 @@ static char	*_comments[] =
     "\n/*",
     " *%s",
     " *%s\n */",
-    " */"
+    " */",
+    "%s",
+    "\n/*%s*/"
 };
 #define SDL_LINE_COMMENT	0
 #define SDL_START1_COMMENT	1
 #define SDL_START2_COMMENT	2
-#define SDL_MID_COMMENT		3
+#define SDL_MID1_COMMENT	3
 #define SDL_END1_COMMENT	4
 #define SDL_END2_COMMENT	5
+#define SDL_MID2_COMMENT	6
+#define SDL_START_END_COMMENT	7
 
 static char *_constant[] =
 {"#define ", "%s%s_%s\t", "%s%s\t", "%d\t", "0x%x\t", "0%o\t", "\"%s\"\t"};
@@ -495,9 +499,10 @@ int sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
 int sdl_c_comment(
 		FILE *fp,
 		char *comment,
-		_Bool lineComment,
-		_Bool startComment,
-		_Bool endComment)
+		bool lineComment,
+		bool startComment,
+		bool middleComment,
+		bool endComment)
 {
     int	retVal = 1;
     char *whichComment;
@@ -506,7 +511,7 @@ int sdl_c_comment(
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_c_comment('%s')\n", __FILE__, __LINE__, comment);
+	printf("%s:%d:sdl_c_comment\n", __FILE__, __LINE__);
 
     /*
      * Determine the type of comment being used.
@@ -515,7 +520,9 @@ int sdl_c_comment(
 	whichComment = _comments[SDL_LINE_COMMENT];
     else if (startComment == true)
     {
-	if (strlen(comment) == 0)
+	if (endComment == true)
+	    whichComment = _comments[SDL_START_END_COMMENT];
+	else if (strlen(comment) == 0)
 	    whichComment = _comments[SDL_START2_COMMENT];
 	else
 	    whichComment = _comments[SDL_START1_COMMENT];
@@ -527,8 +534,10 @@ int sdl_c_comment(
 	else
 	    whichComment = _comments[SDL_END1_COMMENT];
     }
+    else if (middleComment == true)
+	whichComment = _comments[SDL_MID1_COMMENT];
     else
-	whichComment = _comments[SDL_MID_COMMENT];
+	whichComment = _comments[SDL_MID2_COMMENT];
 
     /*
      * If the file has been opened, then write out the comment.

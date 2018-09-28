@@ -151,10 +151,16 @@ int main(int argc, char *argv[])
     context.langSpec[SDL_K_LANG_C] = true;
 
     /*
-     * Initialize the dimension array.
+     * Initialize the dimension array and the options index.
      */
     for (ii = 0; ii < SDL_K_MAX_DIMENSIONS; ii++)
 	context.dimensions[ii].inUse = false;
+    context.optionsIdx = 0;
+
+    /*
+     * Initialize the parsing state.
+     */
+    context.state = Initial;
 
     /*
      * Initialize the context queues.

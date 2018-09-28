@@ -212,17 +212,6 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %type <ival> _v_basetypes
 %type <ival> _v_address
 %type <ival> _v_object
-%type <ival> _v_basealign
-%type <ival> _v_storage
-%type <ival> _v_dimension
-%type <ival> _v_radix
-
-%type <tval> _t_prefix
-%type <tval> _t_tag
-%type <tval> _t_counter
-%type <tval> _t_typename
-
-%type <aval> _a_increment
 
 /*
  * We have types on the bison side of the house.
@@ -245,9 +234,9 @@ file_layout
 
 comments
 	: t_line_comment
-	    { free($1); }
+	    { sdl_comment_line(&context, $1); }
 	| t_block_comment
-	    { free($1); }
+	    { sdl_comment_block(&context, $1); }
 	;
 
 module_format
@@ -257,17 +246,29 @@ module_format
 	;
 
 module
-	: SDL_K_MODULE t_name SDL_K_SEMI
-	    { sdl_module(&context, $2, NULL); }
-	| SDL_K_MODULE t_name SDL_K_IDENT t_string SDL_K_SEMI
-	    { sdl_module(&context, $2, $4); }
+	: SDL_K_MODULE t_name
+	    { 
+		sdl_state_transition(&context, Module);
+		sdl_module(&context, $2, NULL);
+	    }
+	| SDL_K_MODULE t_name SDL_K_IDENT t_string
+	    {
+		sdl_state_transition(&context, Module);
+		sdl_module(&context, $2, $4);
+	    }
 	;
 
 end_module
-	: SDL_K_END_MODULE SDL_K_SEMI
-	    { sdl_module_end(&context, NULL); }
-	| SDL_K_END_MODULE t_name SDL_K_SEMI
-	    { sdl_module_end(&context, $2); }
+	: SDL_K_END_MODULE
+	    {
+		sdl_state_transition(&context, DefinitionEnd);
+		sdl_module_end(&context, NULL);
+	    }
+	| SDL_K_END_MODULE t_name
+	    {
+		sdl_state_transition(&context, DefinitionEnd);
+		sdl_module_end(&context, $2);
+	    }
 	;
 
 module_body
@@ -276,6 +277,34 @@ module_body
 	| literal
 	| declare
 	| item
+	| prefix
+	| tag
+	| counter
+	| _typename
+	| increment
+	| radix
+	| dimension
+	| basealign
+	| storage
+	| definition_end
+	;
+
+definition_end
+	: SDL_K_SEMI
+	    {
+		switch (context.state)
+		{
+		    case Local:
+		    case Declare:
+		    case Constant:
+		    case Item:
+			sdl_state_transition(&context, DefinitionEnd);
+			break;
+
+		    default:
+			break;
+		}
+	    }
 	;
 
 _v_expression
@@ -343,8 +372,11 @@ _v_number
 	;
 
 varset
-	: t_variable SDL_K_EQ _v_expression SDL_K_SEMI
-	    { sdl_set_local(&context, $1, $3); }
+	: t_variable SDL_K_EQ _v_expression
+	    {
+		sdl_state_transition(&context, Local);
+		sdl_set_local(&context, $1, $3);
+	    }
 	;
 
 literal
@@ -356,8 +388,11 @@ literal
 	;
 
 declare
-	: SDL_K_DECLARE t_name SDL_K_SIZEOF _v_sizeof _t_prefix _t_tag SDL_K_SEMI
-	    { sdl_declare(&context, $2, $4, $5, $6); }
+	: SDL_K_DECLARE t_name SDL_K_SIZEOF _v_sizeof
+	    { 
+		sdl_state_transition(&context, Declare);
+		sdl_declare(&context, $2, $4);
+	    }
 	;
 
 _v_sizeof
@@ -367,52 +402,40 @@ _v_sizeof
 	    { $$ = $1; }
 	;
 
-_t_prefix
-	: %empty
-	    { $$ = NULL; }
-	| SDL_K_PREFIX t_name
-	    { $$ = $2; }
+prefix
+	: SDL_K_PREFIX t_name
+	    { sdl_add_option(&context, Prefix, 0, $2); }
 	| SDL_K_PREFIX t_string
-	    { $$ = sdl_unquote_str($2); }
+	    { sdl_add_option(&context, Prefix, 0, sdl_unquote_str($2)); }
 	;
 
-_t_tag
-	: %empty
-	    { $$ = NULL; }
-	| SDL_K_TAG t_name
-	    { $$ = $2; }
+tag
+	: SDL_K_TAG t_name
+	    { sdl_add_option(&context, Tag, 0, $2); }
 	;
 
-_t_counter
-	: %empty
-	    { $$ = NULL; }
-	| SDL_K_COUNTER t_variable
-	    { $$ = $2; }
+counter
+	: SDL_K_COUNTER t_variable
+	    { sdl_add_option(&context, Counter, 0, $2); }
 	;
 
-_t_typename
-	: %empty
-	    { $$ = NULL; }
-	| SDL_K_TYPENAME t_name
-	    { $$ = $2; }
+_typename
+	: SDL_K_TYPENAME t_name
+	    { sdl_add_option(&context, TypeName, 0, $2); }
 	;
 
-_v_radix
-	: %empty
-	    { $$ = SDL_K_RADIX_DEF; }
-	| SDL_K_RADIX v_int
-	    { $$ = $2; }
+radix
+	: SDL_K_RADIX v_int
+	    { sdl_add_option(&context, Radix, $2, NULL); }
 	;
 
-_a_increment
-	: %empty
-	    { $$ = NULL; }
-	| SDL_K_INCR _v_expression
-	    { $$ = sdl_increment($2); }
+increment
+	: SDL_K_INCR _v_expression
+	    { sdl_add_option(&context, Increment, $2, NULL); }
 	;
 
 constant
-	: SDL_K_CONSTANT _constant_body SDL_K_END_CONSTANT
+	: SDL_K_CONSTANT _constant_body
 	;
 
 _constant_body
@@ -428,76 +451,31 @@ _clause_list
 _clause
 	: t_constant_name SDL_K_EQUALS _v_expression
 	    {
-		sdl_constant(
-			&context,
-			$1,			/* id */
-			$3,			/* value */
-			NULL,			/* valueStr */
-			NULL,			/* prefix */
-			NULL,			/* tag */
-			NULL,			/* counter */
-			NULL,			/* typename */
-			NULL,			/* increment */
-			SDL_K_RADIX_DEF);	/* radix */
+		sdl_state_transition(&context, Constant);
+		sdl_constant(&context, $1, $3, NULL);
 	    }
 	| t_constant_names SDL_K_EQUALS _v_expression
 	    {
-		sdl_constant(
-			&context,
-			$1,			/* id */
-			$3,			/* value */
-			NULL,			/* valueStr */
-			NULL,			/* prefix */
-			NULL,			/* tag */
-			NULL,			/* counter */
-			NULL,			/* typename */
-			NULL,			/* increment */
-			SDL_K_RADIX_DEF);	/* radix */
+		sdl_state_transition(&context, Constant);
+		sdl_constant(&context, $1, $3, NULL);
 	    }
 	;
 
 _complex_clause
-	: t_constant_name SDL_K_EQUALS SDL_K_STRING t_string _t_prefix _t_tag
+	: t_constant_name SDL_K_EQUALS SDL_K_STRING t_string
 	    {
-		sdl_constant(
-			&context,
-			$1,			/* id */
-			0,			/* value */
-			$4,			/* valueStr */
-			$5,			/* prefix */
-			$6,			/* tag */
-			NULL,			/* counter */
-			NULL,			/* typename */
-			NULL,			/* increment */
-			SDL_K_RADIX_DEF);	/* radix */
+		sdl_state_transition(&context, Constant);
+		sdl_constant(&context, $1, 0, $4);
 	    }
-	| t_constant_name SDL_K_EQUALS _v_expression _t_prefix _t_tag _t_counter _t_typename _v_radix
+	| t_constant_name SDL_K_EQUALS _v_expression
 	    {
-		sdl_constant(
-			&context,
-			$1,			/* id */
-			$3,			/* value */
-			NULL,			/* valueStr */
-			$4,			/* prefix */
-			$5,			/* tag */
-			$6,			/* counter */
-			$7,			/* typename */
-			NULL,			/* increment */
-			$8);			/* radix */
+		sdl_state_transition(&context, Constant);
+		sdl_constant(&context, $1, $3, NULL);
 	    }
-	| t_constant_names SDL_K_EQUALS _v_expression  _a_increment _t_prefix _t_tag _t_counter _t_typename _v_radix
+	| t_constant_names SDL_K_EQUALS _v_expression
 	    {
-		sdl_constant(
-			&context,
-			$1,			/* id */
-			$3,			/* value */
-			NULL,			/* valueStr */
-			$5,			/* prefix */
-			$6,			/* tag */
-			$7,			/* counter */
-			$8,			/* typename */
-			$4,			/* increment */
-			$9);			/* radix */
+		sdl_state_transition(&context, Constant);
+		sdl_constant(&context, $1, $3, NULL);
 	    }
 	;
 
@@ -561,52 +539,35 @@ _v_object
 	    { $$ = $2; }
 	;
 
-_v_basealign
-	: %empty
-	    { $$ = 0; }
-	| SDL_K_BASEALIGN SDL_K_OPENP _v_expression SDL_K_CLOSEP
-	    { $$ = pow(2, $3); }
+basealign
+	: SDL_K_BASEALIGN SDL_K_OPENP _v_expression SDL_K_CLOSEP
+	    { sdl_add_option(&context, BaseAlign, pow(2, $3), NULL); }
 	| SDL_K_BASEALIGN _v_datatypes
-	    { $$ = $2; }
+	    { sdl_add_option(&context, BaseAlign, $2, NULL); }
 	;
 
 item
-	: SDL_K_ITEM t_name _v_datatypes _v_storage _v_basealign _v_dimension _t_prefix _t_tag SDL_K_SEMI
+	: SDL_K_ITEM t_name _v_datatypes
 	    {
-		printf("ITEM %s %ld %ld BASEALIGN %ld", $2, $3, $4, $5);
-		if ($6 >= 0)
-		{
-		    printf(
-			" DIMENSION %ld:%ld",
-			context.dimensions[$6].lbound,
-			context.dimensions[$6].hbound);
-		}
-		if ($7 != NULL)
-		    printf(" PREFIX %s", $7);
-		if ($8 != NULL)
-		    printf(" TAG %s", $8);
-		printf("\n");
+		sdl_state_transition(&context, Item);
+		sdl_item(&context, $2, $3);
 	    }
 	;
 
-_v_storage
-	: %empty
-	    { $$ = SDL_M_STOR_NONE; }
-	| SDL_K_COMMON
-	    { $$ = SDL_M_STOR_COMM; }
+storage
+	: SDL_K_COMMON
+	    { sdl_add_option(&context, Common, 0, NULL); }
 	| SDL_K_GLOBAL
-	    { $$ = SDL_M_STOR_GLOB; }
+	    { sdl_add_option(&context, Global, 0, NULL); }
 	| SDL_K_TYPEDEF
-	    { $$ = SDL_M_STOR_TYPED; }
+	    { sdl_add_option(&context, Typedef, 0, NULL); }
 	;
 
-_v_dimension
-	: %empty
-	    { $$ = -1; }
-	| SDL_K_DIMENSION v_int
-	    { $$ = sdl_dimension(&context, 1, $2); }
+dimension
+	: SDL_K_DIMENSION v_int
+	    { sdl_add_option(&context, Common, sdl_dimension(&context, 1, $2), NULL); }
 	| SDL_K_DIMENSION v_int SDL_K_FULL v_int
-	    { $$ = sdl_dimension(&context, $2, $4); }
+	    { sdl_add_option(&context, Common, sdl_dimension(&context, $2, $4), NULL); }
 	;
 
 %%	/* End Grammar rules */

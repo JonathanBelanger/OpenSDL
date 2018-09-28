@@ -50,9 +50,10 @@ int sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath);
 int sdl_c_comment(
 		FILE *fp,
 		char *comment,
-		_Bool lineComment,
-		_Bool startComment,
-		_Bool endComment);
+		bool lineComment,
+		bool startComment,
+		bool middleComment,
+		bool endComment);
 int sdl_c_module(FILE *fp, SDL_CONTEXT *context);
 int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context);
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context);

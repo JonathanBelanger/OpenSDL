@@ -454,7 +454,7 @@ CONSTANT				{
 						}
 <ST_CONST>[;]			{
 							BEGIN(_sdl_pop_start_state());
-							return(SDL_K_END_CONSTANT);
+							return(SDL_K_SEMI);
 						}
 <ST_CONST>.\n			{ /* Eat unexpected characters */ }
 IFLANGUAGE				{ return(SDL_K_IFLANG); }

@@ -33,6 +33,7 @@
 /*
  * Get and set functions.
  */
+int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action);
 char *sdl_unquote_str(char *str);
 SDL_DECLARE *sdl_get_declare(SDL_DECLARE_LIST *declare, int typeID);
 SDL_ITEM *sdl_get_item(SDL_ITEM_LIST *item, int typeID);
@@ -43,33 +44,32 @@ int sdl_set_local(SDL_CONTEXT *context, char *name, __int64_t value);
 /*
  * Parsing functions.
  */
-int sdl_comment(SDL_CONTEXT *context, char *comment);
+int sdl_comment_line(SDL_CONTEXT *context, char *comment);
+int sdl_comment_block(SDL_CONTEXT *context, char *comment);
 int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName);
 int sdl_module_end(SDL_CONTEXT *context, char *moduleName);
 int sdl_literal(SDL_QUEUE *literals, char *line);
 int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals);
 int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype);
-int sdl_declare(
-	SDL_CONTEXT *context,
-	char *name,
-	int size,
-	char *prefix,
-	char *tag);
+int sdl_declare(SDL_CONTEXT *context, char *name, int size);
+int sdl_declare_compl(SDL_CONTEXT *context);
 __int64_t sdl_bin2int(char *binStr);
 int sdl_str2int(char *strVal, __int64_t *val);
 int sdl_offset(SDL_CONTEXT *context, int offsetType);
 int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound);
+int sdl_item(SDL_CONTEXT *context, char *name, int datatype);
+int sdl_item_compl(SDL_CONTEXT *context);
 int sdl_constant(
 		SDL_CONTEXT *context,
 		char *id,
 		__int64_t value,
-		char *valueStr,
-		char *prefix,
-		char *tag,
-		char *counter,
-		char *typeName,
-		__int64_t *increment,
-		__int64_t radix);
+		char *valueStr);
+int sdl_constant_compl(SDL_CONTEXT *context);
+int sdl_add_option(
+		SDL_CONTEXT *context,
+		SDL_OPTION_TYPE option,
+		__int64_t value,
+		char *string);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
 #define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */

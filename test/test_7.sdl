@@ -42,21 +42,21 @@ ITEM current_node_ptr ADDRESS;
 /+
 // Test 7b: Basic Constants, one for number one for string.
 /-
-ITEM block_list_id WORD; 
+ITEM block_list_id0 WORD; 
 
 /+
 // Test 7c: Basic Constants, one for number one for string.
 /-
-ITEM block_list_id foobar; 
+ITEM block_list_id1 foobar; 
 
 /+
 // Test 7d: Basic Constants, one for number one for string.
 /-
-ITEM block_list_ids WORD DIMENSION 12 PREFIX itm_ TAG w;
+ITEM block_list_id2 WORD DIMENSION 12 PREFIX itm_ TAG w;
 
 /+
 // Test 7d: Basic Constants, one for number one for string.
 /-
-ITEM string BYTE DIMENSION 42 PREFIX str_ TAG t TYPEDEF;
+ITEM string BYTE DIMENSION 2:42 PREFIX str_ TAG t TYPEDEF;
 
 END_MODULE test_7;

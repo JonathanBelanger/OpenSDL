@@ -693,8 +693,8 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
  */
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
-    char firstName[512];
-    char secondName[512];
+    char	firstName[512];
+    char	secondName[512];
     size_t	copyLen;
     int		retVal = 1;
 
@@ -703,13 +703,13 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
      */
     if (trace == true)
 	printf("%s:%d:sdl_c_item\n", __FILE__, __LINE__);
-
+return(retVal);
     /*
      * If we have a typedef, then we need to declare this ITEM to have 2 names.
      * The first name will be _[<prefix>]<tag>_<id>_ and the second name will
      * be [<prefix>]<tag>_<id>.
      */
-    if (item->typeDef)
+    if (item->typeDef == true)
     {
 	copyLen =
 	    4 + strlen(item->prefix) + strlen(item->tag) + strlen(item->id);
@@ -752,10 +752,6 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	    copyLen, item->id);
 	secondName[0] = '\0';
     }
-
-    /*
-     * TODO: Complete this code.
-     */
 
     /*
      * Return the results of this call back to the caller.

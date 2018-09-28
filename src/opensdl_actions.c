@@ -138,6 +138,17 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
     int		retVal = 1;
 
     /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf(
+	    "%s:%d:sdl_state_transition(%d, %d)\n",
+	    __FILE__,
+	    __LINE__,
+	    context->state,
+	    action);
+
+    /*
      * Anything that will not cause a state transition is not included below.
      */
     switch (context->state)
@@ -227,185 +238,26 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    break;
 
 	case Constant:
-	    if (action == DefinitionEnd)
+	    switch (action)
 	    {
-		context->state = Module;
-		sdl_constant_compl(context);
+		case DefinitionEnd:
+		    context->state = Module;
+		    sdl_constant_compl(context);
+		    break;
+
+		case Constant:
+		    sdl_constant_compl(context);
+		    break;
+
+		default:
+		    retVal = 0;
+		    break;
 	    }
-	    else
-		retVal = 0;
 	    break;
 
 	case Item:
 	    if (action == DefinitionEnd)
 	    {
-		SDL_ITEM	*item = (SDL_ITEM *) context->items.header.blink;
-		int		ii;
-
-		printf("ITEM %s %ld", item->id, item->size);
-		for (ii = 0; ii < context->optionsIdx; ii++)
-		{
-		    switch (context->options[ii].option)
-		    {
-
-			/*
-			 * We should never get this one.
-			 */
-			case None:
-			    printf(" <Invalid-Option = None>");
-			    break;
-
-			/*
-			 * The following are just indicated as being present.
-			 */
-			case Align:
-			    printf(" ALIGN");
-			    break;
-
-			case NoAlign:
-			    printf(" NOALIGN");
-			    break;
-
-			case Common:
-			    printf(" COMMON");
-			    break;
-
-			case Global:
-			    printf(" GLOBAL");
-			    break;
-
-			case Typedef:
-			    printf(" TYPEDEF");
-			    break;
-
-			case Fill:
-			    printf(" FILL");
-			    break;
-
-			/*
-			 * The following are all 64-bit integer values.
-			 */
-			case BaseAlign:
-			    printf(" BASEALIGN (%ld)", context->options[ii].value);
-			    break;
-
-			case Increment:
-			    printf(" INCREMENT %ld", context->options[ii].value);
-			    break;
-
-			case Radix:
-			    printf(" RADIX ");
-			    switch (context->options[ii].value)
-			    {
-				case SDL_K_RADIX_DEC:
-				    printf("DEC");
-				    break;
-
-				case SDL_K_RADIX_OCT:
-				    printf("OCT");
-				    break;
-
-				case SDL_K_RADIX_HEX:
-				    printf("HEX");
-				    break;
-			    }
-			    break;
-
-			case Dimension:
-			    printf(
-				" DIMENSION %ld:%ld",
-				context->dimensions[context->options[ii].value].lbound,
-				context->dimensions[context->options[ii].value].hbound);
-			    break;
-
-			/*
-			 * The following are all string values.
-			 */
-			case Prefix:
-			    printf(" PREFIX \"%s\"", context->options[ii].string);
-			    break;
-
-			case Tag:
-			    printf(" TAG %s", context->options[ii].string);
-			    break;
-
-			case Counter:
-			    printf(" COUNTER %s", context->options[ii].string);
-			    break;
-
-			case TypeName:
-			    printf(" TYPENAME %s", context->options[ii].string);
-			    break;
-
-			case Marker:
-			    printf(" MARKER %s", context->options[ii].string);
-			    break;
-
-			/*
-			 * The following are yet to be determined.
-			 */
-			case Based:
-			    printf(" <Invalid-Option = Based>");
-			    break;
-
-			case Origin:
-			    printf(" <Invalid-Option = Origin>");
-			    break;
-
-			case Reference:
-			    printf(" <Invalid-Option = Reference>");
-			    break;
-
-			case Value:
-			    printf(" <Invalid-Option = Value>");
-			    break;
-
-			case In:
-			    printf(" <Invalid-Option = In>");
-			    break;
-
-			case Out:
-			    printf(" <Invalid-Option = Out>");
-			    break;
-
-			case Default:
-			    printf(" <Invalid-Option = Default>");
-			    break;
-
-			case List:
-			    printf(" <Invalid-Option = List>");
-			    break;
-
-			case Named:
-			    printf(" <Invalid-Option = Named>");
-			    break;
-
-			case Optional:
-			    printf(" <Invalid-Option = Optional>");
-			    break;
-
-			case Returns:
-			    printf(" <Invalid-Option = Returns>");
-			    break;
-
-			case Alias:
-			    printf(" <Invalid-Option = Alias>");
-			    break;
-
-			case Linkage:
-			    printf(" <Invalid-Option = Linkage>");
-			    break;
-
-			case Parameter:
-			    printf(" <Invalid-Option = Parameter>");
-			    break;
-
-			case Variable:
-			    printf(" <Invalid-Option = Variable>");
-			    break;
-		    }
-		}
-		printf("\n");
 		context->state = Module;
 		sdl_item_compl(context);
 	    }
@@ -636,25 +488,35 @@ int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_get_local", __FILE__, __LINE__);
+	printf("%s:%d:sdl_get_local: ", __FILE__, __LINE__);
 
     /*
      * We should have already found the local variable definition
      */
     if ((local != NULL) && (value != NULL))
 	*value = local->value;
+    else
+    {
+	if (value != NULL)
+	    value = 0;
+	retVal = 0;
+    }
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
     {
-	printf(
-	    "%s, %ld (%016lx - %4.4s)\n",
-	    name,
-	    *value,
-	    *value,
-	    (char *) value);
+	if (retVal == 1)
+	    printf(
+		"%s, %ld (%016lx - %4.4s)",
+		name,
+		*value,
+		*value,
+		(char *) value);
+	else
+	    printf("%s not found", name);
+	printf("\n");
     }
 
     /*
@@ -685,6 +547,7 @@ int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
  * Return Value
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
+ *  -1:	Normal Successful Completion, local variable created.
  */
 int sdl_set_local(SDL_CONTEXT *context, char *name, __int64_t value)
 {
@@ -716,6 +579,7 @@ int sdl_set_local(SDL_CONTEXT *context, char *name, __int64_t value)
 	{
 	    local->id = name;
 	    SDL_INSQUE(&context->locals, &local->header);
+	    retVal = -1;
 	}
 	else
 	{
@@ -767,11 +631,7 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf(
-	    "%s:%d:sdl_comment_line('%s') - after trimming\n",
-	    __FILE__,
-	    __LINE__,
-	    comment);
+	printf("%s:%d:sdl_comment_line\n", __FILE__, __LINE__);
 
     /*
      * Loop through all the possible languages and call the appropriate output
@@ -830,11 +690,7 @@ int sdl_comment_block(SDL_CONTEXT *context, char *comment)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf(
-	    "%s:%d:sdl_comment_block('%s') - after trimming\n",
-	    __FILE__,
-	    __LINE__,
-	    comment);
+	printf("%s:%d:sdl_comment_block\n", __FILE__, __LINE__);
 
     /*
      * Loop through each line of the comment until we reach the end of the
@@ -1130,8 +986,8 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n\t    typeID: %d\n\t    type: %d\n\t    size: %ld\n",
 	        ii++,
 	        declare->id,
-	        declare->prefix,
-	        declare->tag,
+	        (declare->prefix != NULL ? declare->prefix : ""),
+	        (declare->tag != NULL ? declare->tag : ""),
 	        declare->typeID,
 	        declare->type,
 	        declare->size);
@@ -1153,6 +1009,33 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_ITEM *item;
 
 	SDL_REMQUE(&context->items.header, item);
+	if (trace == true)
+	{
+	    if (ii == 1)
+		printf("    ITEMs:\n");
+	    printf(
+	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+		"\t    typeID: %d\n\t    alignment: %d\n\t    type: %d\n"
+		"\t    size: %ld\n\t    memSize: %ld\n\t    commonDef: %s\n"
+		"\t    globalDef: %s\n\t    typeDef: %s\n",
+	        ii++,
+	        item->id,
+	        (item->prefix != NULL ? item->prefix : ""),
+	        (item->tag != NULL ? item->tag : ""),
+	        item->typeID,
+	        item->alignment,
+	        item->type,
+	        item->size,
+	        item->memSize,
+	        (item->commonDef == true ? "True" : "False"),
+	        (item->globalDef == true ? "True" : "False"),
+	        (item->typeDef == true ? "True" : "False"));
+	    if (item->dimension == true)
+		printf(
+		    "\t    dimension: [%ld:%ld]\n",
+		    item->lbound,
+		    item->hbound);
+	}
 	free(item->id);
 	if (item->prefix != NULL)
 	    free(item->prefix);
@@ -1727,7 +1610,7 @@ int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
      * slot.
      */
     while ((retVal < SDL_K_MAX_DIMENSIONS) &&
-	   (context->dimensions[retVal].inUse == false))
+	   (context->dimensions[retVal].inUse == true))
 	retVal++;
 
     /*
@@ -1741,6 +1624,8 @@ int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
 	context->dimensions[retVal].hbound = hbound;
 	context->dimensions[retVal].inUse = true;
     }
+    else
+	retVal = 0;
 
     /*
      * Return the dimension array location utilized back to the caller.
@@ -1828,12 +1713,12 @@ int sdl_item(SDL_CONTEXT *context, char *name, int datatype)
 int sdl_item_compl(SDL_CONTEXT *context)
 {
     SDL_ITEM	*myItem = context->items.header.blink;
-    int		ii, retVal = 1;
-    int		storage = 0;
-    int		basealign;
-    int		dimension;
     char	*prefix = NULL;
     char	*tag = NULL;
+    int		ii, retVal = 1;
+    int		storage = 0;
+    int		basealign = 0;
+    int		dimension;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1858,7 +1743,10 @@ int sdl_item_compl(SDL_CONTEXT *context)
 	else if (context->options[ii].option == BaseAlign)
 	    basealign= context->options[ii].value;
 	else if (context->options[ii].option == Dimension)
+	{
 	    dimension = context->options[ii].value;
+	    myItem->dimension = true;
+	}
 	else if (context->options[ii].option == Common)
 	    storage |= SDL_M_STOR_COMM;
 	else if (context->options[ii].option == Global)
@@ -1875,8 +1763,7 @@ int sdl_item_compl(SDL_CONTEXT *context)
 	myItem->globalDef = (storage & SDL_M_STOR_GLOB) == SDL_M_STOR_GLOB;
 	myItem->typeDef = (storage & SDL_M_STOR_TYPED) == SDL_M_STOR_TYPED;
 	myItem->alignment = basealign;
-	myItem->dimension = dimension >= 0;
-	if (myItem->dimension)
+	if (myItem->dimension == true)
 	{
 	    myItem->lbound = context->dimensions[dimension].lbound;
 	    myItem->hbound = context->dimensions[dimension].hbound;
@@ -2006,6 +1893,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
     __int64_t		increment = 0;
     __int64_t		radix = SDL_K_RADIX_DEF;
     bool		incrementPresent = false;
+    bool		localCreated = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -2031,7 +1919,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	{
 	    counter = context->options[ii].string;
 	    context->options[ii].string = NULL;
-	    sdl_set_local(context, counter, value);
+	    localCreated = sdl_set_local(context, counter, value) < 0;
 	}
 	else if (context->options[ii].option == TypeName)
 	{
@@ -2045,9 +1933,6 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	}
 	else if (context->options[ii].option == Radix)
 	    radix = context->options[ii].value;
-
-    if (counter != NULL)
-	retVal = sdl_set_local(context, counter, value);
 
     /*
      * Before we go too far, we need to determine what kind of definition
@@ -2072,11 +1957,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 				value,
 				valueStr);
 	if (myConst != NULL)
-	{
 	    retVal = _sdl_queue_constant(context, myConst);
-	    if ((retVal == 1) && (counter != NULL))
-		retVal = sdl_set_local(context, counter, value);
-	}
 	else
 	    retVal = 0;
     }
@@ -2084,6 +1965,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
     {
 	char 		*ptr = id;
 	char		*nl;
+	__int64_t	prevValue = value;
 	bool		freeTag = tag == NULL;
 	bool		done = false;
 
@@ -2145,11 +2027,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 					value,
 					NULL);
 		if (myConst != NULL)
-		{
 		    retVal = _sdl_queue_constant(context, myConst);
-		    if ((retVal == 1) && (counter != NULL))
-			retVal = sdl_set_local(context, counter, value);
-		}
 		else
 		    retVal = 0;
 		if (freeTag == true)
@@ -2157,6 +2035,11 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 		    free(tag);
 		    tag = NULL;
 		}
+	    }
+	    if ((retVal == 1) && (counter != NULL) && (prevValue != value))
+	    {
+		retVal = sdl_set_local(context, counter, value);
+		prevValue = value;
 	    }
 	    if (incrementPresent == true)
 		value += increment;
@@ -2169,13 +2052,11 @@ int sdl_constant_compl(SDL_CONTEXT *context)
      * Deallocate all the memory.
      */
     free(id);
-    if (valueStr != NULL)
-	free(valueStr);
     if (prefix != NULL)
 	free(prefix);
     if (tag != NULL)
 	free(tag);
-    if (counter != NULL)
+    if ((counter != NULL) && (localCreated == false))
 	free(counter);
     if (typeName != NULL)
 	free(typeName);

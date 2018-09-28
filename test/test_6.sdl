@@ -70,7 +70,7 @@ CONSTANT
 	overlay,rewrite) EQUALS 0 INCREMENT 4;
 
 CONSTANT (pli,c,bliss,macro)
-	EQUALS 4 INCREMENT 4 PREFIX lang$ TAG shoo
+	EQUALS 4 INCREMENT 4 PREFIX lang$ TAG k
 	COUNTER #lang;
 
 CONSTANT (basic,pascal,fortran)

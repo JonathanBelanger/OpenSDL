@@ -288,7 +288,7 @@ typedef struct
     __int64_t	hbound;
     __int64_t	size;
     __int64_t	memSize;		/* Actual space used in memory	*/
-    int		type;				/* data or user type	*/
+    int		type;			/* data or user type	*/
 } SDL_ITEM;
 
 /*

@@ -284,7 +284,6 @@ module_body
 	| increment
 	| radix
 	| dimension
-	| basealign
 	| storage
 	| definition_end
 	;
@@ -397,7 +396,7 @@ declare
 
 _v_sizeof
 	: SDL_K_OPENP _v_expression SDL_K_CLOSEP
-	    { $$ = $2; }
+	    { $$ = -$2; }
 	| _v_datatypes
 	    { $$ = $1; }
 	;
@@ -535,15 +534,20 @@ _v_address
 _v_object
 	: %empty
 	    { $$ = 0; }
-	| SDL_K_OPENP _v_datatypes SDL_K_CLOSEP
+	| SDL_K_OPENP _v_datatypes _basealign SDL_K_CLOSEP
 	    { $$ = $2; }
+	;
+
+_basealign
+	: %empty
+	| basealign
 	;
 
 basealign
 	: SDL_K_BASEALIGN SDL_K_OPENP _v_expression SDL_K_CLOSEP
 	    { sdl_add_option(&context, BaseAlign, pow(2, $3), NULL); }
 	| SDL_K_BASEALIGN _v_datatypes
-	    { sdl_add_option(&context, BaseAlign, $2, NULL); }
+	    { sdl_add_option(&context, BaseAlign, -$2, NULL); }
 	;
 
 item
@@ -565,9 +569,9 @@ storage
 
 dimension
 	: SDL_K_DIMENSION v_int
-	    { sdl_add_option(&context, Common, sdl_dimension(&context, 1, $2), NULL); }
+	    { sdl_add_option(&context, Dimension, sdl_dimension(&context, 1, $2), NULL); }
 	| SDL_K_DIMENSION v_int SDL_K_FULL v_int
-	    { sdl_add_option(&context, Common, sdl_dimension(&context, $2, $4), NULL); }
+	    { sdl_add_option(&context, Dimension, sdl_dimension(&context, $2, $4), NULL); }
 	;
 
 %%	/* End Grammar rules */

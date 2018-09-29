@@ -511,8 +511,8 @@ WORD					{ return(SDL_K_WORD); }
 LONGWORD				{ return(SDL_K_LONG); }
 QUADWORD				{ return(SDL_K_QUAD); }
 OCTAWORD				{ return(SDL_K_OCTA); }
-S_FLOAT					{ return(SDL_K_SFLOAT); }
-T_FLOAT					{ return(SDL_K_TFLOAT); }
+S_FLOATING				{ return(SDL_K_SFLOAT); }
+T_FLOATING				{ return(SDL_K_TFLOAT); }
 DECIMAL					{ return(SDL_K_DECIMAL); }
 BITFIELD				{ return(SDL_K_BITFIELD); }
 CHARACTER				{ return(SDL_K_CHAR); }

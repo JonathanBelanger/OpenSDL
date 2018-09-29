@@ -35,28 +35,83 @@ MODULE test_6;
 DECLARE foobar SIZEOF OCTAWORD;
 
 /+
-// Test 7a: Basic Constants, one for number one for string.
+// Test 7a: Basic ITEM of ADDRESS.
 /-
-ITEM current_node_ptr ADDRESS;
+ITEM current_node_ptr ADDRESS GLOBAL;
 
 /+
-// Test 7b: Basic Constants, one for number one for string.
+// Test 7b: Basic ITEM of WORD.
 /-
 ITEM block_list_id0 WORD; 
 
 /+
-// Test 7c: Basic Constants, one for number one for string.
-/-
+// Test 7c: Basic ITEM of DECLAREd type.
 ITEM block_list_id1 foobar; 
+/-
 
 /+
-// Test 7d: Basic Constants, one for number one for string.
+// Test 7d: ITEM with a DIMENSION, a PREFIX, and a TAG.
 /-
 ITEM block_list_id2 WORD DIMENSION 12 PREFIX itm_ TAG w;
 
 /+
-// Test 7d: Basic Constants, one for number one for string.
+// Test 7e: ITEM of BYTE with a >1 lbound and a PREFIX, a TAG, and TYPEDEF.
 /-
 ITEM string BYTE DIMENSION 2:42 PREFIX str_ TAG t TYPEDEF;
+
+/+
+// Test 7f: Quoted item-name because it is also a keyword.
+/-
+ITEM "length" LONGWORD UNSIGNED;
+
+/+
+// Test 7g: Signed value.
+/-
+ITEM "LENGTH" WORD SIGNED PREFIX DSC$ TAG W;
+
+/+
+// Test 7h: With the BASEALIGN option.
+/-
+ITEM MyItem LONGWORD UNSIGNED BASEALIGN (3);
+
+/+
+// Test 7i: Another with DIMENSION.
+/-
+ITEM node_pointers DIMENSION 0:255 ADDRESS;
+
+/+
+// Test 7j: A BOOLEAN datatype.
+/-
+ITEM true BOOLEAN;
+
+/+
+// Test 7k: Floating types.
+/-
+ITEM foo1 T_FLOATING;
+ITEM foo2 S_FLOATING COMPLEX;
+
+/+
+// Test 7l: DECIMAL type with a PRECISION.
+/-
+ITEM percentage DECIMAL PRECISION (3,2);
+
+/+
+// Test 7m: DECLAREs and ITEMs with an ADDRESS of the DECLARE and DIMENSION.
+//
+// This fails for now.  I'm not sure how DECLARing a "type" and then using that
+// in an ITEM statement is supposed to work.
+//
+// DECLARE type SIZEOF ADDRESS (CHARACTER);
+// ITEM type ADDRESS (bar SIZEOF LONGWORD);
+//
+//DECLARE tree SIZEOF (16);
+//ITEM tree_pointer ADDRESS (tree);
+//ITEM tree_storage tree DIMENSION 1000;
+/-
+
+/+
+// Test 7n: ITEM with COMMMON.
+/-
+ITEM field BYTE PREFIX tst$ COMMON;
 
 END_MODULE test_7;

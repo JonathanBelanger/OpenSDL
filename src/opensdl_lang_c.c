@@ -103,22 +103,30 @@ static char	*_names[] = {"%s%s_%.*s", "_%s%s_%.*s_"};
 #define SDL_NAME_ENT	0
 #define SDL_TYPED_ENT	1
 
-static char	*_sign = "unsigned";
+static char	*_sign[] = {"", "unsigned "};
+#define SDL_SIGNED	0
+#define SDL_UNSIGNED	1
 
 static char	*_types[] =
 {
-    "_Bool ",
-    "char ",
-    "short int ",
-    "int ",
-    "__int64 ",
-    "__int128 ",
+    "bool ",
+    "%schar ",			/* SIGNED | UNSIGNED */
+    "%sshort int ",		/* SIGNED | UNSIGNED */
+    "%sint ",			/* SIGNED | UNSIGNED */
+    "%s__int64 ",		/* SIGNED | UNSIGNED */
+    "%s__int128 ",		/* SIGNED | UNSIGNED */
     "float ",
     "double float ",
-    ": %d",
+    "char ",
+    "unsigned char ",
+    "unsigned short ",
+    "unsigned int ",
+    "unsigned __int64_t ",
+    "unsigned __int128_t ",
+    " : %d",
     "[%d]",
-    "struct {int string_length; char string_text[%d];}",
-    "*",
+    "struct {int string_length; char string_text[%d];} ",
+    "void *",
     "%s "
 };
 #define SDL_BOOL_ENT	0
@@ -129,11 +137,17 @@ static char	*_types[] =
 #define SDL_OCTA_ENT	5
 #define SDL_TFLT_ENT	6
 #define SDL_SFLT_ENT	7
-#define SDL_BITF_ENT	8
-#define SDL_ARRAY_ENT	9
-#define SDL_VARY_ENT	10
-#define SDL_PTR_ENT	11
-#define SDL_USER_ENT	12
+#define SDL_DECI_ENT	8
+#define SDL_BITB_ENT	9
+#define SDL_BITW_ENT	10
+#define SDL_BITL_ENT	11
+#define SDL_BITQ_ENT	12
+#define SDL_BITO_ENT	13
+#define SDL_BITF_ENT	14
+#define SDL_ARRAY_ENT	15
+#define SDL_VARY_ENT	16
+#define SDL_PTR_ENT	17
+#define SDL_USER_ENT	18
 
 static char	*_scope[] = {"extern ", "globalref", "globaldef"};
 #define SDL_COMMON_ENT	0
@@ -196,11 +210,8 @@ static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
 		retVal = _types[SDL_SFLT_ENT];
 		break;
 
-	    /*
-	     * TODO: We need more here (the base type).
-	     */
 	    case SDL_K_TYPE_DECIMAL:
-		retVal = _types[SDL_BYTE_ENT];
+		retVal = _types[SDL_DECI_ENT];
 		break;
 
 	    /*
@@ -693,9 +704,7 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
  */
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
-    char	firstName[512];
-    char	secondName[512];
-    size_t	copyLen;
+    char	*format = _sdl_c_typeidStr(item->type, context);
     int		retVal = 1;
 
     /*
@@ -703,55 +712,67 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
      */
     if (trace == true)
 	printf("%s:%d:sdl_c_item\n", __FILE__, __LINE__);
-return(retVal);
+
     /*
-     * If we have a typedef, then we need to declare this ITEM to have 2 names.
-     * The first name will be _[<prefix>]<tag>_<id>_ and the second name will
-     * be [<prefix>]<tag>_<id>.
+     * Output the ITEM declaration.
+     * TODO: We need to be able to handle typedefs and user defined types.
+     * TODO: Varying
+     * TODO: CHARACTER LENGTH X
      */
-    if (item->typeDef == true)
+    if (fp != NULL)
     {
-	copyLen =
-	    4 + strlen(item->prefix) + strlen(item->tag) + strlen(item->id);
-	if (copyLen > 512)
-	    copyLen = strlen(item->id) - (copyLen - 512);
-	else
-	    copyLen = strlen(item->id);
-	sprintf(
-	    firstName,
-	    _names[SDL_TYPED_ENT],
-	    item->prefix,
-	    item->tag,
-	    copyLen, item->id);
-	copyLen =
-	    2 + strlen(item->prefix) + strlen(item->tag) + strlen(item->id);
-	if (copyLen > 512)
-	    copyLen = strlen(item->id) - (copyLen - 512);
-	else
-	    copyLen = strlen(item->id);
-	sprintf(
-	    secondName,
-	    _names[SDL_NAME_ENT],
-	    item->prefix,
-	    item->tag,
-	    copyLen, item->id);
+	switch (item->type)
+	{
+	    case SDL_K_TYPE_BYTE:
+	    case SDL_K_TYPE_WORD:
+	    case SDL_K_TYPE_LONG:
+	    case SDL_K_TYPE_QUAD:
+	    case SDL_K_TYPE_OCTA:
+		if (fprintf(
+			fp,
+			format,
+			_sign[item->_unsigned ? SDL_UNSIGNED : SDL_SIGNED]) < 0)
+		    retVal = 0;
+		break;
+
+	    case SDL_K_TYPE_BOOL:
+	    case SDL_K_TYPE_TFLT:
+	    case SDL_K_TYPE_SFLT:
+	    case SDL_K_TYPE_DECIMAL:
+	    case SDL_K_TYPE_ADDR:
+	    case SDL_K_TYPE_ADDRL:
+	    case SDL_K_TYPE_ADDRQ:
+	    case SDL_K_TYPE_ADDRHW:
+		if (fprintf(fp, format) < 0)
+		    retVal = 0;
+		break;
+	}
+	if ((retVal == 1) && (item->prefix != NULL))
+	    retVal = (fprintf(fp, item->prefix) < 0) ? 0 : 1;
+	if ((retVal == 1) && (item->tag != NULL))
+	    retVal = (fprintf(fp, "%s_", item->tag) < 0) ? 0 : 1;
+	if (retVal == 1)
+	    retVal = (fprintf(fp, item->id) < 0) ? 0 : 1;
+	if (retVal == 1)
+	{
+	    if ((item->dimension == true) ||
+		(item->type == SDL_K_TYPE_DECIMAL))
+	    {
+		int	dim;
+
+		if (item->dimension == true)
+		    dim = item->hbound = item->lbound + 1;
+		else
+		    dim = item->precision / 2  + 1;
+		if (fprintf(fp, _types[SDL_ARRAY_ENT], dim) < 0)
+		    retVal = 0;
+	    }
+	}
+	if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
+	    retVal = 0;
     }
     else
-    {
-	copyLen =
-	    2 + strlen(item->prefix) + strlen(item->tag) + strlen(item->id);
-	if (copyLen > 512)
-	    copyLen = strlen(item->id) - (copyLen - 512);
-	else
-	    copyLen = strlen(item->id);
-	sprintf(
-	    firstName,
-	    _names[SDL_NAME_ENT],
-	    item->prefix,
-	    item->tag,
-	    copyLen, item->id);
-	secondName[0] = '\0';
-    }
+	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.

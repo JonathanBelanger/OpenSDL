@@ -142,7 +142,7 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
      */
     if (trace == true)
 	printf(
-	    "%s:%d:sdl_state_transition(%d, %d)\n",
+	    "%s:%d:sdl_state_transition(state: %d, action: %d)\n",
 	    __FILE__,
 	    __LINE__,
 	    context->state,
@@ -1676,7 +1676,19 @@ int sdl_item(SDL_CONTEXT *context, char *name, int datatype)
 	{
 	    myItem->id = name;
 	    myItem->typeID = context->items.nextID++;
+	    if (datatype < 0)
+	    {
+		myItem->_unsigned = false;
+		datatype = -datatype;
+	    }
+	    else
+		myItem->_unsigned = true;
 	    myItem->type = datatype;
+	    if (datatype == SDL_K_TYPE_DECIMAL)
+	    {
+		myItem->precision = context->precision;
+		myItem->scale = context->scale;
+	    }
 	    myItem->size = _sdl_sizeof(context, datatype);
 	    SDL_INSQUE(&context->items.header, &myItem->header);
 	}
@@ -2179,6 +2191,40 @@ int sdl_add_option(
     }
     else
 	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * sdl_precision
+ *  This function is called to store the precision and scale information
+ *  associated with a DECIMAL declaration.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  precision:
+ *	A value indicating the packed decimal precision.
+ *  scale:
+ *	A value indicating the packed decimal scale.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale)
+{
+    int		retVal = 1;
+
+    context->precision = precision;
+    context->scale = scale;
 
     /*
      * Return the results of this call back to the caller.

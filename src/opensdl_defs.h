@@ -284,6 +284,9 @@ typedef struct
     bool	globalDef;
     bool	typeDef;
     bool	dimension;
+    bool	_unsigned;
+    __int64_t	precision;
+    __int64_t	scale;
     __int64_t	lbound;
     __int64_t	hbound;
     __int64_t	size;
@@ -533,6 +536,8 @@ typedef struct
     SDL_STATE		state;
     char 		*module;
     char 		*ident;
+    __int64_t		precision;
+    __int64_t		scale;
     int			aggStackPtr;
     int			optionsIdx;
 } SDL_CONTEXT;

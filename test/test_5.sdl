@@ -62,4 +62,9 @@ DECLARE test5e SIZEOF test5a PREFIX sdl_ tag q;
 {
 DECLARE test5f SIZEOF ADDRESS(test5d) PREFIX sdl_;
 
+{
+{ Test 5g: A more complex declare.
+{
+DECLARE type SIZEOF ADDRESS (CHARACTER);
+
 END_MODULE test_5;

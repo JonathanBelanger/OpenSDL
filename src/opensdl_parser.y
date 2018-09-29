@@ -210,8 +210,11 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %type <ival> _v_datatypes
 %type <ival> _v_usertypes
 %type <ival> _v_basetypes
+%type <ival> _v_signed
 %type <ival> _v_address
 %type <ival> _v_object
+
+%type <tval> _t_id
 
 /*
  * We have types on the bison side of the house.
@@ -244,6 +247,12 @@ module_format
 	| module_body
 	| end_module
 	;
+
+_t_id
+	: t_name
+	    { $$ = $1; }
+	| t_string
+	    { $$ = sdl_unquote_str($1); }
 
 module
 	: SDL_K_MODULE t_name
@@ -387,7 +396,7 @@ literal
 	;
 
 declare
-	: SDL_K_DECLARE t_name SDL_K_SIZEOF _v_sizeof
+	: SDL_K_DECLARE _t_id SDL_K_SIZEOF _v_sizeof
 	    { 
 		sdl_state_transition(&context, Declare);
 		sdl_declare(&context, $2, $4);
@@ -398,18 +407,16 @@ _v_sizeof
 	: SDL_K_OPENP _v_expression SDL_K_CLOSEP
 	    { $$ = -$2; }
 	| _v_datatypes
-	    { $$ = $1; }
+	    { $$ = abs($1); }
 	;
 
 prefix
-	: SDL_K_PREFIX t_name
+	: SDL_K_PREFIX _t_id
 	    { sdl_add_option(&context, Prefix, 0, $2); }
-	| SDL_K_PREFIX t_string
-	    { sdl_add_option(&context, Prefix, 0, sdl_unquote_str($2)); }
 	;
 
 tag
-	: SDL_K_TAG t_name
+	: SDL_K_TAG _t_id
 	    { sdl_add_option(&context, Tag, 0, $2); }
 	;
 
@@ -419,7 +426,7 @@ counter
 	;
 
 _typename
-	: SDL_K_TYPENAME t_name
+	: SDL_K_TYPENAME _t_id
 	    { sdl_add_option(&context, TypeName, 0, $2); }
 	;
 
@@ -486,28 +493,30 @@ _v_datatypes
 	;
 
 _v_usertypes
-	: t_name
+	: _t_id
 	    { $$ = sdl_usertype_idx(&context, $1); }
 	;
 
-
 _v_basetypes
-	: SDL_K_BYTE
-	    { $$ = SDL_K_TYPE_BYTE; }
-	| SDL_K_WORD
-	    { $$ = SDL_K_TYPE_WORD; }
-	| SDL_K_LONG
-	    { $$ = SDL_K_TYPE_LONG; }
-	| SDL_K_QUAD
-	    { $$ = SDL_K_TYPE_QUAD; }
-	| SDL_K_OCTA
-	    { $$ = SDL_K_TYPE_OCTA; }
+	: SDL_K_BYTE _v_signed
+	    { $$ = SDL_K_TYPE_BYTE * $2; }
+	| SDL_K_WORD _v_signed
+	    { $$ = SDL_K_TYPE_WORD * $2; }
+	| SDL_K_LONG _v_signed
+	    { $$ = SDL_K_TYPE_LONG * $2; }
+	| SDL_K_QUAD _v_signed
+	    { $$ = SDL_K_TYPE_QUAD * $2; }
+	| SDL_K_OCTA _v_signed
+	    { $$ = SDL_K_TYPE_OCTA * $2; }
 	| SDL_K_SFLOAT
 	    { $$ = SDL_K_TYPE_SFLT; }
 	| SDL_K_TFLOAT
 	    { $$ = SDL_K_TYPE_TFLT; }
-	| SDL_K_DECIMAL
-	    { $$ = SDL_K_TYPE_DECIMAL; }
+	| SDL_K_DECIMAL SDL_K_PRECISION SDL_K_OPENP _v_expression SDL_K_COMMA _v_expression SDL_K_CLOSEP
+	    {
+		sdl_precision(&context, $4, $6);
+		$$ = SDL_K_TYPE_DECIMAL;
+	    }
 	| SDL_K_BITFIELD
 	    { $$ = SDL_K_TYPE_BITFLD; }
 	| SDL_K_CHAR
@@ -518,6 +527,15 @@ _v_basetypes
 	    { $$ = SDL_K_TYPE_ANY; }
 	| SDL_K_BOOL
 	    { $$ = SDL_K_TYPE_BOOL; }
+	;
+
+_v_signed
+	: %empty
+	    { $$ = -1; }
+	| SDL_K_SIGNED
+	    { $$ = -1; }
+	| SDL_K_UNSIGNED
+	    { $$ = 1; }
 	;
 
 _v_address
@@ -551,7 +569,7 @@ basealign
 	;
 
 item
-	: SDL_K_ITEM t_name _v_datatypes
+	: SDL_K_ITEM _t_id _v_datatypes
 	    {
 		sdl_state_transition(&context, Item);
 		sdl_item(&context, $2, $3);

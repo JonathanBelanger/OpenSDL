@@ -70,6 +70,7 @@ int sdl_add_option(
 		SDL_OPTION_TYPE option,
 		__int64_t value,
 		char *string);
+int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
 #define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */

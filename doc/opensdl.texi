@@ -1,58 +1,106 @@
 \input texinfo    @c -*-texinfo-*-
 @comment $Id@w{$}
 @comment %**start of header
+
 @include version.texi
+
 @settitle Open Structure Definition Langauage @value{VERSION}
-@syncodeindex pg cp
-@comment %**end of header
 
 @allowcodebreaks false
 @setchapternewpage odd
+@firstparagraphindent none
+@paragraphindent none
+
+@copying
+This manual is for the OpenSDL Language and Processor Utility, @value{VERSION}
+
+Copyright @copyright{} 1985, 1987, 1989, 2007, 2017
+
+Permission is granted to the source code and this manual, with no warrantee of
+any kind, implied or otherwise.
+@end copying
 
 @titlepage
 @title Guide to the Open Structure Definition Language
 
-@subtitle This manual describes the Open Structure Definition Language
-(OpenSDL) and the OpenSDL translator.
 
-Revision/Update Information: This revised manual supersedes HP and VAX SDL
-(Structure Definition Language) Version 3.2.
 
-Operating System and Version: @value{OS} @value{OSVERSION} or later
 
-Software Version: OpenSDL Version @value{VERSION}
-@end titlepage
+
+@strong{This manual describes the Open Structure Definition Language (OpenSDL)
+and the OpenSDL translator.}
+
+
+
+
+
+@multitable @columnfractions .40 .60
+@item @strong{Revision/Update Information}: @tab This revised manual supersedes
+HP and VAX SDL (Structure Definition Language) Version 3.2.
+
+@item @strong{Operating System and Version}: @tab @value{OS} @value{OSVERSION}
+or later
+
+@item @strong{Software Version}: @tab OpenSDL Version @value{VERSION}
+@end multitable
+
+@author Jonathan D. Belanger
+
 @page
-@copying
+@insertcopying
 This manual is for OpenSDL (version @value{VERSION}, @value{UPDATED}).
 
-Copyright @copyright{} 2018 Jonathan D. Belanger.
+Permission is granted to copy, distribute and/or modify this document under the
+terms of the GNU Free Documentation License, Version 1.3 or any later version
+published by the Free Software Foundation; with no Invariant Sections, with no
+Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is
+included in the section entitled ``GNU Free Documentation License''.
 
-@quotation
-Permission is granted to copy, distribute and/or modify this document
-under the terms of the GNU Free Documentation License, Version 1.3 or
-any later version published by the Free Software Foundation; with no
-Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
-Texts.  A copy of the license is included in the section entitled
-``GNU Free Documentation License''.
-@end quotation
+@strong{First Printing, June 1981}@*
+@strong{Revised, June 1985}@*
+@strong{Revised, November 1987}@*
+@strong{Revised, May 1989}@*
+@strong{Revised, October 2007}@*
+@strong{Revised, October 2018}@*
 
-First Printing, June 1981
-Revised, June 1985
-Revised, November 1987
-Revised, May 1989
-Revised, October 2007
-Revised, September 2018
-@end copying
-@page
+Published by Digital Equipment Corporation, Compaq Computer Corporation,
+Hewlett-Packard Corporation, VMS Software, and Jonathan D. Belanger
+@end titlepage
 @contents
 
+@node Examples
+@unnumbered Examples
+@listoffloats Example
+
+@node Figures
+@unnumbered Figures
+@listoffloats Figure
+
+@node Tables
+@unnumbered Tables
+@listoffloats Table
 
 @ifnottex
 @node Top
 @top OpenSDL Guide
 This manual describes the Open Structure Definition Language (OpenSDL) and the
 OpenSDL translator
+
+@menu
+* Preface:: 
+* Chapter 1:: provides a brief overview of OpenSDL and the translation process.@*
+* Chapter 2:: describes how to create, edit, and process an OpenSDL source file
+using the Language-Sensitive Editor (LSE) templates and the SDL command
+options.@*
+* Chapter 3:: describes the OpenSDL language elements that compose OpenSDL
+declarations.@*
+* Chapter 4:: describes the function and format of OpenSDL declarations.@*
+* Appendix A:: provides a list and descriptions of OpenSDL diagnostic messages.@*
+* Appendix B:: shows translation summaries for all output languages supported by
+OpenSDL.@*
+* Appendix C:: is a table showing the ASCII character set.@*
+* Copying::
+@end menu
 @end ifnottex
 
 @unnumbered Preface
@@ -231,11 +279,15 @@ emitted to the output stream.
 
 @item /SUPPRESS qualifier --- SDL provides this command line qualifier to allow
 you to suppress the addition of prefixes and/or tags to names.
+
+@item RADIX modifier --- SDL provides this modifier on CONSTANT definitions to
+allow constant values to be written in Decimal, Octal, or Hexadecimal format.
 @end itemize
 
 @comment Chapert 1 --- Overview
-
+@node Overview
 @chapter Overview
+@cindex Overview
 
 The Open Structure Definition Language (OpenSDL) is used to write source
 statements that describe data structures and that can be translated to source
@@ -281,16 +333,16 @@ stored in the directory SYS$SHARE.
 @item BLISS @tab SDL$BLISS.EXE
 @item @tab SDL$BLISSF.EXE@footnote{The BLISSF back end generates BLISS
 FIELDSETS for OpenSDL aggregates.}
-@item C/C++ SDL$CC.EXE
-@item DATATRIEVE SDL$DTR.EXE
-@item OpenVMS DCL SDL$DCL.EXE
-@item FORTRAN SDL$FORTRAN.EXE
-@item MACRO SDL$MACRO.EXE
-@item Pascal SDL$PASCAL.EXE
-@item PL/I SDL$PLI.EXE
-@item SDML SDL$SDML.EXE
-@item DECTPU SDL$TPU.EXE
-@item UIL SDL$UIL.EXE
+@item C/C++ @tab SDL$CC.EXE
+@item DATATRIEVE @tab SDL$DTR.EXE
+@item OpenVMS DCL @tab SDL$DCL.EXE
+@item FORTRAN @tab SDL$FORTRAN.EXE
+@item MACRO @tab SDL$MACRO.EXE
+@item Pascal @tab SDL$PASCAL.EXE
+@item Kednos PL/I @tab SDL$PLI.EXE
+@item SDML @tab SDL$SDML.EXE
+@item DECTPU @tab SDL$TPU.EXE
+@item UIL @tab SDL$UIL.EXE
 @end multitable
 
 Each back end translates only those OpenSDL declarations that can (or need) be
@@ -304,13 +356,16 @@ Chapter 4, translate to the following types of data items:
 @item External entries(ENTRY declarations)
 @end itemize
 
-Figure 1–1 shows each step in the OpenSDL translation process, and the key
-following the example describes each step. @ref{Processing an OpenSDL Source
-File} describes the SDL command in detail.
+@ref{OpenSDL Translation Process} shows each step in the OpenSDL translation
+process, and the key following the example describes each step.
+@ref{Processing an OpenSDL Source File} describes the SDL command in detail.
 
-Figure 1–1: OpenSDL Translation Process
+@float Figure, OpenSDL Translation Process
+Placeholder.
+@end float
 
-Key to Figure 1–1:
+
+Key to @ref{OpenSDL Translation Process}:
 @enumerate
 
 @item The front end (SDL$MAIN.EXE) parses the statements contained in the
@@ -369,15 +424,16 @@ default file type of .BAS.
 You can specify any or all of the language options on the /LANGUAGE qualifier,
 and OpenSDL produces separate output files for each language specified.
 
-@subsection Description of a Sample OpenSDL Source File
+@section Description of a Sample OpenSDL Source File
 
-Example 1–1 is a typical OpenSDL source file, and the key following the example
-describes each of the numbered language elements. (Chapter 3 describes all the
-language elements in detail.)  You may want to familiarize yourself with this
-example because it shows the source file you will be creating in the LSE
-tutorial in @ref{Getting Started with LSE Templates for OpenSDL}.
+@ref{Sample OpenSDL Source File} is a typical OpenSDL source file, and the key
+following the example describes each of the numbered language elements.
+(Chapter 3 describes all the language elements in detail.)  You may want to
+familiarize yourself with this example because it shows the source file you
+will be creating in the LSE tutorial in @ref{Getting Started with LSE Templates
+for OpenSDL}.
 
-Example 1–1: Sample OpenSDL Source File
+@float Example, Sample OpenSDL Source File
 @example
 MODULE opr_descriptor IDENT "Version 2.0";@footnote{All OpenSDL declarations
 are grouped within modules, and you must assign a name to each module. The
@@ -404,7 +460,7 @@ structures and their members.}
     PREFIX "opr_";@footnote{When the PREFIX option and a prefix are specified,
 OpenSDL concatenates the prefix and a data type code to the declared aggregate
 member names in the language output files.  Compare these aggregate member name
-declarations with the PL/I output shown in Example 1–2.}
+declarations with the Kednos PL/I output shown in Example 1–2.}
     flink ADDRESS;@footnote{Aggregate members are declared using reserved
 OpenSDL data type keywords.}
     blink ADDRESS;
@@ -434,14 +490,16 @@ END_MODULE opr_descriptor;@footnote{The END_MODULE keyword ends a MODULE
 declaration; you may optionally specify the MODULE name after the END_MODULE
 keyword.}
 @end example
+@end float
 
-Example 1–2 shows the PL/I output file that results from translation of the
-OpenSDL source file shown in Example 1–1.
+@ref{Kednos PL/I Output File for the Sample OpenSDL Source File} shows the
+Kednos PL/I output file that results from translation of the OpenSDL source file
+shown in @ref{Sample OpenSDL Source File}.
 
 Chapter 3 describes all the OpenSDL language elements, and Chapter 4 describes
 the function and format of each of the OpenSDL declarations.
 
-Example 1–2: PL/I Output File for the Sample OpenSDL Source File
+@float Example, Kednos PL/I Output File for the Sample OpenSDL Source File
 @example
 /**************************************************************************
 /* Created 17-AUG-2007 11:23:49 by OpenVMS SDL EV2-3
@@ -464,8 +522,11 @@ dcl 1 operator based,
 %replace opr_node_size by 26;
 dcl current_node_ptr pointer globalref;
 @end example
+@end float
 
+@node Creating, Editing, and Processing an OpenSDL Source File
 @chapter Creating, Editing, and Processing an OpenSDL Source File
+@cindex Chapter 2
 
 This chapter describes how to create an OpenSDL source file using the
 recommended HP Language-Sensitive Editor (LSE) text editor and how to process
@@ -509,6 +570,7 @@ features.
 
 @node Entering Source Code Using Placeholders and Tokens
 @subsection Entering Source Code Using Placeholders and Tokens
+
 LSE simplifies the tasks of developing and maintaining software systems. LSE
 provides the functions of a traditional text editor, plus these additional
 powerful features: language specific placeholders and tokens, aliases, comment
@@ -588,7 +650,7 @@ To obtain a hard copy of the list, use the @command{PRINT} command at DCL level
 to print the file you created.
 
 @node Getting Started with LSE Templates for OpenSDL
-@subsubsection Getting Started with LSE Templates for OpenSDL
+@subsection Getting Started with LSE Templates for OpenSDL
 
 This section provides a tutorial on using some common tokens and placeholders
 to write SDL source code. The tutorial shows expansions of the following
@@ -603,11 +665,12 @@ OpenSDL declarations and language elements:
 @item ITEM declaration
 @end itemize
 
-Example 2–1 shows the sample OpenSDL source file described in Chapter 1. You
-will be creating this sample source file in the following tutorial. The
-numbered callouts in the example correspond to the source code you will be
-entering in each step.  Following each step, intermediate and resulting screen
-displays highlight the source code you just entered.
+@ref{Creating a Sample OpenSDL Source File Using LSE} shows the sample OpenSDL
+source file described in Chapter 1. You will be creating this sample source
+file in the following tutorial. The numbered callouts in the example correspond
+to the source code you will be entering in each step.  Following each step,
+intermediate and resulting screen displays highlight the source code you just
+entered.
 
 As you step through the tutorial, refer to @ref{Entering Source Code Using
 Placeholders and Tokens} for the commands that manipulate tokens and
@@ -617,8 +680,8 @@ placeholders; brackets ( [ ] ) enclose optional placeholders. When you erase an
 optional placeholder, LSE also deletes any associated text before and after
 that placeholder.
 
-Example 2–1: Creating a Sample OpenSDL Source File Using LSE
 
+@float Example, Creating a Sample OpenSDL Source File Using LSE
 @example
 MODULE opr_descriptor IDENT "Version 2.0";@footnote{Move to the required
 placeholder @{module-name@} by pressing @key{CTRL/N} and type opr_descriptor.
@@ -764,6 +827,7 @@ them.}
 
 END_MODULE opr_descriptor;
 @end example
+@end float
 
 Before starting the tutorial, invoke LSE and create a new OpenSDL source file.
 The initial string, @strong{[module]...;}, appears at the top of the screen.
@@ -785,7 +849,7 @@ Your resulting screen display should be the OpenSDL source file shown in
 Example 2–1.
 
 @node Compiling Source Code
-@subsubsection Compiling Source Code
+@subsection Compiling Source Code
 
 You can compile your source code, review compilation errors, and view your
 output file without leaving the editing session by using the LSE command
@@ -839,7 +903,7 @@ compilation errors.
 @end quotation
 
 @node Processing an OpenSDL Source File
-@subsection Processing an OpenSDL Source File
+@section Processing an OpenSDL Source File
 
 The SDL command invokes the OpenSDL translator from DCL command level to
 produce output files for one or more target languages. The SDL command has the
@@ -847,8 +911,9 @@ following format:
 
 @command{SDL[/qualifier[...]] file-spec[/qualifier[...]],...}
 
-Section 2.1.3 describes how the SDL command and all its qualifiers can be
-entered from within LSE when used with the LSE command COMPILE.
+@ref{Compiling Source Code} describes how the SDL command and all its
+qualifiers can be entered from within LSE when used with the LSE command
+COMPILE.
 
 Command Parameter
 @file{file-spec,...}
@@ -861,10 +926,11 @@ specification.
 
 Command Qualifiers
 Command qualifiers may be specified following the SDL command, or they may be
-used to qualify individual file specifications. Table 2–1 lists all the
-optional SDL command qualifiers and their defaults.
+used to qualify individual file specifications.  @ref{OpenSDL Command
+Qualifiers and Their Defaults} lists all the optional SDL command qualifiers
+and their defaults.
 
-Table 2–1: SDL Command Qualifiers and Their Defaults
+@float Table, OpenSDL Command Qualifiers and Their Defaults
 @multitable @columnfractions .4 .6
 @headitem Qualifier @tab Default
 @item /ALIGNMENT @tab No alignment
@@ -891,6 +957,7 @@ Table 2–1: SDL Command Qualifiers and Their Defaults
 @item /VAX @tab /VAX on VAX systems
 @item /[NO]VMS_DEVELOPMENT @tab /NOVMS_DEVELOPMENT
 @end multitable
+@end float
 
 /ALIGNMENT=value@*
 The assumed alignment. Integer value greater than zero. If specified,
@@ -1020,14 +1087,14 @@ included at the beginning of the output file. The default is /HEADER.
 
 /LANGUAGES=@{language[=file-spec]@}@*
 @{(language[=file-spec],...)@}
-Specifies one or more of the language options listed in Table 2–2 for which the
-OpenSDL translator is to produce one or more source output files. By default,
-OpenSDL writes output files into separate files in the current default
-directory. The default file name for each output file is taken from the file
-name of the corresponding source file and the default target file type for each
-language name.
+Specifies one or more of the language options listed in @ref{OpenSDL Language
+Options and File Types} for which the OpenSDL translator is to produce one or
+more source output files. By default, OpenSDL writes output files into separate
+files in the current default directory. The default file name for each output
+file is taken from the file name of the corresponding source file and the
+default target file type for each language name.
 
-Table 2–2: OpenSDL Output Language Options and File Types
+@float Table, OpenSDL Output Language Options and File Types
 @multitable @columnfractions .33 33 .34
 @headitem Language @tab Option @tab Target File Type
 @item Ada @tab /LANGUAGES=ADA @tab .ADA
@@ -1044,11 +1111,12 @@ specified.}
 @item FORTRAN @tab /LANGUAGES=FORTRAN @tab .FOR
 @item MACRO @tab /LANGUAGES=MACRO @tab .MAR
 @item Pascal @tab /LANGUAGES=PASCAL @tab .PAS
-@item PL/I @tab /LANGUAGES=PLI @tab .PLI
+@item Kednos PL/I @tab /LANGUAGES=PLI @tab .PLI
 @item SDML @tab /LANGUAGES=SMDL @tab.SDML
 @item DECTPU @tab /LANGUAGES=TPU @tab .TPU
 @item UIL @tab /LANGUAGES=UIL @tab .UIL
 @end multitable
+@end float
 
 OpenSDL builds the language image name by concatenating the prefix SDL to the
 language option specified on the SDL command. For example, if you specify\
@@ -1201,7 +1269,7 @@ actual data type.
 @end itemize
 
 The following rules apply when the /VMS_DEVELOPMENT qualifier is specified for 
-PL/I output:
+Kednos PL/I output:
 
 @itemize @bullet
 @item UNSIGNED BYTE,UNSIGNED WORD, and UNSIGNED LONGWORD yield FIXED
@@ -1217,13 +1285,13 @@ Examples
 The following are examples and descriptions of the SDL command.
 @enumerate
 @item @command{$ SDL BLOCKNODE/LANGUAGE=(PLI=PLI$:[PL1.PSRC],CC=C$:[C.CSRC])}@*
-OpenSDL translates the declarations in BLOCKNODE.SDL to PL/I and C, writes
-the PL/I output to PLI$:[PL1.PSRC]BLOCKNODE.PLI, and writes the C output to
-C$:[C.CSRC]BLOCKNODE.H.
+OpenSDL translates the declarations in BLOCKNODE.SDL to Kednos PL/I and C,
+writes the Kednos PL/I output to PLI$:[PL1.PSRC]BLOCKNODE.PLI, and writes the
+C output to C$:[C.CSRC]BLOCKNODE.H.
 
 @item @command{$ SDL VTREE.SRC/LANGUAGE=(PLI=[PLI.PSRC])}@*
-OpenSDL translates the declarations in VTREE.SRC and writes the PL/I output to
-[PLI.PSRC]VTREE.PLI.
+OpenSDL translates the declarations in VTREE.SRC and writes the Kednos PL/I
+output to [PLI.PSRC]VTREE.PLI.
 
 @item @command{$ SDL/LANGUAGE=(MACRO,BLISS) IODEF,SSDEF}@*
 OpenSDL translates the declarations in IODEF.SDL and SSDEF.SDL and writes the
@@ -1239,7 +1307,9 @@ OpenSDL front end in INTER.SDI and writes the output to INTER.MAR and
 INTER.R32.
 @end enumerate
 
+@node OpenSDL Language Elements
 @chapter OpenSDL Language Elements
+@cindex OpenSDL Language Elements
 
 This chapter describes the function and syntax of the following OpenSDL
 language elements that compose the OpenSDL declarations described in Chapter 4:
@@ -1252,7 +1322,8 @@ program identifiers
 @end itemize
 
 The following can also be used within a MODULE declaration; although they are
-not OpenSDL language elements (see Section 3.4 through Section 3.6):
+not OpenSDL language elements (@ref{Local Comments} through
+@ref{Include Statement}):
 
 @itemize @bullet
 @item Local and output comments
@@ -1282,7 +1353,7 @@ underscore (_).  Specifying a name is subject to the following rules:
 (A-Z, a-z), a dollar sign ($), or an underscore (_).
 @item Source program identifiers that are reserved OpenSDL keywords or that
 contain invalid  SDL characters must be enclosed in quotation marks (" ").
-(For more information on reserved OpenSDL keywords, see Section 3.2.)
+(For more information on reserved OpenSDL keywords, @ref{Keywords}).
 @item OpenSDL passes all source program identifiers to the output file in the same
 case in which they are defined.
 @end enumerate
@@ -1292,9 +1363,10 @@ A local symbol name is known only within an OpenSDL source file and cannot be
 translated directly to the output file. A local symbol name can be assigned a
 value anywhere within a source file, but must begin with the pound sign
 (#). A local symbol is declared when it is first assigned a value. This
-value can be any valid expression (see Section 3.3).  If you reference a local
-symbol before assigning it a value, OpenSDL displays an error message and does
-not produce an output file. A local symbol assignment has the following syntax:
+value can be any valid expression (@ref{Expressions}).  If you reference a
+local symbol before assigning it a value, OpenSDL displays an error message and
+does not produce an output file. A local symbol assignment has the following
+syntax:
 
 @code{#local-name = expression;}
 
@@ -1303,7 +1375,7 @@ Is any valid OpenSDL name.
 
 expression@*
 Is any valid OpenSDL expression resulting in a longword integer value.
-Signed integer longword data types are described in Section 3.2.3.9.
+Signed integer longword data types are described in @ref{Integer Data Types}.
 The following are examples of local symbol assignments:
 
 @example
@@ -1323,8 +1395,9 @@ member names, and ENTRY parameter names that are passed to the output file.
 Optional user-specified prefixes and tags can be appended to these identifiers.
 If a prefix is specified without a tag, OpenSDL concatenates a default tag
 (corresponding to the data type) to the identifier in the output file.
-(Section 3.2.2.2 describes the PREFIX and TAG keyword options.) The identifier
-block_node_size in the following example names the CONSTANT declaration:
+(@ref{PREFIX, MARKER, and TAG keywords} describes the PREFIX and TAG keyword
+options.) The identifier block_node_size in the following example names the
+CONSTANT declaration:
 
 @code{CONSTANT block_node_size EQUALS #max_args + #counter;}
 
@@ -1338,18 +1411,19 @@ you enclose them in quotation marks (" "). For example:
 
 This declaration produces the identifier length, which is a reserved OpenSDL
 keyword typically used to specify the length of a bit-string or
-character-string data type (see Section 3.2.3.3 and Section 3.2.3.5).
+character-string data type (see @ref{BITFIELD Data Type} and
+@ref{CHARACTER Data Type}).
 
 @section Keywords
 Reserved OpenSDL keywords are used to specify the following:
 @itemize @bullet
 @item Declarations (@ref{Declaration Keywords})
 @item Declaration modifiers (@ref{Declaration Modifier Keywords})
-@item Prefixes, markers, and tags (see Section 3.2.2.2)
-@item Alignment (see Section 3.2.2.3)
-@item Storage classes (see Section 3.2.2.4)
-@item Arrays (see Section 3.2.2.7)
-@item Datatypes (see Section 3.2.3)
+@item Prefixes, markers, and tags (@ref{PREFIX, MARKER, and TAG Keywords})
+@item Alignment (@ref{Alignment Keywords})
+@item Storage classes (@ref{Storage Class Keywords})
+@item Arrays (@ref{DIMENSION Keyword})
+@item Datatypes (@ref{Data Type Keywords})
 @end itemize
 You can use keywords as identifiers if they are enclosed in quotation marks
 (" "). For example:
@@ -1359,7 +1433,7 @@ ITEM "length" LONGWORD;
 This declaration produces the identifier length, which names this particular
 ITEM declaration.  The length identifier is a reserved OpenSDL keyword that is
 typically used to specify the length of a bit-string or character-string data
-type (see Section 3.2.3.3 and Section 3.2.3.5).
+type (@ref{BITFIELD Data Type} and @ref{CHARACTER Data Type}).
 
 Reserved OpenSDL keywords can be entered in either upper- or lowercase letters,
 but they cannot be truncated.
@@ -1370,10 +1444,10 @@ OpenSDL keywords.
 @node Declaration Keywords
 @subsection Declaration Keywords
 
-Table 3–1 alphabetically lists and defines the keywords for the declarations
-described in detail in Chapter 4.
+@ref{Keywords That Identify or End Declarations} alphabetically lists and
+defines the keywords for the declarations described in detail in Chapter 4.
 
-Table 3–1: Keywords That Identify or End Declarations
+@float Table, Keywords That Identify or End Declarations
 @multitable @columnfractions .3 .7
 @headitem Keyword @tab Definition
 @item AGGREGATE @tab Declaration that produces a structure or union body
@@ -1386,153 +1460,217 @@ Table 3–1: Keywords That Identify or End Declarations
 @item STRUCTURE @tab Declaration that is a type of aggregate or subaggregate
 @item UNION @tab Declaration that is a type of aggregate or subaggregate
 @end multitable
+@end float
 
 @node Declaration Modifier Keywords
 @subsection Declaration Modifier Keywords
 
-Table 3–2 lists and defines other keywords that are used in declarations. The
-prefix and tag, storage class, and array keywords have special functions that
-are described in detail in the sections following Table 3–2. All the other
-keywords defined in Table 3–2 are described in greater detail in Chapter 4.
+@ref{Keywords That Identify or End Declarations} lists and defines other
+keywords that are used in declarations. The prefix and tag, storage class, and
+array keywords have special functions that are described in detail in the
+sections following @ref{Keywords Used in Declarations}. All the other keywords
+defined in @ref{Keywords Used in Declarations} are described in greater detail
+in Chapter 4.
 
-Table 3–2: Keywords Used in Declarations
+@subsubsection MODULE Declaration
+@float Table, MODULE Declaration
+@multitable @columnfractions .25 .75
+@headitem Keyword @tab Description
+@item IDENT @tab Optional keyword used to pass information describing the
+MODULE declaration to the output file
+@end multitable
+@end float
 
-MODULE Declaration
-Keyword Description
-IDENT Optional keyword used to pass information describing the MODULE declaration to
-the output file
+@subsubsection ITEM Declaration
+@float Table, Item Declaration
+@multitable @columnfractions .25 .75
+@headitem Keyword @tab Description
+@item ALIGN, @tab Optional keywords used to specify alignment; see
+@ref{Alignment Keywords}
+@item NOALIGN,
+@item BASEALIGN
 
-ITEM Declaration
-Keyword Description
-ALIGN,
-NOALIGN,
-BASEALIGN
-Optional keywords used to specify alignment; see Section 3.2.2.3
-COMMON and
-GLOBAL
-Optional keywords used to specify common and global storage; see Section 3.2.2.4
-DIMENSION Optional keyword used to specify that the ITEM declaration is an
-array; see Section 3.2.2.7
-PREFIX Optional keyword used to concatenate a user-defined prefix to ITEM
-names, AGGREGATE member names, and named constants; see Section 3.2.2.2
-TAG Optional keyword used to override the default OpenVMS code assigned to a
-name and to assign a user-defined tag instead; see Section 3.2.2.2
+@item COMMON and GLOBAL @tab Optional keywords used to specify common and
+global storage; see @ref{Stgorage Class Keywords}
 
-AGGREGATE Declaration
-Keyword Description
-COMMON,
-GLOBAL,
-BASED,
-TYPEDEF
-Optional keywords used to specify common, global, or based storage, or a
-TYPEDEF; see Section 3.2.2.4
-DIMENSION Optional keyword used to specify that the AGGREGATE declaration is an
-array; see Section 3.2.2.7
-FILL Optional keyword used to indicate whether the associated aggregate or
-member occurs only as a fill to force byte alignment on the following member or
-aggregate, respectively
-MARKER Optional keyword used to assign a user-defined prefix to the aggregate
-name; see Section 3.2.2.2
-ORIGIN Optional keyword used to define the beginning of an aggregate with
-respect to an aggregate member
-PREFIX Optional keyword used to concatenate a user-defined prefix to AGGREGATE
-member names, ITEM names, and named constants; see Section 3.2.2.2
-TAG Optional keyword used to override the default OpenVMS code assigned to a
-name and to assign a user-defined tag instead; see Section 3.2.2.2
+@item DIMENSION @tab Optional keyword used to specify that the ITEM declaration
+is an array; see @ref{DIMENSION Keyword}
 
-CONSTANT Declaration
-Keyword Description
-COUNTER Optional keyword that saves the last assigned value in a local symbol
-declaration for subsequent use
-EQUALS Required keyword used in assigning the value to the first named constant
-STRING Optional keyword specified immediately after EQUALS to indicate the
-definition of a string constant.
-INCREMENT Optional keyword used to specify constants with incremental values
-PREFIX Optional keyword used to concatenate a user-defined prefix to aggregate
-member names and named constants; see Section 3.2.2.2
-TAG Optional keyword used to override the default OpenVMS code assigned to a
-name and to assign a user-defined tag instead; see Section 3.2.2.2
-TYPENAME Optional keyword used only by the Ada and PL/I back ends to specify a
-user-defined data type name; see Section 3.2.2.1
+@item PREFIX @tab Optional keyword used to concatenate a user-defined prefix to
+ITEM names, AGGREGATE member names, and named constants; see
+@ref{PREFIX, MARKER, and TAG Keywords}
 
-ENTRY Declaration
-Parameter-
-Passing
-Mechanism
-Keywords Description
-DESCRIPTOR Optional parameter-passing mechanism keyword used to specify that a
-parameter must be passed BY DESCRIPTOR
-REFERENCE Optional parameter-passing mechanism keyword used to specify that a
-parameter must be passed BY REFERENCE; REFERENCE is the default
-RTL_STR_DESC Optional parameter-passing mechanism keyword used to specify that
-a parameter must be passed by any of the classes of string descriptors
-VALUE Optional parameter-passing mechanism keyword used to specify that the
-parameter must be passed BY immediate VALUE
-Parameter
-Mode
-Keywords Description
-IN Parameter description keyword used to indicate that a parameter is an input
-parameter; can be used with OUT to indicate that the parameter is both an input
-and an output parameter; IN is the default
-OUT Parameter description keyword used to indicate that a parameter is an
-output parameter; can be used with IN to indicate that the parameter is both an
-input and an output parameter
-Other
-Parameter
-Modifier
-Keywords Description
-DEFAULT Optional parameter description keyword used to specify a default
-parameter value
-DIMENSION Optional keyword used to specify that the parameter is an array; see
-Section 3.2.2.7
-LIST Optional parameter description keyword used to indicate that the routine
-may be called with one or more parameters of the type being described
-NAMED Optional parameter description keyword used only by the Ada back end to
-name the parameter
-OPTIONAL Optional parameter description keyword used to specify that the
-parameter may or may not appear in the sequence of parameters using the entry
-point name
-TYPENAME Optional parameter description keyword used only by the Ada and PL/I
-back ends to specify a user-defined data type name; see Section 3.2.2.1
+@item TAG @tab Optional keyword used to override the default OpenVMS code
+assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX,
+MARKER, and TAG Keywords}
+@end multitable
+@end float
 
-ENTRY Declaration
-Entry
-Return Value
-Keywords Description
-NAMED Optional keyword used to specify the name of the parameter (in an Ada
-IMPORT_VALUED_PROCEDURE) into which the return value is returned
-RETURNS Optional keyword used to specify the data type returned by the external
-entry
-TYPENAME Optional keyword used only by the Ada and PL/I back ends to specify
-a user-defined name that is the data type returned by the external entry; see
-Section 3.2.2.1
+@subsubsection AGGREGATE Declaration
+@float Table, AGGREGATE Declaration
+@multitable @columnfractions .25 .75
+@headitem Keyword @tab Description
+@item COMMON, @tab Optional keywords used to specify common, global, or based
+storage, or a TYPEDEF; see @ref{Storage Class Keywords}
+@item GLOBAL,
+@item BASED,
+@item TYPEDEF
 
-Entry
-Description
-Keywords Description
-ALIAS Optional keyword used to indicate an alternate internal name that can be
-used to designate the entry point
-LINKAGE Optional keyword used only by the MACRO back end to indicate that a
-special call macro will be used in the expansion of the entry macro
-PARAMETER Optional keyword used to describe the parameters of the external
-entry
-VARIABLE Optional keyword used to indicate that the entry point can be invoked
-with a variable number of parameters; see also the LIST parameter modifier
-keyword
+@item DIMENSION @tab Optional keyword used to specify that the AGGREGATE
+declaration is an array; see @ref{DIMENSION Keyword}
+
+@item FILL @tab Optional keyword used to indicate whether the associated
+aggregate or member occurs only as a fill to force byte alignment on the
+following member or aggregate, respectively.
+
+@item MARKER @tab Optional keyword used to assign a user-defined prefix to the
+aggregate name; see @ref{PREFIX, MARKER, and TAG Keywords}
+
+@item ORIGIN @tab Optional keyword used to define the beginning of an aggregate
+with respect to an aggregate member
+
+@item PREFIX @tab Optional keyword used to concatenate a user-defined prefix to
+AGGREGATE member names, ITEM names, and named constants; see @ref{PREFIX,
+MARKER, and TAG Keywords}
+
+@item TAG @tab Optional keyword used to override the default OpenVMS code
+assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX,
+MARKER, and TAG Keywords}
+@end multitable
+@end float
+
+@subsubsection CONSTANT Declaration
+@float Table, CONSTANT Declaration
+@multitable @columnfractions .25 .75
+@headitem Keyword @tab Description
+@item COUNTER @tab Optional keyword that saves the last assigned value in a
+local symbol declaration for subsequent use.
+
+@item EQUALS @tab Required keyword used in assigning the value to the first
+named constant STRING Optional keyword specified immediately after EQUALS to
+indicate the definition of a string constant.
+
+@item INCREMENT @tab Optional keyword used to specify constants with
+incremental values
+
+@item PREFIX @tab Optional keyword used to concatenate a user-defined prefix to
+aggregate member names and named constants; see @ref{PREFIX, MARKER, and TAG
+Keywords}
+
+@item TAG @tab Optional keyword used to override the default OpenVMS code
+assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX,
+MARKER, and TAG Keywords}
+
+@item TYPENAME @tab Optional keyword used only by the Ada and Kednos PL/I back
+ends to specify a user-defined data type name; see @ref{User-Specified TYPENAME
+Kewyword}
+
+@item RADIX @tab Optional keyword used to indicate how a constant value should
+be written out tot he output file.  It can have one of three possible values.
+These values are:
+@item @tab DEC --- for Decimal
+@item @tab OCT --- for Octal
+@item @tab DEC --- for Hexadecimal
+@end multitable
+@end float
+
+@subsubsection ENTRY Declaration
+
+@float Table, ENTRY Declaration
+@multitable @columnfractions .25 .75
+@headitem Parameter Passing Mechanism @tab Description
+@item DESCRIPTOR @tab Optional parameter-passing mechanism keyword used to
+specify that a parameter must be passed BY DESCRIPTOR
+
+@item REFERENCE @tab Optional parameter-passing mechanism keyword used to
+specify that a parameter must be passed BY REFERENCE; REFERENCE is the default
+
+@item RTL_STR_DESC @tab Optional parameter-passing mechanism keyword used to
+specify that a parameter must be passed by any of the classes of string
+descriptors
+
+@item VALUE @tab Optional parameter-passing mechanism keyword used to specify
+that the parameter must be passed BY immediate VALUE
+@end multitable
+
+@multitable @columnfractions .25 .75
+@headitem Parameter Mode Keywords @tab Description
+@item IN @tab Parameter description keyword used to indicate that a parameter
+is an input parameter; can be used with OUT to indicate that the parameter is
+both an input and an output parameter; IN is the default
+
+@item OUT @tab Parameter description keyword used to indicate that a parameter
+is an output parameter; can be used with IN to indicate that the parameter is
+both an input and an output parameter
+@end multitable
+
+@multitable @columnfractions .25 .75
+@headitem Other Parameter Modifier @tab Description
+@item DEFAULT @tab Optional parameter description keyword used to specify a
+default parameter value
+
+@item DIMENSION @tab Optional keyword used to specify that the parameter is an
+array; see @ref{DIMENSION Keyword}
+
+@item LIST @tab Optional parameter description keyword used to indicate that
+the routine may be called with one or more parameters of the type being
+described
+
+@item NAMED @tab Optional parameter description keyword used only by the Ada
+back end to name the parameter
+
+@item OPTIONAL @tab Optional parameter description keyword used to specify that
+the parameter may or may not appear in the sequence of parameters using the
+entry point name
+
+@item TYPENAME @tab Optional parameter description keyword used only by the Ada
+and Kednos PL/I back ends to specify a user-defined data type name; see
+@ref{User-Specified TYPENAME Keyword}
+@end multitable
+
+@multitable @columnfractions .25 .75
+@headitem Entry Return Value Keywords @tab Description
+@item NAMED @tab Optional keyword used to specify the name of the parameter (in
+an Ada IMPORT_VALUED_PROCEDURE) into which the return value is returned
+
+@item RETURNS @tab Optional keyword used to specify the data type returned by
+the external entry
+
+@item TYPENAME @tab Optional keyword used only by the Ada and Kednos PL/I back
+ends to specify a user-defined name that is the data type returned by the
+external entry; see @ref{User-Specified TYPENAME Keyword}
+@end multitable
+
+@multitable @columnfractions .25 .75
+@headitem Entry Description Keywords @tab Description
+@item ALIAS @tab Optional keyword used to indicate an alternate internal name
+that can be used to designate the entry point
+
+@item LINKAGE @tab Optional keyword used only by the MACRO back end to indicate
+that a special call macro will be used in the expansion of the entry macro
+
+@item PARAMETER @tab Optional keyword used to describe the parameters of the
+external entry
+
+@item VARIABLE @tab Optional keyword used to indicate that the entry point can
+be invoked with a variable number of parameters; see also the LIST parameter
+modifier keyword
+@end multitable
+@end float
 
 @subsubsection User-Specified TYPENAME keyword
 The TYPENAME keyword is used to specify a data type name that is not an OpenSDL
 data type. Depending on which back end is specified, this name may or may not
-override the OpenSDL data type. The Ada and PL/I back ends use these data type
-names as parameter data types, as return value data types, and as CONSTANT
-declaration data types.
+override the OpenSDL data type. The Ada and Kednos PL/I back ends use these
+data type names as parameter data types, as return value data types, and as
+CONSTANT declaration data types.
 
 The TYPENAME keyword has the following syntax:
 TYPENAME name
 The Ada language translation (as a result of processing the OpenSDL source file
 EXAMPLE.SDL in SDL$EXAMPLES) shows an example of the TYPENAME keyword. The
-following is an example of the TYPENAME keyword on each of the parameters in an ENTRY
-declaration:
+following is an example of the TYPENAME keyword on each of the parameters in
+an ENTRY declaration:
 @example
 ENTRY SYS$FAO
     ALIAS $FAO
@@ -1548,7 +1686,8 @@ User-defined prefixes, markers, and tags are optional character strings that
 help to uniquely identify the names associated with a particular facility or
 system. When the /SUPPRESS qualifier is specified on the command line, the
 inclusion of prefixes and/or tags on output symbol names is suppressed.  See
-Section 2.2 for a description of the /SUPPRESS qualifier.
+@ref{Processing an OpenSDL Source File} for a description of the /SUPPRESS
+qualifier.
 
 PREFIX Keyword
 The PREFIX option may be specified on an AGGREGATE, subaggregate, CONSTANT, or
@@ -1611,10 +1750,10 @@ AGGREGATE operator STRUCTURE MARKER doowop$ PREFIX beebop$ TAG shoo;
 END;
 @end example
 
-Table 3–3 shows the default tags that OpenSDL uses when the TAG option is not
-specified on an aggregate member.
+@ref{Default Tags Used by OpenSDL} shows the default tags that OpenSDL uses
+when the TAG option is not specified on an aggregate member.
 
-Table 3–3: Default Tags Used by OpenSDL
+@float Table, Default Tags Used by OpenSDL
 @multitable @columnfractions .4 .6
 @headitem Data Type @tab Default Tag
 @item CONSTANT @tab K
@@ -1625,8 +1764,8 @@ Table 3–3: Default Tags Used by OpenSDL
 @item OCTAWORD @tab O
 @item T_FLOATING @tab F
 @item S_FLOATING @tab D
-@item T_FLOATING @tab COMPLEX FC
-@item S_FLOATING @tab COMPLEX DC
+@item T_FLOATING COMPLEX @tab FC
+@item S_FLOATING COMPLEX @tab DC
 @item DECIMAL @tab P
 @item BITFIELD @tab V for BITFIELD offset
 @item @tab S for BITFIELD size@footnote{Identifiers with size and mask (if
@@ -1652,6 +1791,7 @@ option is specified.}
 @item STRUCTURE @tab R
 @item UNION @tab R
 @end multitable
+@end float
 
 The following example shows the use of a user-specified prefix on an AGGREGATE
 declaration:
@@ -1674,8 +1814,8 @@ In the previous example, the member name "typename" is enclosed in quotation
 marks because it is an OpenSDL keyword.
 
 The previous declaration produces the
-following names, with the prefix opr$ and default tags, in the PL/I output
-file:
+following names, with the prefix opr$ and default tags, in the Kednos PL/I
+output file:
 
 @example
 %replace opr$k_fixed_bin_ by 0;
@@ -1693,10 +1833,11 @@ dcl 1 operator based,
 The name opr$v_fill_0 in the previous list is the result of a BITFIELD
 declaration that SDL supplied because the subaggregate did not end on a byte
 boundary. The name (opr$v_fill_0) ensures that the next aggregate begins on a
-byte boundary.  Section 4.5.7 describes data alignment in detail. OpenSDL uses
-default codes followed by an underscore (_) for the tag portion of a prefix
-when the TAG option is not specified. You can override the default OpenVMS
-codes by specifying a tag, which may be null (" "). For example:
+byte boundary.  @ref{Forcing Data Alignment} describes data alignment in
+detail. OpenSDL uses default codes followed by an underscore (_) for the tag
+portion of a prefix when the TAG option is not specified. You can override the
+default OpenVMS codes by specifying a tag, which may be null (" "). For
+example:
 
 @example
 CONSTANT (abc,def,ghi) EQUALS 0 INCREMENT 1
@@ -1794,8 +1935,8 @@ storage for scalar items and aggregates. In general, declarations produce a
 template describing data for which the compiler allocates storage dynamically
 at run time, rather than at compile time.  This type of storage is the default
 and is specified using the BASED option in some languages, although the default
-storage class option is language-dependent. The PL/I back end generates the
-BASED storage class option, which has the following syntax:
+storage class option is language-dependent. The Kednos PL/I back end generates
+the BASED storage class option, which has the following syntax:
 
 @code{BASED (pointer-name)}
 
@@ -1831,7 +1972,6 @@ file EXAMPLE.SDL in SDL$EXAMPLES.
 classes are static, globaldef/ref, extern, etc. Syntactically, you can replace
 a ‘static’ in any declaration with ‘typedef’ and have it compiled. Storage
 classes (including TYPEDEF) are mutually exclusive in an SDL declaration.
-@end itemize
 
 Example of C type definition:
 @example
@@ -1851,6 +1991,7 @@ or:
 struct MyStruct @{int jg$l_i1; int jg$l_i2;@} ;
 static struct MyStruct foo ;
 @end example
+@end itemize
 
 If COMMON and GLOBAL appear together in a declaration, a DUPCONATT (duplicate
 or conflicting attributes) error is given. The COMMON, GLOBAL and TYPEDEF
@@ -1885,8 +2026,8 @@ You can apply a dimension to AGGREGATE (as well as members of aggregates and
 subaggregates) and ITEM declarations, which means that you can define an array
 of structures, a structure that contains one or more arrays, or an array of
 structures each of which contains one or more arrays. The DIMENSION option is
-valid when specified with any of the data types described in Section 3.2.3 and
-has the following syntax:
+valid when specified with any of the data types described in @ref{Data Type
+Keywords} and has the following syntax:
 
 @code{DIMENSION [lbound:]hbound}
 
@@ -1971,7 +2112,8 @@ user-defined object type, optionally followed by a DIMENSION specification, or
 an ENTRY declaration.
 
 basealign-attribute@*
-Here, a BASEALIGN attribute can be specified, as described in Section 3.2.2.3.
+Here, a BASEALIGN attribute can be specified, as described in @ref{Alignment
+Keywords}
 
 The following is an example of an aggregate with a member of pointer type:
 
@@ -2030,7 +2172,7 @@ a constant mask whose value is 1. Because the PREFIX option is specified for
 this aggregate, the source output file identifiers produced for this
 declaration are tst$v_resolved and tst$m_resolved, where the tag v_ indicates
 the bitfield variable and the tag m_ indicates the mask. Prefixes and tags are
-described in more detail in Section 3.2.2.2.
+described in more detail in @ref{PREFIX, MARKER, and TAK Keywords}.
 
 @subsubsection BOOLEAN Data Type
 
@@ -2098,7 +2240,7 @@ declaration:
 
 @code{ITEM foo T_FLOATING COMPLEX;}
 
-Section 3.2.3.8 describes floating-point data types.
+@ref{Floating-Point Data Types} describes floating-point data types.
 
 @subsubsection DECIMAL Data Type
 The DECIMAL keyword specifies a packed decimal data type and the size of the
@@ -2134,7 +2276,7 @@ declaration:
 
 @code{ITEM foo T_FLOATING;}
 
-Section 3.2.3.6 describes COMPLEX data types.
+@ref{COMPLEX Data Types} describes COMPLEX data types.
 
 @subsubsection Integer Data Types
 The keywords BYTE, WORD, LONGWORD, QUADWORD, and OCTAWORD declare storage units
@@ -2146,11 +2288,11 @@ It is also possible to specify the keyword SIGNED.
 
 The keywords INTEGER_BYTE, INTEGER_WORD, INTEGER_LONG and INTEGER_QUAD
 are synonyms for BYTE, WORD, LONGWORD, QUADWORD, respectively, although some
-back ends treat INTEGER_QUAD and QUADWORD different (C, FORTRAN and PL/I). The
-keyword INTEGER is also synonym for LONGWORD and INTEGER_LONG.  The keywords
-INTEGER_HW and HARDWARE_INTEGER describe integer data types whose size depends
-on the underlying hardware. If the qualifier /VAX is specified, they are 4
-bytes wide, and if /ALPHA is specified, they are 8 bytes wide.
+back ends treat INTEGER_QUAD and QUADWORD different (C, FORTRAN and Kednos
+PL/I). The keyword INTEGER is also synonym for LONGWORD and INTEGER_LONG.  The
+keywords INTEGER_HW and HARDWARE_INTEGER describe integer data types whose size
+depends on the underlying hardware. If the qualifier /VAX is specified, they
+are 4 bytes wide, and if /ALPHA is specified, they are 8 bytes wide.
 
 The integer data types have the following syntax:
 
@@ -2193,7 +2335,8 @@ following table.
 @item %O @tab Octal @tab 0-7
 @item %B @tab Binary @tab 0 and 1
 @item %A@footnote{The %A operator takes the ASCII value of any ASCII character
-that follows it.} @tab ASCII value Any ASCII character (see Appendix C)
+that follows it.} @tab ASCII value @tab Any ASCII character (see
+@ref{ASCII Character Set})
 @end multitable
 
 OpenSDL treats decimal constants as signed integer longword values.
@@ -2221,7 +2364,8 @@ order of precedence, with the operators of higher precedence listed first.
 @item @@ @tab Logical shift–x@@y shifts the value of x to the left y places; if
 y is negative, the value of x is shifted y places to the right
 @item & @tab Logical AND
-@item ! @tab Logical OR
+@item | @tab Logical OR
+@item ~ @tab Logical NOT
 @end multitable
 
 @item Offset symbols are used in expressions specified in AGGREGATE
@@ -2239,8 +2383,8 @@ of an ORIGIN option.
 
 @item The circumflex (^) represents the current bit offset relative to the most
 recently declared aggregate or byte-aligned element.
-Section 4.5.8 describes the use of offset symbols in AGGREGATE declarations in
-more detail.
+@ref{Using Offset Symbols} describes the use of offset symbols in AGGREGATE
+declarations in more detail.
 @end itemize
 
 @item Parentheses group expressions to define the order of evaluation.
@@ -2660,7 +2804,10 @@ forest region[4];
 Note that the SIZEOF information is discarded by C, but is used by other
 languages, such as MACRO.
 
+@node OpenSDL Declarations
 @chapter OpenSDL Declarations
+@cindex OpenSDL Declarations
+
 This chapter describes the function and format of each of the following OpenSDL
 declarations:
 @itemize @bullet
@@ -2691,7 +2838,7 @@ comments) must occur within a module, which is delimited by the MODULE and
 END_MODULE keywords.  An OpenSDL source file may contain multiple MODULE
 declarations, but modules may not be nested.  You must specify a module name on
 the MODULE declaration; this name corresponds to the name of a macro or module
-in a given output language. (Section 3.1 describes the syntax for names.) For
+in a given output language. (@ref{Names} describes the syntax for names.) For
 example:
 
 @code{MODULE $modef;}
@@ -2782,17 +2929,17 @@ ITEM item-name@*
 Specifies any valid OpenSDL name used to identify the item.
 
 data-type@*
-Is any valid OpenSDL data type (see Section 3.2.3).
+Is any valid OpenSDL data type (see @ref{Data Type Keywords}).
 
 user_type sizeopt@*
 Is a user-defined data type using the DECLARE statement’s SIZEOF clause, shown
-and described in Section 3.10.
+and described in @ref{Declare Statement}.
 
 [COMMON]@*
 [GLOBAL]@*
 [TYPEDEF]@*
 Is the storage class of the item, if other than the default (based) storage
-class (see Section 3.2.2.4).
+class (see @ref{Storage Class Keywords}).
 
 [BASEALIGN basealign-option ]@*
 BASEALIGN specifies the alignment of an ITEM. basealign-option is either an
@@ -2802,19 +2949,20 @@ BASEALIGN aligns the item on a multiple of the value of the basealign-option.
 [DIMENSION [lbound:]hbound]@*
 Specifies that the item is an array. If a single value is specified, that value
 indicates the number of elements in the array.  Otherwise, lbound and hbound
-represent lower and upper bounds of the array, respectively (see Section
-3.2.2.7).
+represent lower and upper bounds of the array, respectively (see
+@ref{DIMENSION Keyword}).
 
 [PREFIX prefix-string]@*
 Specifies a user-defined prefix that becomes part of the identifier. It can be
 any valid OpenSDL name with 0 to 32 characters, may or may not be enclosed in
-quotation marks (" ") and may be null (see Section 3.2.2.2).
+quotation marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG
+Keywords}.
 
 [TAG tag-string]@*
 Specifies the user-defined tag that follows the prefix used in forming the
 identifier. It can be any valid OpenSDL name with 0 to 32 alphabetic or numeric
 characters; the tag must be enclosed in quotation marks (" ") if it begins with
-a numeric character (see Section 3.2.2.2).
+a numeric character (see @ref{PREFIX, MARKER, and TAG Keywords}.
 
 @unnumberedsec AGGREGATE Declaration
 
@@ -2968,13 +3116,13 @@ of field Y with the specified type overlaid with a structure containing the
 fields in Y. In some language translations, such as BLISS and MACRO, the
 OpenSDL-generated union and structure (X and Y above) can be suppressed in the
 output because they are considered extraneous fields. In other languages, such
-as PL/I and C, it is necessary to use the OpenSDL-generated union and structure
-to generate the correct offsets within a structure. Because the union is of the
-length specified in the structure type, no filler is necessary to ensure that
-subsequent fields (for example, last_item) are at the correct offset.  If the
-fields of a structure extend past the size specified, OpenSDL flags the
-overflow.  The PL/I translation for the previous implicit union declaration
-example is as follows:
+as Kednos PL/I and C, it is necessary to use the OpenSDL-generated union and
+structure to generate the correct offsets within a structure. Because the union
+is of the length specified in the structure type, no filler is necessary to
+ensure that subsequent fields (for example, last_item) are at the correct
+offset.  If the fields of a structure extend past the size specified, OpenSDL
+flags the overflow.  The PL/I translation for the previous implicit union
+declaration example is as follows:
 
 @example
 DCL 1 A BASED ,
@@ -3008,8 +3156,8 @@ of the type specified by the structure type.
 
 The fid structure is a three-word field that can be addressed as a single field
 or by each individual word so that it is easily defined in OpenSDL as
-represented above. The following is the PL/I translation for the OpenSDL source
-code in the previous example:
+represented above. The following is the Kednos PL/I translation for the OpenSDL
+source code in the previous example:
 
 @example
 DCL 1 fill_0 union BASED ,
@@ -3118,8 +3266,8 @@ AGGREGATE dcb STRUCTURE PREFIX dcb$;
     END flags;
 @end example
 
-The PL/I translation of the OpenSDL AGGREGATE declaration in the previous
-example is as follows:
+The Kednos PL/I translation of the OpenSDL AGGREGATE declaration in the
+previous example is as follows:
 
 @example
 %replace dcb$s_dcb by 2;
@@ -3228,18 +3376,18 @@ Specifies any valid OpenSDL name used to identify the aggregate.
 
 @{STRUCTURE@}@*
 @{UNION@}@*
-Is the type of aggregate (see Section 4.5).
+Is the type of aggregate (see @ref{Aggregate Description}).
 
 [data-type]@*
 If specified, causes the AGGREGATE declaration to become an implicit union
-declaration (see Section 4.5).
+declaration (see @ref{Aggregate Description}).
 
 [COMMON]@*
 [GLOBAL]@*
 [BASED pointer-name]@*
 [TYPEDEF]@*
 Is the storage class of the aggregate, if other than the default (BASED) (see
-Section 3.2.2.4). If an aggregate is the object of an ADDRESS declaration, it
+@ref{Storage Class Keywords}). If an aggregate is the object of an ADDRESS declaration, it
 must have either the default or the BASED pointer-name storage class.
 
 [ALIGN]@*
@@ -3268,7 +3416,7 @@ The aggregate will be padded, so that in an array of elements of this
 aggregate, all elements will have a size that is a multiple of the given
 alignment (256, 28).  Alignment attributes on aggregates can be partially
 overridden by specifying alignment attributes on the members of the aggregate.
-See also Section 3.2.2.3.
+See also @ref{Alignment Keywords}.
 
 [DIMENSION [lbound:]hbound]@*
 Specifies that the aggregate is an array. If a single value is specified, that
@@ -3283,13 +3431,14 @@ marks (" ") and may be null.
 [PREFIX prefix-string]@*
 Specifies the prefix used in forming the names of aggregate members. It may be
 any valid  SDL name with 0 to 32 characters, may or may not be enclosed in
-quotation marks (" ") and may be null (see Section 3.2.2.2).
+quotation marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG
+Keywords}).
 
 [TAG tag-string]@*
 Specifies the tag used to form the aggregate name. The tag is appended to the
 prefix, if a prefix was specified. It can have 0 to 32 alphabetic or numeric
 characters; the tag must be enclosed in quotation marks (" ") if it begins with
-a numeric character (see Section 3.2.2.2).
+a numeric character (see @ref{PREFIX, MARKER, and TAG Keywords}).
 
 [ORIGIN member-name]@*
 Specifies the name of a member of this aggregate that is to be used as the
@@ -3312,7 +3461,7 @@ member-name@*
 Is any valid OpenSDL name used to identify the member.
 
 @{data-type@}@*
-Is any valid OpenSDL data type (see Section 3.2.3).
+Is any valid OpenSDL data type (see @ref{Data Type Keywords}).
 
 @{aggregate-name@}@*
 Is the name of the previously declared aggregate to be used as a type name. The
@@ -3321,7 +3470,7 @@ and tag.
 
 @{user-type sizeopt@}@*
 Is a user-defined variable using the DECLARE statement’s SIZEOF clause, shown
-and described in Section 3.10.
+and described in @ref{DECLARE Statement}.
 
 [ALIGN]@*
 [NOALIGN]@*
@@ -3331,7 +3480,8 @@ on a member declaration. For example:
 
 @code{StructMember1 LONGWORD SIGNED ALIGN;}
 
-This ensures that the member is aligned, even if it is within an aggregate that is not aligned.
+This ensures that the member is aligned, even if it is within an aggregate that
+is not aligned.
 
 @code{StructMember1 LONGWORD SIGNED NOALIGN;}
 
@@ -3342,25 +3492,25 @@ No action will be taken to ensure that this member will be aligned.
 Here, StructMember1 will have an offset that is a multiple of 16 (24).
 
 basealign-option can either be an expression in parentheses or the name of a
-data type.  See also Section 3.2.2.3.
+data type.  See also @ref{Alignment Keywords}.
 
 [DIMENSION [lbound:]hbound]@*
 Specifies that the member is an array. If a single value is specified, that
 value indicates the number of elements in the array. Otherwise, lbound and
-hbound represent lower and upper bounds of the array, respectively (see Section
-3.2.2.7).
+hbound represent lower and upper bounds of the array, respectively (see 
+@ref{DIMENSION Keyword}).
 
 [PREFIX prefix-string]@*
 Specifies the prefix used to form the member name. For subaggregates, the
 prefix is used to form the names of subaggregate members.  It may be any valid
 OpenSDL name with 0 to 32 characters, may or may not be enclosed in quotation
-marks (" ") and may be null (see Section 3.2.2.2).
+marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG Keywords}).
 
 [TAG tag-string]@*
 Specifies the tag used to form the member name. The tag is appended to the
 prefix, if a prefix was specified. It can have 0 to 32 alphabetic or numeric
 characters; the tag must be enclosed in quotation marks (" ") if it begins with
-a numeric character (see Section 3.2.2.2).
+a numeric character (see @ref{PREFIX, MARKER, and TAG Keywords}).
 
 [FILL]@*
 Indicates that the specified member or aggregate occurs only as a fill to force
@@ -3545,7 +3695,8 @@ CONSTANT constant-name constant-class
     numeric-options = [ PREFIX prefix-string ]
                       [ TAG tag-string ]
                       [ COUNTER #local-name ]
-                      [ TYPENAME type-name ] ;
+                      [ TYPENAME type-name ]
+                      [ RADIX radix-name ];
     string-options =  [ PREFIX prefix-string ]
                       [ TAG tag-string ] ;
 
@@ -3576,13 +3727,13 @@ Specifies the value to be assigned to the constant.
 [PREFIX prefix-string]@*
 Specifies the prefix used to form the constant name. It may be any valid
 OpenSDL name with 0 to 32 characters, may or may not be enclosed in quotation
-marks (" ") and may be null (see Section 3.2.2.2).
+marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG Keywords}).
 
 [TAG tag-string]@*
 Specifies the tag used to form the constant name. The tag is appended to the
 prefix, if a prefix was specified. It can have 0 to 32 alphabetic or numeric
 characters; the tag must be enclosed in quotation marks (" ") if it begins with
-a numeric character (see Section 3.2.2.2).
+a numeric character (see @ref{PREFIX, MARKER, and TAG Keywords}).
 
 [COUNTER #local-name]@*
 Specifies the local symbol assigned to the last value that is assigned to a
@@ -3590,6 +3741,20 @@ constant in the list.
 
 [TYPENAME type-name]@*
 Specifies a named data type that is not an OpenSDL data type.
+
+[RADIX radix-name]@*
+Specifies how the number should be written out to the output file.  It can
+take one of three possible values:
+
+@multitable @columnfractions .4 .6
+@headitem radix-name @tab Description
+@item DEC @tab Write the value out in decimal format (the is the default)
+@item @tab @code{#define constant-name    123}
+@item OCT @tab Write the value out in octal format
+@item @tab @code{#define constant-name    %O175}
+@item HEX @tab Write the value out in hexadecimal format
+@item @tab @code{#define constant-name    %X7D}
+@end multitable
 
 (constant-name,...)@*
 Is a list of valid names.
@@ -3615,8 +3780,8 @@ declaration.
 An ENTRY declaration produces an external procedure or function declaration in
 the output file. You must specify a valid entry name on the ENTRY declaration.
 You may also specify any or all of the ENTRY declaration options described in
-Table 3–2 in Section 3.2.2 and shown within the context of an ENTRY declaration
-in Section 4.10.
+@ref{Keywords Used in Declarations} in @ref{Declaration Modifier Keywords} and
+shown within the context of an ENTRY declaration in @ref{ENTRY Format}.
 
 The following example shows the ENTRY declaration for the VMS system service
 SYS$GETJPI:
@@ -3715,7 +3880,7 @@ Specifies a named data type that is not an OpenSDL data type.
 [OPTIONAL]@*
 Specifies that the parameter may or may not appear in the sequence of (keyword)
 parameters for a call using the entry point name. This is supported only in
-Ada, BASIC,  BLISS, MACRO, and PL/I output.
+Ada, BASIC,  BLISS, MACRO, and Kednos PL/I output.
 
 [LIST]@*
 Indicates that the routine may be called with one or more parameters of the
@@ -3751,7 +3916,8 @@ return-data-type = @{ data-type @}
 @end example
 
 The argument user-type sizeopt specifies a user-defined type declared using the
-DECLARE statement’s SIZEOF clause, shown and described in Section 3.10.
+DECLARE statement’s SIZEOF clause, shown and described in @ref{DECLARE
+Statement}.
 
 The return type VOID indicates that the procedure returns no value.
 
@@ -3759,9 +3925,9 @@ The return type VOID indicates that the procedure returns no value.
 Specifies a named data type for the return value that is not an OpenSDL data
 type.
 
-@appendix A
-
-@unnumberedsec OpenSDL Diagnostic Messages
+@node OpenSDL Diagnostic Messages
+@appendix OpenSDL Diagnostic Messages
+@cindex OpenSDL Diagnostic Messages
 
 This appendix summarizes the OpenSDL diagnostic messages. All messages
 indicating errors in OpenSDL syntax specify the line number in the OpenSDL
@@ -4136,9 +4302,9 @@ User Action: Correct the declaration. If the length or bound value was
 specified using an OpenSDL expression, verify the local symbol values and the
 results of arithmetic operations in the expression, if any.
 
-@appendix B
-
-@unnumberedsec OpenSDL Language Translation Summaries
+@node OpenSDL Language Translation Summaries
+@appendix OpenSDL Language Translation Summaries
+@cindex OpenSDL Language Translation Summaries
 
 This appendix shows the translation summaries of OpenSDL language elements to
 their corresponding output in each of the following supported languages:
@@ -4152,7 +4318,7 @@ their corresponding output in each of the following supported languages:
 @item FORTRAN
 @item MACRO
 @item Pascal
-@item PL/I
+@item Kednos PL/I
 @item SDML
 @item DECTPU
 @item UIL
@@ -4166,7 +4332,7 @@ The following table shows the OpenSDL to Ada language translation summary.
 @headitem OpenSDL Declaration @tab Ada Output
 @item MODULE name IDENT string @tab - - module name IDENT string
 @item /* comment @tab - - comment
-@item CONSTANT x @tab
+@item CONSTANT x
 @item EQUALS n; @tab x : constant := n ;
 @item EQUALS STRING "s"; @tab x : constant STRING := "s";
 @item ENTRY name @tab procedure name
@@ -4489,872 +4655,850 @@ structure-name_INIT : constant structure-name :=
 Size is the size of the field in bits, and total_size is the size of the entire
 record in bits.
 
-BASIC Translation Summary
+@unnumberedsec BASIC Translation Summary
 
 The following table shows the OpenSDL to BASIC language translation summary.
 
-OpenSDL Declaration BASIC Output
-MODULE name IDENT string !*** MODULE name IDENT string ***
-/* comment ! comment
-CONSTANT x
-EQUALS n; DECLARE LONG CONSTANT x = n
-EQUALS STRING "s"; DECLARE STRING CONSTANT x = "s"
-ENTRY name EXTERNAL SUB name
-PARAMETER (type,...) ( &
-type, &
-.
-.
-)
-ANY ANY
-DESCRIPTOR BY DESC
-RTL_STR_DESC BY DESC
-IN n/a
-OUT n/a
-NAMED param-name n/a
-VALUE BY VALUE
-REFERENCE BY REF
-DEFAULT n n/a
-LIST Yields one explicit parameter description plus m-n commas,
-where m is the maximum number of parameters allowable in
-BASIC, and n is the number of parameters already specified
-(including the LIST parameter description).
-OPTIONAL OPTIONAL data-type
-TYPENAME type-name n/a
-RETURNS return-data-type EXTERNAL data-type FUNCTION name
-NAMED param-name n/a
-VARIABLE n/a
-ALIAS n/a
-LINKAGE n/a
-TYPENAME type-name n/a
-STRUCTURE DECLARE LONG CONSTANT markerS_structure-name = size
-RECORD struct-name
-type member-name
-.
-.
-.
-END RECORD struct-name
-UNION DECLARE LONG CONSTANT markerS_union-name = size
-RECORD union-name
-VARIANT
-CASE
-type member-name
-.
-.
-.
-END VARIANT
-END RECORD union-name
-BYTE [SIGNED] BYTE
-INTEGER_BYTE [SIGNED] BYTE
-WORD [SIGNED] WORD
-INTEGER_WORD [SIGNED] WORD
-LONGWORD [SIGNED] LONG
-INTEGER_LONG [SIGNED] LONG
-INTEGER [SIGNED] LONG
-INTEGER_HW [SIGNED] BASIC$QUADWORD for /ALPHA
-LONG for /VAX
-HARDWARE_INTEGER [SIGNED] BASIC$QUADWORD for /ALPHA
-LONG for /VAX
-QUADWORD [SIGNED] BASIC$QUADWORD
-INTEGER_QUAD [SIGNED] BASIC$QUADWORD
-OCTAWORD BASIC$OCTAWORD
-BYTE UNSIGNED BYTE
-INTEGER_BYTE UNSIGNED BYTE
-WORD UNSIGNED WORD
-INTEGER_WORD UNSIGNED WORD
-LONGWORD UNSIGNED LONG
-INTEGER_LONG UNSIGNED LONG
-INTEGER UNSIGNED LONG
-QUADWORD UNSIGNED BASIC$QUADWORD
-INTEGER_QUAD UNSIGNED BASIC$QUADWORD
-INTEGER_HW UNSIGNED BASIC$QUADWORD for /ALPHA
-LONG for /VAX
-HARDWARE_INTEGER UNSIGNED BASIC$QUADWORD for /ALPHA
-LONG for /VAX
-OCTAWORD UNSIGNED BASIC$OCTAWORD
-F_FLOATING SINGLE
-D_FLOATING DOUBLE
-G_FLOATING GFLOAT
-H_FLOATING BASIC$HFLOAT_AXP for /ALPHA
-HFLOAT for /VAX
-F_FLOATING COMPLEX BASIC$F_FLOATING_COMPLEX
-D_FLOATING COMPLEX BASIC$D_FLOATING_COMPLEX
-G_FLOATING COMPLEX BASIC$G_FLOATING_COMPLEX
-H_FLOATING COMPLEX BASIC$H_FLOATING_COMPLEX_AXP for /ALPHA
-BASIC$H_FLOATING_COMPLEX for /VAX
-DECIMAL PRECISION (p,q) DECIMAL (p,q)
-BITFIELD type name_bits ! COMMENT ADDED
-BY SDL name_bits contains bits name1 through name2
-LENGTH n n is used in computing size (type) of name_bits field.
-MASK DECLARE LONG CONSTANT prefix$m_name = x’mask-value’
-SIGNED n/a
-CHARACTER STRING name = 1
-LENGTH n STRING name = n
-LENGTH * STRING
-VARYING group name
-WORD str-len
-STRING str-text = n, where n is the maximum length of the
-string
-end group name
-ADDRESS LONG name
-POINTER LONG name
-POINTER_LONG LONG name
-POINTER_HW BASIC$QUADWORD name for /ALPHA
-LONG name for /VAX
-HARDWARE_ADDRESS BASIC$QUADWORD name for /ALPHA
-LONG name for /VAX
-POINTER_QUAD BASIC$QUADWORD name
-BOOLEAN BYTE name
-user-type-name user_type_name
-COMMON storage class COMMON name name
-GLOBAL storage class EXTERNAL name name
-BASED pointer-name n/a
-TYPEDEF For an ITEM, a record definition is generated. For an
-AGGREGATE, the behavior is as though TYPEDEF had not
-been specified.
-DIMENSION [lbound:]hbound type name (lbound to hbound); if lbound was not
-specified in SDL, lbound is 1 in the BASIC output
-ORIGIN member-name n/a
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab BASIC Output
+@item MODULE name IDENT string @tab !*** MODULE name IDENT string ***
+@item /* comment @tab ! comment
+@item CONSTANT x
+@item EQUALS n; @tab DECLARE LONG CONSTANT x = n
+@item EQUALS STRING "s"; @tab DECLARE STRING CONSTANT x = "s"
+@item ENTRY name @tab EXTERNAL SUB name
+@item PARAMETER (type,...) @tab ( &
+@item @tab type, &
+@item @tab .
+@item @tab .
+@item @tab .
+@item @tab )
+@item ANY @tab ANY
+@item DESCRIPTOR @tab BY DESC
+@item RTL_STR_DESC @tab BY DESC
+@item IN @tab n/a
+@item OUT @tab n/a
+@item NAMED param-name @tab n/a
+@item VALUE @tab BY VALUE
+@item REFERENCE @tab BY REF
+@item DEFAULT n @tab n/a
+@item LIST @tab Yields one explicit parameter description plus m-n commas,
+where m is the maximum number of parameters allowable in BASIC, and n is the
+number of parameters already specified (including the LIST parameter
+description).
+@item OPTIONAL @tab OPTIONAL data-type
+@item TYPENAME type-name @tab n/a
+@item RETURNS return-data-type @tab EXTERNAL data-type FUNCTION name
+@item NAMED param-name @tab n/a
+@item VARIABLE @tab n/a
+@item ALIAS @tab n/a
+@item LINKAGE @tab n/a
+@item TYPENAME type-name @tab n/a
+@item STRUCTURE @tab DECLARE LONG CONSTANT markerS_structure-name = size
+@item @tab RECORD struct-name
+@item @tab type member-name
+@item @tab .
+@item @tab .
+@item @tab .
+@item @tab END RECORD struct-name
+@item UNION @tab DECLARE LONG CONSTANT markerS_union-name = size
+@item @tab RECORD union-name
+@item @tab VARIANT
+@item @tab CASE
+@item @tab type member-name
+@item @tab .
+@item @tab .
+@item @tab .
+@item @tab END VARIANT
+@item @tab END RECORD union-name
+@item BYTE [SIGNED] @tab BYTE
+@item INTEGER_BYTE [SIGNED] @tab BYTE
+@item WORD [SIGNED] @tab WORD
+@item INTEGER_WORD [SIGNED] @tab WORD
+@item LONGWORD [SIGNED] @tab LONG
+@item INTEGER_LONG [SIGNED] @tab LONG
+@item INTEGER [SIGNED] @tab LONG
+@item INTEGER_HW [SIGNED] @tab BASIC$QUADWORD for /ALPHA
+@item @tab LONG for /VAX
+@item HARDWARE_INTEGER [SIGNED] @tab BASIC$QUADWORD for /ALPHA
+@item @tab LONG for /VAX
+@item QUADWORD [SIGNED] @tab BASIC$QUADWORD
+@item INTEGER_QUAD [SIGNED] @tab BASIC$QUADWORD
+@item OCTAWORD @tab BASIC$OCTAWORD
+@item BYTE UNSIGNED @tab BYTE
+@item INTEGER_BYTE UNSIGNED @tab BYTE
+@item WORD UNSIGNED @tab WORD
+@item INTEGER_WORD UNSIGNED @tab WORD
+@item LONGWORD UNSIGNED @tab LONG
+@item INTEGER_LONG UNSIGNED @tab LONG
+@item INTEGER UNSIGNED @tab LONG
+@item QUADWORD UNSIGNED @tab BASIC$QUADWORD
+@item INTEGER_QUAD UNSIGNED @tab BASIC$QUADWORD
+@item INTEGER_HW UNSIGNED @tab BASIC$QUADWORD for /ALPHA
+@item @tab LONG for /VAX
+@item HARDWARE_INTEGER UNSIGNED BASIC$QUADWORD for /ALPHA
+@item @tab LONG for /VAX
+@item OCTAWORD UNSIGNED @tab BASIC$OCTAWORD
+@item T_FLOATING @tab SINGLE
+@item S_FLOATING @tab DOUBLE
+@item T_FLOATING COMPLEX @tab BASIC$T_FLOATING_COMPLEX
+@item S_FLOATING COMPLEX @tab BASIC$S_FLOATING_COMPLEX
+@item DECIMAL PRECISION (p,q) @tab DECIMAL (p,q)
+@item BITFIELD @tab type name_bits ! COMMENT ADDED
+@item @tab BY SDL name_bits contains bits name1 through name2
+@item LENGTH n @tab n is used in computing size (type) of name_bits field.
+@item MASK @tab DECLARE LONG CONSTANT prefix$m_name = x’mask-value’
+@item SIGNED @tab n/a
+@item CHARACTER @tab STRING name = 1
+@item LENGTH n @tab STRING name = n
+@item LENGTH * @tab STRING
+@item VARYING @tab group name
+@item @tab WORD str-len
+@item @tab STRING str-text = n, where n is the maximum length of the string
+@item @tab end group name
+@item ADDRESS @tab LONG name
+@item POINTER @tab LONG name
+@item POINTER_LONG @tab LONG name
+@item POINTER_HW @tab BASIC$QUADWORD name for /ALPHA
+@item @tab LONG name for /VAX
+@item HARDWARE_ADDRESS @tab BASIC$QUADWORD name for /ALPHA
+@item @tab LONG name for /VAX
+@item POINTER_QUAD @tab BASIC$QUADWORD name
+@item BOOLEAN @tab BYTE name
+@item user-type-name @tab user_type_name
+@item COMMON storage class @tab COMMON name name
+@item GLOBAL storage class @tab EXTERNAL name name
+@item BASED pointer-name @tab n/a
+@item TYPEDEF @tab For an ITEM, a record definition is generated. For an
+AGGREGATE, the behavior is as though TYPEDEF had not been specified.
+@item DIMENSION [lbound:]hbound @tab type name (lbound to hbound); if lbound
+was not specified in SDL, lbound is 1 in the BASIC output
+@item ORIGIN member-name @tab n/a
+@end multitable
 
-BLISS Translation Summary
+@unnumberedsec BLISS Translation Summary
 
 The following table shows the OpenSDL to BLISS language translation summary.
 
-OpenSDL Declaration BLISS Output
-MODULE name IDENT string !*** MODULE name IDENT string ***
-/* comment ! comment
-CONSTANT x
-EQUALS n; LITERAL x = n;
-EQUALS STRING "s"; macro x = ’s’%;
-ENTRY name EXTERNAL ROUTINE name
-EXTERNAL ROUTINE name: NOVALUE ;
-PARAMETER (type,...) n/a
-ANY n/a
-DESCRIPTOR n/a
-RTL_STR_DESC n/a
-IN n/a
-OUT n/a
-NAMED param-name n/a
-VALUE n/a
-REFERENCE n/a
-DEFAULT n Used in KEYWORDMACRO when the /VMS_DEVELOPMENT
-qualifier is specified
-LIST Generates invocation of special predefined macro to handle LIST
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab BLISS Output
+@item MODULE name IDENT string @tab !*** MODULE name IDENT string ***
+@item /* comment @tab ! comment
+@item CONSTANT x
+@item EQUALS n; @tab LITERAL x = n;
+@item EQUALS STRING "s"; @tab macro x = ’s’%;
+@item ENTRY name @tab EXTERNAL ROUTINE name
+@item @tab EXTERNAL ROUTINE name: NOVALUE ;
+@item PARAMETER (type,...) @tab n/a
+@item ANY @tab n/a
+@item DESCRIPTOR @tab n/a
+@item RTL_STR_DESC @tab n/a
+@item IN @tab n/a
+@item OUT @tab n/a
+@item NAMED param-name @tab n/a
+@item VALUE @tab n/a
+@item REFERENCE @tab n/a
+@item DEFAULT n @tab Used in KEYWORDMACRO when the /VMS_DEVELOPMENT qualifier
+is specified
+@item LIST @tab Generates invocation of special predefined macro to handle LIST
 parameters
-OPTIONAL Generates invocation of special predefined macro to handle
-OPTIONAL parameters when the /VMS_DEVELOPMENT
-qualifier is specified
-TYPENAME type-name n/a
-RETURNS return-data-type n/a
-NAMED param-name n/a
-VARIABLE n/a
-ALIAS internal-name When the /VMS_DEVELOPMENT qualifier is specified,
-internal-name becomes the name of the BLISS KEYWORDMACRO
-generated for the ENTRY declaration.
-LINKAGE n/a
-TYPENAME type-name n/a
-STRUCTURE and UNION Each aggregate or member declaration in OpenSDL produces a
-BLISS macro declaration of the form:
-MACRO name = off,pos,size,ext %;
-The BLISSF back end translates each aggregate and associated
-member declaration in OpenSDL to a BLISS field declaration.
-The field-set-name is of the form prefix$name_FIELDSET,
-where prefix is declared for the entire aggregate and name is
-the aggregate name.
+@item OPTIONAL @tab Generates invocation of special predefined macro to handle
+OPTIONAL parameters when the /VMS_DEVELOPMENT qualifier is specified.
+@item TYPENAME type-name @tab n/a
+@item RETURNS return-data-type @tab n/a
+@item NAMED param-name @tab n/a
+@item VARIABLE @tab n/a
+@item ALIAS internal-name @tab When the /VMS_DEVELOPMENT qualifier is
+specified, internal-name becomes the name of the BLISS KEYWORDMACRO generated
+for the ENTRY declaration.
+@item LINKAGE @tab n/a
+@item TYPENAME type-name @tab n/a
+@item STRUCTURE and UNION @tab Each aggregate or member declaration in OpenSDL
+produces a BLISS macro declaration of the form:@*
+@code{MACRO name = off,pos,size,ext %;}@*
+The BLISSF back end translates each aggregate and associated member declaration
+in OpenSDL to a BLISS field declaration.  The field-set-name is of the form
+prefix$name_FIELDSET, where prefix is declared for the entire aggregate and
+name is the aggregate name.
+@example
 FIELD prefix$name_FIELDSET=
-SET
-member-name = [off,pos,size,ext];
-.
-.
-.
-TES;
+    SET
+        member-name = [off,pos,size,ext];
+        .
+        .
+        .
+    TES;
 literal prefix$s_name = size;
 MACRO prefix$r_name = BLOCK
-[pref$_name,BYTE]
-FIELD
-(prefix$name_FIELDSET)%;
-off
+    [pref$_name,BYTE]
+    FIELD
+        (prefix$name_FIELDSET)%;
+@end example
+@strong{off}@*
 Byte offset of this aggregate or item within the current aggregate
-pos
+@strong{pos}@*
 Bit position from the offset
-size
-Size of the aggregate of item, in bits, if the size is 4 bytes or
-less. Otherwise, this field contains 0, and OpenSDL generates
-the size declaration.
-ext
-Contains 0 if the value is zero extended, or 1 if the value is sign
-extended or SIGNED bit.
-The following OpenSDL data types generate field specifications of
-the form "off,pos,size,ext" in various contexts. Where necessary,
-constants indicating the size of the data type (field) are also
-generated.
-BYTE [SIGNED] off,pos,8,1
-INTEGER_BYTE [SIGNED] off,pos,8,1
-WORD [SIGNED] off,pos,16,1
-INTEGER_WORD [SIGNED] off,pos,16,1
-LONGWORD [SIGNED] off,pos,32,1
-INTEGER_LONG [SIGNED] off,pos,32,1
-INTEGER [SIGNED] off,pos,32,1
-INTEGER_HW [SIGNED] off,pos,0,1 for /ALPHA
-off,pos,64,1 for /ALPHA/B64
-off,pos,32,1 for /VAX
-HARDWARE_INTEGER [SIGNED] off,pos,0,1 for /ALPHA
-off,pos,64,1 for /ALPHA/B64
-off,pos,32,1 for /VAX
-QUADWORD [SIGNED] off,pos,0,1 for /ALPHA
-off,pos,64,1 for /ALPHA/B64
-off,pos,0,1 for /VAX
-INTEGER_QUAD [SIGNED] off,pos,0,1 for /ALPHA
-off,pos,64,1 for /ALPHA/B64
-off,pos,0,1 for /VAX
-OCTAWORD [SIGNED] off,pos,0,1
-BYTE UNSIGNED off,pos,8,0
-INTEGER_BYTE UNSIGNED off,pos,8,0
-WORD UNSIGNED off,pos,16,0
-INTEGER_WORD UNSIGNED off,pos,16,0
-LONGWORD UNSIGNED off,pos,32,0
-INTEGER_LONG UNSIGNED off,pos,32,0
-INTEGER UNSIGNED off,pos,32,0
-INTEGER_HW UNSIGNED off,pos,0,0 for /ALPHA
-off,pos,64,0 for /ALPHA/B64
-off,pos,32,0 for /VAX
-HARDWARE_INTEGER UNSIGNED off,pos,0,0 for /ALPHA
-off,pos,64,0 for /ALPHA/B64
-off,pos,32,0 for /VAX
-QUADWORD [SIGNED] off,pos,0,0 for /ALPHA
-off,pos,64,0 for /ALPHA/B64
-off,pos,0,0 for /VAX
-INTEGER_QUAD [SIGNED] off,pos,0,0 for /ALPHA
-off,pos,64,0 for /ALPHA/B64
-off,pos,0,0 for /VAX
-OCTAWORD UNSIGNED off,pos,0,0
-F_FLOATING off,pos,32,0
-D_FLOATING off,pos,0,0 for /ALPHA
-off,pos,64,0 for /ALPHA/B64
-off,pos,0,0 for /VAX
-literal prefix$s_name = 8;
-G_FLOATING off,pos,0,0 for /ALPHA
-off,pos,64,0 for /ALPHA/B64
-off,pos,0,0 for /VAX
-literal prefix$s_name = 8;
-H_FLOATING off,pos,0,0
-literal prefix$s_name = 16;
-If you specify /LANGUAGES=BLISSF, a special set of macros
-and FIELDSETs, which define the particular COMPLEX data
-type and its real and imaginary components, are generated.
-F_FLOATING COMPLEX off,pos,0,0 for /ALPHA
-COMPLEX off,pos,64,0 for /ALPHA/B64
-COMPLEX off,pos,0,0 for /VAX
-literal prefix$s_name = 8;
-D_FLOATING COMPLEX off,pos,0,0
-literal prefix$s_name = 16;
-G_FLOATING COMPLEX off,pos,0,0
-literal prefix$s_name = 16;
-H_FLOATING COMPLEX off,pos,0,0
-literal prefix$s_name = 32;
-DECIMAL PRECISION (p,q) n/a
-BITFIELD off,pos,size,0
-literal prefix$_name = size;
-LENGTH n off,pos,n,0
-literal prefix$_name = n;
-MASK literal prefix$m_name = mask-value; where mask-value is the
+@strong{size}@*
+Size of the aggregate of item, in bits, if the size is 4 bytes or less.
+Otherwise, this field contains 0, and OpenSDL generates the size declaration.
+@strong{ext}@*
+Contains 0 if the value is zero extended, or 1 if the value is sign extended or
+SIGNED bit.
+
+The following OpenSDL data types generate field specifications of the form
+"off,pos,size,ext" in various contexts. Where necessary, constants indicating
+the size of the data type (field) are also generated.
+@item BYTE [SIGNED] @tab off,pos,8,1
+@item INTEGER_BYTE [SIGNED] @tab off,pos,8,1
+@item WORD [SIGNED] @tab off,pos,16,1
+@item INTEGER_WORD [SIGNED] @tab off,pos,16,1
+@item LONGWORD [SIGNED] @tab off,pos,32,1
+@item INTEGER_LONG [SIGNED] @tab off,pos,32,1
+@item INTEGER [SIGNED] @tab off,pos,32,1
+@item INTEGER_HW [SIGNED] @tab off,pos,0,1 for /ALPHA
+@item @tab off,pos,64,1 for /ALPHA/B64
+@item @tab off,pos,32,1 for /VAX
+@item HARDWARE_INTEGER [SIGNED] @tab off,pos,0,1 for /ALPHA
+@item @tab off,pos,64,1 for /ALPHA/B64
+@item @tab off,pos,32,1 for /VAX
+@item QUADWORD [SIGNED] @tab off,pos,0,1 for /ALPHA
+@item @tab off,pos,64,1 for /ALPHA/B64
+@item @tab off,pos,0,1 for /VAX
+@item INTEGER_QUAD [SIGNED] @tab off,pos,0,1 for /ALPHA
+@item @tab off,pos,64,1 for /ALPHA/B64
+@item @tab off,pos,0,1 for /VAX
+@item OCTAWORD [SIGNED] @tab off,pos,0,1
+@item BYTE UNSIGNED @tab off,pos,8,0
+@item INTEGER_BYTE UNSIGNED @tab off,pos,8,0
+@item WORD UNSIGNED @tab off,pos,16,0
+@item INTEGER_WORD UNSIGNED @tab off,pos,16,0
+@item LONGWORD UNSIGNED @tab off,pos,32,0
+@item INTEGER_LONG UNSIGNED @tab off,pos,32,0
+@item INTEGER UNSIGNED @tab off,pos,32,0
+@item INTEGER_HW UNSIGNED @tab off,pos,0,0 for /ALPHA
+@item @tab off,pos,64,0 for /ALPHA/B64
+@item @tab off,pos,32,0 for /VAX
+@item HARDWARE_INTEGER UNSIGNED @tab off,pos,0,0 for /ALPHA
+@item @tab off,pos,64,0 for /ALPHA/B64
+@item @tab off,pos,32,0 for /VAX
+@item QUADWORD [SIGNED] @tab off,pos,0,0 for /ALPHA
+@item @tab off,pos,64,0 for /ALPHA/B64
+@item @tab off,pos,0,0 for /VAX
+@item INTEGER_QUAD [SIGNED] @tab off,pos,0,0 for /ALPHA
+@item @tab off,pos,64,0 for /ALPHA/B64
+@item @tab off,pos,0,0 for /VAX
+@item OCTAWORD UNSIGNED @tab off,pos,0,0
+@item T_FLOATING @tab off,pos,32,0
+@item S_FLOATING @tab off,pos,0,0 for /ALPHA
+@item @tab off,pos,64,0 for /ALPHA/B64
+@item @tab off,pos,0,0 for /VAX
+@item @tab literal prefix$s_name = 8;
+@item T_FLOATING COMPLEX @tab off,pos,0,0 for /ALPHA
+@item @tab COMPLEX off,pos,64,0 for /ALPHA/B64
+@item @tab COMPLEX off,pos,0,0 for /VAX
+@item @tab literal prefix$s_name = 8;
+@item S_FLOATING COMPLEX @tab off,pos,0,0
+@item @tab literal prefix$s_name = 16;
+@item DECIMAL PRECISION (p,q) @tab n/a
+@item BITFIELD @tab off,pos,size,0
+@item @tab literal prefix$_name = size;
+@item LENGTH n @tab off,pos,n,0
+@item @tab literal prefix$_name = n;
+@item MASK @tab literal prefix$m_name = mask-value; where mask-value is the
 decimal equivalent of the binary mask
-SIGNED off,pos,size,1
-CHARACTER off,pos,size,0
-LENGTH n literal prefix$_name = n;
-LENGTH * n/a
-VARYING off,pos,size,0; where size = (length + 2) * 8. If (length + 2) > 4,
-then size = 0.
-literal prefix$s_name = <length + 2>;
-ADDRESS off,pos,32,0
-POINTER off,pos,32,1
-POINTER_LONG off,pos,32,1
-POINTER_HW off,pos,0,1 for /ALPHA
-off,pos,64,1 for /ALPHA/B64
-off,pos,32,1 for /VAX
-HARDWARE_ADDRESS off,pos,0,1 for /ALPHA
-off,pos,64,1 for /ALPHA/B64
-off,pos,32,1 for /VAX
-POINTER_QUAD off,pos,0,1 for /ALPHA
-off,pos,64,1 for /ALPHA/B64
-off,pos,0,1 for /VAX
-BOOLEAN off,pos,8,0
-user-type-name off,pos,size,0; where size is dependent upon the type indicated
-by user-type-name
-Default storage class n/a
-COMMON storage class EXTERNAL
-with /GLOBALDEF GLOBAL
-GLOBAL storage class EXTERNAL
-with /GLOBALDEF GLOBAL
-BASED pointer-name n/a
-TYPEDEF n/a
-DIMENSION [lbound:]hbound lbound and hbound are only used to determine the total size of
-the item, which is reflected in: literal prefix$s_name = size;
-ORIGIN member-name n/a
+@item SIGNED @tab off,pos,size,1
+@item CHARACTER @tab off,pos,size,0
+@item LENGTH n @tab literal prefix$_name = n;
+@item LENGTH * @tab n/a
+@item VARYING @tab off,pos,size,0; where size = (length + 2) * 8.
+If (length + 2) > 4, then size = 0.
+@item @tab literal prefix$s_name = <length + 2>;
+@item ADDRESS @tab off,pos,32,0
+@item POINTER @tab off,pos,32,1
+@item POINTER_LONG @tab off,pos,32,1
+@item POINTER_HW @tab off,pos,0,1 for /ALPHA
+@item @tab off,pos,64,1 for /ALPHA/B64
+@item @tab off,pos,32,1 for /VAX
+@item HARDWARE_ADDRESS @tab off,pos,0,1 for /ALPHA
+@item @tab off,pos,64,1 for /ALPHA/B64
+@item @tab off,pos,32,1 for /VAX
+@item POINTER_QUAD @tab off,pos,0,1 for /ALPHA
+@item @tab off,pos,64,1 for /ALPHA/B64
+@item @tab off,pos,0,1 for /VAX
+@item BOOLEAN @tab off,pos,8,0
+@item user-type-name @tab off,pos,size,0; where size is dependent upon the type
+indicated by user-type-name
+@item Default storage class @tab n/a
+@item COMMON storage class @tab EXTERNAL
+@item with /GLOBALDEF @tab GLOBAL
+@item GLOBAL storage class @tab EXTERNAL
+@item with /GLOBALDEF @tab GLOBAL
+@item BASED pointer-name @tab n/a
+@item TYPEDEF @tab n/a
+@item DIMENSION [lbound:]hbound @tab lbound and hbound are only used to
+determine the total size of the item, which is reflected in: literal
+prefix$s_name = size;
+@item ORIGIN member-name @tab n/a
+@end multitable
 
-Notes
-1. The BLISS output routine does not assign data to storage classes.
-2. For all literals above, size is given in bytes.
+@quotation Notes
+@enumerate
+@item The BLISS output routine does not assign data to storage classes.
+@item For all literals above, size is given in bytes.
+@end enumerate
+@end quotation
 
-C/C++ Translation Summary
+@unnumberedsec C/C++ Translation Summary
 
-The C backend differentiates along the qualifiers /ALPHA vs. /VAX,
+@itemize @bullet
+@item The C backend differentiates along the qualifiers /ALPHA vs. /VAX,
 /[NO]VMS_DEVELOPMENT, and /[NO]C_DEVELOPMENT.
-/VMS_DEVELOPMENT and /C_DEVELOPMENT can be combined.
-When /C_DEVELOPMENT is present, every definition is translated twice, once
-between
+@item /VMS_DEVELOPMENT and /C_DEVELOPMENT can be combined.
+@item When /C_DEVELOPMENT is present, every definition is translated twice,
+once between
+@end itemize
 
+@example
 #ifdef __NEW_STARLET
-/* translation */
-#else /* __OLD_STARLET */
+    /* translation */
+#else   /* __OLD_STARLET */
+@end example
+
 and once between
-#else /* __OLD_STARLET */
-/* possibly different translation */
-#endif /* #ifdef __NEW_STARLET */
 
-So, there are 12 possibly different translations for a single data type. To make
-the translation summary more readable, abbreviations are used.
+@example
+#else   /* __OLD_STARLET */
+    /* possibly different translation */
+#endif  /* #ifdef __NEW_STARLET */
+@end example
 
-Abbreviation Qualifier combination
-a /ALPHA
-b /ALPHA/VMS_DEVELOPMENT
-c /ALPHA/VMS_DEVELOPMENT/C_DEVELOPMENT, #ifdef _ _NEW_STARLET
-d /ALPHA/VMS_DEVELOPMENT/C_DEVELOPMENT, #else
-e /ALPHA/C_DEVELOPMENT, #ifdef _ _NEW_STARLET
-f /ALPHA/C_DEVELOPMENT, #else
-g /VAX
-h /VAX/VMS_DEVELOPMENT
-i /VAX/VMS_DEVELOPMENT/C_DEVELOPMENT, #ifdef _ _NEW_STARLET
-j /VAX/VMS_DEVELOPMENT/C_DEVELOPMENT, #else
-k /VAX/C_DEVELOPMENT, #ifdef _ _NEW_STARLET
-l /VAX/C_DEVELOPMENT, #else
+So, there are 12 possibly different translations for a single data type. To
+make the translation summary more readable, abbreviations are used.
+
+@multitable @columnfractions .2 .8
+@headitem Abbreviation @tab Qualifier combination
+@item a @tab /ALPHA
+@item b @tab /ALPHA/VMS_DEVELOPMENT
+@item c @tab /ALPHA/VMS_DEVELOPMENT/C_DEVELOPMENT, @code{#ifdef __NEW_STARLET}
+@item d @tab /ALPHA/VMS_DEVELOPMENT/C_DEVELOPMENT, @code{#else}
+@item e @tab /ALPHA/C_DEVELOPMENT, @code{#ifdef __NEW_STARLET}
+@item f @tab /ALPHA/C_DEVELOPMENT, @code{#else}
+@item g @tab /VAX
+@item h @tab /VAX/VMS_DEVELOPMENT
+@item i @tab /VAX/VMS_DEVELOPMENT/C_DEVELOPMENT, @code{#ifdef __NEW_STARLET}
+@item j @tab /VAX/VMS_DEVELOPMENT/C_DEVELOPMENT, @code{#else}
+@item k @tab /VAX/C_DEVELOPMENT, @code{#ifdef __NEW_STARLET}
+@item l @tab /VAX/C_DEVELOPMENT, @code{#else}
+@end multitable
 
 The following table shows the OpenSDL to C/C++ language translation summary.
 
-OpenSDL Declaration C/C++ Output
-MODULE name IDENT string /*** MODULE name IDENT string ***/
-/* comment /* comment */
-CONSTANT x
-EQUALS n; #define x n
-EQUALS STRING "s"; #define x "s"
-ENTRY name return-type name( )
-PARAMETER (type,...) n/a
-ANY n/a
-DESCRIPTOR n/a
-RTL_STR_DESC n/a
-IN n/a
-OUT n/a
-NAMED param-name n/a
-VALUE n/a
-REFERENCE n/a
-DEFAULT n n/a
-LIST n/a
-OPTIONAL n/a
-TYPENAME type-name n/a
-RETURNS return-type return-type name( )
-NAMED param-name n/a
-VARIABLE n/a
-ALIAS internal-name n/a
-LINKAGE n/a
-TYPENAME type-name n/a
-STRUCTURE struct
-UNION union
-name BYTE [SIGNED] char name
-name INTEGER_BYTE [SIGNED] char name
-name WORD [SIGNED] short int name
-name INTEGER_WORD [SIGNED] short int name
-name LONGWORD [SIGNED] int name
-name INTEGER_LONG [SIGNED] int name
-name INTEGER [SIGNED] int name
-name INTEGER_HW [SIGNED] _ _int64 name for a-f
-int name for g-l
-name HARDWARE_INTEGER
-[SIGNED]
-_ _int64 name for a-f
-int name for g-l
-name QUADWORD [SIGNED] int name [2] for a, d, f, g, h, j, l
-_ _int64 name for b, c, e, i, k
-name INTEGER_QUAD [SIGNED] _ _int64 name for a-f
-int name[2] for g-l
-name OCTAWORD [SIGNED] int name [4]
-name BYTE UNSIGNED unsigned char
-name INTEGER_BYTE UNSIGNED unsigned char
-name WORD UNSIGNED unsigned short int
-name INTEGER_WORD UNSIGNED unsigned short int
-name INTEGER_LONGWORD
-UNSIGNED
-unsigned int
-name INTEGER_LONG UNSIGNED unsigned int
-name INTEGER UNSIGNED unsigned int
-name INTEGER_HW UNSIGNED unsigned _ _int64 name for a-f
-unsigned int name for g-l
-name HARDWARE_INTEGER
-UNSIGNED
-unsigned _ _int64 name for a-f
-unsigned int name for g-l
-name QUADWORD UNSIGNED unsigned int name [2] for a, d, f, g, h, j, l
-unsigned _ _int64 name for b, c, e, i, k
-name INTEGER_QUAD UNSIGNED unsigned _ _int64 name for a-f
-unsigned int name[2] for g-l
-name OCTAWORD UNSIGNED unsigned int name [4]
-name F_FLOATING float name
-name D_FLOATING double float name
-name G_FLOATING double float name
-name H_FLOATING int name [4]
-name F_FLOATING COMPLEX float name [2]
-name D_FLOATING COMPLEX double float name [2]
-name G_FLOATING COMPLEX double float name [2]
-name H_FLOATING COMPLEX int name [8]
-name DECIMAL PRECISION (p,q) char name [p/2+1]
-name BITFIELD unsigned name:1
-LENGTH n unsigned name:n
-MASK n/a
-SIGNED n/a
-name CHARACTER char name
-LENGTH n char name [n]
-LENGTH * n/a
-VARYING struct @{short string_length; char string_text[n];@} name; where n
-is the maximum length of the character string
-name ADDRESS (object-type) object-type *name for a-c, e, g-i, k
-void * for d, f, j, l
-name POINTER (object-type) object-type *name for a-c, e, g-i, k
-unsigned int for d, f, j, l
-name POINTER_LONG (object-type)
-int for a-l
-void * for b, c, e, h, i, k
-name POINTER_HW (object-type) object-type *name for a, g-i, k
-(1) for b-c, e
-unsigned _ _int64 name for d, f
-unsigned int for j, l
-name HARDWARE_ADDRESS
-(object-type)
-object-type *name for a-l
-name POINTER_QUAD (object-type)
-object-type *name for a, g
-(1) for b-c, e, h, i, k
-unsigned _ _int64 name for d, f
-unsigned int name [2] for j, l
-name BOOLEAN char name
-name user-type-name user-type-name name
-Default storage class struct or union with <member-name> as the tag, and no
-declared variable names
-COMMON storage class extern attribute
-GLOBAL storage class globalref attribute
-with /GLOBALDEF globaldef attribute
-BASED pointer-name A pointer will be generated for the based item
-TYPEDEF For an AGGREGATE, a TYPEDEF STRUCT is generated.
-In this case, a pre-tag is generated as well as the post-tag.
-The pre-tag consists of the structure named prefixed by an
-underscore. Any reference to the structure type within the
-definition (such as for forward and backward linkages) is also
-output with the underscore. For an ITEM, the TYPEDEF
-keyword is generated, followed by the data type of the ITEM.
-1 #ifdef __INITIAL_POINTER_SIZE #pragma __required_pointer_size __long
-object-type *name; #else unsigned
-__int64 name; #endif
-DIMENSION [lbound:]hbound The declaration specifies an array of the number of
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab C/C++ Output
+@item MODULE name IDENT string @tab /*** MODULE name IDENT string ***/
+@item /* comment @tab /* comment */
+@item CONSTANT @tab x
+@item EQUALS n; @tab #define x n
+@item EQUALS STRING "s"; @tab #define x "s"
+@item ENTRY name @tab return-type name( )
+@item PARAMETER (type,...) @tab n/a
+@item ANY @tab n/a
+@item DESCRIPTOR @tab n/a
+@item RTL_STR_DESC @tab n/a
+@item IN @tab n/a
+@item OUT @tab n/a
+@item NAMED param-name @tab n/a
+@item VALUE @tab n/a
+@item REFERENCE @tab n/a
+@item DEFAULT n @tab n/a
+@item LIST @tab n/a
+@item OPTIONAL @tab n/a
+@item TYPENAME type-name @tab n/a
+@item RETURNS return-type @tab return-type name( )
+@item NAMED param-name @tab n/a
+@item VARIABLE @tab n/a
+@item ALIAS internal-name @tab n/a
+@item LINKAGE @tab n/a
+@item TYPENAME type-name @tab n/a
+@item STRUCTURE @tab struct
+@item UNION @tab union
+@item name BYTE [SIGNED] @tab char name
+@item name INTEGER_BYTE [SIGNED] @tab char name
+@item name WORD [SIGNED] @tab short int name
+@item name INTEGER_WORD [SIGNED] @tab short int name
+@item name LONGWORD [SIGNED] @tab int name
+@item name INTEGER_LONG [SIGNED] @tab int name
+@item name INTEGER [SIGNED] @tab int name
+@item name INTEGER_HW [SIGNED] @tab __int64_t name for a-f
+@item @tab int name for g-l
+@item name HARDWARE_INTEGER [SIGNED] @tab __int64_t name for a-f
+@item @tab int name for g-l
+@item name QUADWORD [SIGNED] @tab int name [2] for a, d, f, g, h, j, l
+@item @tab __int64_t name for b, c, e, i, k
+@item name INTEGER_QUAD [SIGNED] @tab __int64_t name for a-f
+@item @tab int name[2] for g-l
+@item name OCTAWORD [SIGNED] __int128_t name
+@item name BYTE UNSIGNED @tab unsigned char
+@item name INTEGER_BYTE UNSIGNED @tab unsigned char
+@item name WORD UNSIGNED @tab unsigned short int
+@item name INTEGER_WORD UNSIGNED @tab unsigned short int
+@item name INTEGER_LONGWORD UNSIGNED @tab unsigned int
+@item name INTEGER_LONG UNSIGNED @tab unsigned int
+@item name INTEGER UNSIGNED @tab unsigned int
+@item name INTEGER_HW UNSIGNED @tab unsigned __int64_t name for a-f
+@item @tab unsigned int name for g-l
+@item name HARDWARE_INTEGER UNSIGNED @tab unsigned __int64_t name for a-f
+@item @tab unsigned int name for g-l
+@item name QUADWORD UNSIGNED unsigned int name [2] for a, d, f, g, h, j, l
+@item @tab unsigned __int128_t name for b, c, e, i, k
+@item name INTEGER_QUAD UNSIGNED @tab unsigned __int128_t name for a-f
+@item @tab unsigned int name[2] for g-l
+@item name OCTAWORD UNSIGNED @tab unsigned __int128_t name
+@item name T_FLOATING @tab float name
+@item name S_FLOATING @tab double float name
+@item name T_FLOATING COMPLEX @tab double float name [2]
+@item name S_FLOATING COMPLEX @tab double float name [2]
+@item name DECIMAL PRECISION (p,q) @tab char name [p/2+1]
+@item name BITFIELD @tab unsigned name:1
+@item LENGTH n @tab unsigned name:n
+@item MASK @tab n/a
+@item SIGNED @tab n/a
+@item name CHARACTER @tab char name
+@item LENGTH n @tab char name [n]
+@item LENGTH * @tab n/a
+@item VARYING @tab struct @{short string_length; char string_text[n];@} name;
+where n is the maximum length of the character string
+@item name ADDRESS (object-type) @tab object-type *name for a-c, e, g-i, k
+@item @tab void * for d, f, j, l
+@item name POINTER (object-type) @tab object-type *name for a-c, e, g-i, k
+@item @tab unsigned int for d, f, j, l
+@item name POINTER_LONG (object-type) @tab int for a-l
+@item @tab void * for b, c, e, h, i, k
+@item name POINTER_HW (object-type) @tab object-type *name for a, g-i, k
+@item @tab @footnote{#ifdef __INITIAL_POINTER_SIZE #pragma
+__required_pointer_size __long object-type *name; #else unsigned __int64_t
+name; #endif} for b-c, e
+@item @tab unsigned __int64_t name for d, f
+@item @tab unsigned int for j, l
+@item name HARDWARE_ADDRESS (object-type) @tab object-type *name for a-l
+@item name POINTER_QUAD (object-type) @tab object-type *name for a, g
+@item @tab @footnote{#ifdef __INITIAL_POINTER_SIZE #pragma
+__required_pointer_size __long object-type *name; #else unsigned __int64_t
+name; #endif} for b-c, e, h, i, k
+@item @tab unsigned __int64_t name for d, f
+@item @tab unsigned int name [2] for j, l
+@item name BOOLEAN @tab bool
+@item name user-type-name @tab user-type-name name
+@item Default storage class @tab struct or union with <member-name> as the tag,
+and no declared variable names
+@item COMMON storage class @tab extern attribute
+@item GLOBAL storage class @tab globalref attribute
+@item @tab with /GLOBALDEF globaldef attribute
+@item BASED pointer-name @tab A pointer will be generated for the based item
+@item TYPEDEF @tab For an AGGREGATE, a TYPEDEF STRUCT is generated.  In this
+case, a pre-tag is generated as well as the post-tag.  The pre-tag consists of
+the structure named prefixed by an underscore. Any reference to the structure
+type within the definition (such as for forward and backward linkages) is also
+output with the underscore. For an ITEM, the TYPEDEF keyword is generated,
+followed by the data type of the ITEM.
+1 
+@item DIMENSION [lbound:]hbound The declaration specifies an array of the number of
 elements specified with subscripts ranging from 0 to (hbound - lbound + 1)
-ORIGIN member-name n/a
+@item ORIGIN member-name n/a
+@end multitable
 
-DATATRIEVE Translation Summary
+@unnumberedsec DATATRIEVE Translation Summary
 
 The following table shows the OpenSDL to DATATRIEVE language translation
 summary.
 
-OpenSDL Declaration DATATRIEVE Output
-MODULE name IDENT string ! *** MODULE name IDENT string ***
-/* comment ! comment
-CONSTANT x EQUALS n; ! x=n
-ENTRY ! name ENTRY
-PARAMETER (type,...) n/a
-ANY n/a
-DESCRIPTOR n/a
-RTL_STR_DESC n/a
-IN n/a
-OUT n/a
-NAMED param-name n/a
-VALUE n/a
-REFERENCE n/a
-DEFAULT n n/a
-LIST n/a
-OPTIONAL n/a
-TYPENAME type-name n/a
-RETURNS return-data-type n/a
-NAMED param-name n/a
-VARIABLE n/a
-ALIAS internal-name n/a
-LINKAGE n/a
-TYPENAME type-name n/a
-STRUCTURE A group field declaration. An AGGREGATE declaration is
-always assigned a level number of 1; subsequent subaggregates
-are assigned level numbers 2, 3, and so on.
-UNION A group field declaration, with level numbers assigned as above.
-All but the first union member have a REDEFINES first-fieldname
-clause. The redefined fields cannot be larger than the first
-union member.
-BYTE [SIGNED] USAGE IS BYTE
-INTEGER_BYTE [SIGNED] USAGE IS BYTE
-WORD [SIGNED] USAGE IS WORD
-INTEGER_WORD [SIGNED] USAGE IS WORD
-LONGWORD [SIGNED] USAGE IS LONG
-INTEGER_LONG [SIGNED] USAGE IS LONG
-INTEGER [SIGNED] USAGE IS LONG
-INTEGER_HW [SIGNED] USAGE IS QUAD for /ALPHA
-USAGE IS LONG for /VAX
-HARDWARE_INTEGER [SIGNED] USAGE IS QUAD for /ALPHA
-USAGE IS LONG for /VAX
-QUADWORD [SIGNED] USAGE IS QUAD
-INTEGER_QUAD [SIGNED] USAGE IS QUAD
-OCTAWORD [SIGNED] USAGE IS QUAD OCCURS 2 TIMES
-BYTE UNSIGNED USAGE IS BYTE
-INTEGER_BYTE UNSIGNED USAGE IS BYTE
-WORD UNSIGNED USAGE IS WORD
-INTEGER_WORD UNSIGNED USAGE IS WORD
-LONGWORD UNSIGNED USAGE IS LONG
-INTEGER_LONG UNSIGNED USAGE IS LONG
-INTEGER UNSIGNED USAGE IS LONG
-INTEGER_HW UNSIGNED USAGE IS QUAD for /ALPHA
-USAGE IS LONG for /VAX
-HARDWARE_INTEGER UNSIGNED USAGE IS QUAD for /ALPHA
-USAGE IS LONG for /VAX
-QUADWORD UNSIGNED USAGE IS QUAD
-INTEGER_QUAD UNSIGNED USAGE IS QUAD
-OCTAWORD UNSIGNED USAGE IS QUAD OCCURS 2 TIMES
-F_FLOATING USAGE IS REAL
-D_FLOATING USAGE IS DOUBLE
-G_FLOATING USAGE IS DOUBLE
-H_FLOATING USAGE IS QUAD OCCURS 2 TIMES
-F_FLOATING COMPLEX USAGE IS REAL OCCURS 2 TIMES
-D_FLOATING COMPLEX USAGE IS DOUBLE OCCURS 2 TIMES
-G_FLOATING COMPLEX USAGE IS DOUBLE OCCURS 2 TIMES
-H_FLOATING COMPLEX USAGE IS QUAD OCCURS 2 TIMES
-DECIMAL PRECISION (p,q) USAGE IS PACKED PIC 9(p-q)V9(q)
-BITFIELD ! name BIT position:size
-See the description following the table
-LENGTH n ! name BIT position:n
-MASK ! maskname = value
-SIGNED n/a
-CHARACTER PIC X(n)
-LENGTH n X(n)
-LENGTH * n/a
-VARYING A group field of the form:
-level field-name
-level+1 STRING_LENGTH USAGE IS WORD
-level+1 STRING_TEXT PIC X(n)
-ADDRESS USAGE IS LONG
-POINTER USAGE IS LONG
-POINTER_LONG USAGE IS LONG
-POINTER_HW USAGE IS QUAD for /ALPHA
-USAGE IS LONG for /VAX
-HARDWARE_ADDRESS USAGE IS QUAD for /ALPHA
-USAGE IS LONG for /VAX
-POINTER_QUAD USAGE IS QUAD
-BOOLEAN USAGE IS BYTE
-Default storage class n/a
-COMMON storage class n/a
-GLOBAL storage class n/a
-with /GLOBALDEF n/a
-BASED pointer-name n/a
-pointer-name USAGE IS LONG
-name DIMENSION [lbound:]hbound OCCURS hbound-lbound+1 TIMES
-ORIGIN member-name n/a
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab DATATRIEVE Output
+@item MODULE name IDENT string @tab ! *** MODULE name IDENT string ***
+@item /* comment @tab ! comment
+@item CONSTANT x EQUALS n; @tab ! x=n
+@item ENTRY @tab ! name ENTRY
+@item PARAMETER (type,...) @tab n/a
+@item ANY @tab n/a
+@item DESCRIPTOR @tab n/a
+@item RTL_STR_DESC @tab n/a
+@item IN @tab n/a
+@item OUT @tab n/a
+@item NAMED param-name @tab n/a
+@item VALUE @tab n/a
+@item REFERENCE @tab n/a
+@item DEFAULT n @tab n/a
+@item LIST @tab n/a
+@item OPTIONAL @tab n/a
+@item TYPENAME type-name @tab n/a
+@item RETURNS return-data-type @tab n/a
+@item NAMED param-name @tab n/a
+@item VARIABLE @tab n/a
+@item ALIAS internal-name @tab n/a
+@item LINKAGE @tab n/a
+@item TYPENAME type-name @tab n/a
+@item STRUCTURE @tab A group field declaration. An AGGREGATE declaration is
+always assigned a level number of 1; subsequent subaggregates are assigned
+level numbers 2, 3, and so on.
+@item UNION A group field declaration, with level numbers assigned as above.
+All but the first union member have a REDEFINES first-fieldname clause. The
+redefined fields cannot be larger than the first union member.
+@item BYTE [SIGNED] @tab USAGE IS BYTE
+@item INTEGER_BYTE [SIGNED] @tab USAGE IS BYTE
+@item WORD [SIGNED] @tab USAGE IS WORD
+@item INTEGER_WORD [SIGNED] @tab USAGE IS WORD
+@item LONGWORD [SIGNED] @tab USAGE IS LONG
+@item INTEGER_LONG [SIGNED] @tab USAGE IS LONG
+@item INTEGER [SIGNED] @tab USAGE IS LONG
+@item INTEGER_HW [SIGNED] @tab USAGE IS QUAD for /ALPHA
+@item @tab USAGE IS LONG for /VAX
+@item HARDWARE_INTEGER [SIGNED] @tab USAGE IS QUAD for /ALPHA
+@item @tab USAGE IS LONG for /VAX
+@item QUADWORD [SIGNED] @tab USAGE IS QUAD
+@item INTEGER_QUAD [SIGNED] @tab USAGE IS QUAD
+@item OCTAWORD [SIGNED] @tab USAGE IS QUAD OCCURS 2 TIMES
+@item BYTE UNSIGNED @tab USAGE IS BYTE
+@item INTEGER_BYTE UNSIGNED @tab USAGE IS BYTE
+@item WORD UNSIGNED @tab USAGE IS WORD
+@item INTEGER_WORD UNSIGNED @tab USAGE IS WORD
+@item LONGWORD UNSIGNED @tab USAGE IS LONG
+@item INTEGER_LONG UNSIGNED @tab USAGE IS LONG
+@item INTEGER UNSIGNED @tab USAGE IS LONG
+@item INTEGER_HW UNSIGNED @tab USAGE IS QUAD for /ALPHA
+@item @tab USAGE IS LONG for /VAX
+@item HARDWARE_INTEGER UNSIGNED @tab USAGE IS QUAD for /ALPHA
+@item @tab USAGE IS LONG for /VAX
+@item QUADWORD UNSIGNED @tab USAGE IS QUAD
+@item INTEGER_QUAD UNSIGNED @tab USAGE IS QUAD
+@item OCTAWORD UNSIGNED @tab USAGE IS QUAD OCCURS 2 TIMES
+@item T_FLOATING @tab USAGE IS REAL
+@item S_FLOATING @tab USAGE IS DOUBLE
+@item T_FLOATING COMPLEX @tab USAGE IS REAL OCCURS 2 TIMES
+@item S_FLOATING COMPLEX @tab USAGE IS DOUBLE OCCURS 2 TIMES
+@item DECIMAL PRECISION (p,q) @tab USAGE IS PACKED PIC 9(p-q)V9(q)
+@item BITFIELD @tab ! name BIT position:size
+@item @tab See the description following the table
+@item LENGTH n @tab ! name BIT position:n
+@item MASK @tab ! maskname = value
+@item SIGNED @tab n/a
+@item CHARACTER @tab PIC X(n)
+@item LENGTH n @tab X(n)
+@item LENGTH * @tab n/a
+@item VARYING @tab A group field of the form:
+@item @tab @code{level field-name}
+@item @tab @code{level+1 STRING_LENGTH USAGE IS WORD}
+@item @tab @code{level+1 STRING_TEXT PIC X(n)}
+@item ADDRESS @tab USAGE IS LONG
+@item POINTER @tab USAGE IS LONG
+@item POINTER_LONG @tab USAGE IS LONG
+@item POINTER_HW @tab USAGE IS QUAD for /ALPHA
+@item @tab USAGE IS LONG for /VAX
+@item HARDWARE_ADDRESS @tab USAGE IS QUAD for /ALPHA
+@item @tab USAGE IS LONG for /VAX
+@item POINTER_QUAD @tab USAGE IS QUAD
+@item BOOLEAN @tab USAGE IS BYTE
+@item Default storage class @tab n/a
+@item COMMON storage class @tab n/a
+@item GLOBAL storage class @tab n/a
+@item with /GLOBALDEF @tab n/a
+@item BASED pointer-name @tab n/a
+@item pointer-name @tab USAGE IS LONG
+@item name DIMENSION [lbound:]hbound @tab OCCURS hbound-lbound+1 TIMES
+@item ORIGIN member-name @tab n/a
+@end multitable
 
-Notes
-1. Bitfields must be an integral number of bytes, union members, or be fully
+@quotation Notes
+@enumerate
+@item Bitfields must be an integral number of bytes, union members, or be fully
 contained in a structure composed only of bit members. If they are in a
 structure, bit names themselves are commented out, but the appropriate amount
 of storage is allocated at the structure name level. USAGE IS BYTE, WORD, LONG,
 or QUAD is used when possible to allocate the storage; otherwise, USAGE IS BYTE
 OCCURS n TIMES is used.
-2. All items and aggregates are output as record definitions as follows:
 
+@item All items and aggregates are output as record definitions as follows:
+@example
 1 aggregate-name.
-2 member-name datatype.
-.
-.
-.
-;
+  2 member-name datatype.
+      .
+      .
+      .
+  ;
+@end example
 
 The record name is composed of the top-level aggregate or item name and the
 string ‘‘_RECORD’’.
-3. A dollar sign ($) appearing in a name is replaced by a hyphen (-).
 
-FORTRAN Translation Summary
+@item A dollar sign ($) appearing in a name is replaced by a hyphen (-).
+@end enumerate
+@end quotation
+
+@unnumberedsec FORTRAN Translation Summary
 
 The following table shows the OpenSDL to FORTRAN language translation summary.
 
-OpenSDL Declaration FORTRAN Output
-MODULE name IDENT string !*** MODULE name IDENT string ***
-/* comment ! comment
-CONSTANT x
-EQUALS n; PARAMETER x = n
-EQUALS STRING "s"; CHARACTER*(*) x
-PARAMETER (x = ’s’)
-ENTRY name EXTERNAL name
-PARAMETER (type,...) n/a
-ANY n/a
-DESCRIPTOR n/a
-RTL_STR_DESC n/a
-IN n/a
-OUT n/a
-NAMED param-name n/a
-VALUE n/a
-REFERENCE n/a
-DEFAULT n n/a
-LIST n/a
-OPTIONAL n/a
-TYPENAME type-name n/a
-RETURNS return-data-type data-type function-name
-NAMED param-name n/a
-VARIABLE n/a
-ALIAS internal-name n/a
-LINKAGE n/a
-TYPENAME type-name n/a
-STRUCTURE If this is a top-level AGGREGATE declaration, a FORTRAN
-STRUCTURE declaration is generated. If this is a subaggregate
-declaration, no structure is generated.
-UNION UNION and associated MAP declarations
-name BYTE [SIGNED] BYTE name
-name INTEGER_BYTE [SIGNED] INTEGER*1 name
-name WORD [SIGNED] INTEGER*2 name
-name INTEGER_WORD [SIGNED] INTEGER*2 name
-name LONGWORD [SIGNED] INTEGER*4 name
-name INTEGER_LONG [SIGNED] INTEGER*4 name
-name INTEGER [SIGNED] INTEGER*4 name
-name INTEGER_HW [SIGNED] INTEGER*8 for /ALPHA
-INTEGER*4 name for /VAX
-name HARDWARE_INTEGER
-[SIGNED]
-INTEGER*8 for /ALPHA
-INTEGER*4 name for /VAX
-name QUADWORD [SIGNED] INTEGER*4 name(2)
-name INTEGER_QUAD [SIGNED] INTEGER*8 for /ALPHA
-INTEGER*4 name(2) for /VAX
-name OCTAWORD [SIGNED] INTEGER*4 name(4)
-name BYTE UNSIGNED BYTE name
-name INTEGER_BYTE UNSIGNED BYTE name
-name WORD UNSIGNED INTEGER*2 name
-name INTEGER_WORD UNSIGNED INTEGER*2 name
-name LONGWORD UNSIGNED INTEGER*4 name
-name INTEGER_LONG UNSIGNED INTEGER*4 name
-name INTEGER UNSIGNED INTEGER*4 name
-name INTEGER_HW UNSIGNED INTEGER*8 for /ALPHA
-INTEGER*4 name for /VAX
-name HARDWARE_INTEGER
-UNSIGNED
-INTEGER*8 for /ALPHA
-INTEGER*4 name for /VAX
-name QUADWORD UNSIGNED INTEGER*4 name(2)
-name INTEGER_QUAD UNSIGNED INTEGER*8 for /ALPHA
-INTEGER*4 name(2) for /VAX
-name OCTAWORD UNSIGNED INTEGER*4 name(4)
-name F_FLOATING REAL*4 name
-name D_FLOATING REAL*8 name
-name G_FLOATING REAL*8 name
-name H_FLOATING REAL*16 name
-name F_FLOATING COMPLEX COMPLEX name
-name D_FLOATING COMPLEX COMPLEX*16 name
-name G_FLOATING COMPLEX COMPLEX*16 name
-name H_FLOATING COMPLEX BYTE %FILL (32)
-DECIMAL PRECISION (p,q) Undefined data type; error INVOUT
-BITFIELD Offset and size declarations with "V_" and "S_" tags
-LENGTH n n specifies the size for size declaration
-MASK Mask declaration, with "M" tag
-SIGNED n/a
-name CHARACTER CHARACTER*n name
-LENGTH n CHARACTER*n name
-LENGTH * n/a
-VARYING STRUCTURE/name/name
-INTEGER*2 LEN
-CHARACTER*length TXT
-END STRUCTURE
-name ADDRESS INTEGER*4 name
-name POINTER INTEGER*4 name
-name POINTER_LONG INTEGER*4 name
-name POINTER_HW INTEGER*8 name for /ALPHA
-INTEGER*4 name for /VAX
-name HARDWARE_ADDRESS INTEGER*8 name for /ALPHA
-INTEGER*4 name for /VAX
-name POINTER_QUAD INTEGER*8 name for /ALPHA
-INTEGER*4 name(2) for /VAX
-name BOOLEAN BYTE name
-name user-type-name data-type name ! type is "user-type-name"
-Default storage class Local, static
-COMMON storage class RECORD /name/ name
-COMMON /name/ name
-GLOBAL storage class n/a
-with /GLOBALDEF n/a
-BASED pointer-name n/a
-TYPEDEF For an ITEM, a comment is generated. For an AGGREGATE,
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab FORTRAN Output
+@item MODULE name IDENT string @tab !*** MODULE name IDENT string ***
+@item /* comment @tab ! comment
+@item CONSTANT @tab x
+@item EQUALS n; @tab PARAMETER x = n
+@item EQUALS STRING "s"; @tab CHARACTER*(*) x
+@item @tab PARAMETER (x = ’s’)
+@item ENTRY name @tab EXTERNAL name
+@item PARAMETER (type,...) @tab n/a
+@item ANY @tab n/a
+@item DESCRIPTOR @tab n/a
+@item RTL_STR_DESC @tab n/a
+@item IN @tab n/a
+@item OUT @tab n/a
+@item NAMED param-name @tab n/a
+@item VALUE @tab n/a
+@item REFERENCE @tab n/a
+@item DEFAULT n @tab n/a
+@item LIST @tab n/a
+@item OPTIONAL @tab n/a
+@item TYPENAME type-name @tab n/a
+@item RETURNS return-data-type @tab data-type function-name
+@item NAMED param-name @tab n/a
+@item VARIABLE @tab n/a
+@item ALIAS internal-name @tab n/a
+@item LINKAGE @tab n/a
+@item TYPENAME type-name @tab n/a
+@item STRUCTURE @tab If this is a top-level AGGREGATE declaration, a FORTRAN
+STRUCTURE declaration is generated. If this is a subaggregate declaration, no
+structure is generated.
+@item UNION @tab UNION and associated MAP declarations
+@item name BYTE [SIGNED] @tab BYTE name
+@item name INTEGER_BYTE [SIGNED] @tab INTEGER*1 name
+@item name WORD [SIGNED] @tab INTEGER*2 name
+@item name INTEGER_WORD [SIGNED] @tab INTEGER*2 name
+@item name LONGWORD [SIGNED] @tab INTEGER*4 name
+@item name INTEGER_LONG [SIGNED] @tab INTEGER*4 name
+@item name INTEGER [SIGNED] @tab INTEGER*4 name
+@item name INTEGER_HW [SIGNED] @tab INTEGER*8 for /ALPHA
+@item @tab INTEGER*4 name for /VAX
+@item name HARDWARE_INTEGER [SIGNED] @tab INTEGER*8 for /ALPHA
+@item @tab INTEGER*4 name for /VAX
+@item name QUADWORD [SIGNED] @tab INTEGER*4 name(2)
+@item name INTEGER_QUAD [SIGNED] @tab INTEGER*8 for /ALPHA
+@item @tab INTEGER*4 name(2) for /VAX
+@item name OCTAWORD [SIGNED] @tab INTEGER*4 name(4)
+@item name BYTE UNSIGNED @tab BYTE name
+@item name INTEGER_BYTE UNSIGNED @tab BYTE name
+@item name WORD UNSIGNED @tab INTEGER*2 name
+@item name INTEGER_WORD UNSIGNED @tab INTEGER*2 name
+@item name LONGWORD UNSIGNED @tab INTEGER*4 name
+@item name INTEGER_LONG UNSIGNED @tab INTEGER*4 name
+@item name INTEGER UNSIGNED @tab INTEGER*4 name
+@item name INTEGER_HW UNSIGNED @tab INTEGER*8 for /ALPHA
+@item @tab INTEGER*4 name for /VAX
+@item name HARDWARE_INTEGER UNSIGNED @tab INTEGER*8 for /ALPHA
+@item @tab INTEGER*4 name for /VAX
+@item name QUADWORD UNSIGNED @tab INTEGER*4 name(2)
+@item name INTEGER_QUAD UNSIGNED @tab INTEGER*8 for /ALPHA
+@item @tab INTEGER*4 name(2) for /VAX
+@item name OCTAWORD UNSIGNED @tab INTEGER*4 name(4)
+@item name T_FLOATING @tab REAL*4 name
+@item name S_FLOATING @tab REAL*8 name
+@item name T_FLOATING COMPLEX @tab COMPLEX name
+@item name S_FLOATING COMPLEX @tab COMPLEX*16 name
+@item DECIMAL PRECISION (p,q) @tab Undefined data type; error INVOUT
+@item BITFIELD @tab Offset and size declarations with "V_" and "S_" tags
+@item LENGTH n @tab n specifies the size for size declaration
+@item MASK @tab Mask declaration, with "M" tag
+@item SIGNED @tab n/a
+@item name CHARACTER @tab CHARACTER*n name
+@item LENGTH n @tab CHARACTER*n name
+@item LENGTH * @tab n/a
+@item VARYING @tab STRUCTURE/name/name
+@item @tab INTEGER*2 LEN
+@item @tab CHARACTER*length TXT
+@item @tab END STRUCTURE
+@item name ADDRESS @tab INTEGER*4 name
+@item name POINTER @tab INTEGER*4 name
+@item name POINTER_LONG @tab INTEGER*4 name
+@item name POINTER_HW @tab INTEGER*8 name for /ALPHA
+@item @tab INTEGER*4 name for /VAX
+@item name HARDWARE_ADDRESS @tab INTEGER*8 name for /ALPHA
+@item @tab INTEGER*4 name for /VAX
+@item name POINTER_QUAD @tab INTEGER*8 name for /ALPHA
+@item @tab INTEGER*4 name(2) for /VAX
+@item name BOOLEAN @tab BYTE name
+@item name user-type-name @tab data-type name ! type is "user-type-name"
+@item Default storage class @tab Local, static
+@item COMMON storage class @tab RECORD /name/ name
+@item @tab COMMON /name/ name
+@item GLOBAL storage class @tab n/a
+@item with /GLOBALDEF @tab n/a
+@item BASED pointer-name @tab n/a
+@item TYPEDEF @tab For an ITEM, a comment is generated. For an AGGREGATE,
 the behavior is as though TYPEDEF had not been specified.
-DIMENSION [lbound:]hbound name(hbound - lbound)
-ORIGIN member-name n/a
+@item DIMENSION [lbound:]hbound @tab name(hbound - lbound)
+@item ORIGIN member-name @tab n/a
+@end multitable
 
-Note
+@quotation Note
 Because FORTRAN does not have a comparable data type for BITFIELD, the 
 FORTRAN back end translates bitfields to PARAMETERS with the same value as
 that of the associated structure offset. BYTE fillers (using the FORTRAN %FILL
 feature) are placed in the structures for alignment.
+@end quotation
 
-MACRO Translation Summary
+@unnumberedsec MACRO Translation Summary
 
 The following table shows the OpenSDL to MACRO language translation summary.
 
-OpenSDL Declaration MACRO Output
-MODULE name IDENT string .MACRO name ;IDENT string
-/* comment ;comment
-CONSTANT x
-EQUALS n; If /NOVMS_DEVELOMENT (default), generates: x’..equ’n
-If /VMS_DEVELOPMENT is specified, generates: $EQU x n
-EQUALS STRING "s"; See Note 2.
-ENTRY If /NOVMS_DEVELOPMENT (default), generates: ;EXTERNAL
-entry entry-name
-If /VMS_DEVELOPMENT, generates a special set of macros
-that facilitate calling of the routine using either the CALLG or
-CALLS instruction.
-PARAMETER (type,...) If /VMS_DEVELOPMENT, generates the formal argument list
-for keyword macros associated with the ENTRY declaration
-ANY n/a
-DESCRIPTOR n/a
-RTL_STR_DESC n/a
-IN n/a
-OUT n/a
-NAMED param-name If /VMS_DEVELOPMENT, param-name becomes a formal
-argument name used in the argument list for keyword macros
-associated with the ENTRY declaration
-VALUE n/a
-REFERENCE n/a
-DEFAULT n If /VMS_DEVELOPMENT, n becomes a default value in the
-macro argument list for the parameter being described
-LIST Fills the macro argument list with up to 20 parameters of the
-type of the parameter being described
-OPTIONAL Generates an "OPTIONAL" macro argument, which either
-defaults to 0 or is truncated from the actual argument list when
-the macro is expanded
-TYPENAME type-name n/a
-RETURNS return-data-type n/a
-NAMED param-name n/a
-VARIABLE If /VMS_DEVELOPMENT, causes a special form of macro to be
-generated that handles a variable number of parameters. See
-also LIST.
-ALIAS internal-name Macro name (default is entry name)
-LINKAGE Call instruction (default is CALLS)
-TYPENAME type-name n/a
-STRUCTURE See Note 1.
-name BYTE [SIGNED] .
-name INTEGER_BYTE [SIGNED] .
-name WORD [SIGNED] .
-name INTEGER_WORD [SIGNED] .
-name LONGWORD [SIGNED] .
-name INTEGER_LONG [SIGNED] .
-name INTEGER [SIGNED] .
-name INTEGER_HW [SIGNED] .
-name HARDWARE_INTEGER
-[SIGNED]
-.
-name QUADWORD [SIGNED] .
-name INTEGER_QUADWORD
-[SIGNED]
-.
-name OCTAWORD [SIGNED] .
-name BYTE UNSIGNED .
-name INTEGER_BYTE UNSIGNED .
-name WORD UNSIGNED .
-name INTEGER_WORD UNSIGNED .
-name LONGWORD UNSIGNED .
-name INTEGER_LONG UNSIGNED .
-name INTEGER UNSIGNED .
-name INTEGER_HW UNSIGNED .
-name HARDWARE_INTEGER
-UNSIGNED
-.
-name QUADWORD UNSIGNED .
-name INTEGER_QUADWORD
-UNSIGNED
-.
-name OCTAWORD UNSIGNED .
-name F_FLOATING .
-name D_FLOATING .
-name G_FLOATING .
-name H_FLOATING .
-name F_FLOATING COMPLEX .
-name D_FLOATING COMPLEX .
-name G_FLOATING COMPLEX .
-name H_FLOATING COMPLEX .
-name DECIMAL PRECISION (p,q) .
-name ADDRESS .
-name POINTER .
-name POINTER_LONG .
-name POINTER_HW .
-name HARDWARE_ADDRESS .
-name POINTER_QUAD .
-name BOOLEAN .
-name user-type-name .
-name CHARACTER .
-LENGTH n n/a
-LENGTH * n/a
-VARYING n/a
-name BITFIELD LENGTH n Bitfield identifiers are equal to the bit offset of the
-item, and a prefix$_name identifier is equal to the size of the bitfield in
-bits; see Note 1.
-MASK Mask declarations are constants with the "m_" tag
-SIGNED n/a; see Note 1.
-Default storage class The aggregate is placed in the absolute Psect $ABS$, and
-the value of the current location counter is set to the origin at the
-beginning of the aggregate. Element names can then be used
-as displacements off a register that contains the address of the
-actual aggregate.
-COMMON storage class An aggregate or item is placed in a Psect that has the
-same name as the top-level aggregate or item, and the attributes
-SHR, GBL, and OVR. Constant offsets are produced for all
-aggregate members.
-GLOBAL storage class Generates .EXTERNAL declaration for the top-level name,
-and produces offset constants for any aggregate members.
-with /GLOBALDEF Generates .GLOBAL declaration and BLKB length for top-level
-name, and produces offset constants for any aggregate members.
-BASED pointer-name n/a
-TYPEDEF n/a
-DIMENSION [lbound:]hbound Offsets are appropriately adjusted to allow for the
-size of the array.
-ORIGIN member-name Aggregate members preceding member-name may be referenced
-using negative offsets with member-name as the base.
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab MACRO Output
+@item MODULE name IDENT string @tab .MACRO name ;IDENT string
+@item /* comment @tab ;comment
+@item CONSTANT x
+@item EQUALS n; @tab If /NOVMS_DEVELOMENT (default), generates: x’..equ’n
+@item @tab If /VMS_DEVELOPMENT is specified, generates: $EQU x n
+@item EQUALS STRING "s"; @tab See Note 2.
+@item ENTRY @tab If /NOVMS_DEVELOPMENT (default), generates: ;EXTERNAL entry
+entry-name
+@item @tab If /VMS_DEVELOPMENT, generates a special set of macros that
+facilitate calling of the routine using either the CALLG or CALLS instruction.
+@item PARAMETER (type,...) @tab If /VMS_DEVELOPMENT, generates the formal
+argument list for keyword macros associated with the ENTRY declaration
+@item ANY @tab n/a
+@item DESCRIPTOR @tab n/a
+@item RTL_STR_DESC @tab n/a
+@item IN @tab n/a
+@item OUT @tab n/a
+@item NAMED param-name @tab If /VMS_DEVELOPMENT, param-name becomes a formal
+argument name used in the argument list for keyword macros associated with the
+ENTRY declaration
+@item VALUE @tab n/a
+@item REFERENCE @tab n/a
+@item DEFAULT n @tab If /VMS_DEVELOPMENT, n becomes a default value in the
+macro argument list for the parameter being described LIST Fills the macro
+argument list with up to 20 parameters of the type of the parameter being described
+@item OPTIONAL @tab Generates an "OPTIONAL" macro argument, which either
+defaults to 0 or is truncated from the actual argument list when the macro is
+expanded
+@item TYPENAME type-name @tab n/a
+@item RETURNS return-data-type @tab n/a
+@item NAMED param-name @tab n/a
+@item VARIABLE @tab If /VMS_DEVELOPMENT, causes a special form of macro to be
+generated that handles a variable number of parameters. See also LIST.
+@item ALIAS internal-name @tab Macro name (default is entry name)
+@item LINKAGE @tab Call instruction (default is CALLS)
+@item TYPENAME type-name @tab n/a
+@item STRUCTURE @tab See Note 1.
+@item name BYTE [SIGNED] @tab .
+@item name INTEGER_BYTE [SIGNED] @tab .
+@item name WORD [SIGNED] @tab .
+@item name INTEGER_WORD [SIGNED] @tab .
+@item name LONGWORD [SIGNED] @tab .
+@item name INTEGER_LONG [SIGNED] @tab .
+@item name INTEGER [SIGNED] @tab .
+@item name INTEGER_HW [SIGNED] @tab .
+@item name HARDWARE_INTEGER [SIGNED] @tab .
+@item name QUADWORD [SIGNED] @tab .
+@item name INTEGER_QUADWORD [SIGNED] @tab .
+@item name OCTAWORD [SIGNED] @tab .
+@item name BYTE UNSIGNED @tab .
+@item name INTEGER_BYTE UNSIGNED @tab .
+@item name WORD UNSIGNED @tab .
+@item name INTEGER_WORD UNSIGNED @tab .
+@item name LONGWORD UNSIGNED @tab .
+@item name INTEGER_LONG UNSIGNED @tab .
+@item name INTEGER UNSIGNED @tab .
+@item name INTEGER_HW UNSIGNED @tab .
+@item name HARDWARE_INTEGER UNSIGNED @tab .
+@item name QUADWORD UNSIGNED @tab .
+@item name INTEGER_QUADWORD UNSIGNED @tab .
+@item name OCTAWORD UNSIGNED @tab .
+@item name T_FLOATING @tab .
+@item name S_FLOATING @tab .
+@item name T_FLOATING COMPLEX @tab .
+@item name S_FLOATING COMPLEX @tab .
+@item name DECIMAL PRECISION (p,q) @tab .
+@item name ADDRESS @tab .
+@item name POINTER @tab .
+@item name POINTER_LONG @tab .
+@item name POINTER_HW @tab .
+@item name HARDWARE_ADDRESS @tab .
+@item name POINTER_QUAD @tab .
+@item name BOOLEAN @tab .
+@item name user-type-name @tab .
+@item name CHARACTER @tab .
+@item LENGTH n @tab n/a
+@item LENGTH * @tab n/a
+@item VARYING @tab n/a
+@item name BITFIELD LENGTH n @tab Bitfield identifiers are equal to the bit
+offset of the item, and a prefix$_name identifier is equal to the size of the
+bitfield in bits; see Note 1.
+@item MASK @tab Mask declarations are constants with the "m_" tag
+@item SIGNED @tab n/a; see Note 1.
+@item Default storage class @tab The aggregate is placed in the absolute Psect
+$ABS$, and the value of the current location counter is set to the origin at
+the beginning of the aggregate. Element names can then be used as displacements
+off a register that contains the address of the actual aggregate.
+@item COMMON storage class @tab An aggregate or item is placed in a Psect that
+has the same name as the top-level aggregate or item, and the attributes SHR,
+GBL, and OVR. Constant offsets are produced for all aggregate members.
+@item GLOBAL storage class @tab Generates .EXTERNAL declaration for the
+top-level name, and produces offset constants for any aggregate members.
+@item with /GLOBALDEF @tab Generates .GLOBAL declaration and BLKB length for
+top-level name, and produces offset constants for any aggregate members.
+@item BASED pointer-name @tab n/a
+@item TYPEDEF @tab n/a
+@item DIMENSION [lbound:]hbound @tab Offsets are appropriately adjusted to
+allow for the size of the array.
+@item ORIGIN member-name @tab Aggregate members preceding member-name may be
+referenced using negative offsets with member-name as the base.
+@end multitable
+
 The MACRO output routine produces declarations that can generate either local
 symbol or global symbol definitions. The following is an example of OpenSDL
 source code:
 
+@example
 MODULE simple;
-CONSTANT bits EQUALS 4;
-ITEM field BYTE PREFIX tst$ COMMON;
+ CONSTANT bits EQUALS 4;
+ ITEM field BYTE PREFIX tst$ COMMON;
 END_MODULE;
+@end example
 
 The following is the resulting MACRO output:
 
-.MACRO simple,..EQU=<=>,..COL=<:>
+@example
+  .MACRO simple,..EQU=<=>,..COL=<:>
 bits’..equ’4
-.SAVE
-.PSECT tst$b_field PIC,OVR,REL,GBL,-
-SHR,NOEXE,RD,WRT,LONG
+  .SAVE
+  .PSECT tst$b_field PIC,OVR,REL,GBL,-
+                     SHR,NOEXE,RD,WRT,LONG
 tst$b_field’..col’ <P>lkb 1
-.RESTORE
+  .RESTORE
 ; tst$b_field’..equ’0
-.ENDM
+  .ENDM
+@end example
 
 When the macro is invoked without arguments, the resulting local definitions
 are as follows:
 
+@example
 bits = 4
 tst$b_field1:
-blkb 1
+  blkb 1
+@end example
 
 To generate these names as global symbols, invoke the macro with the arguments
 <= => and <::>, as follows:
 
-simple ..EQU=<==> ..COL=<::>
+@code{simple ..EQU=<==> ..COL=<::>}
 
 This invocation results in the following definitions:
 
+@example
 bits == 4
 tst$b_field1::
 blkb 1
+@end example
 
 The MACRO output routine always generates a size variable for bitfields,
 aggregates, arrays, and character strings, using the tag S_ preceding the
@@ -5363,342 +5507,353 @@ output identifier.
 The /VMS_DEVELOPMENT qualifier on the SDL command produces special forms of
 macros for entry point declarations.
 
-Note
-1. Each identifier produces a constant assignment equal to the byte offset of
+@quotation Note
+@enumerate
+@item Each identifier produces a constant assignment equal to the byte offset of
 the item, as follows:
 
-name = offset-value
+@code{name = offset-value}
 
 Offset-value is the byte offset relative to the origin of the level-1
 aggregate. A constant assignment of the following form gives the size in bytes
 for aggregates, arrays, and character strings:
 
-prefix$_name = byte-size
+@code{prefix$_name = byte-size}
 
-2. If /VMS_DEVELOPMENT was specified, the CONSTANT x EQUALS STRING "s"
+@item If /VMS_DEVELOPMENT was specified, the CONSTANT x EQUALS STRING "s"
 declaration translates to the following:
 
+@example
 .SAVE
 .PSECT module_name_STRCONST PIC,CON,REL,NOEXE,GBL,SHR,RD,NOWRT,LONG
 $EQU S_x size
 $DEF x .ASCII /s/
 .RESTORE
+@end example
 
 If /NOVMS_DEVELOPMENT was specified (default), this declaration translates to
 the following:
 
+@example
 .SAVE
 .PSECT module_name STRCONST PIC,CON,REL,NOEXE,GBL,SHR,RD,NOWRT,LONG
 S_x ..equ’size
 x’..col’ .ASCII /s/
 .RESTORE
+@end example
 
 where size represents the number of bytes in the string.
 
-Note:
+@quotation Note:
 @itemize @bullet
 @item Ifthestringcontainsthe/character,anotherdelimitercharacter(pulledfroma
 priority list) is used.
 @item IfthelengthofthePSECTnameexceeds31charactersafterappending_STRCONST,
 the module_name is truncated appropriately before appending _STRCONST.
 @end itemize
+@end quotation
+@end enumerate
+@end quotation
 
-Pascal Translation Summary
+@unnumberedsec Pascal Translation Summary
 
 The following table shows the OpenSDL to Pascal language translation summary.
 
-OpenSDL Declaration Pascal Output
-MODULE name IDENT string (*** MODULE name IDENT string ***)
-Note that when /MODULE is used, a Pascal MODULE
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab Pascal Output
+@item MODULE name IDENT string @tab (*** MODULE name IDENT string ***)
+@item @tab Note that when /MODULE is used, a Pascal MODULE
 statement of the form MODULE name; is generated.
-/* comment (* comment *)
-CONSTANT x
-EQUALS n; CONST x = n;
-EQUALS STRING "s"; CONST x = ’s’;
-ENTRY [ASYNCHRONOUS] FUNCTION
-[ASYNCHRONOUS] PROCEDURE
-PARAMETER (type,...) (formal param_list)
-ANY %REF param-name: [UNSAFE] ARRAY [$l1..$u1:INTEGER]
-OF $UBYTE
-DESCRIPTOR [CLASS_S] for scalars;
-[CLASS_S] for CHARACTER LENGTH 1;
-[CLASS_A] for nonscalars;
-%DESCR for fixed-length VARYING;
-RTL_STR_DESC PACKED ARRAY [$l1..$u1:INTEGER] OF CHAR;
-IN Default semantics (unless overridden by OUT)
-OUT (or IN OUT) VAR, except for CHARACTER LENGTH * and ANY (which
+@item /* comment @tab (* comment *)
+@item CONSTANT x
+@item EQUALS n; @tab CONST x = n;
+@item EQUALS STRING "s"; @tab CONST x = ’s’;
+@item ENTRY @tab [ASYNCHRONOUS] FUNCTION
+@item @tab [ASYNCHRONOUS] PROCEDURE
+@item PARAMETER (type,...) @tab (formal param_list)
+@item ANY @tab %REF param-name: [UNSAFE] ARRAY [$l1..$u1:INTEGER] OF $UBYTE
+@item DESCRIPTOR @tab [CLASS_S] for scalars;
+@item @tab [CLASS_S] for CHARACTER LENGTH 1;
+@item @tab [CLASS_A] for nonscalars;
+@item @tab %DESCR for fixed-length VARYING;
+@item RTL_STR_DESC @tab PACKED ARRAY [$l1..$u1:INTEGER] OF CHAR;
+@item IN @tab Default semantics (unless overridden by OUT)
+@item OUT (or IN OUT) @tab VAR, except for CHARACTER LENGTH * and ANY (which
 generate %REF)
-NAMED param-name Parameter name. If none is given, names will be generated of
-the form $P1,...$Pn.
-VALUE %IMMED
-REFERENCE %REF for CHARACTER LENGTH * and ANY; VAR for all
-others if mode OUT or IN OUT; otherwise (IN only) default
-mechanism
-DEFAULT n := %IMMED value
-LIST If OPTIONAL is not specified, generates one required parameter
-followed by a parameter with the [LIST] attribute;
-if OPTIONAL is specified, only the parameter with [LIST] is
-generated.
-OPTIONAL :=%IMMED 0
-TYPENAME type-name n/a
-RETURNS return-data-type FUNCTION name : data-type;
-NAMED param-name n/a
-VARIABLE n/a
-ALIAS internal-name Results in [EXTERNAL (entry-name)] and internal-name being
-used as entry-name
-LINKAGE n/a
-TYPENAME type-name n/a
-STRUCTURE RECORD
-UNION RECORD CASE INTEGER OF
-0: ...
-.
-.
-n: ...
-BYTE [SIGNED] $BYTE—[BYTE] -128..127
-INTEGER_BYTE [SIGNED] $BYTE—[BYTE] -128..127
-WORD [SIGNED] $WORD—[WORD] -32768..32767
-INTEGER_WORD [SIGNED] $WORD—[WORD] -32768..32767
-LONGWORD [SIGNED] INTEGER
-INTEGER_LONG [SIGNED] INTEGER
-INTEGER [SIGNED] INTEGER
-INTEGER_HW [SIGNED] $QUAD—[QUAD,UNSAFE]RECORD L0: UNSIGNED; L1:
-INTEGER; END for /ALPHA
-INTEGER for /VAX
-HARDWARE_INTEGER [SIGNED] $QUAD for /ALPHA
-$QUAD for /ALPHA, INTEGER for /VAX
-QUADWORD [SIGNED] $QUAD
-INTEGER_QUADWORD [SIGNED] $QUAD
-OCTAWORD [SIGNED] $OCTA—[OCTA,UNSAFE]RECORD L0,L1,L2: UNSIGNED; L3:
+@item NAMED param-name @tab Parameter name. If none is given, names will be
+generated of the form $P1,...$Pn.
+@item VALUE @tab %IMMED
+@item REFERENCE @tab %REF for CHARACTER LENGTH * and ANY; VAR for all others
+if mode OUT or IN OUT; otherwise (IN only) default mechanism
+@item DEFAULT n @tab := %IMMED value
+@item LIST @tab If OPTIONAL is not specified, generates one required parameter
+followed by a parameter with the [LIST] attribute; if OPTIONAL is specified,
+only the parameter with [LIST] is generated.
+@item OPTIONAL @tab :=%IMMED 0
+@item TYPENAME type-name @tab n/a
+@item RETURNS return-data-type @tab FUNCTION name : data-type;
+@item NAMED param-name @tab n/a
+@item VARIABLE @tab n/a
+@item ALIAS internal-name @tab Results in [EXTERNAL (entry-name)] and
+internal-name being used as entry-name
+@item LINKAGE @tab n/a
+@item TYPENAME type-name @tab n/a
+@item STRUCTURE @tab RECORD
+@item UNION @tab RECORD CASE INTEGER OF
+@item @tab 0: ...
+@item @tab .
+@item @tab .
+@item @tab n: ...
+@item BYTE [SIGNED] @tab $BYTE—[BYTE] -128..127
+@item INTEGER_BYTE [SIGNED] @tab $BYTE—[BYTE] -128..127
+@item WORD [SIGNED] @tab $WORD—[WORD] -32768..32767
+@item INTEGER_WORD [SIGNED] @tab $WORD—[WORD] -32768..32767
+@item LONGWORD [SIGNED] @tab INTEGER
+@item INTEGER_LONG [SIGNED] @tab INTEGER
+@item INTEGER [SIGNED] @tab INTEGER
+@item INTEGER_HW [SIGNED] @tab $QUAD—[QUAD,UNSAFE]RECORD L0: UNSIGNED; L1:
+@item @tab INTEGER; END for /ALPHA
+@item @tab INTEGER for /VAX
+@item HARDWARE_INTEGER [SIGNED] @tab $QUAD for /ALPHA
+@item @tab $QUAD for /ALPHA, INTEGER for /VAX
+@item QUADWORD [SIGNED] @tab $QUAD
+@item INTEGER_QUADWORD [SIGNED] @tab $QUAD
+@item OCTAWORD [SIGNED] @tab $OCTA—[OCTA,UNSAFE]RECORD L0,L1,L2: UNSIGNED; L3:
 INTEGER; END
-BYTE UNSIGNED $UBYTE—[BYTE] 0..255
-INTEGER_BYTE UNSIGNED $UBYTE—[BYTE] 0..255
-WORD UNSIGNED $UWORD—[WORD] 0..65535
-INTEGER_WORD UNSIGNED $UWORD—[WORD] 0..65535
-LONGWORD UNSIGNED UNSIGNED
-INTEGER_LONG UNSIGNED UNSIGNED
-INTEGER UNSIGNED UNSIGNED
-INTEGER_HW UNSIGNED $UQUAD—[QUAD,UNSAFE]RECORD L0,L1: UNSIGNED;
-END for /ALPHA
-INTEGER for /VAX
-HARDWARE_INTEGER UNSIGNED $UQUAD for /ALPHA
-INTEGER for /VAX
-QUADWORD UNSIGNED $UQUAD
-INTEGER_QUADWORD UNSIGNED $UQUAD
-OCTAWORD UNSIGNED $UOCTA—[OCTA,UNSAFE]RECORD L0,L1,L2,L3: UNSIGNED;
+@item BYTE UNSIGNED @tab $UBYTE—[BYTE] 0..255
+@item INTEGER_BYTE UNSIGNED @tab $UBYTE—[BYTE] 0..255
+@item WORD UNSIGNED @tab $UWORD—[WORD] 0..65535
+@item INTEGER_WORD UNSIGNED @tab $UWORD—[WORD] 0..65535
+@item LONGWORD UNSIGNED @tab UNSIGNED
+@item INTEGER_LONG UNSIGNED @tab UNSIGNED
+@item INTEGER UNSIGNED @tab UNSIGNED
+@item INTEGER_HW UNSIGNED @tab $UQUAD—[QUAD,UNSAFE]RECORD L0,L1: UNSIGNED; END
+for /ALPHA
+@item @tab INTEGER for /VAX
+@item HARDWARE_INTEGER UNSIGNED @tab $UQUAD for /ALPHA
+@item @tab INTEGER for /VAX
+@item QUADWORD UNSIGNED @tab $UQUAD
+@item INTEGER_QUADWORD UNSIGNED @tab $UQUAD
+@item OCTAWORD UNSIGNED @tab $UOCTA—[OCTA,UNSAFE]RECORD L0,L1,L2,L3: UNSIGNED;
 END
-F_FLOATING SINGLE
-D_FLOATING DOUBLE (D_FLOAT$$TYPE if the logical name SDLPASCAL$FLAG
+@item T_FLOATING @tab SINGLE
+@item S_FLOATING @tab DOUBLE (S_FLOAT$$TYPE if the logical name SDLPASCAL$FLAG
 is defined)
-G_FLOATING DOUBLE (G_FLOAT$$TYPE if the logical name SDLPASCAL$FLAG
-is defined)
-H_FLOATING QUADRUPLE
-F_FLOATING COMPLEX $UQAD
-D_FLOATING COMPLEX $UOCTA
-G_FLOATING COMPLEX $UOCTA
-H_FLOATING COMPLEX $UOCTAQUAD –[OCTA(2),UNSAFE]RECORD L0,L1,L3,L4,L5,L6,L7:UNSIGNED;
-END;
-DECIMAL PRECISION (p,q) PACKED ARRAY [1..p+2-mod(p,2)] OF $PACKED_DEC
-$PACKED_DEC—[BIT(4),UNSAFE] 0..15
-BITFIELD LENGTH n $BIT1—[BIT(1), UNSAFE] BOOLEAN
-$BITn—[BIT(n),UNSAFE] 0..2**n-1
-MASK CONST prefixM_name = mask-value;
-SIGNED n/a
-CHARACTER CHAR
-LENGTH n PACKED ARRAY [1..n] OF CHAR
-LENGTH * PACKED ARRAY [$l..$u] OF CHAR
-or VARYING [$m] OF CHAR (if VARYING is also specified)
-VARYING VARYING [n] OF CHAR
-or VARYING [$m] OF CHAR (if LENGTH * is also specified)
-ADDRESS (object-type) ^object-type
-If object type is not supplied, generates $DEFPTR, which is
-defined as ^$DEFTYP; $DEFTYP is defined as [UNSAFE]
-INTEGER
-POINTER (object-type) ^object-type
-If object type is not supplied, generates UNSIGNED
-POINTER_LONG (object-type) ^object-type
-If object type is not supplied, generates UNSIGNED
-POINTER_HW (object-type) $QUAD for /ALPHA
-INTEGER for /VAX
-HARDWARE_ADDRESS (object-type)
-$QUAD for /ALPHA
-INTEGER for /VAX
-POINTER_QUAD (object-type) $QUAD
-BOOLEAN BOOLEAN
-user-type-name user-type-name
-Default storage class TYPE
-COMMON storage class [COMMON]
-GLOBAL storage class [EXTERNAL]
-with /GLOBALDEF [GLOBAL]
-BASED pointer-name TYPE pointer-name = structure-name
-TYPEDEF n/a
-name DIMENSION [lbound:]hbound ARRAY [lbound..hbound] OF data type; if lbound
-is not supplied, it defaults to 1
-ORIGIN member-name n/a
+@item T_FLOATING COMPLEX @tab $UQAD
+@item S_FLOATING COMPLEX @tab $UOCTA
+@item DECIMAL PRECISION (p,q) @tab PACKED ARRAY [1..p+2-mod(p,2)] OF $PACKED_DEC
+@item @tab $PACKED_DEC---[BIT(4),UNSAFE] 0..15
+@item BITFIELD LENGTH n @tab $BIT1---[BIT(1), UNSAFE] BOOLEAN
+@item @tab $BITn---[BIT(n),UNSAFE] 0..2**n-1
+@item MASK @tab CONST prefixM_name = mask-value;
+@item SIGNED @tab n/a
+@item CHARACTER @tab CHAR
+@item LENGTH n @tab PACKED ARRAY [1..n] OF CHAR
+@item LENGTH * @tab PACKED ARRAY [$l..$u] OF CHAR
+@item @tab or VARYING [$m] OF CHAR (if VARYING is also specified)
+@item VARYING @tab VARYING [n] OF CHAR
+@item @tab or VARYING [$m] OF CHAR (if LENGTH * is also specified)
+@item ADDRESS (object-type) @tab ^object-type
+@item @tab If object type is not supplied, generates $DEFPTR, which is defined
+as ^$DEFTYP; $DEFTYP is defined as [UNSAFE] INTEGER
+@item POINTER (object-type) @tab ^object-type
+@item @tab If object type is not supplied, generates UNSIGNED
+@item POINTER_LONG (object-type) @tab ^object-type
+@item @tab If object type is not supplied, generates UNSIGNED
+@item POINTER_HW (object-type) @tab $QUAD for /ALPHA
+@item @tab INTEGER for /VAX
+@item HARDWARE_ADDRESS (object-type) @tab $QUAD for /ALPHA
+@item @tab INTEGER for /VAX
+@item POINTER_QUAD (object-type) @tab $QUAD
+@item BOOLEAN @tab BOOLEAN
+@item user-type-name @tab user-type-name
+@item Default storage class @tab TYPE
+@item COMMON storage class @tab [COMMON]
+@item GLOBAL storage class @tab [EXTERNAL]
+@item with /GLOBALDEF @tab [GLOBAL]
+@item BASED pointer-name @tab TYPE pointer-name = structure-name
+@item TYPEDEF @tab n/a
+@item name DIMENSION [lbound:]hbound @tab ARRAY [lbound..hbound] OF data type;
+if lbound is not supplied, it defaults to 1
+@item ORIGIN member-name @tab n/a
+@end multitable
 
-Notes
-1. When the /MODULE (default) qualifier is used, OpenSDL generates the Pascal
-MODULE statement followed by a block of data type definitions. Both of these
-items are omitted when /NOMODULE is specified. This behavior facilitates
+@quotation Notes
+@enumerate
+@item When the /MODULE (default) qualifier is used, OpenSDL generates the
+Pascal MODULE statement followed by a block of data type definitions. Both of
+these items are omitted when /NOMODULE is specified. This behavior facilitates
 combining multiple OpenSDL-generated Pascal output files into a single module.
-2. Where type names are required (for example, in parameter lists, function
+
+@item Where type names are required (for example, in parameter lists, function
 return types, and pointer data types), they will be generated in a TYPE block
 at the beginning of the module. Names have the form module-name$$TYPn,
 where module-name is truncated to 20 characters if necessary, and n is an
 integer beginning at 1 and incremented by 1 for each type generated in a module.
-3. Bitfields cannot be more than 32 bits in length, so type names giving the
+
+@item Bitfields cannot be more than 32 bits in length, so type names giving the
 appropriate subranges will be generated for each possible bitfield size.
 Bitfields of length 1 are a special case.
-4. The mask-value generated by OpenSDL for the MASK option of the BITFIELD data
-type is an integer.
-5. OpenSDL generates only single-level records for Pascal. Thus, you can avoid
-writing many long intermediate field names in the Pascal source program. If the
-outer level is a structure, a PACKED RECORD is typically declared. If the outer
-level is a union; a PACKED RECORD CASE INTEGER is declared.
+
+@item The mask-value generated by OpenSDL for the MASK option of the BITFIELD
+data type is an integer.
+
+@item OpenSDL generates only single-level records for Pascal. Thus, you can
+avoid writing many long intermediate field names in the Pascal source program.
+If the outer level is a structure, a PACKED RECORD is typically declared.  If
+the outer level is a union; a PACKED RECORD CASE INTEGER is declared.
 
 In the case of multiple levels of structures or unions in OpenSDL, the entire
 aggregate is transformed into a PACKED RECORD CASE INTEGER. The intermediate
 field-names are themselves declared as BYTE_DATA fields. This translation
 scheme may result in several fields in the record having the same name.
+@end enumerate
+@end quotation
 
-PL/I Translation Summary
+@unnumberedsec Kednos PL/I Translation Summary
 
-The following table shows the OpenSDL to PL/I language translation summary.
+The following table shows the OpenSDL to Kednos PL/I language translation
+summary.
 
-OpenSDL Declaration PL/I Output
-MODULE name IDENT string /*** MODULE name IDENT string ***/
-/* comment /*comment*/
-CONSTANT x
-EQUALS n; %REPLACE x BY n;
-EQUALS STRING "s"; %REPLACE x BY ’s’;
-ENTRY ENTRY
-PARAMETER (type,...) (parameter-descriptor,...)
-ANY ANY
-DESCRIPTOR DESCRIPTOR or CHARACTER(*) for CHARACTER data type
-RTL_STR_DESC ANY CHARACTER(*)
-IN n/a
-OUT n/a
-NAMED param-name n/a
-VALUE VALUE
-REFERENCE n/a
-DEFAULT n n/a
-LIST LIST
-OPTIONAL OPTIONAL or OPTIONAL TRUNCATE
-TYPENAME type-name Special VMS TYPENAME values are recognized.
-RETURNS return-data-type RETURNS (returns-descriptor)
-NAMED param-name n/a
-VARIABLE OPTIONS(VARIABLE)
-ALIAS internal-name n/a
-LINKAGE n/a
-TYPENAME type-name Special VMS TYPENAME values are recognized.
-STRUCTURE Structure declaration. An AGGREGATE declaration is always
-assigned a level number of 1; subsequent subaggregates are
-assigned level numbers 2, 3, and so on.
-UNION UNION
-BYTE [SIGNED] FIXED BINARY(7)
-INTEGER_BYTE [SIGNED] FIXED BINARY(7)
-WORD [SIGNED] FIXED BINARY(15)
-INTEGER_WORD [SIGNED] FIXED BINARY(15)
-LONGWORD [SIGNED] FIXED BINARY(31)
-INTEGER_LONG [SIGNED] FIXED BINARY(31)
-INTEGER [SIGNED] FIXED BINARY(31)
-INTEGER_HW [SIGNED] (2) FIXED BIN(31) for /ALPHA
-FIXED BIN(31) for /VAX
-HARDWARE_INTEGER [SIGNED] (2) FIXED BIN(31) for /ALPHA
-FIXED BIN(31) for /VAX
-QUADWORD [SIGNED] BIT(64) ALIGNED
-INTEGER_QUAD [SIGNED] BIT(64) ALIGNED
-OCTAWORD [SIGNED] BIT(128) ALIGNED
-BYTE UNSIGNED BIT(8) ALIGNED
-FIXED BINARY(7) for /PLI_DEVELOPMENT
-INTEGER_BYTE UNSIGNED BIT(8) ALIGNED
-FIXED BINARY(7) for /PLI_DEVELOPMENT
-WORD UNSIGNED BIT(16) ALIGNED
-FIXED BINARY(15) for /PLI_DEVELOPMENT
-INTEGER_WORD UNSIGNED BIT(16) ALIGNED
-FIXED BINARY(15) for /PLI_DEVELOPMENT
-LONGWORD UNSIGNED BIT(32) ALIGNED
-FIXED BINARY(31) for /PLI_DEVELOPMENT
-INTEGER_LONG UNSIGNED BIT(32) ALIGNED
-FIXED BINARY(31) for /PLI_DEVELOPMENT
-INTEGER UNSIGNED BIT(32) ALIGNED
-FIXED BINARY(31) for /PLI_DEVELOPMENT
-INTEGER_HW UNSIGNED BIT(64) ALIGNED for /ALPHA
-(2) FIXED BIN(31)/ALPHA/PLI_DEVELOPMENT
-BIT(32) ALIGNED for /VAX
-FIXED BIN(31)/VAX/PLI_DEVELOPMENT
-HARDWARE_INTEGER UNSIGNED BIT(64) ALIGNED for /ALPHA
-(2) FIXED BIN(31)/ALPHA/PLI_DEVELOPMENT
-BIT(32) ALIGNED for /VAX
-FIXED BIN(31)/VAX/PLI_DEVELOPMENT
-QUADWORD UNSIGNED BIT(64) ALIGNED
-INTEGER_QUAD UNSIGNED BIT(64) ALIGNED
-OCTAWORD UNSIGNED BIT(128) ALIGNED
-F_FLOATING FLOAT BINARY (24)
-D_FLOATING FLOAT BINARY(53)
-G_FLOATING FLOAT BINARY(53)
-H_FLOATING FLOAT BINARY(113)
-F_FLOATING COMPLEX ANY except as a
-D_FLOATING COMPLEX - function return type or union
-G_FLOATING COMPLEX - type of a structure member
-H_FLOATING COMPLEX - array type
-In these cases, respective translations are:
-BIT(64)
-BIT(128)
-BIT(128)
-BIT(256)
-DECIMAL PRECISION (p,q) DECIMAL (p,q)
-BITFIELD LENGTH n BIT(n)
-MASK %REPLACE prefixM_name BY mask-value;
-SIGNED n/a
-CHARACTER CHARACTER(n)
-LENGTH n CHARACTER(n)
-LENGTH * CHARACTER(*)
-VARYING VARYING
-ADDRESS POINTER
-POINTER POINTER
-POINTER_LONG POINTER
-POINTER_HW (2) POINTER for /ALPHA
-POINTER for /VAX
-HARDWARE_ADDRESS (2) POINTER for /ALPHA
-POINTER for /VAX
-POINTER_QUAD (2) POINTER
-BOOLEAN BIT(1) ALIGNED
-user-type-name data-type /* user-type-name */
-Default storage class BASED attribute
-COMMON storage class STATIC EXTERNAL
-GLOBAL storage class GLOBALREF
-with /GLOBALDEF GLOBALDEF
-BASED pointer-name aggregate BASED (pointer-name)
-TYPEDEF n/a
-name DIMENSION [lbound:]hbound name ([lbound]:hbound)
-ORIGIN member-name n/a
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab Kednos PL/I Output
+@item MODULE name IDENT string @tab /*** MODULE name IDENT string ***/
+@item /* comment @tab /*comment*/
+@item CONSTANT x
+@item EQUALS n; @tab %REPLACE x BY n;
+@item EQUALS STRING "s"; @tab %REPLACE x BY ’s’;
+@item ENTRY @tab ENTRY
+@item PARAMETER (type,...) @tab (parameter-descriptor,...)
+@item ANY @tab ANY
+@item DESCRIPTOR @tab DESCRIPTOR or CHARACTER(*) for CHARACTER data type
+@item RTL_STR_DESC @tab ANY CHARACTER(*)
+@item IN @tab n/a
+@item OUT @tab n/a
+@item NAMED param-name @tab n/a
+@item VALUE @tab VALUE
+@item REFERENCE @tab n/a
+@item DEFAULT n @tab n/a
+@item LIST @tab LIST
+@item OPTIONAL @tab OPTIONAL or OPTIONAL TRUNCATE
+@item TYPENAME type-name @tab Special VMS TYPENAME values are recognized.
+@item RETURNS return-data-type @tab RETURNS (returns-descriptor)
+@item NAMED param-name @tab n/a
+@item VARIABLE @tab OPTIONS(VARIABLE)
+@item ALIAS internal-name @tab n/a
+@item LINKAGE @tab n/a
+@item TYPENAME type-name @tab Special VMS TYPENAME values are recognized.
+@item STRUCTURE @tab Structure declaration. An AGGREGATE declaration is always
+assigned a level number of 1; subsequent subaggregates are assigned level
+numbers 2, 3, and so on.
+@item UNION @tab UNION
+@item BYTE [SIGNED] @tab FIXED BINARY(7)
+@item INTEGER_BYTE [SIGNED] @tab FIXED BINARY(7)
+@item WORD [SIGNED] @tab FIXED BINARY(15)
+@item INTEGER_WORD [SIGNED] @tab FIXED BINARY(15)
+@item LONGWORD [SIGNED] @tab FIXED BINARY(31)
+@item INTEGER_LONG [SIGNED] @tab FIXED BINARY(31)
+@item INTEGER [SIGNED] @tab FIXED BINARY(31)
+@item INTEGER_HW [SIGNED] @tab (2) FIXED BIN(31) for /ALPHA
+@item @tab FIXED BIN(31) for /VAX
+@item HARDWARE_INTEGER [SIGNED] @tab (2) FIXED BIN(31) for /ALPHA
+@item @tab FIXED BIN(31) for /VAX
+@item QUADWORD [SIGNED] @tab BIT(64) ALIGNED
+@item INTEGER_QUAD [SIGNED] @tab BIT(64) ALIGNED
+@item OCTAWORD [SIGNED] @tab BIT(128) ALIGNED
+@item BYTE UNSIGNED @tab BIT(8) ALIGNED
+@item @tab FIXED BINARY(7) for /PLI_DEVELOPMENT
+@item INTEGER_BYTE UNSIGNED @tab BIT(8) ALIGNED
+@item @tab FIXED BINARY(7) for /PLI_DEVELOPMENT
+@item WORD UNSIGNED @tab BIT(16) ALIGNED
+@item @tab FIXED BINARY(15) for /PLI_DEVELOPMENT
+@item INTEGER_WORD UNSIGNED @tab BIT(16) ALIGNED
+@item @tab FIXED BINARY(15) for /PLI_DEVELOPMENT
+@item LONGWORD UNSIGNED @tab BIT(32) ALIGNED
+@item @tab FIXED BINARY(31) for /PLI_DEVELOPMENT
+@item INTEGER_LONG UNSIGNED @tab BIT(32) ALIGNED
+@item @tab FIXED BINARY(31) for /PLI_DEVELOPMENT
+@item INTEGER UNSIGNED @tab BIT(32) ALIGNED
+@item @tab FIXED BINARY(31) for /PLI_DEVELOPMENT
+@item INTEGER_HW UNSIGNED @tab BIT(64) ALIGNED for /ALPHA
+@item @tab (2) FIXED BIN(31)/ALPHA/PLI_DEVELOPMENT
+@item @tab BIT(32) ALIGNED for /VAX
+@item @tab FIXED BIN(31)/VAX/PLI_DEVELOPMENT
+@item HARDWARE_INTEGER UNSIGNED @tab BIT(64) ALIGNED for /ALPHA
+@item @tab (2) FIXED BIN(31)/ALPHA/PLI_DEVELOPMENT
+@item @tab BIT(32) ALIGNED for /VAX
+@item @tab FIXED BIN(31)/VAX/PLI_DEVELOPMENT
+@item QUADWORD UNSIGNED @tab BIT(64) ALIGNED
+@item INTEGER_QUAD UNSIGNED @tab BIT(64) ALIGNED
+@item OCTAWORD UNSIGNED @tab BIT(128) ALIGNED
+@item F_FLOATING @tab FLOAT BINARY(24)
+@item D_FLOATING @tab FLOAT BINARY(53)
+@item F_FLOATING COMPLEX @tab ANY except as a
+@item D_FLOATING COMPLEX @tab - function return type or union
+@item @tab - array type
+@item @tab In these cases, respective translations are:
+@item @tab BIT(64)
+@item @tab BIT(128)
+@item DECIMAL PRECISION (p,q) @tab DECIMAL (p,q)
+@item BITFIELD LENGTH n @tab BIT(n)
+@item MASK @tab %REPLACE prefixM_name BY mask-value;
+@item SIGNED @tab n/a
+@item CHARACTER @tab CHARACTER(n)
+@item LENGTH n @tab CHARACTER(n)
+@item LENGTH * @tab CHARACTER(*)
+@item VARYING @tab VARYING
+@item ADDRESS @tab POINTER
+@item POINTER @tab POINTER
+@item POINTER_LONG @tab POINTER
+@item POINTER_HW @tab (2) POINTER for /ALPHA
+@item @tab POINTER for /VAX
+@item HARDWARE_ADDRESS @tab (2) POINTER for /ALPHA
+@item @tab POINTER for /VAX
+@item POINTER_QUAD @tab (2) POINTER
+@item BOOLEAN @tab BIT(1) ALIGNED
+@item user-type-name @tab data-type /* user-type-name */
+@item Default storage class @tab BASED attribute
+@item COMMON storage class @tab STATIC EXTERNAL
+@item GLOBAL storage class @tab GLOBALREF
+@item with /GLOBALDEF @tab GLOBALDEF
+@item BASED pointer-name @tab aggregate BASED (pointer-name)
+@item TYPEDEF @tab n/a
+@item name DIMENSION [lbound:]hbound @tab name ([lbound]:hbound)
+@item ORIGIN member-name @tab n/a
+@end multitable
 
-Notes
-1. In PL/I, you can access values declared using the OpenSDL UNSIGNED keyword
-by specifying the name in a POSINT built-in function. The integer value of the
-name will be returned; however, this will work only if the sign bit is 0.
-2. The mask value generated by OpenSDL for the MASK option of the BITFIELD data
-type is a bit-string constant.
-3. The OpenSDL declarations BYTE UNSIGNED, WORD UNSIGNED, and LONGWORD
+@quotation Notes
+@enumerate
+@item In PL/I, you can access values declared using the OpenSDL UNSIGNED
+keyword by specifying the name in a POSINT built-in function. The integer value
+of the name will be returned; however, this will work only if the sign bit is
+0.
+
+@item The mask value generated by OpenSDL for the MASK option of the BITFIELD
+data type is a bit-string constant.
+
+@item The OpenSDL declarations BYTE UNSIGNED, WORD UNSIGNED, and LONGWORD
 UNSIGNED produce the same PL/I output as the OpenSDL declarations BYTE,
 WORD, and LONGWORD, when the /VMS_DEVELOPMENT qualifier is specified.
+@end enumerate
+@end quotation
 
-OpenVMS DCL Translation Summary
+@unnumberedsec OpenVMS DCL Translation Summary
 
 The following table shows the OpenSDL to OpenVMS DCL language translation
 summary.  Since OpenVMS DCL does not understand procedures or aggregates, only
 constants are translated.
 
-OpenSDL Declaration OpenVMS DCL Output
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab OpenVMS DCL Output
+@item MODULE name IDENT string @tab $ ! MODULE name
+@item /* comment @tab $ ! comment
+@item CONSTANT x
+@item EQUALS n; @tab x == n
+@item EQUALS STRING "s"; @tab x == "s"
+@item ENDMODULE name @tab $ ! ENDMODULE
+@end multitable
 
-MODULE name IDENT string $ ! MODULE name
-/* comment $ ! comment
-CONSTANT x
-EQUALS n; x = = n
-EQUALS STRING "s"; x = = "s"
-ENDMODULE name $ ! ENDMODULE
-
-SDML Translation Summary
+@unnumberedsec SDML Translation Summary
 
 SDML is not a programming language; the translation is intended to be used as
 input to software manuals.
@@ -5706,9 +5861,11 @@ input to software manuals.
 For every AGGREGATE STRUCT files named aggregate-name_PIC.SDML and
 aggregate-name_TBL.SDML are generated. Those files also include the constants
 defined in the SDL file before the AGGREGATE.
+
 AGGREGATE UNIONs and ITEMs are written into files named PICFILE.DAT and
 TBLFILE.DAT. If an SDL file contains more than one ITEM or UNION, multiple
 versions of PICFILE.DAT and TBLFILE.DATE will be written.
+
 ‘‘PIC’’ files contain drawings, where every member of an AGGREGATE is drawn
 according to its size and position. BITFIELDs are not drawn, their size and
 position are respected only partly; members following BITFIELDS are not always
@@ -5720,39 +5877,44 @@ backend.
 
 ENTRY declarations are also not supported by the SDML backend.
 
-DECTPU Translation Summary
+@unnumberedsec DECTPU Translation Summary
 
 The following table shows the OpenSDL to DECTPU language translation summary.
 Since DECTPU does not understand procedures or aggregates, only constants are
 translated.
 
-OpenSDL Declaration DECTPU Output
-MODULE name IDENT string MODULE name
-/* comment ! comment
-CONSTANT x
-EQUALS n; CONSTANT x := n;
-EQUALS STRING "s"; CONSTANT x := "s";
-ENDMODULE name ENDMODULE
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab DECTPU Output
+@item MODULE name IDENT string @tab MODULE name
+@item /* comment @tab ! comment
+@item CONSTANT x
+@item EQUALS n; @tab CONSTANT x := n;
+@item EQUALS STRING "s"; @tab CONSTANT x := "s";
+@item ENDMODULE name @tab ENDMODULE
+@end multitable
 
-UIL Translation Summary
+@unnumberedsec UIL Translation Summary
 
 The following table shows the OpenSDL to UIL language translation summary.
 Since UIL does not understand procedures or aggregates, only constants are
 translated.
 
-OpenSDL Declaration UIL Output
-MODULE name IDENT string ! MODULE name
-/* comment ! comment
-CONSTANT x
-EQUALS n; VALUE x : n;
-EQUALS STRING "s"; VALUE x : "s";
-ENDMODULE name ! ENDMODULE
+@multitable @columnfractions .35 .65
+@headitem OpenSDL Declaration @tab UIL Output
+@item MODULE name IDENT string @tab ! MODULE name
+@item /* comment @tab ! comment
+@item CONSTANT x
+@item EQUALS n; @tab VALUE x : n;
+@item EQUALS STRING "s"; @tab VALUE x : "s";
+@item ENDMODULE name @tab ! ENDMODULE
+@end multitable
 
+@node ASCII Character Set
+@appendix ASCII Character Set
+@cindex ASCII Character Set
 
-@appendix C
-
-@unnumberedsec ASCII Character Set
-The following table shows the ASCII character set referred to in Section 3.3.
+The following table shows the ASCII character set referred to in
+@ref{Expressions}.
 
 @multitable @columnfractions .20 .20 .60
 @headitem Character @tab ASCII Decimal @tab Hexadecimal

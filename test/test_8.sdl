@@ -1,26 +1,155 @@
-MODULE opr_descriptor IDENT "Version 2.0";
- 
-/* define constants and node structure for operators;
- 
+/+
+// Copyright (C) Jonathan D. Belanger 2018.
+// All Rights Reserved.
+//
+// This software is furnished under a license and may be used and copied only
+// in accordance with the terms of such license and with the inclusion of the
+// above copyright notice.  This software or any other copies thereof may not
+// be provided or otherwise made available to any other person.  No title to
+// and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and
+// should not be construed as a commitment by the author or co-authors.
+//
+// The author and any co-authors assume no responsibility for the use or
+// reliability of this software.
+//
+// Description:
+//
+//  This test file contains the CONSTANT statements.
+//
+// Revision History:
+//
+//  V01.000	Sept 01, 2018	Jonathan D. Belanger
+//  Initially written.
+//
+//  V01.001	Sep  6, 2018	Jonathan D. Belanger
+//  Updated the copyright to be GNUGPL V3 compliant.
+/-
+
+/+
+// Test 8: This is going to test AGGREGATE.
+/-
+MODULE test_8;
+
+/+
+// Test 8a: Basic AGGREGATE STRUCTURE.
+/-
+AGGREGATE test_8a STRUCTURE;
+END;
+
+/+
+// Test 8b: Basic AGGREGATE UNION.
+/-
+AGGREGATE test_8b UNION;
+END;
+
+/+
+// Test 8c Complete AGGREGATE STRUCTURE.
+/-
+AGGREGATE test_8c STRUCTURE;
+	type CHARACTER;
+	size WORD;
+	next ADDRESS;
+END test_8c;
+
+/+
+// Test 8d: AGGREGATE declaration with subaggregate
+/-
+AGGREGATE test_8d STRUCTURE;
+	opcode WORD;
+	lang_bits UNION;
+		pli_bits STRUCTURE;
+			resolved BITFIELD;
+			psv BITFIELD;
+			mark1 BITFIELD;
+			spare_bits BITFIELD LENGTH 5;
+		END pli_bits;
+		c_bits STRUCTURE;
+			value_variable_size BITFIELD;
+			psv BITFIELD;
+			expanded BITFIELD;
+			resolved BITFIELD;
+			reduced BITFIELD;
+			spare_bits BITFIELD LENGTH 3;
+		END c_bits;
+	END lang_bits;
+END test_8d;
+
+/+
+// Test 8e: AGGREGATE declaration with implicit UNION.
+/-
+AGGREGATE test_8e STRUCTURE;
+	B STRUCTURE LONGWORD;
+		bit_string1 BITFIELD LENGTH 1;
+		bit_string2 BITFIELD LENGTH 4;
+	END B;
+	last_item WORD;
+END test_8e;
+
+/+
+// Test 8f: AGGREGATE declaration with implicit UNION and optional DIMENSION.
+/-
+AGGREGATE test_8f STRUCTURE WORD DIMENSION 3;
+	first WORD;
+	second WORD;
+	third WORD;
+END test_8f;
+
+/+
+// Test 8g: AGGREGATE declaration with negative OFFSETS.
+/-
+AGGREGATE test_8g STRUCTURE ORIGIN qflink;
+	flink ADDRESS;
+	blink ADDRESS;
+	qflink ADDRESS;
+	qblink ADDRESS;
+END;
+
+/+
+// Test 8h: AGGREGATE declaration with forced alignment.
+/-
+AGGREGATE test_8h STRUCTURE;
+	opcode WORD;
+	lang_bits UNION;
+		pli_bits STRUCTURE;
+			resolved BITFIELD;
+			psv BITFIELD;
+			mark1 BITFIELD;
+			spare_bits BITFIELD LENGTH 5;
+		END pli_bits;
+		c_bits STRUCTURE;
+			value_variable_size BITFIELD;
+			psv BITFIELD;
+			expanded BITFIELD;
+			resolved BITFIELD;
+			reduced BITFIELD;
+			spare_bits BITFIELD LENGTH 3;
+		END c_bits;
+	END lang_bits;
+END test_8h;
+
+/+
+// Test 8i: AGGREGATE declaration with offset symbols.
+/-
 #max_args = 10;
- 
-CONSTANT (fixed_binary,floating,char,untyped) EQUALS 1 INCREMENT 1;
- 
-AGGREGATE operator STRUCTURE
-    PREFIX "opr_";
-    flink ADDRESS;
-    blink ADDRESS; 
-    opcount WORD; 
-    optype CHARACTER LENGTH 1; 
-    id WORD; 
-    operands LONGWORD DIMENSION 0:#max_args-1;
- 
-END operator; 
- 
-#opsize = .;
- 
-CONSTANT opr_node_size EQUALS #opsize / 2;
- 
-ITEM current_node_ptr ADDRESS GLOBAL;
- 
-END_MODULE opr_descriptor;
+AGGREGATE test_8i STRUCTURE PREFIX opr_;
+	flink ADDRESS;
+	blink ADDRESS;
+	opcount WORD;
+	optype CHARACTER LENGTH 1;
+	id WORD;
+	flags STRUCTURE;
+		is_constant_size BITFIELD LENGTH 1;
+		is_terminator BITFIELD LENGTH 1;
+		context BITFIELD LENGTH 3;
+		filler BITFIELD LENGTH 8-^;
+	END;
+	#opsize = .;
+	operands LONGWORD DIMENSION(#max_args);
+	#instruction_size = :;
+END;
+CONSTANT node_size EQUALS #opsize / 2;
+CONSTANT inst_size EQUALS #instruction_size;
+
+END_MODULE test_8;

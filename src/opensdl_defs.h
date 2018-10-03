@@ -468,7 +468,9 @@ typedef enum
     Parameter,
     Variable,
     Radix,
-    Dimension
+    Dimension,
+    Length,
+    Mask
 } SDL_OPTION_TYPE;
 #define SDL_K_MAX_OPTIONS	8
 typedef struct
@@ -500,6 +502,7 @@ typedef enum
     Constant,
     Item,
     Aggregate,
+    Subaggregate,
     Entry,
     IfLanguage,
     IfSymbol,

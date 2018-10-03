@@ -266,10 +266,40 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    break;
 
 	case Aggregate:
-	    if (action == DefinitionEnd)
-		context->state = Module;
-	    else
-		retVal = 0;
+	    switch (action)
+	    {
+		case DefinitionEnd:
+		    context->state = Module;
+		    break;
+
+		case Subaggregate:
+		    context->state = Subaggregate;
+		    /* TODO: Need to consider subaggregate depth */
+		    break;
+
+		default:
+		    retVal = 0;
+		    break;
+	    }
+	    break;
+
+	case Subaggregate:
+	    switch (action)
+	    {
+		case DefinitionEnd:
+		    context->state = Module;
+		    /* TODO: Need to consider subaggregate depth */
+		    break;
+
+		case Subaggregate:
+		    context->state = Subaggregate;
+		    /* TODO: Need to consider subaggregate depth */
+		    break;
+
+		default:
+		    retVal = 0;
+		    break;
+	    }
 	    break;
 
 	case Entry:
@@ -2142,6 +2172,14 @@ int sdl_add_option(
 	    case Global:
 	    case Typedef:
 	    case Fill:
+	    case Reference:
+	    case Value:
+	    case In:
+	    case Out:
+	    case Variable:
+	    case List:
+	    case Optional:
+	    case Mask:
 		context->options[context->optionsIdx++].option = option;
 		break;
 
@@ -2152,6 +2190,9 @@ int sdl_add_option(
 	    case Increment:
 	    case Radix:
 	    case Dimension:
+	    case Returns:
+	    case Default:
+	    case Length:
 		context->options[context->optionsIdx].option = option;
 		context->options[context->optionsIdx++].value = value;
 		break;
@@ -2164,6 +2205,11 @@ int sdl_add_option(
 	    case Counter:
 	    case TypeName:
 	    case Marker:
+	    case Based:
+	    case Origin:
+	    case Named:
+	    case Alias:
+	    case Linkage:
 		context->options[context->optionsIdx].option = option;
 		context->options[context->optionsIdx++].string = string;
 		break;
@@ -2171,21 +2217,7 @@ int sdl_add_option(
 	    /*
 	     * The following are yet to be determined.
 	     */
-	    case Based:
-	    case Origin:
-	    case Reference:
-	    case Value:
-	    case In:
-	    case Out:
-	    case Default:
-	    case List:
-	    case Named:
-	    case Optional:
-	    case Returns:
-	    case Alias:
-	    case Linkage:
 	    case Parameter:
-	    case Variable:
 		break;
 	}
     }

@@ -1,0 +1,79 @@
+/+
+// Copyright (C) Jonathan D. Belanger 2018.
+// All Rights Reserved.
+//
+// This software is furnished under a license and may be used and copied only
+// in accordance with the terms of such license and with the inclusion of the
+// above copyright notice.  This software or any other copies thereof may not
+// be provided or otherwise made available to any other person.  No title to
+// and ownership of the software is hereby transferred.
+//
+// The information in this software is subject to change without notice and
+// should not be construed as a commitment by the author or co-authors.
+//
+// The author and any co-authors assume no responsibility for the use or
+// reliability of this software.
+//
+// Description:
+//
+//  This test file contains the CONSTANT statements.
+//
+// Revision History:
+//
+//  V01.000	Sept 01, 2018	Jonathan D. Belanger
+//  Initially written.
+//
+//  V01.001	Sep  6, 2018	Jonathan D. Belanger
+//  Updated the copyright to be GNUGPL V3 compliant.
+/-
+
+/+
+// Test 9: This is going to test ENTRY.
+/-
+MODULE test_9;
+
+/+
+// Test 9a: Basic ENTRY.
+/-
+ENTRY sys$abc;
+
+/+
+// Test 9b: Basic ENTRY with a simple PARAMGER.
+/-
+ENTRY sys$abc
+	PARAMETER (ANY);
+
+/+
+// Test 9c: Basic ENTRY with a more complex PARAMETER.
+/-
+ENTRY LIB$ROUTINE
+	PARAMETER(CHARACTER LENGTH * NAMED foo);
+
+/+
+// Test 9d: SYS$FAO ENTRY definition.
+/-
+ENTRY SYS$FAO
+	ALIAS $FAO
+	PARAMETER (
+		CHARACTER REFERENCE NAMED CTRSTR IN TYPENAME CHARDESC,
+		WORD UNSIGNED NAMED OUTLEN OUT DEFAULT 0 TYPENAME NUMBER,
+		CHARACTER REFERENCE NAMED OUTBUF OUT TYPENAME CHARDESC,
+		LONGWORD VALUE NAMED P1 OPTIONAL LIST TYPENAME VARIES)
+	RETURNS LONGWORD TYPENAME CONDVALU;
+
+/+
+// Test 9e: SYS$GETJPI ENTRY definition.
+/-
+ENTRY SYS$GETJPI
+	ALIAS $GETJPI
+	PARAMETER (
+		LONGWORD UNSIGNED VALUE NAMED EFN DEFAULT 0 TYPENAME EFNUM,
+		LONGWORD UNSIGNED NAMED PIDADR IN OUT DEFAULT 0 TYPENAME PROCID,
+		CHARACTER REFERENCE NAMED PRCNAM IN DEFAULT 0 TYPENAME PROCNAME,
+		ANY NAMED ITMLST IN TYPENAME ITEMLIST,
+		QUADWORD UNSIGNED NAMED IOSB OUT DEFAULT 0 TYPENAME IOSB,
+		ADDRESS(ENTRY) NAMED ASTADR DEFAULT 0 TYPENAME ASTADR,
+		LONGWORD UNSIGNED VALUE NAMED ASTPRM DEFAULT 0 TYPENAME USERPARM)
+	RETURNS LONGWORD TYPENAME CONDVALU;
+
+END_MODULE test_9;

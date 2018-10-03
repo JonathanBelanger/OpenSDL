@@ -58,6 +58,7 @@ Quoted_string	\"(\\.|[^"\\])*\"
 %x ST_CONST_LIST
 %x ST_CONST_RAD
 %x ST_BLOCK
+%x ST_AGGR
 
 %{
 
@@ -89,6 +90,8 @@ static int				_sdl_state_size = 0;
 static int				_sdl_state_inuse = 0;
 static bool				_sdl_end_literal = false;
 static SDL_FILE_LIST	*_sdl_file_list = NULL;
+static int				_sdl_aggregate_depth = 0;
+static bool				_sdl_aggregate_started = false;
 
 /*
  * This is for the currently being parsed file name.  It is used when
@@ -102,7 +105,6 @@ static char *currentFileName = NULL;
  */
 static bool _sdl_push_file(char *newFileName);
 static bool _sdl_pop_file(void);
-static void _sdl_str_unquote(char **dest, char *src);
 static bool _sdl_push_start_state(void);
 static int _sdl_pop_start_state(void);
 
@@ -457,6 +459,44 @@ CONSTANT				{
 							return(SDL_K_SEMI);
 						}
 <ST_CONST>.\n			{ /* Eat unexpected characters */ }
+AGGREGATE				{
+							if (_sdl_push_start_state() == false)
+								yyterminate();
+							BEGIN(ST_AGGR);
+							_sdl_aggregate_depth++;
+							_sdl_aggregate_started = true;
+							return(SDL_K_AGGREGATE);
+						}
+<ST_AGGR>STRUCTURE		{
+							if (_sdl_aggregate_started == true)
+								_sdl_aggregate_started = false;
+							else
+								_sdl_aggregate_depth++;
+							return(SDL_K_STRUCTURE);
+						}
+<ST_AGGR>UNION			{
+							if (_sdl_aggregate_started == true)
+								_sdl_aggregate_started = false;
+							else
+								_sdl_aggregate_depth++;
+							return(SDL_K_UNION);
+						}
+<ST_AGGR>";"			{ return(SDL_K_SEMI); }
+<ST_AGGR>FILL			{ return(SDL_K_FILL); }
+<ST_AGGR>MARKER			{ return(SDL_K_MARKER); }
+<ST_AGGR>ORIGIN			{ return(SDL_K_ORIGIN); }
+<ST_AGGR>BASED			{ return(SDL_K_BASED); }
+<ST_AGGR>MASK			{ return(SDL_K_MASK); }
+<ST_AGGR>END			{
+							_sdl_aggregate_depth--;
+							if (_sdl_aggregate_depth == 0)
+							{
+								_sdl_aggregate_started = false;
+								BEGIN(_sdl_pop_start_state());
+							}
+							return(SDL_K_END);
+						}
+
 IFLANGUAGE				{ return(SDL_K_IFLANG); }
 ELSE					{ return(SDL_K_ELSE); }
 END_IFLANGUAGE			{ return(SDL_K_END_IFLANG); }
@@ -465,30 +505,22 @@ ELSE_IFSYMBOL			{ return(SDL_K_ELSE_IFSYMB); }
 END_IFSYMBOL			{ return(SDL_K_END_IFSYMB); }
 
 DECLARE					{ return(SDL_K_DECLARE); }
-AGGREGATE				{ return(SDL_K_AGGREGATE); }
-END						{ return(SDL_K_END); }
 END_MODULE				{ return(SDL_K_END_MODULE); }
 ENTRY					{ return(SDL_K_ENTRY); }
 ITEM					{ return(SDL_K_ITEM); }
 MODULE					{ return(SDL_K_MODULE); }
-STRUCTURE				{ return(SDL_K_STRUCTURE); }
-UNION					{ return(SDL_K_UNION); }
 
 IDENT					{ return(SDL_K_IDENT); }
 
-ALIGN					{ return(SDL_KWD_ALIGN); }
-NOALIGN					{ return(SDL_KWD_NOALIGN); }
-BASEALIGN				{ return(SDL_K_BASEALIGN); }
-COMMON					{ return(SDL_K_COMMON); }
-GLOBAL					{ return(SDL_K_GLOBAL); }
-DIMENSION				{ return(SDL_K_DIMENSION); }
+<*>ALIGN				{ return(SDL_KWD_ALIGN); }
+<*>NOALIGN				{ return(SDL_KWD_NOALIGN); }
+<*>BASEALIGN			{ return(SDL_K_BASEALIGN); }
+<*>COMMON				{ return(SDL_K_COMMON); }
+<*>GLOBAL				{ return(SDL_K_GLOBAL); }
+<*>DIMENSION			{ return(SDL_K_DIMENSION); }
 SIZEOF					{ return(SDL_K_SIZEOF); }
 
-BASED					{ return(SDL_K_BASED); }
-TYPEDEF					{ return(SDL_K_TYPEDEF); }
-FILL					{ return(SDL_K_FILL); }
-MARKER					{ return(SDL_K_MARKER); }
-ORIGIN					{ return(SDL_K_ORIGIN); }
+<*>TYPEDEF				{ return(SDL_K_TYPEDEF); }
 <*>PREFIX				{ return(SDL_K_PREFIX); }
 <*>TAG					{ return(SDL_K_TAG); }
 <*>TYPENAME				{ return(SDL_K_TYPENAME); }
@@ -505,33 +537,34 @@ RETURNS					{ return(SDL_K_RETURNS); }
 ALIAS					{ return(SDL_K_ALIAS); }
 PARAMETER				{ return(SDL_K_PARAM); }
 VARIABLE				{ return(SDL_K_VARIABLE); }
+LINKAGE					{ return(SDL_K_LINKAGE); }
 
-BYTE					{ return(SDL_K_BYTE); }
-WORD					{ return(SDL_K_WORD); }
-LONGWORD				{ return(SDL_K_LONG); }
-QUADWORD				{ return(SDL_K_QUAD); }
-OCTAWORD				{ return(SDL_K_OCTA); }
-S_FLOATING				{ return(SDL_K_SFLOAT); }
-T_FLOATING				{ return(SDL_K_TFLOAT); }
-DECIMAL					{ return(SDL_K_DECIMAL); }
-BITFIELD				{ return(SDL_K_BITFIELD); }
-CHARACTER				{ return(SDL_K_CHAR); }
-ADDRESS					{ return(SDL_K_ADDR); }
-POINTER					{ return(SDL_K_ADDR); }
-POINTER_LONG			{ return(SDL_K_ADDRL); }
-POINTER_QUAD			{ return(SDL_K_ADDRQ); }
-POINTER_HW				{ return(SDL_K_ADDR_HW); }
-HARDWARE_ADDRESS		{ return(SDL_K_ADDR_HW); }
+<*>BYTE					{ return(SDL_K_BYTE); }
+<*>WORD					{ return(SDL_K_WORD); }
+<*>LONGWORD				{ return(SDL_K_LONG); }
+<*>QUADWORD				{ return(SDL_K_QUAD); }
+<*>OCTAWORD				{ return(SDL_K_OCTA); }
+<*>S_FLOATING			{ return(SDL_K_SFLOAT); }
+<*>T_FLOATING			{ return(SDL_K_TFLOAT); }
+<*>DECIMAL				{ return(SDL_K_DECIMAL); }
+<*>BITFIELD				{ return(SDL_K_BITFIELD); }
+<*>CHARACTER			{ return(SDL_K_CHAR); }
+<*>ADDRESS				{ return(SDL_K_ADDR); }
+<*>POINTER				{ return(SDL_K_ADDR); }
+<*>POINTER_LONG			{ return(SDL_K_ADDRL); }
+<*>POINTER_QUAD			{ return(SDL_K_ADDRQ); }
+<*>POINTER_HW			{ return(SDL_K_ADDR_HW); }
+<*>HARDWARE_ADDRESS		{ return(SDL_K_ADDR_HW); }
 ANY						{ return(SDL_K_ANY); }
-BOOLEAN					{ return(SDL_K_BOOL); }
+<*>BOOLEAN				{ return(SDL_K_BOOL); }
+VOID					{ return(SDL_K_VOID); }
 
-SIGNED					{ return(SDL_K_SIGNED); }
-UNSIGNED				{ return(SDL_K_UNSIGNED); }
-COMPLEX					{ return(SDL_K_COMPLEX); }
-LENGTH					{ return(SDL_K_LENGTH); }
-MASK					{ return(SDL_K_MASK); }
+<*>SIGNED				{ return(SDL_K_SIGNED); }
+<*>UNSIGNED				{ return(SDL_K_UNSIGNED); }
+<*>COMPLEX				{ return(SDL_K_COMPLEX); }
+<*>LENGTH				{ return(SDL_K_LENGTH); }
 VARYING					{ return(SDL_K_VARY); }
-PRECISION				{ return(SDL_K_PRECISION); }
+<*>PRECISION			{ return(SDL_K_PRECISION); }
 
 <*>"("					{ return(SDL_K_OPENP); }
 <*>")"					{ return(SDL_K_CLOSEP); }
@@ -551,12 +584,33 @@ PRECISION				{ return(SDL_K_PRECISION); }
 ","						{ return(SDL_K_COMMA); }
 
 <*>{Quoted_string}		{
-							_sdl_str_unquote(&yylval->tval, yytext);\
-							return(t_string);
+							yytext = sdl_unquote_str(yytext);
+							yylval->tval = strdup(yytext);
+							if ((YY_START == ST_AGGR) &&
+							    (_sdl_aggregate_started == false))
+							{
+								printf("\n\n>>> %s is 't_aggr_str'\n\n", yytext);
+								return(t_aggr_str);
+							}
+							else
+							{
+								printf("\n\n>>> %s is 't_string'\n\n", yytext);
+								return(t_string);
+							}
 						}
 <*>{Names}				{
 							yylval->tval = strdup(yytext);
-							return t_name;
+							if ((YY_START == ST_AGGR) &&
+							    (_sdl_aggregate_started == false))
+							{
+								printf("\n\n>>> %s is 't_aggr_name'\n\n", yytext);
+								return(t_aggr_name);
+							}
+							else
+							{
+								printf("\n\n>>> %s is 't_name'\n\n", yytext);
+								return(t_name);
+							}
 						}
 <*>"#"{Names}			{
 
@@ -805,56 +859,6 @@ static bool _sdl_pop_file(void)
 	 * Return the outcome back to the caller.
 	 */
 	return(retVal);
-}
-
-/*
- * _sdl_str_unquote
- *  This function is called to remove the leading an trailing double quote
- *  characters from a string.  This is very simplified, in that the
- *  parsing will place the double quotes as the first and last characters
- *  in the string.
- *
- * Input Parameters:
- *  src:
- *		A pointer to the string to have its leading and trailing double quotes
- *		removed.
- *  maxLen:
- *		A value indicating the maximum possible length for the string.
- *
- * Output Parameters:
- *  dest:
- *		A pointer to the address to receive the allocated buffer.
- *
- * Return Values:
- *  None.
- */
-static void _sdl_str_unquote(char **dest, char *src)
-{
-	char	*ptr;
-
-	/*
-	 * Copy everything but the first character.
-	 */
-	*dest = strdup(&src[1]);
-
-	/*
-	 * Now find the last double-quote character.
-	 */
-	ptr = *dest + strlen(*dest);
-	while ((*ptr != '\"') && (ptr != *dest))
-		ptr--;
-
-	/*
-	 * If we found the last double-quote character, then convert it to a null
-	 * character.
-	 */
-	if (*ptr == '\"')
-		*ptr = '\0';
-
-	/*
-	 * Return back to the caller.
-	 */
-	return;
 }
 
 /*

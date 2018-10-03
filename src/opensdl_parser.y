@@ -142,6 +142,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %token SDL_K_ALIAS
 %token SDL_K_PARAM
 %token SDL_K_VARIABLE
+%token SDL_K_LINKAGE
 
 %token SDL_K_SIGNED
 %token SDL_K_UNSIGNED
@@ -151,6 +152,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %token SDL_K_QUAD
 %token SDL_K_OCTA
 %token SDL_K_INT_HW
+%token SDL_K_VOID
 
 %token SDL_K_ADDR
 %token SDL_K_ADDRL
@@ -199,6 +201,8 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %token <tval> t_constant_name
 %token <tval> t_constant_names
 %token <tval> t_variable
+%token <tval> t_aggr_str
+%token <tval> t_aggr_name
 
 %type <ival> _v_expression
 %type <ival> _v_number
@@ -213,8 +217,11 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %type <ival> _v_signed
 %type <ival> _v_address
 %type <ival> _v_object
+%type <ival> _v_aggtypes
 
 %type <tval> _t_id
+%type <tval> _t_module_name
+%type <tval> _t_aggr_id
 
 /*
  * We have types on the bison side of the house.
@@ -252,7 +259,7 @@ _t_id
 	: t_name
 	    { $$ = $1; }
 	| t_string
-	    { $$ = sdl_unquote_str($1); }
+	    { $$ = $1; }
 
 module
 	: SDL_K_MODULE t_name
@@ -267,13 +274,15 @@ module
 	    }
 	;
 
+_t_module_name
+	: %empty
+	    { $$ = NULL; }
+	| t_name
+	    { $$ = $1; }
+	;
+
 end_module
-	: SDL_K_END_MODULE
-	    {
-		sdl_state_transition(&context, DefinitionEnd);
-		sdl_module_end(&context, NULL);
-	    }
-	| SDL_K_END_MODULE t_name
+	: SDL_K_END_MODULE _t_module_name
 	    {
 		sdl_state_transition(&context, DefinitionEnd);
 		sdl_module_end(&context, $2);
@@ -281,12 +290,14 @@ end_module
 	;
 
 module_body
-	: constant
-	| varset
+	: varset
 	| literal
+	| constant
 	| declare
 	| item
+	| aggregate
 	| prefix
+	| marker
 	| tag
 	| counter
 	| _typename
@@ -294,6 +305,17 @@ module_body
 	| radix
 	| dimension
 	| storage
+	| origin
+	| mask
+	| entry
+	| alias
+	| linkage
+	| variable
+	| returns
+	| parameter
+	| _default
+	| optional
+	| list
 	| definition_end
 	;
 
@@ -413,11 +435,25 @@ _v_sizeof
 prefix
 	: SDL_K_PREFIX _t_id
 	    { sdl_add_option(&context, Prefix, 0, $2); }
+	| SDL_K_PREFIX _t_aggr_id
+	    { sdl_add_option(&context, Prefix, 0, $2); }
+	;
+
+marker
+	: SDL_K_MARKER _t_aggr_id
+	    { sdl_add_option(&context, Marker, 0, $2); }
 	;
 
 tag
 	: SDL_K_TAG _t_id
 	    { sdl_add_option(&context, Tag, 0, $2); }
+	| SDL_K_TAG _t_aggr_id
+	    { sdl_add_option(&context, Tag, 0, $2); }
+	;
+
+origin
+	: SDL_K_ORIGIN _t_aggr_id
+	    { sdl_add_option(&context, Origin, 0, $2); }
 	;
 
 counter
@@ -517,9 +553,13 @@ _v_basetypes
 		sdl_precision(&context, $4, $6);
 		$$ = SDL_K_TYPE_DECIMAL;
 	    }
-	| SDL_K_BITFIELD
-	    { $$ = SDL_K_TYPE_BITFLD; }
 	| SDL_K_CHAR
+	    { $$ = SDL_K_TYPE_CHAR; }
+	| SDL_K_CHAR SDL_K_LENGTH _v_expression
+	    { $$ = SDL_K_TYPE_CHAR; }
+	| SDL_K_CHAR SDL_K_LENGTH _v_expression SDL_K_VARY
+	    { $$ = SDL_K_TYPE_CHAR; }
+	| SDL_K_CHAR SDL_K_LENGTH SDL_K_MULT
 	    { $$ = SDL_K_TYPE_CHAR; }
 	| _v_address
 	    { $$ = $1; }
@@ -583,13 +623,204 @@ storage
 	    { sdl_add_option(&context, Global, 0, NULL); }
 	| SDL_K_TYPEDEF
 	    { sdl_add_option(&context, Typedef, 0, NULL); }
+	| SDL_K_BASED _t_id
+	    { sdl_add_option(&context, Based, 0, $2); }
+	| SDL_K_FILL
+	    { sdl_add_option(&context, Fill, 0, NULL); }
 	;
 
 dimension
-	: SDL_K_DIMENSION v_int
+	: SDL_K_DIMENSION _v_expression
 	    { sdl_add_option(&context, Dimension, sdl_dimension(&context, 1, $2), NULL); }
-	| SDL_K_DIMENSION v_int SDL_K_FULL v_int
+	| SDL_K_DIMENSION _v_expression SDL_K_FULL _v_expression
 	    { sdl_add_option(&context, Dimension, sdl_dimension(&context, $2, $4), NULL); }
+	;
+
+_v_aggtypes
+	: %empty
+	    { $$ = 0; }
+	| _v_datatypes
+	    { $$ = $1; }
+	;
+
+aggregate
+	: SDL_K_AGGREGATE _t_id SDL_K_STRUCTURE _v_aggtypes
+	   { 
+		printf("\nAGGREGATE %s STRUCTURE", $2);
+		if ($4 != 0)
+		    printf(" %ld", $4);
+		printf(";\n\n");
+	   }
+	| SDL_K_AGGREGATE _t_id SDL_K_UNION _v_aggtypes
+	   {
+		printf("\nAGGREGATE %s UNION", $2);
+		if ($4 != 0)
+		    printf(" %ld", $4);
+		printf(";\n\n");
+	   }
+	| aggregate_body
+	| SDL_K_END _t_aggr_id SDL_K_SEMI
+	   { printf("\nEND %s;\n\n", $2); }
+	| SDL_K_END SDL_K_SEMI
+	   { printf("\nEND;\n\n"); }
+	| SDL_K_END _t_id SDL_K_SEMI
+	   { printf("\nEND %s;\n\n", $2); }
+	;
+
+_t_aggr_id
+	: t_aggr_str
+	    { $$ = $1; }
+	| t_aggr_name
+	    { $$ = $1; }
+	;
+
+aggregate_body
+	: _t_aggr_id _v_datatypes
+	    { printf("\n\t%s %ld;\n\n", $1, $2); }
+	| _t_aggr_id _t_aggr_id
+	    { printf("\n\t%s %s;\n\n", $1, $2); }
+	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
+	    {
+		printf("\n\t%s STRUCTURE", $1);
+		if ($3 != 0)
+		    printf(" %ld\n", $3);
+		printf(";\n\n");
+	    }
+	| _t_aggr_id SDL_K_UNION _v_aggtypes
+	    {
+		printf("\n\t%s UNION", $1);
+		if ($3 != 0)
+		    printf(" %ld\n", $3);
+		printf(";\n\n");
+	    }
+	| _t_aggr_id SDL_K_BITFIELD
+	    { printf("\n\t%s BITFIELD\n\n", $1); }
+	;
+
+mask
+	: SDL_K_MASK
+	    {
+		printf("\nMASK\n\n");
+		sdl_add_option(&context, Mask, 0, NULL);
+	    }
+	;
+
+entry
+	: SDL_K_ENTRY _t_id
+	    { printf("\nENTRY %s\n\n", $2); }
+	;
+
+alias
+	: SDL_K_ALIAS _t_id
+	    {
+		printf("\nALIAS %s\n\n", $2);
+		sdl_add_option(&context, Alias, 0, $2);
+	    }
+	;
+
+linkage
+	: SDL_K_LINKAGE t_name
+	    {
+		printf("\nLINKAGE %s\n\n", $2);
+		sdl_add_option(&context, Linkage, 0, $2);
+	    }
+	;
+
+variable
+	: SDL_K_VARIABLE
+	    {
+		printf("\nVARIABLE\n\n");
+		sdl_add_option(&context, Variable, 0, NULL);
+	    }
+	;
+
+returns
+	: SDL_K_RETURNS _v_datatypes named
+	    {
+		printf("\nRETURNS %ld\n\n", $2);
+		sdl_add_option(&context, Returns, $2, NULL);
+	    }
+	| SDL_K_RETURNS SDL_K_VOID
+	    {
+		printf("\nRETURNS VOID\n\n");
+		sdl_add_option(&context, Returns, 0, NULL);
+	    }
+	;
+
+named
+	: %empty
+	| SDL_K_NAMED _t_id
+	    {
+		printf("\nNAMED %s\n\n", $2);
+		sdl_add_option(&context, Named, 0, $2);
+	    }
+	;
+
+parameter
+	: SDL_K_PARAM SDL_K_OPENP param_list SDL_K_CLOSEP
+	    { printf("\nPARAMETER ("); }
+	;
+
+param_list
+	: _v_datatypes passing_mechanism in out named	/* Make sure to include aggregates */
+	    { printf("%ld)\n\n", $1); }
+	| param_list SDL_K_COMMA _v_datatypes passing_mechanism in out named
+	    { printf("%ld, ", $3); }
+	;
+
+passing_mechanism
+	: %empty
+	| SDL_K_VALUE
+	    {
+		printf("\nVALUE\n\n");
+		sdl_add_option(&context, Value, 0, NULL);
+	    }
+	| SDL_K_REF
+	    {
+		printf("\nREFERENCE\n\n");
+		sdl_add_option(&context, Reference, 0, NULL);
+	    }
+	;
+
+in
+	: %empty
+	| SDL_K_IN
+	    {
+		printf("\nIN\n\n");
+		sdl_add_option(&context, In, 0, NULL);
+	    }
+
+out
+	: %empty
+	| SDL_K_OUT
+	    {
+		printf("\nOUT\n\n");
+		sdl_add_option(&context, Out, 0, NULL);
+	    }
+	;
+
+_default
+	: SDL_K_DEFAULT _v_expression
+	    {
+		printf("\nDEFAULT %ld\n\n", $2);
+		sdl_add_option(&context, Default, $2, NULL);
+	    }
+	;
+
+optional
+	: SDL_K_OPT
+	    {
+		printf("\nOPTIONAL\n\n");
+		sdl_add_option(&context, Optional, 0, NULL);
+	    }
+	;
+
+list
+	: SDL_K_LIST
+	    {
+		printf("\nLIST\n\n");
+		sdl_add_option(&context, List, 0, NULL);
+	    }
 	;
 
 %%	/* End Grammar rules */

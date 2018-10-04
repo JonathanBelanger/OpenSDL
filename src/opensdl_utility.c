@@ -852,7 +852,6 @@ int sdl_add_option(
 	    case Variable:
 	    case List:
 	    case Optional:
-	    case Mask:
 		context->options[context->optionsIdx++].option = option;
 		break;
 
@@ -865,7 +864,6 @@ int sdl_add_option(
 	    case Dimension:
 	    case Returns:
 	    case Default:
-	    case Length:
 		context->options[context->optionsIdx].option = option;
 		context->options[context->optionsIdx++].value = value;
 		break;

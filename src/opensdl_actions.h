@@ -50,6 +50,20 @@ int sdl_constant(
 		__int64_t value,
 		char *valueStr);
 int sdl_constant_compl(SDL_CONTEXT *context);
+int sdl_aggregate(
+		SDL_CONTEXT *context,
+		char *name,
+		__int64_t datatype,
+		bool unionAggr);
+int sdl_aggregate_member(
+		SDL_CONTEXT *context,
+		char *name,
+		__int64_t datatype,
+		char *aggrId,
+		SDL_AGGR_TYPE subaggType);
+int sdl_aggregate_compl(
+		SDL_CONTEXT *context,
+		char *name);
 
 /*
  * These are used to specify the constant information being saved.

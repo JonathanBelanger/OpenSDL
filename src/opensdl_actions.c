@@ -111,6 +111,12 @@ static SDL_CONSTANT *_sdl_create_constant(
 static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst);
 static bool _sdl_all_lower(const char *str);
 static void _sdl_reset_options(SDL_CONTEXT *context);
+static int _sdl_iterate_members(
+		SDL_CONTEXT *context,
+		SDL_MEMBERS *member,
+		void *qhead,
+		int (*callback)(),
+		int count);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -501,7 +507,8 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	    if (ii == 1)
 		printf("    CONSTANTs:\n");
 	    printf(
-	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n\t    typeName: %s\n\t    type: %s\n",
+	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+		"\t    typeName: %s\n\t    type: %s\n",
 		ii++,
 		constant->id,
 		(constant->prefix == NULL ? "" : constant->prefix),
@@ -509,11 +516,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		(constant->typeName == NULL ? "" : constant->typeName),
 		(constant->type == SDL_K_CONST_STR ? "String" : "Number"));
 	    if (constant->type == SDL_K_CONST_STR)
-	    {
-		printf(
-		    "\t    value: %s\n",
-		    constant->string);
-	    }
+		printf("\t    value: %s\n", constant->string);
 	    else
 	    {
 		printf(
@@ -521,8 +524,8 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		    constant->value,
 		    (constant->radix <= SDL_K_RADIX_DEC ? "Decimal" :
 			(constant->radix == SDL_K_RADIX_OCT ? "Octal" :
-				(constant->radix == SDL_K_RADIX_HEX ? "Hexidecimal" :
-				    "Invalid"))));
+				(constant->radix == SDL_K_RADIX_HEX ?
+					"Hexidecimal" : "Invalid"))));
 	    }
 	    if (constant->comment != NULL)
 		printf(
@@ -555,7 +558,8 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	    if (ii == 1)
 		printf("    DECLAREs:\n");
 	    printf(
-	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n\t    typeID: %d\n\t    type: %d\n\t    size: %ld\n",
+	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+		"\t    typeID: %d\n\t    type: %d\n\t    size: %ld\n",
 	        ii++,
 	        declare->id,
 	        (declare->prefix != NULL ? declare->prefix : ""),
@@ -627,6 +631,49 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_AGGREGATE *aggregate;
 
 	SDL_REMQUE(&context->aggregates.header, aggregate);
+	if (trace == true)
+	{
+	    if (ii == 1)
+		printf("    AGGREGATEs:\n");
+	    printf(
+	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+		"\t    marker: %s\n\t    arrgType: %s\n\t    typeID: %d\n"
+		"\t    alignment: %d\n\t    type: %d\n\t    size: %ld\n"
+		"\t    memSize: %ld\n\t    commonDef: %s\n"
+		"\t    globalDef: %s\n\t    typeDef: %s\n"
+		"\t    basedPtrName: %s\n\t    currentBitOffset: %d\n",
+	        ii++,
+	        aggregate->id,
+	        (aggregate->prefix != NULL ? aggregate->prefix : ""),
+	        (aggregate->tag != NULL ? aggregate->tag : ""),
+	        (aggregate->marker != NULL ? aggregate->marker : ""),
+	        (aggregate->structUnion == Structure ? "STRUCTURE" : "UNION"),
+	        aggregate->typeID,
+	        aggregate->alignment,
+	        aggregate->type,
+	        aggregate->size,
+	        aggregate->memSize,
+	        (aggregate->commonDef == true ? "True" : "False"),
+	        (aggregate->globalDef == true ? "True" : "False"),
+	        (aggregate->typeDef == true ? "True" : "False"),
+	        (aggregate->basedPtrName!= NULL ? aggregate->basedPtrName: ""),
+	        aggregate->currentBitOffset);
+	    if (aggregate->originPresent == true)
+		printf("\t    origin: %s\n", aggregate->origin.id);
+	    if (aggregate->dimension == true)
+		printf(
+		    "\t    dimension[%ld:%ld]\n",
+		    aggregate->lbound,
+		    aggregate->hbound);
+	}
+	if (SDL_Q_EMPTY(&aggregate->members) == false)
+	    _sdl_iterate_members(
+			context,
+			aggregate->members.flink,
+			&aggregate->members,
+			NULL,
+			1);
+
 	free(aggregate->id);
 	if (aggregate->prefix != NULL)
 	    free(aggregate->prefix);
@@ -638,6 +685,8 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	    free(aggregate->comment);
 	if (aggregate->basedPtrName != NULL)
 	    free(aggregate->basedPtrName);
+	if (aggregate->origin.id != NULL)
+	    free(aggregate->origin.id);
 	free(aggregate);
     }
 
@@ -1376,6 +1425,374 @@ int sdl_constant_compl(SDL_CONTEXT *context)
     return (retVal);
 }
 
+/*
+ * sdl_aggregate
+ *  This function is called to create the AGGREGATE structure that will contain
+ *  all the information about the aggregate being defined.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  name:
+ *	A pointer to the string to be associated with this aggregate
+ *	definition.
+ *  datatype:
+ *	A value to be associated with the datatype for this item.
+ *  unionAggr:
+ *	A boolean value indicating if this AGGREGATE is for a UNION or
+ *	STRUCTURE definition.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_aggregate(
+	SDL_CONTEXT *context,
+	char *name,
+	__int64_t datatype,
+	bool unionAggr)
+{
+    SDL_AGGREGATE	*myAggr = calloc(1, sizeof(SDL_AGGREGATE));
+    int			retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_aggregate\n", __FILE__, __LINE__);
+
+    if (myAggr != NULL)
+    {
+	myAggr->id = name;
+	myAggr->typeID = context->aggregates.nextID++;
+	myAggr->type = datatype;
+	myAggr->structUnion = unionAggr ? Union : Structure;
+	SDL_Q_INIT(&myAggr->members);
+	SDL_INSQUE(&context->aggregates.header, &myAggr->header);
+	context->currentAggr = myAggr;
+	context->aggregateDepth++;
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * sdl_aggregate_member
+ *  This function is called to define a member in an AGGREGATE definition.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_aggregate_member(
+		SDL_CONTEXT *context,
+		char *name,
+		__int64_t datatype,
+		char *aggrId,
+		SDL_AGGR_TYPE subaggrType)
+{
+    SDL_MEMBERS		*myMember =
+			    (SDL_MEMBERS *) calloc(1, sizeof(SDL_MEMBERS));
+    SDL_AGGREGATE	*myAggr = NULL;
+    SDL_SUBAGGR		*mySubAggr = NULL;
+    int			retVal = 1;
+    bool		subAggregate = context->aggregateDepth > 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_aggregate_member\n", __FILE__, __LINE__);
+
+    if (subAggregate == true)
+	mySubAggr = (SDL_SUBAGGR *) context->currentAggr;
+    else
+	myAggr = (SDL_AGGREGATE *) context->currentAggr;
+
+    /*
+     * Before we go too far, there may have been one or more options defined to
+     * the previous member/aggregate/subaggregate.
+     */
+    if (context->optionsIdx > 0)
+    {
+	__int64_t	dimension;
+	int		ii;
+
+	/*
+	 * Go find our options
+	 */
+	for (ii = 0; ii < context->optionsIdx; ii++)
+	    switch (context->options[ii].option)
+	    {
+
+		/*
+		 * Present only options.
+		 */
+		case Align:
+		    if (subAggregate == true)
+			mySubAggr->alignment = SDL_K_ALIGN;
+		    else
+			myAggr->alignment = SDL_K_ALIGN;
+		    break;
+
+		case NoAlign:
+		    if (subAggregate == true)
+			mySubAggr->alignment = SDL_K_NOALIGN;
+		    else
+			myAggr->alignment = SDL_K_NOALIGN;
+		    break;
+
+		case Common:
+		    if (subAggregate == false)
+			myAggr->commonDef = true;
+		    break;
+
+		case Global:
+		    if (subAggregate == false)
+			myAggr->globalDef = true;
+		    break;
+
+		case Typedef:
+		    if (subAggregate == true)
+			mySubAggr->typeDef = true;
+		    else
+			myAggr->typeDef = true;
+		    break;
+
+		case Fill:
+		    if (subAggregate == true)
+			mySubAggr->fill = true;
+		    else
+			myAggr->fill = true;
+		    break;
+
+		/*
+		 * String options.
+		 */
+		case Prefix:
+		    if (subAggregate == true)
+			mySubAggr->prefix = context->options[ii].string;
+		    else
+			myAggr->prefix = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Marker:
+		    if (subAggregate == true)
+			mySubAggr->marker = context->options[ii].string;
+		    else
+			myAggr->marker = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Tag:
+		    if (subAggregate == true)
+			mySubAggr->tag = context->options[ii].string;
+		    else
+			myAggr->tag = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Based:
+		    if (subAggregate == false)
+			myAggr->basedPtrName = context->options[ii].string;
+		    else
+			free(context->options[ii].string);
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Origin:
+		    if (subAggregate == false)
+		    {
+			myAggr->origin.id = context->options[ii].string;
+			myAggr->originPresent = true;
+		    }
+		    else
+			free(context->options[ii].string);
+		    context->options[ii].string = NULL;
+		    break;
+
+		/*
+		 * Numeric options.
+		 */
+		case BaseAlign:
+		    if (subAggregate == true)
+			mySubAggr->alignment = context->options[ii].value;
+		    else
+			myAggr->alignment = context->options[ii].value;
+		    break;
+
+		case Dimension:
+		    dimension = context->options[ii].value;
+		    if (subAggregate == true)
+		    {
+			mySubAggr->lbound = context->dimensions[dimension].lbound;
+			mySubAggr->hbound = context->dimensions[dimension].hbound;
+			mySubAggr->dimension = true;
+		    }
+		    else
+		    {
+			myAggr->lbound = context->dimensions[dimension].lbound;
+			myAggr->hbound = context->dimensions[dimension].hbound;
+			myAggr->dimension = true;
+		    }
+		    context->dimensions[dimension].inUse = false;
+		    break;
+
+		default:
+		    break;
+	    }
+
+	/*
+	 * We have what we want, reset the options list for the member we are
+	 * about to start.
+	 */
+	_sdl_reset_options(context);
+    }
+
+    if (myMember != NULL)
+    {
+
+	/*
+	 * Determine the type of member we are being asked to create.
+	 */
+	myMember->type = subaggrType;
+	switch (subaggrType)
+	{
+	    case Unknown:
+		myMember->item.id = name;
+		if (datatype < 0)
+		{
+		    myMember->item._unsigned = false;
+		    datatype = -datatype;
+		}
+		else if (datatype > 0)
+		    myMember->item._unsigned = true;
+		if (aggrId != NULL)
+		{
+		    myAggr = _sdl_get_aggregate(&context->aggregates, aggrId);
+
+		    myMember->item.type = myAggr->typeID;
+		}
+		else
+		    myMember->item.type = datatype;
+		if (datatype == SDL_K_TYPE_DECIMAL)
+		{
+		    myMember->item. precision = context->precision;
+		    myMember->item.scale = context->scale;
+		}
+		myMember->item.size = _sdl_sizeof(context, datatype);
+		break;
+
+	    case Structure:
+	    case Union:
+		myMember->subaggr.id = name;
+		myMember->subaggr.structUnion = subaggrType;
+		myMember->subaggr.parent = context->currentAggr;
+		SDL_Q_INIT(&myMember->subaggr.members);
+		context->aggregateDepth++;
+		context->currentAggr = myMember;
+		break;
+	}
+	if (subAggregate == true)
+	{
+	    SDL_INSQUE(&mySubAggr->members, &myMember->header);
+	}
+	else
+	{
+	    SDL_INSQUE(&myAggr->members, &myMember->header);
+	}
+    }
+    else
+	retVal = 0;
+
+   /*
+    * Return the results of this call back to the caller.
+    */
+   return (retVal);
+}
+
+/*
+ * sdl_aggregate_compl
+ *  This function is called to complete the definition of an aggregate
+ *  definition.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  name:
+ *	A pointer to the string to be associated with this aggregate
+ *	definition.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
+{
+    int		retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_aggregate_compl\n", __FILE__, __LINE__);
+
+    /*
+     * We are completing either a subaggregate or an AGGREGATE.  Decrement the
+     * depth.
+     */
+    context->aggregateDepth--;
+
+    /*
+     * If we are at zero, then we have completed the entire AGGREGATE
+     * definition and can now write out the results.
+     */
+    if (context->aggregateDepth == 0)
+    {
+	printf("\n\n+---------------------+\n");
+	printf(    "| AGGREGATE Completed |\n");
+	printf(    "+---------------------+\n\n");
+    }
+    else
+    {
+	if (context->aggregateDepth == 1)
+	    context->currentAggr = context->aggregates.header.blink;
+	else
+	{
+	    SDL_SUBAGGR *mySubAggr = (SDL_SUBAGGR *) context->currentAggr;
+
+	    context->currentAggr = mySubAggr->parent;
+	}
+    }
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
 /************************************************************************/
 /* Local Functions							*/
 /************************************************************************/
@@ -2008,4 +2425,195 @@ static void _sdl_reset_options(SDL_CONTEXT *context)
      * Return back to the caller.
      */
     return;
+}
+
+/*
+ * _sdl_iterate_members
+ *  This function is called to iterate through each of the members and if that
+ *  member is a subaggregate, call itself to iterate through that level.  If
+ *  callback is a NULL, then we are just cleaning up the member tree.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  member:
+ *	A pointer to the current member are are iterating through.
+ *  qhead:
+ *	The address of the queue header.  Used to determine when we have
+ *	search through each of the member entries in the AGGREGATE or
+ *	subaggregate.
+ *  callback:
+ *	A pointer to the entry point to call to do something with the member
+ *	information.  If this is NULL, then we are just deallocating all the
+ *	member memory.  If tracing is turned on, we will display the records
+ *	as we iterate through.
+ *  counter:
+ *	A value indicating the item within the current level.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+static int _sdl_iterate_members(
+		SDL_CONTEXT *context,
+		SDL_MEMBERS *member,
+		void *qhead,
+		int (*callback)(),
+		int count)
+{
+    int		retVal = 1;
+
+    if ((member->type == Structure) ||
+	(member->type == Union))
+    {
+
+	/*
+	 * If the callback is NULL and tracing is turned on, then trace the
+	 * information about this subaggregate.
+	 */
+	if ((callback == NULL) && (trace == true))
+	{
+	    if (count == 1)
+		printf("    MEMBERs:\n");
+	    printf(
+		"\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+		"\t    marker: %s\n\t    arrgType: %s\n\t    typeID: %d\n"
+		"\t    alignment: %d\n\t    type: %d\n\t    size: %ld\n"
+		"\t    memSize: %ld\n\t    typeDef: %s\n"
+		"\t    basedPtrName: %s\n\t    currentBitOffset: %d\n",
+		count,
+		member->subaggr.id,
+		(member->subaggr.prefix != NULL ? member->subaggr.prefix : ""),
+		(member->subaggr.tag != NULL ? member->subaggr.tag : ""),
+		(member->subaggr.marker != NULL ? member->subaggr.marker : ""),
+		(member->subaggr.structUnion == Structure ? "STRUCTURE" : "UNION"),
+		member->subaggr.typeID,
+		member->subaggr.alignment,
+		member->subaggr.type,
+		member->subaggr.size,
+		member->subaggr.memSize,
+		(member->subaggr.typeDef == true ? "True" : "False"),
+		(member->subaggr.basedPtrName!= NULL ? member->subaggr.basedPtrName: ""),
+		member->subaggr.currentBitOffset);
+	    if (member->subaggr.dimension == true)
+		printf(
+		    "\t    dimension[%ld:%ld]\n",
+		    member->subaggr.lbound,
+		    member->subaggr.hbound);
+	}
+
+	/*
+	 * If the callback is not NULL, then call the function that should
+	 * process this record future (usually to output to the language
+	 * files).  If the callback is NULL, then we are just deallocating the
+	 * memory associated with this AGGREGATE.
+	 */
+	if (callback != NULL)
+	    retVal = (*callback)(context, NULL, member->subaggr.members.flink);
+
+	/*
+	 * We are performing an top-down iteration on AGGREGATEs and
+	 * subaggregates, so before we may want to deallocate the memory, call
+	 * ourselves to continue through the tree.
+	 */
+	if ((retVal == 1) && (member->subaggr.members.flink != qhead))
+	    retVal = _sdl_iterate_members(
+				context,
+				member->subaggr.members.flink,
+				&member->subaggr.members,
+				callback,
+				1);
+
+	/*
+	 * If the callback is NULL, we can now deallocate the memory for this
+	 * subaggregate.
+	 */
+	if (callback == NULL)
+	{
+	    SDL_REMQUE(&member->header, member);
+	    free(member->subaggr.id);
+	    if (member->subaggr.prefix != NULL)
+		free(member->subaggr.prefix);
+	    if (member->subaggr.tag != NULL)
+		free(member->subaggr.tag);
+	    if (member->subaggr.marker != NULL)
+		free(member->subaggr.marker);
+	    if (member->subaggr.comment != NULL)
+		free(member->subaggr.comment);
+	    if (member->subaggr.basedPtrName != NULL)
+		free(member->subaggr.basedPtrName);
+	    free(member);
+	}
+    }
+    else
+    {
+
+	/*
+	 * If the callback is NULL and tracing is turned on, then trace the
+	 * information about this subaggregate.
+	 */
+	if ((callback == NULL) && (trace == true))
+	{
+	    if (count == 1)
+		printf("    MEMBERs:\n");
+	    printf(
+	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+		"\t    typeID: %d\n\t    alignment: %d\n\t    type: %d\n"
+		"\t    size: %ld\n\t    memSize: %ld\n\t    typeDef: %s\n",
+	        count,
+	        member->item.id,
+	        (member->item.prefix != NULL ? member->item.prefix : ""),
+	        (member->item.tag != NULL ? member->item.tag : ""),
+	        member->item.typeID,
+	        member->item.alignment,
+	        member->item.type,
+	        member->item.size,
+	        member->item.memSize,
+	        (member->item.typeDef == true ? "True" : "False"));
+	    if (member->item.dimension == true)
+		printf(
+		    "\t    dimension: [%ld:%ld]\n",
+		    member->item.lbound,
+		    member->item.hbound);
+	}
+	if (callback != NULL)
+	    retVal = (*callback)(context, member, NULL);
+
+	/*
+	 * Process the next member by calling ourselves back.
+	 */
+	if ((retVal == 1) && (member->header.flink != qhead))
+	    retVal = _sdl_iterate_members(
+				context,
+				member->header.flink,
+				qhead,
+				callback,
+				(count + 1));
+
+	/*
+	 * If the callback is NULL, we can now deallocate the memory for this
+	 * member ITEM.
+	 */
+	if (callback == NULL)
+	{
+	    SDL_REMQUE(&member->header, member);
+	    free(member->item.id);
+	    if (member->item.prefix != NULL)
+		free(member->item.prefix);
+	    if (member->item.tag != NULL)
+		free(member->item.tag);
+	    if (member->item.comment != NULL)
+		free(member->item.comment);
+	    free(member);
+	}
+    }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
 }

@@ -311,7 +311,6 @@ module_body
 	| dimension
 	| storage
 	| origin
-	| mask
 	| definition_end
 	;
 
@@ -620,10 +619,15 @@ storage
 	    { sdl_add_option(&context, Global, 0, NULL); }
 	| SDL_K_TYPEDEF
 	    { sdl_add_option(&context, Typedef, 0, NULL); }
-	| SDL_K_BASED _t_id
+	| SDL_K_BASED _t_aggr_id
 	    { sdl_add_option(&context, Based, 0, $2); }
 	| SDL_K_FILL
 	    { sdl_add_option(&context, Fill, 0, NULL); }
+	| SDL_KWD_ALIGN
+	    { sdl_add_option(&context, Align, 0, NULL); }
+	| SDL_KWD_NOALIGN
+	    { sdl_add_option(&context, NoAlign, 0, NULL); }
+	| basealign
 	;
 
 dimension
@@ -655,25 +659,21 @@ _v_aggtypes
 aggregate
 	: SDL_K_AGGREGATE _t_id SDL_K_STRUCTURE _v_aggtypes
 	   {
-		printf("\nAGGREGATE %s STRUCTURE", $2);
-		if ($4 != 0)
-		    printf(" %ld", $4);
-		printf(";\n\n");
+	    	sdl_state_transition(&context, Aggregate);
+	    	sdl_aggregate(&context, $2, $4, false);
 	   }
 	| SDL_K_AGGREGATE _t_id SDL_K_UNION _v_aggtypes
 	   {
-		printf("\nAGGREGATE %s UNION", $2);
-		if ($4 != 0)
-		    printf(" %ld", $4);
-		printf(";\n\n");
+	    	sdl_state_transition(&context, Aggregate);
+	    	sdl_aggregate(&context, $2, $4, true);
 	   }
 	| aggregate_body
 	| SDL_K_END _t_aggr_id SDL_K_SEMI
-	   { printf("\nEND %s;\n\n", $2); }
+	   { sdl_aggregate_compl(&context, $2); }
 	| SDL_K_END SDL_K_SEMI
-	   { printf("\nEND;\n\n"); }
+	   { sdl_aggregate_compl(&context, NULL); }
 	| SDL_K_END _t_id SDL_K_SEMI
-	   { printf("\nEND %s;\n\n", $2); }
+	   { sdl_aggregate_compl(&context, $2); }
 	;
 
 _t_aggr_id
@@ -685,32 +685,34 @@ _t_aggr_id
 
 aggregate_body
 	: _t_aggr_id _v_datatypes
-	    { printf("\n\t%s %ld;\n\n", $1, $2); }
+	    { sdl_aggregate_member(&context, $1, $2, NULL, Unknown); }
 	| _t_aggr_id _t_aggr_id
-	    { printf("\n\t%s %s;\n\n", $1, $2); }
+	    { sdl_aggregate_member(&context, $1, 0, $2, Unknown); }
 	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
-	    {
-		printf("\n\t%s STRUCTURE", $1);
-		if ($3 != 0)
-		    printf(" %ld\n", $3);
-		printf(";\n\n");
-	    }
+	    { sdl_aggregate_member(&context, $1, $3, NULL, Structure); }
 	| _t_aggr_id SDL_K_UNION _v_aggtypes
-	    {
-		printf("\n\t%s UNION", $1);
-		if ($3 != 0)
-		    printf(" %ld\n", $3);
-		printf(";\n\n");
-	    }
-	| _t_aggr_id SDL_K_BITFIELD
-	    { printf("\n\t%s BITFIELD\n\n", $1); }
+	    { sdl_aggregate_member(&context, $1, $3, NULL, Union); }
+	| _t_aggr_id SDL_K_BITFIELD bitfield_options SDL_K_SEMI
+	    { sdl_aggregate_member(&context, $1, 0, NULL, Unknown); }
 	;
 
-mask
-	: SDL_K_MASK
+bitfield_options
+	: %empty
+	| bitfield_options bitfield_choices
+	;
+
+bitfield_choices
+	: SDL_K_LENGTH _v_expression
+	    {
+		printf("\nLENGTH %ld\n\n", $2);
+	    }
+	| SDL_K_MASK
 	    {
 		printf("\nMASK\n\n");
-		sdl_add_option(&context, Mask, 0, NULL);
+	    }
+	| SDL_K_SIGNED
+	    {
+		printf("\nSIGNED\n\n");
 	    }
 	;
 

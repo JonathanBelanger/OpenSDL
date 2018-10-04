@@ -311,24 +311,13 @@ typedef struct
 /*
  * The following definitions are used to declare a single AGGREGATE.
  */
-typedef struct
+
+typedef enum
 {
-    char 		*id;
-    char		*prefix;
-    char		*tag;
-    int			type;
-    union
-    {
-	int		data;
-	char		*name;
-    };
-    int			alignment;
-    bool		fill;
-    bool		dimension;
-    __int64_t		lbound;
-    __int64_t		hbound;
-    __int64_t		offset;
-} SDL_ORIGIN;
+    Unknown,
+    Structure,
+    Union
+} SDL_AGGR_TYPE;
 
 typedef struct
 {
@@ -338,32 +327,39 @@ typedef struct
     char		*marker;
     char		*comment;
     char		*basedPtrName;
-    int			typeID;
-    int			unionType;	/* for implied unions 		*/
-    int			alignment;
-    int			type;
+    void		*parent;	/* aggregateDepth determines level */
     SDL_QUEUE		members;
-    bool		typeDef;
-    bool		fill;
-    bool		dimension;
+    SDL_AGGR_TYPE	structUnion;
     __int64_t		lbound;
     __int64_t		hbound;
     __int64_t		currentOffset;
     __int64_t		size;
     __int64_t		memSize;	/* Actual space used in memory	*/
+    int			typeID;
+    int			alignment;
+    int			type;
     int			currentBitOffset;
+    bool		typeDef;
+    bool		fill;
+    bool		dimension;
 } SDL_SUBAGGR;
 
 typedef struct
 {
     SDL_QUEUE		header;
-    int			type;
+    SDL_AGGR_TYPE	type;
     union
     {
 	SDL_ITEM    	item;
 	SDL_SUBAGGR	subaggr;
     };
 } SDL_MEMBERS;
+
+typedef struct
+{
+    char 		*id;
+    SDL_MEMBERS		*origin;
+} SDL_ORIGIN;
 
 typedef struct
 {
@@ -376,9 +372,9 @@ typedef struct
     char		*basedPtrName;
     SDL_ORIGIN		origin;
     int			typeID;
-    int			unionType;	/* for implied unions 		*/
     int			alignment;
     int			type;
+    SDL_AGGR_TYPE	structUnion;
     SDL_QUEUE		members;
     bool		originPresent;
     bool		commonDef;
@@ -454,11 +450,9 @@ typedef enum
     Parameter,
     Variable,
     Radix,
-    Dimension,
-    Length,
-    Mask
+    Dimension
 } SDL_OPTION_TYPE;
-#define SDL_K_MAX_OPTIONS	8
+#define SDL_K_MAX_OPTIONS	16
 typedef struct
 {
     SDL_OPTION_TYPE	option;
@@ -545,12 +539,14 @@ typedef struct
      * constructs.  In most cases, these fields are fleeting and can be
      * continuously reused.
      */
+    void		*currentAggr;
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
     SDL_OPTION		options[SDL_K_MAX_OPTIONS];
     SDL_CONSTANT_DEF	constDef;
     __int64_t		precision;
     __int64_t		scale;
     int			optionsIdx;
+    int			aggregateDepth;
 
     /*
      * The following field is used to maintain the current state of the

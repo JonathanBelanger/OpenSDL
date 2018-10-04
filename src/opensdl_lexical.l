@@ -23,11 +23,16 @@
  *
  *  V01.000	19-SEP-2018	Jonathan D. Belanger
  *  Initially written.
+ *
+ *  V01.001	04-OCT-2018	Jonathan D. Belanger
+ *	This file has been updated a number of times.  It now utilizes start states
+ *	to reduce ambiguity in the Bison grammar file.
  */
 #include <stdio.h>
 #include <ctype.h>
 #include "opensdl_defs.h"
 #include "opensdl_parser.h"
+#include "opensdl_utility.h"
 #include "opensdl_actions.h"
 
 }
@@ -112,7 +117,7 @@ static int _sdl_pop_start_state(void);
  * These are external declarations for variables defined outside of this file.
  */
 extern void *scanner;
-extern _Bool trace;
+extern bool trace;
 %}
 
 %%

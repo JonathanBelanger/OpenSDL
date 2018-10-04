@@ -24,6 +24,11 @@
  *
  *  V01.000	20-SEP-2018	Jonathan D. Belanger
  *  Initially written.
+ *
+ *  V01.001	04-OCT-2018	Jonathan D. Belanger
+ *  This file has been updated quite often.  Most of the changes have been made
+ *  to allow for parsing additional grammar constructs.  Also, there have been
+ *  some changes coordinated with the flex file's use of start states.
  */
 %verbose
 %define parse.lac	full
@@ -307,15 +312,6 @@ module_body
 	| storage
 	| origin
 	| mask
-	| entry
-	| alias
-	| linkage
-	| variable
-	| returns
-	| parameter
-	| _default
-	| optional
-	| list
 	| definition_end
 	;
 
@@ -548,7 +544,8 @@ _v_basetypes
 	    { $$ = SDL_K_TYPE_SFLT; }
 	| SDL_K_TFLOAT
 	    { $$ = SDL_K_TYPE_TFLT; }
-	| SDL_K_DECIMAL SDL_K_PRECISION SDL_K_OPENP _v_expression SDL_K_COMMA _v_expression SDL_K_CLOSEP
+	| SDL_K_DECIMAL SDL_K_PRECISION SDL_K_OPENP _v_expression SDL_K_COMMA
+	  _v_expression SDL_K_CLOSEP
 	    {
 		sdl_precision(&context, $4, $6);
 		$$ = SDL_K_TYPE_DECIMAL;
@@ -631,9 +628,21 @@ storage
 
 dimension
 	: SDL_K_DIMENSION _v_expression
-	    { sdl_add_option(&context, Dimension, sdl_dimension(&context, 1, $2), NULL); }
+	    {
+		sdl_add_option(
+			&context,
+			Dimension,
+			sdl_dimension(&context, 1, $2),
+			NULL);
+	    }
 	| SDL_K_DIMENSION _v_expression SDL_K_FULL _v_expression
-	    { sdl_add_option(&context, Dimension, sdl_dimension(&context, $2, $4), NULL); }
+	    { 
+		sdl_add_option(
+			&context,
+			Dimension,
+			sdl_dimension(&context, $2, $4),
+			NULL);
+	    }
 	;
 
 _v_aggtypes
@@ -645,7 +654,7 @@ _v_aggtypes
 
 aggregate
 	: SDL_K_AGGREGATE _t_id SDL_K_STRUCTURE _v_aggtypes
-	   { 
+	   {
 		printf("\nAGGREGATE %s STRUCTURE", $2);
 		if ($4 != 0)
 		    printf(" %ld", $4);
@@ -702,124 +711,6 @@ mask
 	    {
 		printf("\nMASK\n\n");
 		sdl_add_option(&context, Mask, 0, NULL);
-	    }
-	;
-
-entry
-	: SDL_K_ENTRY _t_id
-	    { printf("\nENTRY %s\n\n", $2); }
-	;
-
-alias
-	: SDL_K_ALIAS _t_id
-	    {
-		printf("\nALIAS %s\n\n", $2);
-		sdl_add_option(&context, Alias, 0, $2);
-	    }
-	;
-
-linkage
-	: SDL_K_LINKAGE t_name
-	    {
-		printf("\nLINKAGE %s\n\n", $2);
-		sdl_add_option(&context, Linkage, 0, $2);
-	    }
-	;
-
-variable
-	: SDL_K_VARIABLE
-	    {
-		printf("\nVARIABLE\n\n");
-		sdl_add_option(&context, Variable, 0, NULL);
-	    }
-	;
-
-returns
-	: SDL_K_RETURNS _v_datatypes named
-	    {
-		printf("\nRETURNS %ld\n\n", $2);
-		sdl_add_option(&context, Returns, $2, NULL);
-	    }
-	| SDL_K_RETURNS SDL_K_VOID
-	    {
-		printf("\nRETURNS VOID\n\n");
-		sdl_add_option(&context, Returns, 0, NULL);
-	    }
-	;
-
-named
-	: %empty
-	| SDL_K_NAMED _t_id
-	    {
-		printf("\nNAMED %s\n\n", $2);
-		sdl_add_option(&context, Named, 0, $2);
-	    }
-	;
-
-parameter
-	: SDL_K_PARAM SDL_K_OPENP param_list SDL_K_CLOSEP
-	    { printf("\nPARAMETER ("); }
-	;
-
-param_list
-	: _v_datatypes passing_mechanism in out named	/* Make sure to include aggregates */
-	    { printf("%ld)\n\n", $1); }
-	| param_list SDL_K_COMMA _v_datatypes passing_mechanism in out named
-	    { printf("%ld, ", $3); }
-	;
-
-passing_mechanism
-	: %empty
-	| SDL_K_VALUE
-	    {
-		printf("\nVALUE\n\n");
-		sdl_add_option(&context, Value, 0, NULL);
-	    }
-	| SDL_K_REF
-	    {
-		printf("\nREFERENCE\n\n");
-		sdl_add_option(&context, Reference, 0, NULL);
-	    }
-	;
-
-in
-	: %empty
-	| SDL_K_IN
-	    {
-		printf("\nIN\n\n");
-		sdl_add_option(&context, In, 0, NULL);
-	    }
-
-out
-	: %empty
-	| SDL_K_OUT
-	    {
-		printf("\nOUT\n\n");
-		sdl_add_option(&context, Out, 0, NULL);
-	    }
-	;
-
-_default
-	: SDL_K_DEFAULT _v_expression
-	    {
-		printf("\nDEFAULT %ld\n\n", $2);
-		sdl_add_option(&context, Default, $2, NULL);
-	    }
-	;
-
-optional
-	: SDL_K_OPT
-	    {
-		printf("\nOPTIONAL\n\n");
-		sdl_add_option(&context, Optional, 0, NULL);
-	    }
-	;
-
-list
-	: SDL_K_LIST
-	    {
-		printf("\nLIST\n\n");
-		sdl_add_option(&context, List, 0, NULL);
 	    }
 	;
 

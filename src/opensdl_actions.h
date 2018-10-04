@@ -21,42 +21,27 @@
  *
  * Revision History:
  *
- *  V01.000	Aug 28, 2018	Jonathan D. Belanger
+ *  V01.000	28-AUG-2018	Jonathan D. Belanger
  *  Initially written.
  *
- *  V01.001	Sep  6, 2018	Jonathan D. Belanger
+ *  V01.001	06-Sep-2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
 #ifndef _OPENSDL_ACTIONS_H_
 #define _OPENSDL_ACTIONS_H_	1
 
 /*
- * Get and set functions.
- */
-int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action);
-char *sdl_unquote_str(char *str);
-SDL_DECLARE *sdl_get_declare(SDL_DECLARE_LIST *declare, int typeID);
-SDL_ITEM *sdl_get_item(SDL_ITEM_LIST *item, int typeID);
-SDL_AGGREGATE *sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, int typeID);
-int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value);
-int sdl_set_local(SDL_CONTEXT *context, char *name, __int64_t value);
-
-/*
  * Parsing functions.
  */
+int sdl_set_local(SDL_CONTEXT *context, char *name, __int64_t value);
 int sdl_comment_line(SDL_CONTEXT *context, char *comment);
 int sdl_comment_block(SDL_CONTEXT *context, char *comment);
 int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName);
 int sdl_module_end(SDL_CONTEXT *context, char *moduleName);
 int sdl_literal(SDL_QUEUE *literals, char *line);
 int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals);
-int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype);
 int sdl_declare(SDL_CONTEXT *context, char *name, int size);
 int sdl_declare_compl(SDL_CONTEXT *context);
-__int64_t sdl_bin2int(char *binStr);
-int sdl_str2int(char *strVal, __int64_t *val);
-int sdl_offset(SDL_CONTEXT *context, int offsetType);
-int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound);
 int sdl_item(SDL_CONTEXT *context, char *name, int datatype);
 int sdl_item_compl(SDL_CONTEXT *context);
 int sdl_constant(
@@ -65,21 +50,6 @@ int sdl_constant(
 		__int64_t value,
 		char *valueStr);
 int sdl_constant_compl(SDL_CONTEXT *context);
-int sdl_add_option(
-		SDL_CONTEXT *context,
-		SDL_OPTION_TYPE option,
-		__int64_t value,
-		char *string);
-int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale);
-
-#define SDL_M_LEAD	0x00000001	/* remove leading spaces */
-#define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */
-#define SDL_M_COMPRESS	0x00000004	/* remove duplicate spaces */
-#define SDL_M_COLLAPSE	0x00000008	/* remove all spaces */
-#define SDL_M_CONVERT	0x00000010	/* make sure only spaces are used */
-#define SDL_M_KEEP_NL	0x00000020	/* keep new-lines, if present */
-#define SDL_M_TRIM	(SDL_M_LEAD | SDL_M_TRAIL)
-void sdl_trim_str(char *str, int type);
 
 /*
  * These are used to specify the constant information being saved.
@@ -94,6 +64,5 @@ void sdl_trim_str(char *str, int type);
 #define SDL_K_CONST_EQUALS	8
 #define SDL_K_CONST_INCR	9
 #define SDL_K_CONST_RADIX	10
-__int64_t *sdl_increment(__int64_t value);
 
 #endif	/* _OPENSDL_ACTIONS_H_ */

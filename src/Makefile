@@ -20,13 +20,13 @@
 #
 #	Revision History:
 #
-#	V01.000		18-Aug-2018	Jonathan D. Belanger
+#	V01.000		18-AUG-2018	Jonathan D. Belanger
 #	Initially written.
 #
-#	V01.001		06-Sep-2018	Jonathan D. Belanger
+#	V01.001		06-SEP-2018	Jonathan D. Belanger
 #	Updated the copyright to be GNUGPL V3 compliant.
 #
-#	V01.002		08-Sep-2018	Jonathan D. Belanger
+#	V01.002		08-SEP-2018	Jonathan D. Belanger
 #	Change the parent folder name to OpenSDL.
 #
 HOME		= /cygdrive/g/git/OpenSDL
@@ -39,8 +39,14 @@ CFLAGS		= -m64 -std=gnu99 -Wall -I$(SRC) -I$(BIN)
 LFLAGS		=
 YFLAGS		=
 LDFLAGS		= 
-SDLDEFS		= $(SRC)/opensdl_defs.h $(BIN)/opensdl_lexical.h $(BIN)/opensdl_parser.h
-OBJS		= $(BIN)/opensdl_actions.o $(BIN)/opensdl_lang_c.o $(BIN)/opensdl_parser.o $(BIN)/opensdl_lexical.o
+SDLDEFS		= $(SRC)/opensdl_defs.h		\
+			  $(BIN)/opensdl_lexical.h	\
+			  $(BIN)/opensdl_parser.h
+OBJS		= $(BIN)/opensdl_actions.o 	\
+			  $(BIN)/opensdl_utility.o	\
+			  $(BIN)/opensdl_lang_c.o 	\
+			  $(BIN)/opensdl_parser.o 	\
+			  $(BIN)/opensdl_lexical.o
 
 debug: CFLAGS += -g -O0
 debug: LFLAGS += -d
@@ -63,6 +69,9 @@ $(BIN)/opensdl_lexical.o : $(BIN)/opensdl_lexical.c $(BIN)/opensdl_lexical.h
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 $(BIN)/opensdl_actions.o : $(SRC)/opensdl_actions.c $(SDLDEFS)
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+$(BIN)/opensdl_utility.o : $(SRC)/opensdl_utility.c $(SDLDEFS)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 $(BIN)/opensdl_lang_c.o : $(SRC)/opensdl_lang_c.c $(SDLDEFS)

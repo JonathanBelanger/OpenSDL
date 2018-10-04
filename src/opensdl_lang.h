@@ -21,14 +21,14 @@
  *
  * Revision History:
  *
- *  V01.000	Aug 26, 2018	Jonathan D. Belanger
+ *  V01.000	06-AUG-2018	Jonathan D. Belanger
  *  Initially written.
  *
- *  V01.001	Sep  6, 2018	Jonathan D. Belanger
+ *  V01.001	06-SEP-2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
-#ifndef _OPENSDL_LANH_H_
-#define _OPENSDL_LANH_H_ 1
+#ifndef _OPENSDL_LANG_H_
+#define _OPENSDL_LANG_H_ 1
 
 #include <time.h>
 
@@ -59,4 +59,4 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context);
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context);
 int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context);
 
-#endif	/* _OPENSDL_LANH_H_ */
+#endif	/* _OPENSDL_LANG_H_ */

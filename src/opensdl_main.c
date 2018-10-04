@@ -25,10 +25,10 @@
  *
  * Revision History:
  *
- *  V01.000	Aug 23, 2018	Jonathan D. Belanger
+ *  V01.000	23-AUG-2018	Jonathan D. Belanger
  *  Initially written.
  *
- *  V01.001	Sept  6, 2018	Jonathan D. Belanger
+ *  V01.001	06-SEP-2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
 #include <stdio.h>
@@ -63,7 +63,11 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
     /*
      * For the C/C++ languages.
      */
-    {(SDL_FUNC) &sdl_c_commentStars, &sdl_c_createdByInfo, &sdl_c_fileInfo, NULL}
+    {
+	(SDL_FUNC) &sdl_c_commentStars,
+	(SDL_FUNC) &sdl_c_createdByInfo,
+	(SDL_FUNC) &sdl_c_fileInfo,
+	(SDL_FUNC) NULL}
 };
 
 static char *_extensions[] =
@@ -141,14 +145,7 @@ int main(int argc, char *argv[])
 	context.langSpec[ii] = false;
 	context.langEna[ii] = true;
     }
-
-    /*
-     * Initialize the aggregate stack.
-     */
-    for (ii = 0; ii < SDL_K_SUBAGG_MAX; ii++)
-	context.aggStack[ii] = NULL;
-    context.aggStackPtr = SDL_K_SUBAGG_MAX;
-    context.langSpec[SDL_K_LANG_C] = true;
+    context.langSpec[SDL_K_LANG_C] = true; /* C/C++ only supported languages */
 
     /*
      * Initialize the dimension array and the options index.
@@ -173,7 +170,7 @@ int main(int argc, char *argv[])
     context.items.nextID = SDL_K_ITEM_MIN;
     SDL_Q_INIT(&context.aggregates.header);
     context.aggregates.nextID = SDL_K_AGGREGATE_MIN;
-    SDL_Q_INIT(&context.entries.header);
+    SDL_Q_INIT(&context.entries);
 
     /*
      * Loop through each of the supported languages.

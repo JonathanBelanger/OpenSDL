@@ -31,7 +31,7 @@
 #include <string.h>
 #include "opensdl_defs.h"
 #include "opensdl_lang.h"
-#include "opensdl_actions.h"
+#include "opensdl_utility.h"
 
 /*
  * TODO: We need to move away from static buffers.  Search for "512".

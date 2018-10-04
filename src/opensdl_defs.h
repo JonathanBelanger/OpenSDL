@@ -22,59 +22,27 @@
  *
  * Revision History:
  *
- *  V01.000	Aug 24, 2018	Jonathan D. Belanger
+ *  V01.000	24-AUG-2018	Jonathan D. Belanger
  *  Initially written.
  *
- *  V01.001	Sep  6, 2018	Jonathan D. Belanger
+ *  V01.001	06-SEP-2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
+ *
+ *  V01.002	04-OCT-2018	Jonathan D. Belanger
+ *  Reorganized and moved Queue definitions to their own header file.
  */
-#ifndef _DEFSDL_H_
-#define _DEFSDL_H_
+#ifndef _OPENSDL_DEFS_H_
+#define _OPENSDL_DEFS_H_
 
 #include <sys/types.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include "opensdl_queue.h"
 
 #define SDL_K_VERSION_TYPE	'X'
-#define SDL_K_VERSION_MAJOR	1
-#define SDL_K_VERSION_MINOR	0
-#define SDL_K_VERSION_LEVEL	0
-
-/*
- * The following definitions are used to define and maintain queues.
- */
-typedef struct
-{
-    void	*flink;
-    void	*blink;
-} SDL_QUEUE;
-
-#define SDL_Q_INIT(q)	((q)->flink = (q)->blink = (void *) (q))
-#define SDL_Q_EMPTY(q)	(((q)->flink == (q)->blink) && ((q)->flink == (q)))
-
-/*
- * Insert at the end of the queue (blink).
- */
-#define SDL_INSQUE(q, e)				\
-    SDL_QUEUE	*p = (SDL_QUEUE *) (q)->blink;		\
-    (e)->flink = (void *) (q);				\
-    (e)->blink = (void *) p;				\
-    (q)->blink = p->flink = (void *) e
-
-/*
- * Remove from the beginning of the queue (flink).
- */
-#define SDL_REMQUE(q, e)				\
-    if (SDL_Q_EMPTY((q)) == false)			\
-    {							\
-	SDL_QUEUE *n = (SDL_QUEUE *) (q)->flink;	\
-	SDL_QUEUE *nn = (SDL_QUEUE *) n->flink;		\
-	(e) = (q)->flink;				\
-	(q)->flink = n->flink;				\
-	nn->blink = (void *) (q);			\
-    }							\
-    else						\
-	(e) = NULL
+#define SDL_K_VERSION_MAJOR	3
+#define SDL_K_VERSION_MINOR	4
+#define SDL_K_VERSION_LEVEL	10
 
 /*
  * These are the base types supported by OpenSDL.
@@ -212,9 +180,9 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE	header;
-    char *id; /* Variable name	*/
-    __int64_t value; /* Variable value	*/
+    SDL_QUEUE		header;
+    char		*id; /* Variable name	*/
+    __int64_t		value; /* Variable value	*/
 } SDL_LOCAL_VARIABLE;
 
 /*
@@ -224,8 +192,8 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE	header;
-    char	*line;
+    SDL_QUEUE		header;
+    char		*line;
 } SDL_LITERAL;
 
 /*
@@ -233,17 +201,17 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE	header;
-    char *id;
-    char *prefix;
-    char *tag;
-    char *comment;
-    char *typeName;
-    int		radix;
-    int type; /* Numeric or String */
+    SDL_QUEUE		header;
+    char		*id;
+    char		*prefix;
+    char		*tag;
+    char		*comment;
+    char		*typeName;
+    int			radix;
+    int			type; /* Numeric or String */
     union
     {
-	char *string;
+	char		*string;
 	__int64_t	value;
     };
 } SDL_CONSTANT;
@@ -253,19 +221,19 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE	header;
-    char *id;
-    char *prefix;
-    char *tag;
-    int		typeID;
-    int		type;
-    __int64_t	size;
+    SDL_QUEUE		header;
+    char		*id;
+    char		*prefix;
+    char		*tag;
+    int			typeID;
+    int			type;
+    __int64_t		size;
 } SDL_DECLARE;
 
 typedef struct
 {
-    SDL_QUEUE	header;
-    int		nextID;
+    SDL_QUEUE		header;
+    int			nextID;
 } SDL_DECLARE_LIST;
 
 /*
@@ -273,26 +241,32 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE	header;
-    char	*id;
-    char	*prefix;
-    char	*tag;
-    char	*comment;
-    int		typeID;
-    int		alignment;
-    bool	commonDef;
-    bool	globalDef;
-    bool	typeDef;
-    bool	dimension;
-    bool	_unsigned;
-    __int64_t	precision;
-    __int64_t	scale;
-    __int64_t	lbound;
-    __int64_t	hbound;
-    __int64_t	size;
-    __int64_t	memSize;		/* Actual space used in memory	*/
-    int		type;			/* data or user type	*/
+    SDL_QUEUE		header;
+    char		*id;
+    char		*prefix;
+    char		*tag;
+    char		*comment;
+    int			typeID;
+    int			alignment;
+    bool		commonDef;
+    bool		globalDef;
+    bool		typeDef;
+    bool		dimension;
+    bool		_unsigned;
+    __int64_t		precision;
+    __int64_t		scale;
+    __int64_t		lbound;
+    __int64_t		hbound;
+    __int64_t		size;
+    __int64_t		memSize;	/* Actual space used in memory	*/
+    int			type;		/* data or user type	*/
 } SDL_ITEM;
+
+typedef struct
+{
+    SDL_QUEUE		header;
+    int			nextID;
+} SDL_ITEM_LIST;
 
 /*
  * The following definitions are used to declare a single ENTRY, with zero or
@@ -300,119 +274,131 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE	header;
-    char *name;
-    char *comment;
-    char *typeName;
-    int		type;
+    SDL_QUEUE		header;
+    char		*name;
+    char		*comment;
+    char		*typeName;
+    int			type;
     union
     {
-	int	data;
-	char *aggrName;
+	int		data;
+	char		*aggrName;
     };
-    bool in;
-    bool out;
-    bool optional;
-    bool list;
-    bool defaultPresent;
-    bool dimension;
-    __int64_t	bound;
-    __int64_t	defaultValue;
-    int		radix;
+    bool		in;
+    bool		out;
+    bool		optional;
+    bool		list;
+    bool		defaultPresent;
+    bool		dimension;
+    __int64_t		bound;
+    __int64_t		defaultValue;
 } SDL_PARAMETER;
 
 typedef struct
 {
-    SDL_QUEUE	header;
-    char *id;
-    char *comment;
-    char *alias;
-    char *linkage;
-    char *typeName;
-    bool variable;
-    bool returns;
-    SDL_QUEUE	parameters;
-    int		type;
+    SDL_QUEUE		header;
+    char		*id;
+    char		*comment;
+    char		*alias;
+    char		*linkage;
+    char		*typeName;
+    bool		variable;
+    bool		returns;
+    SDL_QUEUE		parameters;
+    int			type;
 } SDL_ENTRY;
-
-typedef struct
-{
-    SDL_QUEUE	header;
-} SDL_ENTRY_LIST;
 
 /*
  * The following definitions are used to declare a single AGGREGATE.
  */
 typedef struct
 {
-    char *id;
-    char *prefix;
-    char *tag;
-    int		type;
+    char 		*id;
+    char		*prefix;
+    char		*tag;
+    int			type;
     union
     {
-	int	data;
-	char *name;
+	int		data;
+	char		*name;
     };
-    int		alignment;
-    bool fill;
-    bool dimension;
-    __int64_t	lbound;
-    __int64_t	hbound;
-    __int64_t	offset;
+    int			alignment;
+    bool		fill;
+    bool		dimension;
+    __int64_t		lbound;
+    __int64_t		hbound;
+    __int64_t		offset;
 } SDL_ORIGIN;
 
 typedef struct
 {
-    SDL_QUEUE	header;
-    char *id;
-    char *prefix;
-    char *tag;
-    char *marker;
-    char *comment;
-    char *basedPtrName;
-    SDL_ORIGIN	origin;
-    int		typeID;
-    int		unionType;		/* for implied unions 		*/
-    int		alignment;
-    int		type;
-    SDL_QUEUE	members;
-    bool originPresent;
-    bool commonDef;
-    bool globalDef;
-    bool typeDef;
-    bool fill;
-    bool dimension;
-    __int64_t	lbound;
-    __int64_t	hbound;
-    __int64_t	currentOffset;
-    __int64_t	size;
-    __int64_t	memSize;		/* Actual space used in memory	*/
-    int		currentBitOffset;
-} SDL_AGGREGATE;
+    char		*id;
+    char		*prefix;
+    char		*tag;
+    char		*marker;
+    char		*comment;
+    char		*basedPtrName;
+    int			typeID;
+    int			unionType;	/* for implied unions 		*/
+    int			alignment;
+    int			type;
+    SDL_QUEUE		members;
+    bool		typeDef;
+    bool		fill;
+    bool		dimension;
+    __int64_t		lbound;
+    __int64_t		hbound;
+    __int64_t		currentOffset;
+    __int64_t		size;
+    __int64_t		memSize;	/* Actual space used in memory	*/
+    int			currentBitOffset;
+} SDL_SUBAGGR;
 
 typedef struct
 {
-    SDL_QUEUE	header;
-    int		type;
+    SDL_QUEUE		header;
+    int			type;
     union
     {
 	SDL_ITEM    	item;
-	SDL_AGGREGATE	subaggr;
+	SDL_SUBAGGR	subaggr;
     };
 } SDL_MEMBERS;
 
 typedef struct
 {
-    SDL_QUEUE	header;
-    int		nextID;
-} SDL_AGGREGATE_LIST;
+    SDL_QUEUE		header;
+    char		*id;
+    char		*prefix;
+    char		*tag;
+    char		*marker;
+    char		*comment;
+    char		*basedPtrName;
+    SDL_ORIGIN		origin;
+    int			typeID;
+    int			unionType;	/* for implied unions 		*/
+    int			alignment;
+    int			type;
+    SDL_QUEUE		members;
+    bool		originPresent;
+    bool		commonDef;
+    bool		globalDef;
+    bool		typeDef;
+    bool		fill;
+    bool		dimension;
+    __int64_t		lbound;
+    __int64_t		hbound;
+    __int64_t		currentOffset;
+    __int64_t		size;
+    __int64_t		memSize;	/* Actual space used in memory	*/
+    int			currentBitOffset;
+} SDL_AGGREGATE;
 
 typedef struct
 {
-    SDL_QUEUE	header;
-    int		nextID;
-} SDL_ITEM_LIST;
+    SDL_QUEUE		header;
+    int			nextID;
+} SDL_AGGREGATE_LIST;
 
 /*
  * The following structure is used to hold dimension data (low and high), as
@@ -421,9 +407,9 @@ typedef struct
 #define SDL_K_MAX_DIMENSIONS	16
 typedef struct
 {
-    size_t	lbound;
-    size_t	hbound;
-    bool	inUse;
+    size_t		lbound;
+    size_t		hbound;
+    bool		inUse;
 } SDL_DIMENSION;
 
 /*
@@ -488,9 +474,13 @@ typedef struct
  */
 #define SDL_K_LANG_C		0
 #define SDL_K_LANG_MAX		1
-#define SDL_TIMESTR_LEN		20+1	/* dd-MMM-yyyy hh:mm:ss		*/
-#define SDL_K_SUBAGG_MAX	8+1
+#define SDL_TIMESTR_LEN		20 + 1	/* dd-MMM-yyyy hh:mm:ss		*/
+#define SDL_K_SUBAGG_MAX	8 + 1
 
+/*
+ * State values used to determine what is being parsed and how to interpret
+ * the information.
+ */
 typedef enum
 {
     Initial,
@@ -509,56 +499,79 @@ typedef enum
     DefinitionEnd
 } SDL_STATE;
 
+/*
+ * This is used to save information about a CONSTANT that is being defined as
+ * the parsing progresses.  This information will eventually be used to define
+ * one or more actual CONSTANT values.
+ */
 typedef struct
 {
-    char	*id;
-    bool	string;
+    char		*id;
+    bool		string;
     union
     {
-	__int64_t value;
-	char	*valueStr;
+	__int64_t 	value;
+	char		*valueStr;
     };
 } SDL_CONSTANT_DEF;
 
+/*
+ * This is the context data structure.  It maintains everything about what has
+ * been parsed and is being parsed.  It is initialized when a MODULE has been
+ * parsed and is cleared when an END_MODULE has been parsed.
+ */
 typedef struct
 {
-    SDL_AGGREGATE	*aggStack[SDL_K_SUBAGG_MAX];
+
+    /*
+     * The following fields are set when processing the MODULE statement and
+     * checked in the processing for the END_MODULE statement (if the module-id
+     * is supplied).
+     */
+    char 		*module;
+    char 		*ident;
+
+    /*
+     * The following fields are set in the main function as part of processing
+     * the command-line qualifiers.
+     */
     bool		langSpec[SDL_K_LANG_MAX];
     bool		langEna[SDL_K_LANG_MAX];
     char		*outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
+
+    /*
+     * The following fields are used while parsing various statement
+     * constructs.  In most cases, these fields are fleeting and can be
+     * continuously reused.
+     */
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
     SDL_OPTION		options[SDL_K_MAX_OPTIONS];
+    SDL_CONSTANT_DEF	constDef;
+    __int64_t		precision;
+    __int64_t		scale;
+    int			optionsIdx;
+
+    /*
+     * The following field is used to maintain the current state of the
+     * processing.  NOTE: There is no history associated with states in this
+     * implementation.  So, there is no ability to go from one state to another
+     * and then back to the previous state, where this previous state has more
+     * than one possibility.
+     */
+    SDL_STATE		state;
+
+    /*
+     * The following fields are why we are here.  These fields are created as
+     * part of the processing.  They are also passed to the language specific
+     * output functions.
+     */
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;
     SDL_DECLARE_LIST	declares;
     SDL_ITEM_LIST	items;
     SDL_AGGREGATE_LIST	aggregates;
-    SDL_ENTRY_LIST	entries;
-    SDL_CONSTANT_DEF	constDef;
-    SDL_STATE		state;
-    char 		*module;
-    char 		*ident;
-    __int64_t		precision;
-    __int64_t		scale;
-    int			aggStackPtr;
-    int			optionsIdx;
+    SDL_QUEUE		entries;
 } SDL_CONTEXT;
 
-#define SDL_AGGSTACK_EMPTY(p)	((p) == SDL_K_SUBAGG_MAX)
-#define SDL_AGGSTACK_FULL(p)	((p) == 0)
-#define SDL_AGGSTACK_PUSH(a, s, p)		\
-    if (SDL_AGGSTACK_FULL(p) == false)		\
-    {						\
-	(s)[(p)--] = (a);			\
-	1;					\
-    }						\
-    else					\
-	0
-#define SDL_AGGSTACK_POP(s, p)			\
-    if (SDL_AGGSTACK_EMPTY(p) == false)		\
-	(s)[(p)++];				\
-    else					\
-	NULL
-
-#endif /* __DEFSDL_H__ */
+#endif /* _OPENSDL_DEFS_H_ */

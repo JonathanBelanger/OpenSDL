@@ -202,18 +202,18 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE		header;
+    char		*comment;
     char		*id;
     char		*prefix;
     char		*tag;
-    char		*comment;
     char		*typeName;
-    int			radix;
-    int			type; /* Numeric or String */
     union
     {
 	char		*string;
 	__int64_t	value;
     };
+    int			radix;
+    int			type; /* Numeric or String */
 } SDL_CONSTANT;
 
 /*
@@ -225,9 +225,9 @@ typedef struct
     char		*id;
     char		*prefix;
     char		*tag;
-    int			typeID;
-    int			type;
     __int64_t		size;
+    int			type;
+    int			typeID;
 } SDL_DECLARE;
 
 typedef struct
@@ -242,24 +242,28 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE		header;
+    char		*comment;
     char		*id;
     char		*prefix;
     char		*tag;
-    char		*comment;
-    int			typeID;
     int			alignment;
+    int			type;		/* data or user type	*/
+    int			typeID;
     bool		commonDef;
-    bool		globalDef;
-    bool		typeDef;
     bool		dimension;
+    bool		fill;
+    bool		globalDef;
+    bool		mask;		/* for BITFIELDs only*/
+    bool		typeDef;
+    bool		_signed;	/* for BITFIELDs only */
     bool		_unsigned;
+    __int64_t		hbound;
+    __int64_t		lbound;
+    __int64_t		length;		/* for BITFIELDs only */
+    __int64_t		memSize;	/* Actual space used in memory	*/
     __int64_t		precision;
     __int64_t		scale;
-    __int64_t		lbound;
-    __int64_t		hbound;
     __int64_t		size;
-    __int64_t		memSize;	/* Actual space used in memory	*/
-    int			type;		/* data or user type	*/
 } SDL_ITEM;
 
 typedef struct
@@ -275,37 +279,37 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE		header;
-    char		*name;
     char		*comment;
+    char		*name;
     char		*typeName;
-    int			type;
     union
     {
 	int		data;
 	char		*aggrName;
     };
-    bool		in;
-    bool		out;
-    bool		optional;
-    bool		list;
-    bool		defaultPresent;
-    bool		dimension;
     __int64_t		bound;
     __int64_t		defaultValue;
+    int			type;
+    bool		defaultPresent;
+    bool		dimension;
+    bool		in;
+    bool		list;
+    bool		optional;
+    bool		out;
 } SDL_PARAMETER;
 
 typedef struct
 {
     SDL_QUEUE		header;
-    char		*id;
-    char		*comment;
     char		*alias;
+    char		*comment;
+    char		*id;
     char		*linkage;
     char		*typeName;
-    bool		variable;
-    bool		returns;
     SDL_QUEUE		parameters;
     int			type;
+    bool		returns;
+    bool		variable;
 } SDL_ENTRY;
 
 /*
@@ -321,38 +325,39 @@ typedef enum
 
 typedef struct
 {
+    char		*basedPtrName;
+    char		*comment;
     char		*id;
+    char		*marker;
     char		*prefix;
     char		*tag;
-    char		*marker;
-    char		*comment;
-    char		*basedPtrName;
     void		*parent;	/* aggregateDepth determines level */
     SDL_QUEUE		members;
     SDL_AGGR_TYPE	structUnion;
-    __int64_t		lbound;
-    __int64_t		hbound;
     __int64_t		currentOffset;
-    __int64_t		size;
+    __int64_t		hbound;
+    __int64_t		lbound;
     __int64_t		memSize;	/* Actual space used in memory	*/
-    int			typeID;
+    __int64_t		size;
     int			alignment;
-    int			type;
     int			currentBitOffset;
-    bool		typeDef;
-    bool		fill;
+    int			type;
+    int			typeID;
     bool		dimension;
+    bool		fill;
+    bool		typeDef;
+    bool		_unsigned;
 } SDL_SUBAGGR;
 
 typedef struct
 {
     SDL_QUEUE		header;
-    SDL_AGGR_TYPE	type;
     union
     {
 	SDL_ITEM    	item;
 	SDL_SUBAGGR	subaggr;
     };
+    SDL_AGGR_TYPE	type;
 } SDL_MEMBERS;
 
 typedef struct
@@ -364,30 +369,31 @@ typedef struct
 typedef struct
 {
     SDL_QUEUE		header;
-    char		*id;
-    char		*prefix;
-    char		*tag;
-    char		*marker;
     char		*comment;
     char		*basedPtrName;
-    SDL_ORIGIN		origin;
-    int			typeID;
-    int			alignment;
-    int			type;
-    SDL_AGGR_TYPE	structUnion;
+    char		*id;
+    char		*marker;
+    char		*prefix;
+    char		*tag;
     SDL_QUEUE		members;
-    bool		originPresent;
-    bool		commonDef;
-    bool		globalDef;
-    bool		typeDef;
-    bool		fill;
-    bool		dimension;
-    __int64_t		lbound;
-    __int64_t		hbound;
+    SDL_ORIGIN		origin;
     __int64_t		currentOffset;
-    __int64_t		size;
+    __int64_t		hbound;
+    __int64_t		lbound;
     __int64_t		memSize;	/* Actual space used in memory	*/
+    __int64_t		size;
+    SDL_AGGR_TYPE	structUnion;
+    int			alignment;
     int			currentBitOffset;
+    int			type;
+    int			typeID;
+    bool		commonDef;
+    bool		dimension;
+    bool		fill;
+    bool		globalDef;
+    bool		originPresent;
+    bool		typeDef;
+    bool		_unsigned;
 } SDL_AGGREGATE;
 
 typedef struct
@@ -421,36 +427,39 @@ typedef struct
 typedef enum
 {
     None,
+    Alias,
     Align,
-    NoAlign,
     BaseAlign,
+    Based,
+    Counter,
+    Default,
+    Dimension,
+    Fill,
     Common,
     Global,
-    Prefix,
-    Tag,
-    Based,
-    Typedef,
-    Fill,
-    Marker,
-    Origin,
-    Counter,
-    Increment,
-    TypeName,
-    Reference,
-    Value,
     In,
-    Out,
-    Default,
-    List,
-    Named,
-    Optional,
-    Returns,
-    Alias,
+    Increment,
+    Length,
     Linkage,
+    List,
+    Marker,
+    Mask,
+    Optional,
+    Origin,
+    Out,
+    Named,
+    NoAlign,
     Parameter,
-    Variable,
+    Prefix,
     Radix,
-    Dimension
+    Reference,
+    Returns,
+    Signed,
+    Tag,
+    Typedef,
+    TypeName,
+    Value,
+    Variable
 } SDL_OPTION_TYPE;
 #define SDL_K_MAX_OPTIONS	16
 typedef struct
@@ -478,18 +487,18 @@ typedef struct
 typedef enum
 {
     Initial,
-    Module,
-    Comment,
-    Literal,
-    Local,
-    Declare,
-    Constant,
-    Item,
     Aggregate,
-    Subaggregate,
+    Comment,
+    Constant,
+    Declare,
     Entry,
     IfLanguage,
     IfSymbol,
+    Item,
+    Literal,
+    Local,
+    Module,
+    Subaggregate,
     DefinitionEnd
 } SDL_STATE;
 
@@ -501,12 +510,12 @@ typedef enum
 typedef struct
 {
     char		*id;
-    bool		string;
     union
     {
 	__int64_t 	value;
 	char		*valueStr;
     };
+    bool		string;
 } SDL_CONSTANT_DEF;
 
 /*
@@ -516,58 +525,27 @@ typedef struct
  */
 typedef struct
 {
-
-    /*
-     * The following fields are set when processing the MODULE statement and
-     * checked in the processing for the END_MODULE statement (if the module-id
-     * is supplied).
-     */
-    char 		*module;
     char 		*ident;
-
-    /*
-     * The following fields are set in the main function as part of processing
-     * the command-line qualifiers.
-     */
-    bool		langSpec[SDL_K_LANG_MAX];
-    bool		langEna[SDL_K_LANG_MAX];
+    char 		*module;
     char		*outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
-
-    /*
-     * The following fields are used while parsing various statement
-     * constructs.  In most cases, these fields are fleeting and can be
-     * continuously reused.
-     */
     void		*currentAggr;
+    bool		langEna[SDL_K_LANG_MAX];
+    bool		langSpec[SDL_K_LANG_MAX];
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
     SDL_OPTION		options[SDL_K_MAX_OPTIONS];
-    SDL_CONSTANT_DEF	constDef;
-    __int64_t		precision;
-    __int64_t		scale;
-    int			optionsIdx;
-    int			aggregateDepth;
-
-    /*
-     * The following field is used to maintain the current state of the
-     * processing.  NOTE: There is no history associated with states in this
-     * implementation.  So, there is no ability to go from one state to another
-     * and then back to the previous state, where this previous state has more
-     * than one possibility.
-     */
-    SDL_STATE		state;
-
-    /*
-     * The following fields are why we are here.  These fields are created as
-     * part of the processing.  They are also passed to the language specific
-     * output functions.
-     */
-    SDL_QUEUE		locals;
-    SDL_QUEUE		constants;
     SDL_DECLARE_LIST	declares;
     SDL_ITEM_LIST	items;
     SDL_AGGREGATE_LIST	aggregates;
+    SDL_STATE		state;
+    SDL_QUEUE		locals;
+    SDL_QUEUE		constants;
     SDL_QUEUE		entries;
+    SDL_CONSTANT_DEF	constDef;
+    __int64_t		precision;
+    __int64_t		scale;
+    int			aggregateDepth;
+    int			optionsIdx;
 } SDL_CONTEXT;
 
 #endif /* _OPENSDL_DEFS_H_ */

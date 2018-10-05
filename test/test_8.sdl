@@ -51,9 +51,21 @@ AGGREGATE test_8c STRUCTURE;
 END test_8c;
 
 /+
-// Test 8d: AGGREGATE declaration with subaggregate
+// Test 8d Complete AGGREGATE STRUCTURE.
 /-
-AGGREGATE test_8d STRUCTURE;
+AGGREGATE test_8d STRUCTURE PREFIX tst_ MARKER foo_ TAG q
+		COMMON GLOBAL TYPEDEF BASED next ALIGN NOALIGN BASEALIGN(2)
+		DIMENSION 2:4 ORIGIN size FILL;
+	type CHARACTER NOALIGN PREFIX dsc$ TAG r;
+	size WORD ALIGN DIMENSION 3:5;
+	next ADDRESS BASEALIGN QUADWORD;
+	last BYTE FILL;
+END test_8d;
+
+/+
+// Test 8e: AGGREGATE declaration with subaggregate
+/-
+AGGREGATE test_8e STRUCTURE;
 	opcode WORD;
 	lang_bits UNION;
 		pli_bits STRUCTURE;
@@ -71,32 +83,32 @@ AGGREGATE test_8d STRUCTURE;
 			spare_bits BITFIELD LENGTH 3;
 		END c_bits;
 	END lang_bits;
-END test_8d;
+END test_8e;
 
 /+
-// Test 8e: AGGREGATE declaration with implicit UNION.
+// Test 8f: AGGREGATE declaration with implicit UNION.
 /-
-AGGREGATE test_8e STRUCTURE;
+AGGREGATE test_8f STRUCTURE;
 	B STRUCTURE LONGWORD;
 		bit_string1 BITFIELD LENGTH 1;
 		bit_string2 BITFIELD LENGTH 4;
 	END B;
 	last_item WORD;
-END test_8e;
-
-/+
-// Test 8f: AGGREGATE declaration with implicit UNION and optional DIMENSION.
-/-
-AGGREGATE test_8f STRUCTURE WORD DIMENSION 3;
-	first WORD;
-	second WORD;
-	third WORD;
 END test_8f;
 
 /+
-// Test 8g: AGGREGATE declaration with negative OFFSETS.
+// Test 8g: AGGREGATE declaration with implicit UNION and optional DIMENSION.
 /-
-AGGREGATE test_8g STRUCTURE ORIGIN qflink;
+AGGREGATE test_8g STRUCTURE WORD DIMENSION 3;
+	first WORD;
+	second WORD;
+	third WORD;
+END test_8g;
+
+/+
+// Test 8h: AGGREGATE declaration with negative OFFSETS.
+/-
+AGGREGATE test_8h STRUCTURE ORIGIN qflink;
 	flink ADDRESS;
 	blink ADDRESS;
 	qflink ADDRESS;
@@ -104,9 +116,9 @@ AGGREGATE test_8g STRUCTURE ORIGIN qflink;
 END;
 
 /+
-// Test 8h: AGGREGATE declaration with forced alignment.
+// Test 8i: AGGREGATE declaration with forced alignment.
 /-
-AGGREGATE test_8h STRUCTURE;
+AGGREGATE test_8i STRUCTURE;
 	opcode WORD;
 	lang_bits UNION;
 		pli_bits STRUCTURE;
@@ -124,13 +136,13 @@ AGGREGATE test_8h STRUCTURE;
 			spare_bits BITFIELD LENGTH 3;
 		END c_bits;
 	END lang_bits;
-END test_8h;
+END test_8i;
 
 /+
-// Test 8i: AGGREGATE declaration with offset symbols.
+// Test 8j: AGGREGATE declaration with offset symbols.
 /-
 #max_args = 10;
-AGGREGATE test_8i STRUCTURE PREFIX opr_;
+AGGREGATE test_8j STRUCTURE PREFIX opr_;
 	flink ADDRESS;
 	blink ADDRESS;
 	opcount WORD;

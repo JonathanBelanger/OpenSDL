@@ -840,18 +840,20 @@ int sdl_add_option(
 	     * The following are just indicated as being present.
 	     */
 	    case Align:
-	    case NoAlign:
 	    case Common:
-	    case Global:
-	    case Typedef:
 	    case Fill:
-	    case Reference:
-	    case Value:
+	    case Global:
 	    case In:
-	    case Out:
-	    case Variable:
 	    case List:
+	    case Mask:
+	    case NoAlign:
+	    case Out:
 	    case Optional:
+	    case Reference:
+	    case Signed:
+	    case Typedef:
+	    case Value:
+	    case Variable:
 		context->options[context->optionsIdx++].option = option;
 		break;
 
@@ -859,11 +861,12 @@ int sdl_add_option(
 	     * The following are all 64-bit integer values.
 	     */
 	    case BaseAlign:
-	    case Increment:
-	    case Radix:
-	    case Dimension:
-	    case Returns:
 	    case Default:
+	    case Dimension:
+	    case Increment:
+	    case Length:
+	    case Radix:
+	    case Returns:
 		context->options[context->optionsIdx].option = option;
 		context->options[context->optionsIdx++].value = value;
 		break;
@@ -871,16 +874,16 @@ int sdl_add_option(
 	    /*
 	     * The following are all string values.
 	     */
+	    case Alias:
+	    case Based:
+	    case Counter:
+	    case Linkage:
+	    case Marker:
+	    case Named:
+	    case Origin:
 	    case Prefix:
 	    case Tag:
-	    case Counter:
 	    case TypeName:
-	    case Marker:
-	    case Based:
-	    case Origin:
-	    case Named:
-	    case Alias:
-	    case Linkage:
 		context->options[context->optionsIdx].option = option;
 		context->options[context->optionsIdx++].string = string;
 		break;

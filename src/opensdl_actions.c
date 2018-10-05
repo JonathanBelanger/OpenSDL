@@ -638,9 +638,9 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	    printf(
 	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
 		"\t    marker: %s\n\t    arrgType: %s\n\t    typeID: %d\n"
-		"\t    alignment: %d\n\t    type: %d\n\t    size: %ld\n"
-		"\t    memSize: %ld\n\t    commonDef: %s\n"
-		"\t    globalDef: %s\n\t    typeDef: %s\n"
+		"\t    alignment: %d\n\t    type: %d\n\t    _unsigned: %s\n"
+		"\t    size: %ld\n\t    memSize: %ld\n\t    commonDef: %s\n"
+		"\t    globalDef: %s\n\t    typeDef: %s\n\t    fill: %s\n"
 		"\t    basedPtrName: %s\n\t    currentBitOffset: %d\n",
 	        ii++,
 	        aggregate->id,
@@ -651,11 +651,13 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	        aggregate->typeID,
 	        aggregate->alignment,
 	        aggregate->type,
+	        (aggregate->_unsigned == true ? "True" : "False"),
 	        aggregate->size,
 	        aggregate->memSize,
 	        (aggregate->commonDef == true ? "True" : "False"),
 	        (aggregate->globalDef == true ? "True" : "False"),
 	        (aggregate->typeDef == true ? "True" : "False"),
+	        (aggregate->fill == true ? "True" : "False"),
 	        (aggregate->basedPtrName!= NULL ? aggregate->basedPtrName: ""),
 	        aggregate->currentBitOffset);
 	    if (aggregate->originPresent == true)
@@ -1469,6 +1471,13 @@ int sdl_aggregate(
     {
 	myAggr->id = name;
 	myAggr->typeID = context->aggregates.nextID++;
+	if (datatype < 0)
+	{
+	    myAggr->_unsigned = false;
+	    datatype = -datatype;
+	}
+	else if (datatype > 0)
+	    myAggr->_unsigned = true;
 	myAggr->type = datatype;
 	myAggr->structUnion = unionAggr ? Union : Structure;
 	SDL_Q_INIT(&myAggr->members);
@@ -1508,23 +1517,20 @@ int sdl_aggregate_member(
 		char *aggrId,
 		SDL_AGGR_TYPE subaggrType)
 {
-    SDL_MEMBERS		*myMember =
-			    (SDL_MEMBERS *) calloc(1, sizeof(SDL_MEMBERS));
-    SDL_AGGREGATE	*myAggr = NULL;
-    SDL_SUBAGGR		*mySubAggr = NULL;
+    SDL_MEMBERS		*myMember = NULL;
+    SDL_AGGREGATE	*myAggr = (context->aggregateDepth > 1 ?
+					NULL :
+					(SDL_AGGREGATE *) context->currentAggr);
+    SDL_SUBAGGR		*mySubAggr = (context->aggregateDepth > 1 ?
+					(SDL_SUBAGGR *) context->currentAggr :
+					NULL);
     int			retVal = 1;
-    bool		subAggregate = context->aggregateDepth > 1;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
 	printf("%s:%d:sdl_aggregate_member\n", __FILE__, __LINE__);
-
-    if (subAggregate == true)
-	mySubAggr = (SDL_SUBAGGR *) context->currentAggr;
-    else
-	myAggr = (SDL_AGGREGATE *) context->currentAggr;
 
     /*
      * Before we go too far, there may have been one or more options defined to
@@ -1534,6 +1540,30 @@ int sdl_aggregate_member(
     {
 	__int64_t	dimension;
 	int		ii;
+
+	/*
+	 * Determine if the previous item we worked on was an ITEM, an
+	 * AGGREGATE, or a subaggregate.  If ITEM, that is the one that needs
+	 * to be updated with any saved options.  Otherwise, we already have
+	 * the thing that needs to have these options applied to it.
+	 */
+	if (mySubAggr != NULL)
+	{
+	    if (SDL_Q_EMPTY(&mySubAggr->members) == false)
+		myMember = (SDL_MEMBERS *) mySubAggr->members.blink;
+	}
+	else
+	{
+	    if (SDL_Q_EMPTY(&myAggr->members) == false)
+		myMember = (SDL_MEMBERS *) myAggr->members.blink;
+	}
+
+	/*
+	 * If the current member is not Unknown (and ITEM member), then it is
+	 * the current aggregate, of which we already have the address.
+	 */
+	if ((myMember != NULL) && (myMember->type != Unknown))
+	    myMember = NULL;
 
 	/*
 	 * Go find our options
@@ -1546,80 +1576,86 @@ int sdl_aggregate_member(
 		 * Present only options.
 		 */
 		case Align:
-		    if (subAggregate == true)
+		    if (myMember != NULL)
+			myMember->item.alignment = SDL_K_ALIGN;
+		    else if (mySubAggr != NULL)
 			mySubAggr->alignment = SDL_K_ALIGN;
 		    else
 			myAggr->alignment = SDL_K_ALIGN;
 		    break;
 
-		case NoAlign:
-		    if (subAggregate == true)
-			mySubAggr->alignment = SDL_K_NOALIGN;
-		    else
-			myAggr->alignment = SDL_K_NOALIGN;
-		    break;
-
 		case Common:
-		    if (subAggregate == false)
+		    if ((myAggr != NULL) && (myMember == NULL))
 			myAggr->commonDef = true;
 		    break;
 
-		case Global:
-		    if (subAggregate == false)
-			myAggr->globalDef = true;
-		    break;
-
-		case Typedef:
-		    if (subAggregate == true)
-			mySubAggr->typeDef = true;
-		    else
-			myAggr->typeDef = true;
-		    break;
-
 		case Fill:
-		    if (subAggregate == true)
+		    if (myMember != NULL)
+			myMember->item.fill = true;
+		    else if (mySubAggr != NULL)
 			mySubAggr->fill = true;
 		    else
 			myAggr->fill = true;
 		    break;
 
+		case Global:
+		    if ((myAggr != NULL) && (myMember == NULL))
+			myAggr->globalDef = true;
+		    break;
+
+		case Mask:
+		    if ((myMember != NULL) &&
+			(myMember->type == Unknown) &&
+			(myMember->item.type == SDL_K_TYPE_BITFLD))
+			myMember->item.mask = true;
+		    break;
+
+		case NoAlign:
+		    if (myMember != NULL)
+			myMember->item.alignment = SDL_K_NOALIGN;
+		    else if (mySubAggr != NULL)
+			mySubAggr->alignment = SDL_K_NOALIGN;
+		    else
+			myAggr->alignment = SDL_K_NOALIGN;
+		    break;
+
+		case Typedef:
+		    if (myMember != NULL)
+			myMember->item.typeDef = true;
+		    else if (mySubAggr != NULL)
+			mySubAggr->typeDef = true;
+		    else
+			myAggr->typeDef = true;
+		    break;
+
+		case Signed:
+		    if ((myMember != NULL) &&
+			(myMember->type == Unknown) &&
+			(myMember->item.type == SDL_K_TYPE_BITFLD))
+			myMember->item._signed = true;
+		    break;
+
 		/*
 		 * String options.
 		 */
-		case Prefix:
-		    if (subAggregate == true)
-			mySubAggr->prefix = context->options[ii].string;
-		    else
-			myAggr->prefix = context->options[ii].string;
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Marker:
-		    if (subAggregate == true)
-			mySubAggr->marker = context->options[ii].string;
-		    else
-			myAggr->marker = context->options[ii].string;
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Tag:
-		    if (subAggregate == true)
-			mySubAggr->tag = context->options[ii].string;
-		    else
-			myAggr->tag = context->options[ii].string;
-		    context->options[ii].string = NULL;
-		    break;
-
 		case Based:
-		    if (subAggregate == false)
+		    if ((myAggr != NULL) && (myMember == NULL))
 			myAggr->basedPtrName = context->options[ii].string;
 		    else
 			free(context->options[ii].string);
 		    context->options[ii].string = NULL;
 		    break;
 
+		case Marker:
+		    if ((mySubAggr != NULL) && (myMember == NULL))
+			mySubAggr->marker = context->options[ii].string;
+		    else if (myMember == NULL)
+			myAggr->marker = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
 		case Origin:
-		    if (subAggregate == false)
+		    if ((myAggr != NULL) && (myMember == NULL))
 		    {
 			myAggr->origin.id = context->options[ii].string;
 			myAggr->originPresent = true;
@@ -1629,11 +1665,33 @@ int sdl_aggregate_member(
 		    context->options[ii].string = NULL;
 		    break;
 
+		case Prefix:
+		    if (myMember != NULL)
+			myMember->item.prefix = context->options[ii].string;
+		    else if (mySubAggr != NULL)
+			mySubAggr->prefix = context->options[ii].string;
+		    else
+			myAggr->prefix = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Tag:
+		    if (myMember != NULL)
+			myMember->item.tag = context->options[ii].string;
+		    else if (mySubAggr != NULL)
+			mySubAggr->tag = context->options[ii].string;
+		    else
+			myAggr->tag = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
 		/*
 		 * Numeric options.
 		 */
 		case BaseAlign:
-		    if (subAggregate == true)
+		    if (myMember != NULL)
+			myMember->item.alignment = context->options[ii].value;
+		    else if (mySubAggr != NULL)
 			mySubAggr->alignment = context->options[ii].value;
 		    else
 			myAggr->alignment = context->options[ii].value;
@@ -1641,10 +1699,20 @@ int sdl_aggregate_member(
 
 		case Dimension:
 		    dimension = context->options[ii].value;
-		    if (subAggregate == true)
+		    if (myMember != NULL)
 		    {
-			mySubAggr->lbound = context->dimensions[dimension].lbound;
-			mySubAggr->hbound = context->dimensions[dimension].hbound;
+			myMember->item.lbound =
+				context->dimensions[dimension].lbound;
+			myMember->item.hbound =
+				context->dimensions[dimension].hbound;
+			myMember->item.dimension = true;
+		    }
+		    else if (mySubAggr != NULL)
+		    {
+			mySubAggr->lbound =
+				context->dimensions[dimension].lbound;
+			mySubAggr->hbound =
+				context->dimensions[dimension].hbound;
 			mySubAggr->dimension = true;
 		    }
 		    else
@@ -1654,6 +1722,13 @@ int sdl_aggregate_member(
 			myAggr->dimension = true;
 		    }
 		    context->dimensions[dimension].inUse = false;
+		    break;
+
+		case Length:
+		    if ((myMember != NULL) &&
+			(myMember->type == Unknown) &&
+			(myMember->item.type == SDL_K_TYPE_BITFLD))
+			myMember->item.length = context->options[ii].value;
 		    break;
 
 		default:
@@ -1667,6 +1742,11 @@ int sdl_aggregate_member(
 	_sdl_reset_options(context);
     }
 
+    /*
+     * OK, we took care of adding the options to our predecessor, so now we
+     * need to start a new member.
+     */
+    myMember = (SDL_MEMBERS *) calloc(1, sizeof(SDL_MEMBERS));
     if (myMember != NULL)
     {
 
@@ -1705,13 +1785,20 @@ int sdl_aggregate_member(
 	    case Union:
 		myMember->subaggr.id = name;
 		myMember->subaggr.structUnion = subaggrType;
+		if (datatype < 0)
+		{
+		    myMember->subaggr._unsigned = false;
+		    datatype = -datatype;
+		}
+		else if (datatype > 0)
+		    myMember->subaggr._unsigned = true;
 		myMember->subaggr.parent = context->currentAggr;
 		SDL_Q_INIT(&myMember->subaggr.members);
 		context->aggregateDepth++;
-		context->currentAggr = myMember;
+		context->currentAggr = &myMember->subaggr;
 		break;
 	}
-	if (subAggregate == true)
+	if (mySubAggr != NULL)
 	{
 	    SDL_INSQUE(&mySubAggr->members, &myMember->header);
 	}
@@ -1751,13 +1838,134 @@ int sdl_aggregate_member(
  */
 int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
 {
-    int		retVal = 1;
+    SDL_AGGREGATE	*myAggr = (SDL_AGGREGATE *) context->currentAggr;
+    SDL_SUBAGGR		*mySubAggr = (SDL_SUBAGGR *) context->currentAggr;
+    int			retVal = 1;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
 	printf("%s:%d:sdl_aggregate_compl\n", __FILE__, __LINE__);
+
+    /*
+     * If we have any options that had been processed, they are for the most
+     * recent ITEM member.
+     */
+    if (context->optionsIdx > 0)
+    {
+	SDL_MEMBERS	*myMember = NULL;
+	__int64_t	dimension;
+	int		ii;
+
+	/*
+	 * OK, the issue is where is the most recent ITEM member.  It is in the
+	 * current aggregate.  Don't assume that the queues actually contain
+	 * anything, and make sure that the member is actually not a
+	 * subaggregate.
+	 */
+	if (context->aggregateDepth == 1)
+	{
+	    if (SDL_Q_EMPTY(&myAggr->members) == false)
+		myMember = myAggr->members.blink;
+	}
+	else
+	{
+	    if (SDL_Q_EMPTY(&mySubAggr->members) == false)
+		myMember = mySubAggr->members.blink;
+	}
+	if ((myMember != NULL) && (myMember->type != Unknown))
+	    myMember = NULL;
+	for (ii = 0; ii < context->optionsIdx; ii++)
+	    switch (context->options[ii].option)
+	    {
+
+		/*
+		 * Present only options.
+		 */
+		case Align:
+		    if (myMember != NULL)
+			myMember->item.alignment = SDL_K_ALIGN;
+		    break;
+
+		case Fill:
+		    if (myMember != NULL)
+			myMember->item.fill = true;
+		    break;
+
+		case Mask:
+		    if (myMember != NULL)
+			myMember->item.mask = true;
+		    break;
+
+		case NoAlign:
+		    if (myMember != NULL)
+			myMember->item.alignment = SDL_K_NOALIGN;
+		    break;
+
+		case Signed:
+		    if (myMember != NULL)
+			myMember->item._signed = true;
+		    break;
+
+		case Typedef:
+		    if (myMember != NULL)
+			myMember->item.typeDef = true;
+		    break;
+
+		/*
+		 * String options.
+		 */
+		case Prefix:
+		    if (myMember != NULL)
+			myMember->item.prefix = context->options[ii].string;
+		    else
+			free(context->options[ii].string);
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Tag:
+		    if (myMember != NULL)
+			myMember->item.tag = context->options[ii].string;
+		    else
+			free(context->options[ii].string);
+		    context->options[ii].string = NULL;
+		    break;
+
+		/*
+		 * Numeric options.
+		 */
+		case BaseAlign:
+		    if (myMember != NULL)
+			myMember->item.alignment = context->options[ii].value;
+		    break;
+
+		case Dimension:
+		    dimension = context->options[ii].value;
+		    if (myMember != NULL)
+		    {
+			myMember->item.lbound = context->dimensions[dimension].lbound;
+			myMember->item.hbound = context->dimensions[dimension].hbound;
+			myMember->item.dimension = true;
+		    }
+		    context->dimensions[dimension].inUse = false;
+		    break;
+
+		case Length:
+		    if (myMember != NULL)
+			myMember->item.length = context->options[ii].value;
+		    break;
+
+		default:
+		    break;
+	    }
+
+	/*
+	 * We have what we want, reset the options list for the member we are
+	 * about to start.
+	 */
+	_sdl_reset_options(context);
+    }
 
     /*
      * We are completing either a subaggregate or an AGGREGATE.  Decrement the
@@ -1775,17 +1983,13 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
 	printf(    "| AGGREGATE Completed |\n");
 	printf(    "+---------------------+\n\n");
     }
-    else
-    {
-	if (context->aggregateDepth == 1)
-	    context->currentAggr = context->aggregates.header.blink;
-	else
-	{
-	    SDL_SUBAGGR *mySubAggr = (SDL_SUBAGGR *) context->currentAggr;
 
-	    context->currentAggr = mySubAggr->parent;
-	}
-    }
+    /*
+     * We just closed a subaggregate.  Make the previous subaggregate the
+     * current one.
+     */
+    else
+	context->currentAggr = mySubAggr->parent;
 
     /*
      * Return the results of this call back to the caller.
@@ -2482,9 +2686,10 @@ static int _sdl_iterate_members(
 	    printf(
 		"\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
 		"\t    marker: %s\n\t    arrgType: %s\n\t    typeID: %d\n"
-		"\t    alignment: %d\n\t    type: %d\n\t    size: %ld\n"
-		"\t    memSize: %ld\n\t    typeDef: %s\n"
-		"\t    basedPtrName: %s\n\t    currentBitOffset: %d\n",
+		"\t    alignment: %d\n\t    type: %d\n\t    _unsigned: %s\n"
+		"\t    size: %ld\n\t    memSize: %ld\n\t    typeDef: %s\n"
+		"\t    fill: %s\n\t    basedPtrName: %s\n"
+		"\t    currentBitOffset: %d\n",
 		count,
 		member->subaggr.id,
 		(member->subaggr.prefix != NULL ? member->subaggr.prefix : ""),
@@ -2494,9 +2699,11 @@ static int _sdl_iterate_members(
 		member->subaggr.typeID,
 		member->subaggr.alignment,
 		member->subaggr.type,
+		(member->subaggr._unsigned == true ? "True" : "False"),
 		member->subaggr.size,
 		member->subaggr.memSize,
 		(member->subaggr.typeDef == true ? "True" : "False"),
+		(member->subaggr.fill == true ? "True" : "False"),
 		(member->subaggr.basedPtrName!= NULL ? member->subaggr.basedPtrName: ""),
 		member->subaggr.currentBitOffset);
 	    if (member->subaggr.dimension == true)
@@ -2563,7 +2770,9 @@ static int _sdl_iterate_members(
 	    printf(
 	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
 		"\t    typeID: %d\n\t    alignment: %d\n\t    type: %d\n"
-		"\t    size: %ld\n\t    memSize: %ld\n\t    typeDef: %s\n",
+		"\t    _unsigned: %s\n\t    size: %ld\n\t    memSize: %ld\n"
+		"\t    typeDef: %s\n\t    fill: %s\n\t    length: %ld\n"
+		"\t    mask: %s\n\t    signed: %s\n",
 	        count,
 	        member->item.id,
 	        (member->item.prefix != NULL ? member->item.prefix : ""),
@@ -2571,9 +2780,14 @@ static int _sdl_iterate_members(
 	        member->item.typeID,
 	        member->item.alignment,
 	        member->item.type,
+	        (member->item._unsigned == true ? "True" : "False"),
 	        member->item.size,
 	        member->item.memSize,
-	        (member->item.typeDef == true ? "True" : "False"));
+	        (member->item.typeDef == true ? "True" : "False"),
+	        (member->item.fill == true ? "True" : "False"),
+	        member->item.length,
+	        (member->item.mask == true ? "True" : "False"),
+	        (member->item._signed == true ? "True" : "False"));
 	    if (member->item.dimension == true)
 		printf(
 		    "\t    dimension: [%ld:%ld]\n",

@@ -693,7 +693,14 @@ aggregate_body
 	| _t_aggr_id SDL_K_UNION _v_aggtypes
 	    { sdl_aggregate_member(&context, $1, $3, NULL, Union); }
 	| _t_aggr_id SDL_K_BITFIELD bitfield_options SDL_K_SEMI
-	    { sdl_aggregate_member(&context, $1, 0, NULL, Unknown); }
+	    {
+		sdl_aggregate_member(
+			&context,
+			$1,
+			SDL_K_TYPE_BITFLD,
+			NULL,
+			Unknown);
+	    }
 	;
 
 bitfield_options
@@ -703,17 +710,11 @@ bitfield_options
 
 bitfield_choices
 	: SDL_K_LENGTH _v_expression
-	    {
-		printf("\nLENGTH %ld\n\n", $2);
-	    }
+	    { sdl_add_option(&context, Length, $2, NULL); }
 	| SDL_K_MASK
-	    {
-		printf("\nMASK\n\n");
-	    }
+	    { sdl_add_option(&context, Mask, 0, NULL); }
 	| SDL_K_SIGNED
-	    {
-		printf("\nSIGNED\n\n");
-	    }
+	    { sdl_add_option(&context, Signed, 0, NULL); }
 	;
 
 %%	/* End Grammar rules */

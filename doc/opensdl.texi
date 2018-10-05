@@ -235,10 +235,6 @@ is generated for the aggregate member.
 /VMS_DEVELOPMENT qualifier has now been placed instead under the control of a
 new qualifier, /PLI_DEVELOPMENT.
 
-@item The DESCRIPTOR and RTL_STR_DESC parameter passing mechanism attributes
-are now translated to DESCRIPTOR(S) and DESCRIPTOR(SB), respectively, for ENTRY
-arguments of type CHARACTER.
-
 @item The PASCAL backend now coalesces contiguous TYPE and VAR sections under a
 single incurrence of the keyword.
 @end itemize
@@ -1579,15 +1575,8 @@ These values are:
 @float Table, ENTRY Declaration
 @multitable @columnfractions .25 .75
 @headitem Parameter Passing Mechanism @tab Description
-@item DESCRIPTOR @tab Optional parameter-passing mechanism keyword used to
-specify that a parameter must be passed BY DESCRIPTOR
-
 @item REFERENCE @tab Optional parameter-passing mechanism keyword used to
 specify that a parameter must be passed BY REFERENCE; REFERENCE is the default
-
-@item RTL_STR_DESC @tab Optional parameter-passing mechanism keyword used to
-specify that a parameter must be passed by any of the classes of string
-descriptors
 
 @item VALUE @tab Optional parameter-passing mechanism keyword used to specify
 that the parameter must be passed BY immediate VALUE
@@ -1674,9 +1663,9 @@ an ENTRY declaration:
 @example
 ENTRY SYS$FAO
     ALIAS $FAO
-    PARAMETER (CHARACTER DESCRIPTOR NAMED CTRSTR IN TYPENAME CHARDESC,
+    PARAMETER (CHARACTER REFERENCE NAMED CTRSTR IN TYPENAME CHARDESC,
         WORD UNSIGNED NAMED OUTLEN OUT DEFAULT 0 TYPENAME NUMBER,
-        CHARACTER DESCRIPTOR NAMED OUTBUF OUT TYPENAME CHARDESC,
+        CHARACTER REFERENCE NAMED OUTBUF OUT TYPENAME CHARDESC,
         LONGWORD VALUE NAMED P1 OPTIONAL LIST TYPENAME VARIES)
     RETURNS LONGWORD TYPENAME CONDVALU;
 @end example
@@ -1693,6 +1682,7 @@ PREFIX Keyword
 The PREFIX option may be specified on an AGGREGATE, subaggregate, CONSTANT, or
 ITEM declaration to cause OpenSDL to concatenate a user-specified prefix and
 the name specified in the declaration.
+
 When you specify a prefix for an aggregate, OpenSDL concatenates the prefix and
 the name of each member or named constant declared within the aggregate.  The
 name of the aggregate itself is not altered by the use of the PREFIX option.
@@ -2997,8 +2987,7 @@ An aggregate that is the target of an ADDRESS declaration must have the default
 
 @subsection Subaggregate Declaration
 
-Subaggregates are declared using the keyword STRUCTURE or UNION. Within an
-aggregate, subaggregates can be nested up to eight levels deep. For example:
+Subaggregates are declared using the keyword STRUCTURE or UNION.  For example:
 
 @example
 AGGREGATE tree_node STRUCTURE;
@@ -3790,7 +3779,7 @@ SYS$GETJPI:
 ENTRY SYS$GETJPI ALIAS $GETJPI PARAMETER (
     LONGWORD UNSIGNED VALUE NAMED EFN DEFAULT 0 TYPENAME EFNUM,
     LONGWORD UNSIGNED NAMED PIDADR IN OUT DEFAULT 0 TYPENAME PROCID,
-    CHARACTER DESCRIPTOR NAMED PRCNAM IN DEFAULT 0 TYPENAME PROCNAME,
+    CHARACTER REFERENCE NAMED PRCNAM IN DEFAULT 0 TYPENAME PROCNAME,
     ANY NAMED ITMLST IN TYPENAME ITEMLIST,
     QUADWORD UNSIGNED NAMED IOSB OUT DEFAULT 0 TYPENAME IOSB,
     ADDRESS(ENTRY) NAMED ASTADR DEFAULT 0 TYPENAME ASTADR,
@@ -3822,10 +3811,8 @@ Describes the parameters of the external entry, if any. Param-desc must be
 specified as follows:
 
 @example
-@{ data-type @}      [ DESCRIPTOR ]    [ IN ]
-@{ aggregate-name @} [ RTL_STR_DESC ]
-                     [ VALUE ]         [ OUT ]
-                     [ REFERENCE ]
+@{ data-type @}      [ VALUE ]         [ IN ]
+@{ aggregate-name @} [ REFERENCE ]     [ OUT ]
                                        [ NAMED param-name ]
                                        [ DIMENSION expression ]
                                        [ DEFAULT constant-value ]
@@ -3840,15 +3827,6 @@ Is any valid OpenSDL data type.
 @{aggregate-name@}@*
 Is the name of a previously declared aggregate that describes the data type of
 the parameter.
-
-[DESCRIPTOR]@*
-Indicates that the parameter is passed by descriptor.
-
-[RTL_STR_DESC]@*
-Indicates that the parameter can be passed by any of the classes of string
-descriptors. The data type must be CHARACTER. For example:
-
-@code{ENTRY xyz PARAMETER ( CHARACTER RTL_STR_DESC );}
 
 [VALUE]@*
 Indicates that the parameter is passed by immediate value.
@@ -4347,10 +4325,6 @@ The following table shows the OpenSDL to Ada language translation summary.
 @item @tab .
 @item @tab .
 @item ANY @tab UNSIGNED_LONGWORD ;
-@item DESCRIPTOR @tab Generates the DESCRIPTOR passing mechanism name in the
-IMPORT_VALUED_PROCEDURE pragma for the parameter.
-@item RTL_STR_DESC @tab Generates the DESCRIPTOR passing mechanism name in the
-IMPORT_VALUED_PROCEDURE pragma for the parameter.
 @item IN @tab Causes the IN parameter mode to appear on the formal parameter.
 @item OUT @tab Causes the OUT parameter mode to appear on the formal
 parameter.
@@ -4674,8 +4648,6 @@ The following table shows the OpenSDL to BASIC language translation summary.
 @item @tab .
 @item @tab )
 @item ANY @tab ANY
-@item DESCRIPTOR @tab BY DESC
-@item RTL_STR_DESC @tab BY DESC
 @item IN @tab n/a
 @item OUT @tab n/a
 @item NAMED param-name @tab n/a
@@ -4791,8 +4763,6 @@ The following table shows the OpenSDL to BLISS language translation summary.
 @item @tab EXTERNAL ROUTINE name: NOVALUE ;
 @item PARAMETER (type,...) @tab n/a
 @item ANY @tab n/a
-@item DESCRIPTOR @tab n/a
-@item RTL_STR_DESC @tab n/a
 @item IN @tab n/a
 @item OUT @tab n/a
 @item NAMED param-name @tab n/a
@@ -5003,8 +4973,6 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @item ENTRY name @tab return-type name( )
 @item PARAMETER (type,...) @tab n/a
 @item ANY @tab n/a
-@item DESCRIPTOR @tab n/a
-@item RTL_STR_DESC @tab n/a
 @item IN @tab n/a
 @item OUT @tab n/a
 @item NAMED param-name @tab n/a
@@ -5120,8 +5088,6 @@ summary.
 @item ENTRY @tab ! name ENTRY
 @item PARAMETER (type,...) @tab n/a
 @item ANY @tab n/a
-@item DESCRIPTOR @tab n/a
-@item RTL_STR_DESC @tab n/a
 @item IN @tab n/a
 @item OUT @tab n/a
 @item NAMED param-name @tab n/a
@@ -5248,8 +5214,6 @@ The following table shows the OpenSDL to FORTRAN language translation summary.
 @item ENTRY name @tab EXTERNAL name
 @item PARAMETER (type,...) @tab n/a
 @item ANY @tab n/a
-@item DESCRIPTOR @tab n/a
-@item RTL_STR_DESC @tab n/a
 @item IN @tab n/a
 @item OUT @tab n/a
 @item NAMED param-name @tab n/a
@@ -5364,8 +5328,6 @@ facilitate calling of the routine using either the CALLG or CALLS instruction.
 @item PARAMETER (type,...) @tab If /VMS_DEVELOPMENT, generates the formal
 argument list for keyword macros associated with the ENTRY declaration
 @item ANY @tab n/a
-@item DESCRIPTOR @tab n/a
-@item RTL_STR_DESC @tab n/a
 @item IN @tab n/a
 @item OUT @tab n/a
 @item NAMED param-name @tab If /VMS_DEVELOPMENT, param-name becomes a formal
@@ -5572,11 +5534,9 @@ statement of the form MODULE name; is generated.
 @item @tab [ASYNCHRONOUS] PROCEDURE
 @item PARAMETER (type,...) @tab (formal param_list)
 @item ANY @tab %REF param-name: [UNSAFE] ARRAY [$l1..$u1:INTEGER] OF $UBYTE
-@item DESCRIPTOR @tab [CLASS_S] for scalars;
 @item @tab [CLASS_S] for CHARACTER LENGTH 1;
 @item @tab [CLASS_A] for nonscalars;
 @item @tab %DESCR for fixed-length VARYING;
-@item RTL_STR_DESC @tab PACKED ARRAY [$l1..$u1:INTEGER] OF CHAR;
 @item IN @tab Default semantics (unless overridden by OUT)
 @item OUT (or IN OUT) @tab VAR, except for CHARACTER LENGTH * and ANY (which
 generate %REF)
@@ -5725,8 +5685,6 @@ summary.
 @item ENTRY @tab ENTRY
 @item PARAMETER (type,...) @tab (parameter-descriptor,...)
 @item ANY @tab ANY
-@item DESCRIPTOR @tab DESCRIPTOR or CHARACTER(*) for CHARACTER data type
-@item RTL_STR_DESC @tab ANY CHARACTER(*)
 @item IN @tab n/a
 @item OUT @tab n/a
 @item NAMED param-name @tab n/a

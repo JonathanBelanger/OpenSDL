@@ -314,7 +314,6 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 
 		case Subaggregate:
 		    context->state = Subaggregate;
-		    /* TODO: Need to consider subaggregate depth */
 		    break;
 
 		default:
@@ -327,13 +326,22 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    switch (action)
 	    {
 		case DefinitionEnd:
-		    context->state = Module;
-		    /* TODO: Need to consider subaggregate depth */
+		    switch (context->aggregateDepth)
+		    {
+			case 1:
+			    context->state = Module;
+			    break;
+
+			case 2:
+			    context->state = Aggregate;
+			    break;
+
+			default:
+			    break;
+		    }
 		    break;
 
 		case Subaggregate:
-		    context->state = Subaggregate;
-		    /* TODO: Need to consider subaggregate depth */
 		    break;
 
 		default:
@@ -819,7 +827,18 @@ int sdl_add_option(
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_add_option(%d)\n", __FILE__, __LINE__, option);
+    {
+	printf(
+	    "%s:%d:sdl_add_option(%d, ",
+	    __FILE__,
+	    __LINE__,
+	    option);
+	if (string == NULL)
+	    printf("%ld)", value);
+	else
+	    printf("%s)", string);
+	printf(" at index %d\n", context->optionsIdx);
+    }
 
     /*
      * If there is room to add another option, then do so now.

@@ -669,11 +669,20 @@ aggregate
 	   }
 	| aggregate_body
 	| SDL_K_END _t_aggr_id SDL_K_SEMI
-	   { sdl_aggregate_compl(&context, $2); }
+	   {
+	    	sdl_state_transition(&context, DefinitionEnd);
+		sdl_aggregate_compl(&context, $2);
+	   }
 	| SDL_K_END SDL_K_SEMI
-	   { sdl_aggregate_compl(&context, NULL); }
+	   {
+	    	sdl_state_transition(&context, DefinitionEnd);
+		sdl_aggregate_compl(&context, NULL);
+	   }
 	| SDL_K_END _t_id SDL_K_SEMI
-	   { sdl_aggregate_compl(&context, $2); }
+	   {
+	    	sdl_state_transition(&context, DefinitionEnd);
+		sdl_aggregate_compl(&context, $2);
+	   }
 	;
 
 _t_aggr_id
@@ -689,9 +698,15 @@ aggregate_body
 	| _t_aggr_id _t_aggr_id
 	    { sdl_aggregate_member(&context, $1, 0, $2, Unknown); }
 	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
-	    { sdl_aggregate_member(&context, $1, $3, NULL, Structure); }
+	    {
+	    	sdl_state_transition(&context, Subaggregate);
+		sdl_aggregate_member(&context, $1, $3, NULL, Structure);
+	    }
 	| _t_aggr_id SDL_K_UNION _v_aggtypes
-	    { sdl_aggregate_member(&context, $1, $3, NULL, Union); }
+	    {
+	    	sdl_state_transition(&context, Subaggregate);
+		sdl_aggregate_member(&context, $1, $3, NULL, Union);
+	    }
 	| _t_aggr_id SDL_K_BITFIELD bitfield_options SDL_K_SEMI
 	    {
 		sdl_aggregate_member(

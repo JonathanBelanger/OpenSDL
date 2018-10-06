@@ -1524,7 +1524,10 @@ int sdl_aggregate_member(
     SDL_SUBAGGR		*mySubAggr = (context->aggregateDepth > 1 ?
 					(SDL_SUBAGGR *) context->currentAggr :
 					NULL);
+    __int64_t		length = 0;
     int			retVal = 1;
+    bool		mask = false;
+    bool		_signed = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1604,10 +1607,7 @@ int sdl_aggregate_member(
 		    break;
 
 		case Mask:
-		    if ((myMember != NULL) &&
-			(myMember->type == Unknown) &&
-			(myMember->item.type == SDL_K_TYPE_BITFLD))
-			myMember->item.mask = true;
+			mask = true;
 		    break;
 
 		case NoAlign:
@@ -1629,10 +1629,7 @@ int sdl_aggregate_member(
 		    break;
 
 		case Signed:
-		    if ((myMember != NULL) &&
-			(myMember->type == Unknown) &&
-			(myMember->item.type == SDL_K_TYPE_BITFLD))
-			myMember->item._signed = true;
+			_signed = true;
 		    break;
 
 		/*
@@ -1725,10 +1722,7 @@ int sdl_aggregate_member(
 		    break;
 
 		case Length:
-		    if ((myMember != NULL) &&
-			(myMember->type == Unknown) &&
-			(myMember->item.type == SDL_K_TYPE_BITFLD))
-			myMember->item.length = context->options[ii].value;
+			length = context->options[ii].value;
 		    break;
 
 		default:
@@ -1773,10 +1767,18 @@ int sdl_aggregate_member(
 		}
 		else
 		    myMember->item.type = datatype;
-		if (datatype == SDL_K_TYPE_DECIMAL)
+		switch (datatype)
 		{
-		    myMember->item. precision = context->precision;
-		    myMember->item.scale = context->scale;
+		    case SDL_K_TYPE_DECIMAL:
+			myMember->item. precision = context->precision;
+			myMember->item.scale = context->scale;
+			break;
+
+		    case SDL_K_TYPE_BITFLD:
+			myMember->item.length = (length == 0 ? 1 : length);
+			myMember->item.mask = mask;
+			myMember->item._signed = _signed;
+			break;
 		}
 		myMember->item.size = _sdl_sizeof(context, datatype);
 		break;
@@ -1792,6 +1794,7 @@ int sdl_aggregate_member(
 		}
 		else if (datatype > 0)
 		    myMember->subaggr._unsigned = true;
+		myMember->subaggr.type = datatype;
 		myMember->subaggr.parent = context->currentAggr;
 		SDL_Q_INIT(&myMember->subaggr.members);
 		context->aggregateDepth++;
@@ -1944,8 +1947,10 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
 		    dimension = context->options[ii].value;
 		    if (myMember != NULL)
 		    {
-			myMember->item.lbound = context->dimensions[dimension].lbound;
-			myMember->item.hbound = context->dimensions[dimension].hbound;
+			myMember->item.lbound =
+				context->dimensions[dimension].lbound;
+			myMember->item.hbound =
+				context->dimensions[dimension].hbound;
 			myMember->item.dimension = true;
 		    }
 		    context->dimensions[dimension].inUse = false;
@@ -1982,6 +1987,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
 	printf("\n\n+---------------------+\n");
 	printf(    "| AGGREGATE Completed |\n");
 	printf(    "+---------------------+\n\n");
+	context->currentAggr = NULL;
     }
 
     /*
@@ -2630,8 +2636,138 @@ static void _sdl_reset_options(SDL_CONTEXT *context)
      */
     return;
 }
+#if 0
+void dump_subaggr(SDL_SUBAGGR *subaggr)
+{
+    SDL_MEMBERS *member;
 
+    printf(
+	"\nSUBAGGREGATE: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+	"\t    marker: %s\n\t    arrgType: %s\n\t    typeID: %d\n"
+	"\t    alignment: %d\n\t    type: %d\n\t    _unsigned: %s\n"
+	"\t    size: %ld\n\t    memSize: %ld\n\t    typeDef: %s\n"
+	"\t    fill: %s\n\t    basedPtrName: %s\n"
+	"\t    currentBitOffset: %d\n",
+	subaggr->id,
+	(subaggr->prefix != NULL ? subaggr->prefix : ""),
+	(subaggr->tag != NULL ? subaggr->tag : ""),
+	(subaggr->marker != NULL ? subaggr->marker : ""),
+	(subaggr->structUnion == Structure ? "STRUCTURE" : "UNION"),
+	subaggr->typeID,
+	subaggr->alignment,
+	subaggr->type,
+	(subaggr->_unsigned == true ? "True" : "False"),
+	subaggr->size,
+	subaggr->memSize,
+	(subaggr->typeDef == true ? "True" : "False"),
+	(subaggr->fill == true ? "True" : "False"),
+	(subaggr->basedPtrName!= NULL ? subaggr->basedPtrName: ""),
+	subaggr->currentBitOffset);
+    if (subaggr->dimension == true)
+	printf(
+	    "\t    dimension[%ld:%ld]\n",
+	    subaggr->lbound,
+	    subaggr->hbound);
+    member = (SDL_MEMBERS *) subaggr->members.flink;
+    while (member != (SDL_MEMBERS *) &subaggr->members)
+    {
+	dump_member(member);
+	member = (SDL_MEMBERS *) member->header.flink;
+    }
+    return;
+}
+
+void dump_item(SDL_ITEM *item)
+{
+    printf("\nITEM: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+	"\t    typeID: %d\n\t    alignment: %d\n\t    type: %d\n"
+	"\t    _unsigned: %s\n\t    size: %ld\n\t    memSize: %ld\n"
+	"\t    typeDef: %s\n\t    fill: %s\n\t    length: %ld\n"
+	"\t    mask: %s\n\t    signed: %s\n",
+        item->id,
+        (item->prefix != NULL ? item->prefix : ""),
+        (item->tag != NULL ? item->tag : ""),
+        item->typeID,
+        item->alignment,
+        item->type,
+        (item->_unsigned == true ? "True" : "False"),
+        item->size,
+        item->memSize,
+        (item->typeDef == true ? "True" : "False"),
+        (item->fill == true ? "True" : "False"),
+        item->length,
+        (item->mask == true ? "True" : "False"),
+        (item->_signed == true ? "True" : "False"));
+    if (item->dimension == true)
+	printf(
+	    "\t    dimension: [%ld:%ld]\n",
+	    item->lbound,
+	    item->hbound);
+    return;
+}
+
+void dump_member(SDL_MEMBERS *member)
+{
+    switch (member->type)
+    {
+	case Unknown:
+	    dump_item(&member->item);
+	    break;
+	case Structure:
+	case Union:
+	    dump_subaggr(&member->subaggr);
+	    break;
+    }
+    return;
+}
+
+void dump_aggregate(SDL_AGGREGATE *aggr)
+{
+    SDL_MEMBERS *member;
+
+    printf(
+	"\nAGGREGATE: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+	"\t    marker: %s\n\t    arrgType: %s\n\t    typeID: %d\n"
+	"\t    alignment: %d\n\t    type: %d\n\t    _unsigned: %s\n"
+	"\t    size: %ld\n\t    memSize: %ld\n\t    commonDef: %s\n"
+	"\t    globalDef: %s\n\t    typeDef: %s\n\t    fill: %s\n"
+	"\t    basedPtrName: %s\n\t    currentBitOffset: %d\n",
+        aggr->id,
+        (aggr->prefix != NULL ? aggr->prefix : ""),
+        (aggr->tag != NULL ? aggr->tag : ""),
+        (aggr->marker != NULL ? aggr->marker : ""),
+        (aggr->structUnion == Structure ? "STRUCTURE" : "UNION"),
+        aggr->typeID,
+        aggr->alignment,
+        aggr->type,
+        (aggr->_unsigned == true ? "True" : "False"),
+        aggr->size,
+        aggr->memSize,
+        (aggr->commonDef == true ? "True" : "False"),
+        (aggr->globalDef == true ? "True" : "False"),
+        (aggr->typeDef == true ? "True" : "False"),
+        (aggr->fill == true ? "True" : "False"),
+        (aggr->basedPtrName!= NULL ? aggr->basedPtrName: ""),
+        aggr->currentBitOffset);
+    if (aggr->originPresent == true)
+	printf("\t    origin: %s\n", aggr->origin.id);
+    if (aggr->dimension == true)
+	printf("\t    dimension[%ld:%ld]\n", aggr->lbound, aggr->hbound);
+    member = (SDL_MEMBERS *) aggr->members.flink;
+    while (member != (SDL_MEMBERS *) &aggr->members)
+    {
+	dump_member(member);
+	member = (SDL_MEMBERS *) member->header.flink;
+    }
+    return;
+}
+#endif
 /*
+ * TODO: This needs quite a bit of work.  It should process differently if
+ * TODO: deallocating member, versus calling a call-back function.  This
+ * TODO: difference is because then deallocating we want to go depth first, and
+ * TODO: when calling a callback the opposite.
+ *
  * _sdl_iterate_members
  *  This function is called to iterate through each of the members and if that
  *  member is a subaggregate, call itself to iterate through that level.  If

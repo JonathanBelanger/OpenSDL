@@ -28,7 +28,9 @@
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "opensdl_defs.h"
 #include "opensdl_lang.h"
 #include "opensdl_utility.h"
@@ -45,14 +47,16 @@ static char	*_module_str[] =
     "\n/*** MODULE %s ",
     "IDENT = %s ",
     "***/",
+    "\n#include <ctype.h>\n#include <sysbool.h>\n"
     "#ifdef _%s_\n#define _%s_ 1\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n",
     "\n#ifdef __cplusplus\n}\n#endif\n\n#endif /* _%s_ */"
 };
 #define SDL_MODULE_ENT	0
 #define SDL_IDENT_ENT	1
 #define SDL_MODC_ENT	2
-#define SDL_MODCOND_ENT	3
-#define SDL_MODEND_ENT	4
+#define SDL_MODINC_ENT	3
+#define SDL_MODCOND_ENT	4
+#define SDL_MODEND_ENT	5
 
 static char	*_comments[] =
 {
@@ -75,7 +79,15 @@ static char	*_comments[] =
 #define SDL_START_END_COMMENT	7
 
 static char *_constant[] =
-{"#define ", "%s%s_%s\t", "%s%s\t", "%d\t", "0x%x\t", "0%o\t", "\"%s\"\t"};
+{
+    "#define ",
+    "%s%s_%s\t",
+    "%s%s\t",
+    "%d\t",
+    "0x%x\t",
+    "0%o\t",
+    "\"%s\"\t"
+};
 #define SDL_DEFINE_ENT	0
 #define SDL_CONST_TAG	1
 #define SDL_CONST_NOTAG	2
@@ -157,132 +169,11 @@ static char	*_scope[] = {"extern ", "globalref", "globaldef"};
 static char	*_newLine = "\n";
 
 /*
- * _sdl_c_typeidStr
- *  This function is called to convert a typeID to a string to be used to
- *  declare am item.
- *
- * Input Parameters:
- *  typeID:
- *	A value indicating the type to be converted.
- *  context:
- *	A pointer to the context block to be used for converting a type into
- *	a string.
+ * Local Prototypes
  */
-static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
-{
-    char	*retVal = NULL;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:_sdl_c_typeidStr\n", __FILE__, __LINE__);
-
-    if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
-	switch (typeID)
-	{
-	    case SDL_K_TYPE_BYTE:
-	    case SDL_K_TYPE_CHAR:
-		retVal = _types[SDL_BYTE_ENT];
-		break;
-
-	    case SDL_K_TYPE_WORD:
-		retVal = _types[SDL_WORD_ENT];
-		break;
-
-	    case SDL_K_TYPE_LONG:
-		retVal = _types[SDL_LONG_ENT];
-		break;
-
-	    case SDL_K_TYPE_QUAD:
-		retVal = _types[SDL_QUAD_ENT];
-		break;
-
-	    case SDL_K_TYPE_OCTA:
-		retVal = _types[SDL_OCTA_ENT];
-		break;
-
-	    case SDL_K_TYPE_TFLT:
-		retVal = _types[SDL_TFLT_ENT];
-		break;
-
-	    case SDL_K_TYPE_SFLT:
-		retVal = _types[SDL_SFLT_ENT];
-		break;
-
-	    case SDL_K_TYPE_DECIMAL:
-		retVal = _types[SDL_DECI_ENT];
-		break;
-
-	    /*
-	     * TODO: We need more here (the base type).
-	     */
-	    case SDL_K_TYPE_BITFLD:
-		retVal = _types[SDL_BYTE_ENT];
-		break;
-
-	    /*
-	     * TODO: We need more here (the base type).
-	     */
-	    case SDL_K_TYPE_ADDR:
-	    case SDL_K_TYPE_ADDRL:
-	    case SDL_K_TYPE_ADDRQ:
-	    case SDL_K_TYPE_ADDRHW:
-		retVal = _types[SDL_PTR_ENT];
-		break;
-
-	    case SDL_K_TYPE_BOOL:
-		retVal = _types[SDL_BOOL_ENT];
-		break;
-
-	    /*
-	     * TODO: We need more here (the base type).
-	     */
-	    case SDL_K_TYPE_SRUCT:
-		retVal = _types[SDL_BYTE_ENT];
-		break;
-
-	    /*
-	     * TODO: We need more here (the base type).
-	     */
-	    case SDL_K_TYPE_UNION:
-		retVal = _types[SDL_BYTE_ENT];
-		break;
-
-	    default:
-		break;
-	}
-    else if ((typeID >= SDL_K_DECLARE_MIN) && (typeID <= SDL_K_DECLARE_MAX))
-    {
-	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, typeID);
-
-	/*
-	 * TODO: We need more here (the base type).
-	 */
-    }
-    else if ((typeID >= SDL_K_ITEM_MIN) && (typeID <= SDL_K_ITEM_MAX))
-    {
-	SDL_ITEM *myItem = sdl_get_item(&context->items, typeID);
-
-	/*
-	 * TODO: We need more here (the base type).
-	 */
-    }
-    else if ((typeID >= SDL_K_AGGREGATE_MIN) && (typeID <= SDL_K_AGGREGATE_MAX))
-    {
-	SDL_AGGREGATE *myAggregate =
-	    sdl_get_aggregate(&context->aggregates, typeID);
-
-	/*
-	 * TODO: We need more here (the base type).
-	 */
-    }
-
-    /*
-     * Return back to the caller.
-     */
-    return(retVal);
-}
+static char *_sdl_c_generate_name(char *name, char *prefix, char *tag);
+static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context);
+static char *_sdl_c_leading_spaces(int depth);
 
 /*
  * sdl_c_comment_stars
@@ -611,6 +502,9 @@ int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 		retVal = 0;
 	}
 	if ((retVal == 1) &&
+	    (fprintf(fp, _module_str[SDL_MODINC_ENT]) < 0))
+	    retVal = 0;
+	if ((retVal == 1) &&
 	    (fprintf(fp, _module_str[SDL_MODC_ENT], context->ident) < 0))
 	    retVal = 0;
 	if (retVal == 1)
@@ -747,14 +641,27 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 		    retVal = 0;
 		break;
 	}
-	if ((retVal == 1) && (item->prefix != NULL))
-	    retVal = (fprintf(fp, item->prefix) < 0) ? 0 : 1;
-	if ((retVal == 1) && (item->tag != NULL))
-	    retVal = (fprintf(fp, "%s_", item->tag) < 0) ? 0 : 1;
-	if (retVal == 1)
-	    retVal = (fprintf(fp, item->id) < 0) ? 0 : 1;
 	if (retVal == 1)
 	{
+	    char *name = _sdl_c_generate_name(
+				item->id,
+				item->prefix,
+				item->tag);
+
+	    if (name != NULL)
+	    {
+		retVal = (fprintf(fp, name) < 0) ? 0 : 1;
+		free(name);
+	    }
+	    else
+		retVal = 0;
+	}
+	if (retVal == 1)
+	{
+
+	    /*
+	     * TODO: This is not correct.
+	     */
 	    if ((item->dimension == true) ||
 		(item->type == SDL_K_TYPE_DECIMAL))
 	    {
@@ -909,23 +816,22 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
  * Input Parameters:
  *  fp:
  *	A pointer to the file pointer to write out the information.
- *  aggregate:
- *	A pointer to the AGGREGATE record, if starting or ending a definition.
- *  item:
- *	A pointer to a data type member definition.
- *  subaggr:
- *	A pointer to a subaggregate record.
+ *  param:
+ *	A pointer to the AGGREGATE, subaggregate, or ITEM record
+ *  type:
+ *	A value indicating the type of structure the param parameter
+ *	represents.
  *  ending:
  *	A boolean value indicating that we are ending a definition.  This flag
  *	is used in the following way:
  *	    if (ending == true)
- *		if (aggregate != NULL)
+ *		if (type == LangAggregate)
  *		    <we are ending an aggregate>
- *		else if (subaggr != NULL)
+ *		else if (type == LangSubaggregate)
  *		    <we are ending a subaggregate>
- *	    else if (aggregate != NULL)
+ *	    else if (type == LangAggregate)
  *		<we are starting an aggregate>
- *	    else if (subaggr != NULL)
+ *	    else if (type == LangSubaggregate)
  *		<we are starting a subaggregate>
  *	    else
  *		<we are defining a single member item>
@@ -944,28 +850,418 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
  */
 int sdl_c_aggregate(
 		FILE *fp,
-		SDL_AGGREGATE *aggregate,
-		SDL_ITEM *item,
-		SDL_SUBAGGR *subaggr,
+		void *param,
+		SDL_LANG_AGGR_TYPE type,
 		bool ending,
 		int depth,
 		SDL_CONTEXT *context)
 {
-    int		retVal = 1;
+    char		*name = NULL;
+    char		*spaces = _sdl_c_leading_spaces(depth);
+    SDL_LANG_AGGR	aggr = { .parameter = param };
+    int			retVal = 1;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
 	printf(
-	    "%s:%d:_sdl_c_aggregate(%s) -- depth: %d\n",
+	    "%s:%d:sdl_c_aggregate(%s) -- depth: %d\n",
 	    __FILE__,
 	    __LINE__,
 	    (ending == true ? "True" : "False"),
 	    depth);
 
+    if (fprintf(fp, spaces) < 0)
+	retVal = 0;
+
+    switch (type)
+    {
+	case LangAggregate:
+	    name = _sdl_c_generate_name(
+				aggr.aggr->id,
+				aggr.aggr->prefix,
+				aggr.aggr->tag);
+
+	    /*
+	     * Are we starting or ending an AGGREGATE?
+	     */
+	    if ((ending == false) && (retVal == 1) && (name != NULL))
+	    {
+		if (aggr.aggr->typeDef == true)
+		{
+		    if (fprintf(fp, "%s ", _typed) < 0)
+			retVal = 0;
+		}
+		if (retVal == 1)
+		{
+		    char *which = (aggr.aggr->structUnion == Structure ?
+				_aggregates[SDL_AGGR_STR_ENT] :
+				_aggregates[SDL_AGGR_UNI_ENT]);
+		    char *fmt = (aggr.aggr->typeDef == true ?
+				"%s _%s\n%s{\n" :
+				"%s %s\n%s{\n");
+
+		    if (fprintf(fp, fmt, which, name, spaces) < 0)
+			retVal = 0;
+		}
+	    }
+	    else if ((retVal == 1) && (name != NULL))
+	    {
+		char *fmt = (aggr.aggr->typeDef == true ?
+					"%s} %s;\n" :
+					"%s};\n");
+		if (fprintf(fp, fmt, spaces, name) < 0)
+		    retVal = 0;
+	    }
+	    else if (name == NULL)
+		retVal = 0;
+	    break;
+
+	case LangSubaggregate:
+	    name = _sdl_c_generate_name(
+				aggr.subaggr->id,
+				aggr.subaggr->prefix,
+				aggr.subaggr->tag);
+
+	    /*
+	     * Are we starting or ending an AGGREGATE?
+	     */
+	    if ((ending == false) && (retVal == 1) && (name != NULL))
+	    {
+		if (aggr.subaggr->typeDef == true)
+		{
+		    if (fprintf(fp, "%s%s ", spaces, _typed) < 0)
+			retVal = 0;
+		}
+		if (retVal == 1)
+		{
+		    char *which = (aggr.subaggr->structUnion == Structure ?
+				_aggregates[SDL_AGGR_STR_ENT] :
+				_aggregates[SDL_AGGR_UNI_ENT]);
+		    char *fmt = (aggr.subaggr->typeDef == true ?
+				"%s _%s\n%s{\n" :
+				"%s %s\n%s{\n");
+
+		    if (fprintf(fp, fmt, which, name, spaces) < 0)
+			    retVal = 0;
+		}
+	    }
+	    else if ((retVal == 1) && (name != NULL))
+	    {
+		char *fmt = (aggr.subaggr->typeDef == true ?
+					"%s} %s;\n" :
+					"%s};\n");
+
+		if (fprintf(fp, fmt, spaces, name) < 0)
+		    retVal = 0;
+	    }
+	    else if (name == NULL)
+		retVal = 0;
+	    break;
+
+	case LangItem:
+	    if (retVal == 1)
+		retVal = sdl_c_item(fp, aggr.item, context);
+	    break;
+    }
+
+    /*
+     * Deallocate any allocated memory.
+     */
+    if (name != NULL)
+	free(name);
+    if (spaces != NULL)
+	free(spaces);
+
     /*
      * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/************************************************************************
+ * Local Functions							*
+ ************************************************************************/
+
+/*
+ * _sdl_c_generate_name
+ *  This function is called to take the name, prefix and tag, and generate a
+ *  proper name.
+ *
+ * Input Parameters:
+ *  name:
+ *	A pointer to the name portion to have the prefix and tag information
+ *	prepended to it.
+ *  prefix:
+ *	A pointer to the prefix portion of the name.  This parameter may be
+ *	NULL.
+ *  tag:
+ *	A pointer to the tag portion of the name.  This parameter may not be
+ *	NULL, but may be zero length.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  NULL:	An error occurred trying to allocate memory for the string.
+ *  !NULL:	A pointer to the generated name.
+ */
+static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
+{
+    char	*retVal = NULL;
+    size_t	len = 1;
+    size_t	tagLen = 0;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+    {
+	printf("%s:%d:_sdl_c_generate_name\n", __FILE__, __LINE__);
+	if (prefix != NULL)
+	    printf("\tprefix: %s\n", prefix);
+	if (tag != NULL)
+	    printf("\ttag: %s\n", tag);
+	printf("\tname: %s\n", name);
+    }
+
+    /*
+     * First, if we have a prefix, let's get it's length.
+     */
+    if (prefix != NULL)
+	len += strlen(prefix);
+
+    /*
+     * Next look at the tag.  If is it null or zero length, then it is not
+     * concatenated to the current string.  Otherwise, it is (with an
+     * underscore between the prefix/tag and the name.
+     */
+    if (tag != NULL)
+    {
+	tagLen = strlen(tag);
+
+	len += tagLen;
+	if (tagLen > 0)
+	    len++;
+    }
+
+    /*
+     * Finally, allocate a buffer large enough and put each of the stings into
+     * it.
+     */
+    len += strlen(name);
+    retVal = calloc(1, len);
+    len = 0;
+    if (prefix != NULL)
+    {
+	strcpy(&retVal[len], prefix);
+	len += strlen(prefix);
+    }
+    if ((tag != NULL) && (tagLen > 0))
+    {
+	strcpy(&retVal[len], tag);
+	len += tagLen;
+	retVal[len++] = '_';
+    }
+    strcpy(&retVal[len], name);
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * _sdl_c_typeidStr
+ *  This function is called to convert a typeID to a string to be used to
+ *  declare am item.
+ *
+ * Input Parameters:
+ *  typeID:
+ *	A value indicating the type to be converted.
+ *  context:
+ *	A pointer to the context block to be used for converting a type into
+ *	a string.
+ */
+static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
+{
+    char	*retVal = NULL;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_c_typeidStr\n", __FILE__, __LINE__);
+
+    if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
+	switch (typeID)
+	{
+	    case SDL_K_TYPE_BYTE:
+	    case SDL_K_TYPE_CHAR:
+		retVal = _types[SDL_BYTE_ENT];
+		break;
+
+	    case SDL_K_TYPE_WORD:
+		retVal = _types[SDL_WORD_ENT];
+		break;
+
+	    case SDL_K_TYPE_LONG:
+		retVal = _types[SDL_LONG_ENT];
+		break;
+
+	    case SDL_K_TYPE_QUAD:
+		retVal = _types[SDL_QUAD_ENT];
+		break;
+
+	    case SDL_K_TYPE_OCTA:
+		retVal = _types[SDL_OCTA_ENT];
+		break;
+
+	    case SDL_K_TYPE_TFLT:
+		retVal = _types[SDL_TFLT_ENT];
+		break;
+
+	    case SDL_K_TYPE_SFLT:
+		retVal = _types[SDL_SFLT_ENT];
+		break;
+
+	    case SDL_K_TYPE_DECIMAL:
+		retVal = _types[SDL_DECI_ENT];
+		break;
+
+	    /*
+	     * TODO: We need more here (the base type).
+	     */
+	    case SDL_K_TYPE_BITFLD:
+		retVal = _types[SDL_BYTE_ENT];
+		break;
+
+	    /*
+	     * TODO: We need more here (the base type).
+	     */
+	    case SDL_K_TYPE_ADDR:
+	    case SDL_K_TYPE_ADDRL:
+	    case SDL_K_TYPE_ADDRQ:
+	    case SDL_K_TYPE_ADDRHW:
+		retVal = _types[SDL_PTR_ENT];
+		break;
+
+	    case SDL_K_TYPE_BOOL:
+		retVal = _types[SDL_BOOL_ENT];
+		break;
+
+	    /*
+	     * TODO: We need more here (the base type).
+	     */
+	    case SDL_K_TYPE_SRUCT:
+		retVal = _types[SDL_BYTE_ENT];
+		break;
+
+	    /*
+	     * TODO: We need more here (the base type).
+	     */
+	    case SDL_K_TYPE_UNION:
+		retVal = _types[SDL_BYTE_ENT];
+		break;
+
+	    default:
+		break;
+	}
+    else if ((typeID >= SDL_K_DECLARE_MIN) && (typeID <= SDL_K_DECLARE_MAX))
+    {
+	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, typeID);
+
+	/*
+	 * TODO: We need more here (the base type).
+	 */
+    }
+    else if ((typeID >= SDL_K_ITEM_MIN) && (typeID <= SDL_K_ITEM_MAX))
+    {
+	SDL_ITEM *myItem = sdl_get_item(&context->items, typeID);
+
+	/*
+	 * TODO: We need more here (the base type).
+	 */
+    }
+    else if ((typeID >= SDL_K_AGGREGATE_MIN) && (typeID <= SDL_K_AGGREGATE_MAX))
+    {
+	SDL_AGGREGATE *myAggregate =
+	    sdl_get_aggregate(&context->aggregates, typeID);
+
+	/*
+	 * TODO: We need more here (the base type).
+	 */
+    }
+
+    /*
+     * Return back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * _sdl_c_leading_spaces
+ *  This function is called to determine and generate the number of leading
+ *  spaces to be used while writing out a struct/union declaration.  For each
+ *  depth, 4 spaces are added.  A tab will be used instead of 4 spaces when it
+ *  make sense.
+ *
+ * Input Parameters:
+ *  depth:
+ *	A value indicating the struct/union depth we are currently.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  NULL:	An error occurred trying to allocate memory for the string.
+ *  !NULL:	A pointer to the spaces to use for the output.
+ */
+static char *_sdl_c_leading_spaces(int depth)
+{
+    char	*retVal = NULL;
+    int		spaces = depth * 4;
+    int		tabs = spaces / 8;
+    int		remaining = spaces - (tabs * 8);
+    int		ii;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+    {
+	printf("%s:%d:_sdl_c_leading_spaces(%d)\n", __FILE__, __LINE__, depth);
+	printf("\tspaces: %d\n\ttabs: %d\n\tremaining: %d\n", spaces, tabs, remaining);
+    }
+
+    /*
+     * Allocate enough memory for the return string.
+     */
+    retVal = calloc(1, (tabs + remaining + 1));
+    if (retVal != NULL)
+    {
+
+	/*
+	 * First, insert zero or more tabs.
+	 */
+	for (ii = 0; ii < tabs; ii++)
+	    retVal[ii] = '\t';
+
+	/*
+	 * Next, insert zero to four spaces.
+	 */
+	for (ii = tabs; ii < (tabs + remaining); ii++)
+	    retVal[ii] = ' ';
+
+	/*
+	 * Finally, null-terminate the string.
+	 */
+	retVal[tabs + remaining] = '\0';
+    }
+
+    /*
+     * Return back to the caller.
      */
     return(retVal);
 }

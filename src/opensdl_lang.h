@@ -42,6 +42,29 @@ typedef	int (*SDL_FUNC)();
 typedef SDL_FUNC SDL_LANG_FUNC[SDL_K_FUNC_PER_LANG];
 
 /*
+ * To simplify the parameter passing to the sdl_c_aggregate function, I'm
+ * going to use a union, which contains the pointers to the structure that
+ * could be supplied on the call.  The call will have just a single pointer
+ * to void.
+ */
+typedef enum
+{
+    LangAggregate,
+    LangSubaggregate,
+    LangItem
+} SDL_LANG_AGGR_TYPE;
+typedef struct
+{
+    union
+    {
+	void		*parameter;
+	SDL_AGGREGATE	*aggr;
+	SDL_SUBAGGR	*subaggr;
+	SDL_ITEM	*item;
+    };
+} SDL_LANG_AGGR;
+
+/*
  * Define the C/C++ output function prototypes.
  */
 int sdl_c_commentStars(FILE *fp);
@@ -60,9 +83,8 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context);
 int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context);
 int sdl_c_aggregate(
 		FILE *fp,
-		SDL_AGGREGATE *aggregate,
-		SDL_ITEM *item,
-		SDL_SUBAGGR *subaggr,
+		void *param,
+		SDL_LANG_AGGR_TYPE type,
 		bool ending,
 		int depth,
 		SDL_CONTEXT *context);

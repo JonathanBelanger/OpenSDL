@@ -1490,6 +1490,11 @@ int sdl_aggregate(
 	    myAggr->_unsigned = true;
 	myAggr->type = datatype;
 	myAggr->structUnion = unionAggr ? Union : Structure;
+	myAggr->tag = _sdl_get_tag(
+				context,
+				NULL,
+				SDL_K_TYPE_SRUCT,
+				_sdl_all_lower(name));
 	SDL_Q_INIT(&myAggr->members);
 	SDL_INSQUE(&context->aggregates.header, &myAggr->header);
 	context->currentAggr = myAggr;
@@ -1684,11 +1689,23 @@ int sdl_aggregate_member(
 
 		case Tag:
 		    if (myMember != NULL)
+		    {
+			if (myMember->item.tag != NULL)
+			    free(myMember->item.tag);
 			myMember->item.tag = context->options[ii].string;
+		    }
 		    else if (mySubAggr != NULL)
+		    {
+			if (mySubAggr->tag != NULL)
+			    free(mySubAggr->tag);
 			mySubAggr->tag = context->options[ii].string;
+		    }
 		    else
+		    {
+			if (myAggr->tag != NULL)
+			    free(myAggr->tag);
 			myAggr->tag = context->options[ii].string;
+		    }
 		    context->options[ii].string = NULL;
 		    break;
 
@@ -1790,6 +1807,11 @@ int sdl_aggregate_member(
 			myMember->item._signed = _signed;
 			break;
 		}
+		myMember->item.tag = _sdl_get_tag(
+						context,
+						NULL,
+						datatype,
+						_sdl_all_lower(name));
 		myMember->item.size = _sdl_sizeof(context, datatype);
 		break;
 
@@ -1806,6 +1828,11 @@ int sdl_aggregate_member(
 		    myMember->subaggr._unsigned = true;
 		myMember->subaggr.type = datatype;
 		myMember->subaggr.parent = context->currentAggr;
+		myMember->subaggr.tag = _sdl_get_tag(
+						context,
+						NULL,
+						SDL_K_TYPE_SRUCT,
+						_sdl_all_lower(name));
 		SDL_Q_INIT(&myMember->subaggr.members);
 		context->aggregateDepth++;
 		context->currentAggr = &myMember->subaggr;
@@ -2009,8 +2036,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
 		retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
 					context->outFP[ii],
 					myAggr,
-					NULL,
-					NULL,
+					LangAggregate,
 					false,
 					0,
 					context);
@@ -2032,8 +2058,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
 		retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
 					context->outFP[ii],
 					myAggr,
-					NULL,
-					NULL,
+					LangAggregate,
 					true,
 					0,
 					context);
@@ -2085,10 +2110,14 @@ static int _sdl_aggregate_callback(
 			bool ending,
 			int depth)
 {
-    SDL_SUBAGGR	*mySubaggr = (member->type == Unknown ? NULL : &member->subaggr);
-    SDL_ITEM	*myItem = (member->type == Unknown ? &member->item : NULL);
-    int		retVal = 1;
-    int		ii;
+    void		*param = (member->type == Unknown ?
+				(void *) &member->item :
+				(void *) &member->subaggr);
+    SDL_LANG_AGGR_TYPE	type = (member->type == Unknown ?
+				LangItem :
+				LangSubaggregate);
+    int			retVal = 1;
+    int			ii;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -2104,9 +2133,8 @@ static int _sdl_aggregate_callback(
 	if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
 	    retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
 					context->outFP[ii],
-					NULL,
-					myItem,
-					mySubaggr,
+					param,
+					type,
 					ending,
 					depth,
 					context);

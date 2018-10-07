@@ -67,7 +67,10 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 	(SDL_FUNC) &sdl_c_commentStars,
 	(SDL_FUNC) &sdl_c_createdByInfo,
 	(SDL_FUNC) &sdl_c_fileInfo,
-	(SDL_FUNC) NULL}
+	(SDL_FUNC) NULL,
+	(SDL_FUNC) NULL,
+	(SDL_FUNC) NULL
+    }
 };
 
 static char *_extensions[] =

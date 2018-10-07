@@ -802,7 +802,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
  */
 int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 {
-    char *prefix = (constant->prefix ? constant->prefix : "");
+    char 	*prefix = (constant->prefix ? constant->prefix : "");
     int		retVal = 1;
 
     /*
@@ -890,6 +890,79 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
      */
     if ((retVal == 1) && (fprintf(fp, _newLine) < 0))
 	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_c_aggregate
+ *  This function is called after all the fields for an AGGREGATE keyword have
+ *  been processed.  It is called to start the struct/union, as well as for
+ *  each member in the struct/union.  It is also called after all the members
+ *  have been written in order to close out the definition.  It writes out a
+ *  single item (struct/union or member declaration) for each call to this.
+ *  function.
+ *
+ * Input Parameters:
+ *  fp:
+ *	A pointer to the file pointer to write out the information.
+ *  aggregate:
+ *	A pointer to the AGGREGATE record, if starting or ending a definition.
+ *  item:
+ *	A pointer to a data type member definition.
+ *  subaggr:
+ *	A pointer to a subaggregate record.
+ *  ending:
+ *	A boolean value indicating that we are ending a definition.  This flag
+ *	is used in the following way:
+ *	    if (ending == true)
+ *		if (aggregate != NULL)
+ *		    <we are ending an aggregate>
+ *		else if (subaggr != NULL)
+ *		    <we are ending a subaggregate>
+ *	    else if (aggregate != NULL)
+ *		<we are starting an aggregate>
+ *	    else if (subaggr != NULL)
+ *		<we are starting a subaggregate>
+ *	    else
+ *		<we are defining a single member item>
+ *  depth:
+ *  	A value indicating the depth at which we are defining the next field.
+ *  	This is used for indenting purposes.
+ *  context:
+ *	A pointer to the context block to be used to determine the type string.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_c_aggregate(
+		FILE *fp,
+		SDL_AGGREGATE *aggregate,
+		SDL_ITEM *item,
+		SDL_SUBAGGR *subaggr,
+		bool ending,
+		int depth,
+		SDL_CONTEXT *context)
+{
+    int		retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf(
+	    "%s:%d:_sdl_c_aggregate(%s) -- depth: %d\n",
+	    __FILE__,
+	    __LINE__,
+	    (ending == true ? "True" : "False"),
+	    depth);
 
     /*
      * Return the results of this call back to the caller.

@@ -36,6 +36,7 @@ SDL_ITEM *sdl_get_item(SDL_ITEM_LIST *item, int typeID);
 SDL_AGGREGATE *sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, int typeID);
 int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value);
 int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype);
+int sdl_aggrtype_idx(SDL_CONTEXT *context, char *aggregateName);
 __int64_t sdl_bin2int(char *binStr);
 int sdl_str2int(char *strVal, __int64_t *val);
 int sdl_offset(SDL_CONTEXT *context, int offsetType);

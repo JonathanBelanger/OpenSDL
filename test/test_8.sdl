@@ -90,8 +90,8 @@ END test_8e;
 /-
 AGGREGATE test_8f STRUCTURE;
 	B STRUCTURE LONGWORD;
-		bit_string1 BITFIELD LENGTH 1;
-		bit_string2 BITFIELD LENGTH 4;
+		bit_string1 BITFIELD LONGWORD LENGTH 1;
+		bit_string2 BITFIELD LONGWORD LENGTH 4;
 	END B;
 	last_item WORD;
 END test_8f;

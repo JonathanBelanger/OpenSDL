@@ -219,14 +219,20 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %type <ival> _v_datatypes
 %type <ival> _v_usertypes
 %type <ival> _v_basetypes
+%type <ival> _v_integer
+%type <ival> _v_float
 %type <ival> _v_signed
 %type <ival> _v_address
 %type <ival> _v_object
 %type <ival> _v_aggtypes
+%type <ival> _v_passing_option
 
 %type <tval> _t_id
 %type <tval> _t_module_name
 %type <tval> _t_aggr_id
+
+%type <aval> _a_returns_options
+%type <aval> _a_named
 
 /*
  * We have types on the bison side of the house.
@@ -311,6 +317,7 @@ module_body
 	| dimension
 	| storage
 	| origin
+	| entry
 	| definition_end
 	;
 
@@ -323,6 +330,7 @@ definition_end
 		    case Declare:
 		    case Constant:
 		    case Item:
+		    case Entry:
 			sdl_state_transition(&context, DefinitionEnd);
 			break;
 
@@ -525,10 +533,38 @@ _v_datatypes
 
 _v_usertypes
 	: _t_id
-	    { $$ = sdl_usertype_idx(&context, $1); }
+	    {
+		$$ = sdl_usertype_idx(&context, $1);
+		if ($$ == 0)
+		    $$ = sdl_aggrtype_idx(&context, $1);
+	    }
 	;
 
 _v_basetypes
+	: _v_integer
+	   { $$ = $1; }
+	| _v_float
+	   { $$ = $1; }
+	| SDL_K_CHAR
+	    { $$ = SDL_K_TYPE_CHAR; }
+	| SDL_K_CHAR SDL_K_LENGTH _v_expression
+	    { $$ = SDL_K_TYPE_CHAR; }
+	| SDL_K_CHAR SDL_K_LENGTH _v_expression SDL_K_VARY
+	    {
+		sdl_add_option(&context, Length, $3, NULL);
+		$$ = SDL_K_TYPE_CHAR_VARY;
+	    }
+	| SDL_K_CHAR SDL_K_LENGTH SDL_K_MULT
+	    { $$ = SDL_K_TYPE_CHAR_STAR; }
+	| _v_address
+	    { $$ = $1; }
+	| SDL_K_ANY
+	    { $$ = SDL_K_TYPE_ANY; }
+	| SDL_K_BOOL
+	    { $$ = SDL_K_TYPE_BOOL; }
+	;
+
+_v_integer
 	: SDL_K_BYTE _v_signed
 	    { $$ = SDL_K_TYPE_BYTE * $2; }
 	| SDL_K_WORD _v_signed
@@ -539,7 +575,10 @@ _v_basetypes
 	    { $$ = SDL_K_TYPE_QUAD * $2; }
 	| SDL_K_OCTA _v_signed
 	    { $$ = SDL_K_TYPE_OCTA * $2; }
-	| SDL_K_SFLOAT
+	;
+
+_v_float
+	: SDL_K_SFLOAT
 	    { $$ = SDL_K_TYPE_SFLT; }
 	| SDL_K_TFLOAT
 	    { $$ = SDL_K_TYPE_TFLT; }
@@ -549,20 +588,6 @@ _v_basetypes
 		sdl_precision(&context, $4, $6);
 		$$ = SDL_K_TYPE_DECIMAL;
 	    }
-	| SDL_K_CHAR
-	    { $$ = SDL_K_TYPE_CHAR; }
-	| SDL_K_CHAR SDL_K_LENGTH _v_expression
-	    { $$ = SDL_K_TYPE_CHAR; }
-	| SDL_K_CHAR SDL_K_LENGTH _v_expression SDL_K_VARY
-	    { $$ = SDL_K_TYPE_CHAR; }
-	| SDL_K_CHAR SDL_K_LENGTH SDL_K_MULT
-	    { $$ = SDL_K_TYPE_CHAR; }
-	| _v_address
-	    { $$ = $1; }
-	| SDL_K_ANY
-	    { $$ = SDL_K_TYPE_ANY; }
-	| SDL_K_BOOL
-	    { $$ = SDL_K_TYPE_BOOL; }
 	;
 
 _v_signed
@@ -588,6 +613,8 @@ _v_address
 _v_object
 	: %empty
 	    { $$ = 0; }
+	| SDL_K_OPENP SDL_K_ENTRY _basealign SDL_K_CLOSEP
+	    { $$ = SDL_K_TYPE_ENTRY; }
 	| SDL_K_OPENP _v_datatypes _basealign SDL_K_CLOSEP
 	    { $$ = $2; }
 	;
@@ -696,7 +723,14 @@ aggregate_body
 	: _t_aggr_id _v_datatypes
 	    { sdl_aggregate_member(&context, $1, $2, NULL, Unknown); }
 	| _t_aggr_id _t_aggr_id
-	    { sdl_aggregate_member(&context, $1, 0, $2, Unknown); }
+	    {
+		sdl_aggregate_member(
+				&context,
+				$1,
+				sdl_aggrtype_idx(&context, $2),
+				NULL,
+				Unknown);
+	    }
 	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
 	    {
 	    	sdl_state_transition(&context, Subaggregate);
@@ -724,12 +758,104 @@ bitfield_options
 	;
 
 bitfield_choices
-	: SDL_K_LENGTH _v_expression
+	: SDL_K_BYTE
+	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_BYTE, NULL); }
+	| SDL_K_WORD
+	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_WORD, NULL); }
+	| SDL_K_LONG
+	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_LONG, NULL); }
+	| SDL_K_QUAD
+	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_QUAD, NULL); }
+	| SDL_K_OCTA
+	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_OCTA, NULL); }
+	| SDL_K_LENGTH _v_expression
 	    { sdl_add_option(&context, Length, $2, NULL); }
 	| SDL_K_MASK
 	    { sdl_add_option(&context, Mask, 0, NULL); }
 	| SDL_K_SIGNED
 	    { sdl_add_option(&context, Signed, 0, NULL); }
+	;
+
+entry
+	: SDL_K_ENTRY _t_id entry_options
+	    {
+	    	sdl_state_transition(&context, Entry);
+		sdl_entry(&context, $2);
+	    }
+	;
+
+entry_options
+	: %empty
+	| entry_options entry_choices
+	;
+
+entry_choices
+	: SDL_K_ALIAS _t_id
+	    { sdl_add_option(&context, Alias, 0, $2); }
+	| SDL_K_LINKAGE _t_id
+	    { sdl_add_option(&context, Linkage, 0, $2); }
+	| SDL_K_VARIABLE
+	    { sdl_add_option(&context, Variable, 0, NULL); }
+	| SDL_K_RETURNS _v_datatypes _a_returns_options
+	    {
+		sdl_add_option(&context, ReturnsType, $2, NULL);
+		sdl_add_option(&context, ReturnsNamed, 0, $3);
+	    }
+	| SDL_K_PARAM SDL_K_OPENP parameter_desc SDL_K_CLOSEP
+	;
+
+parameter_desc
+	: parameter_options
+	| parameter_desc SDL_K_COMMA parameter_options
+
+parameter_options
+	: _v_datatypes _v_passing_option parameter_choices
+	   { sdl_add_parameter(&context, $1, $2); }
+	;
+
+_v_passing_option
+	: %empty
+	   { $$ = SDL_K_PARAM_NONE; }
+	| SDL_K_VALUE
+	   { $$ = SDL_K_PARAM_VAL; }
+	| SDL_K_REF
+	   { $$ = SDL_K_PARAM_REF; }
+	;
+
+parameter_choices
+	: %empty
+	| parameter_choices parameter_loop
+	;
+
+parameter_loop
+	: SDL_K_IN
+	    { sdl_add_option(&context, In, 0, NULL); }
+	| SDL_K_OUT
+	    { sdl_add_option(&context, Out, 0, NULL); }
+	| _a_named
+	    { sdl_add_option(&context, Named, 0, $1); }
+	| SDL_K_DIMENSION _v_expression
+	    { sdl_add_option(&context, Dimension, $2, NULL); }
+	| SDL_K_DEFAULT _v_expression
+	    { sdl_add_option(&context, Default, $2, NULL); }
+	| SDL_K_TYPENAME _t_id
+	    { sdl_add_option(&context, TypeName, 0, $2); }
+	| SDL_K_OPT
+	    { sdl_add_option(&context, Optional, 0, NULL); }
+	| SDL_K_LIST
+	    { sdl_add_option(&context, List, 0, NULL); }
+	;
+
+_a_returns_options
+	: %empty
+	    { $$ = NULL; }
+	| _a_named
+	    { $$ = $1; }
+	;
+
+_a_named
+	: SDL_K_NAMED _t_id
+	    { $$ = $2; }
 	;
 
 %%	/* End Grammar rules */

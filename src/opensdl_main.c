@@ -69,6 +69,7 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 	(SDL_FUNC) &sdl_c_fileInfo,
 	(SDL_FUNC) NULL,
 	(SDL_FUNC) NULL,
+	(SDL_FUNC) NULL,
 	(SDL_FUNC) NULL
     }
 };
@@ -155,7 +156,16 @@ int main(int argc, char *argv[])
      */
     for (ii = 0; ii < SDL_K_MAX_DIMENSIONS; ii++)
 	context.dimensions[ii].inUse = false;
+
+    /*
+     * Set the options and parameters workspace.
+     */
+    context.options = NULL;
+    context.optionsSize = 0;
     context.optionsIdx = 0;
+    context.parameters = NULL;
+    context.parameterSize = 0;
+    context.parameterIdx = 0;
 
     /*
      * Initialize the parsing state.

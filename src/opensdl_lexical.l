@@ -593,29 +593,17 @@ VARYING					{ return(SDL_K_VARY); }
 							yylval->tval = strdup(yytext);
 							if ((YY_START == ST_AGGR) &&
 							    (_sdl_aggregate_started == false))
-							{
-								printf("\n\n>>> %s is 't_aggr_str'\n\n", yytext);
 								return(t_aggr_str);
-							}
 							else
-							{
-								printf("\n\n>>> %s is 't_string'\n\n", yytext);
 								return(t_string);
-							}
 						}
 <*>{Names}				{
 							yylval->tval = strdup(yytext);
 							if ((YY_START == ST_AGGR) &&
 							    (_sdl_aggregate_started == false))
-							{
-								printf("\n\n>>> %s is 't_aggr_name'\n\n", yytext);
 								return(t_aggr_name);
-							}
 							else
-							{
-								printf("\n\n>>> %s is 't_name'\n\n", yytext);
 								return(t_name);
-							}
 						}
 <*>"#"{Names}			{
 

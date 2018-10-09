@@ -61,9 +61,9 @@ int sdl_aggregate_member(
 		__int64_t datatype,
 		char *aggrId,
 		SDL_AGGR_TYPE subaggType);
-int sdl_aggregate_compl(
-		SDL_CONTEXT *context,
-		char *name);
+int sdl_aggregate_compl(SDL_CONTEXT *context, char *name);
+int sdl_entry(SDL_CONTEXT *context, char *name);
+int sdl_add_parameter(SDL_CONTEXT *context, int datatype, int passing);
 
 /*
  * These are used to specify the constant information being saved.

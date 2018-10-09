@@ -351,7 +351,10 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    break;
 
 	case Entry:
-	    retVal = 0;
+	    if (action == DefinitionEnd)
+		context->state = Module;
+	    else
+		retVal = 0;
 	    break;
 
 	case IfLanguage:
@@ -580,6 +583,53 @@ int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype)
      * Return the results of this call back to the caller.
      */
     free(usertype);
+    return(retVal);
+}
+
+/*
+ * sdl_aggrtype_idx
+ *  This function is called to return the aggregate type id associated with a
+ *  particular aggregate name.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  aggregateName:
+ *	A pointer to a string containing the name of the AGGREGATE.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Value:
+ *  A value greater than or equal to SDL_K_USER_MIN, representing the type ID
+ *  of the indicated aggregate type.
+ */
+int sdl_aggrtype_idx(SDL_CONTEXT *context, char *aggregateName)
+{
+    int			retVal = 0;
+    SDL_AGGREGATE	*myAggregate =
+			    (SDL_AGGREGATE *) context->aggregates.header.flink;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_aggrtype_idx\n", __FILE__, __LINE__);
+
+    while (myAggregate != (SDL_AGGREGATE *) &context->aggregates.header)
+	if (strcmp(myAggregate->id, aggregateName) == 0)
+	{
+	    retVal = myAggregate->typeID;
+	    break;
+	}
+	else
+	    myAggregate = (SDL_AGGREGATE *) myAggregate->header.flink;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    free(aggregateName);
     return(retVal);
 }
 
@@ -841,9 +891,25 @@ int sdl_add_option(
     }
 
     /*
-     * If there is room to add another option, then do so now.
+     * The options list is dynamically sized, and is never reduced.  So, if
+     * there is not enough room for another option, then reallocate the options
+     * list to the next increment
      */
-    if (context->optionsIdx < SDL_K_MAX_OPTIONS)
+    if (context->optionsIdx >= context->optionsSize)
+    {
+	size_t	size;
+
+	context->optionsSize += SDL_K_OPTIONS_INCR;
+	size = context->optionsSize * sizeof(SDL_OPTION);
+	context->options = realloc(context->options, size);
+	if (context->options == NULL)
+	    retVal = 0;
+    }
+
+    /*
+     * Add another option, then do so now.
+     */
+    if (retVal == 1)
     {
 	switch (option)
 	{
@@ -885,7 +951,8 @@ int sdl_add_option(
 	    case Increment:
 	    case Length:
 	    case Radix:
-	    case Returns:
+	    case ReturnsType:
+	    case BitfieldType:
 		context->options[context->optionsIdx].option = option;
 		context->options[context->optionsIdx++].value = value;
 		break;
@@ -901,6 +968,7 @@ int sdl_add_option(
 	    case Named:
 	    case Origin:
 	    case Prefix:
+	    case ReturnsNamed:
 	    case Tag:
 	    case TypeName:
 		context->options[context->optionsIdx].option = option;
@@ -914,8 +982,6 @@ int sdl_add_option(
 		break;
 	}
     }
-    else
-	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.

@@ -1,0 +1,63 @@
+{
+{*****************************************************************************
+{*                                                                           *
+{* Copyright 1980 Compaq Computer Corporation                                *
+{*                                                                           *
+{* Compaq and the Compaq logo Registered in U.S. Patent and Trademark Office.*
+{*                                                                           *
+{* Confidential computer software. Valid license from Compaq required for    *
+{* possession, use or copying. Consistent with FAR 12.211 and 12.212,        *
+{* Commercial Computer Software, Computer Software Documentation, and        *
+{* Technical Data for Commercial Items are licensed to the U.S. Government   *
+{* under vendors standard commercial license.                                *
+{*                                                                           *
+{*****************************************************************************
+{
+{++
+{ facility:
+{
+{	SDL (Structure Definition Language)
+{
+{ abstract:
+{
+{	Generates constants for the token id's used by grammar
+{	and the common TOKEN structure used to pass the tokens around
+{
+{ author:
+{	c.t. pacy
+{ date:
+{	revised 22-DEC-1981	ctp
+{_______________!_______!______________________________________________________
+{    1-May-1992	!  JAK	! EV1-8 Added token_locator, token_text.
+{_______________!_______!______________________________________________________
+{    8-Dec-2000	|  LJK	| EV1-65  Change copyright notice to Compaq format.
+{_______________|_______|______________________________________________________
+
+module $tokdef ident "EV1-8";
+
+ 
+/* token structure
+/* filled in by LEX 
+
+#maxtoksiz = 132;
+constant maxtoksiz equals #maxtoksiz;
+ 
+aggregate  token structure dimension 0:9 common ;
+	token_id longword;
+	token_locator structure longword;
+	    lineno word;
+	    colno word;
+	    end;
+	token_text structure;
+	    token_length longword;
+	    token_address address;
+	    end;
+	start_line byte;
+	synthetic byte;
+	token_string character length #maxtoksiz;
+	constant token_size equals :;
+	end;
+
+item token_index longword common;
+
+end_module;

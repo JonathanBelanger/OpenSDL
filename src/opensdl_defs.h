@@ -59,14 +59,17 @@
 #define SDL_K_TYPE_DECIMAL	8
 #define	SDL_K_TYPE_BITFLD	9
 #define	SDL_K_TYPE_CHAR		10
-#define	SDL_K_TYPE_ADDR		11
-#define	SDL_K_TYPE_ADDRL	12
-#define	SDL_K_TYPE_ADDRQ	13
-#define	SDL_K_TYPE_ADDRHW	14
-#define	SDL_K_TYPE_ANY		15
-#define	SDL_K_TYPE_BOOL		16
-#define	SDL_K_TYPE_SRUCT	17
-#define	SDL_K_TYPE_UNION	18
+#define	SDL_K_TYPE_CHAR_VARY	11
+#define	SDL_K_TYPE_CHAR_STAR	12
+#define	SDL_K_TYPE_ADDR		13
+#define	SDL_K_TYPE_ADDRL	14
+#define	SDL_K_TYPE_ADDRQ	15
+#define	SDL_K_TYPE_ADDRHW	16
+#define	SDL_K_TYPE_ANY		17
+#define	SDL_K_TYPE_BOOL		18
+#define	SDL_K_TYPE_SRUCT	19
+#define	SDL_K_TYPE_UNION	20
+#define SDL_K_TYPE_ENTRY	21
 #define SDL_K_BASE_TYPE_MIN	1
 #define SDL_K_BASE_TYPE_MAX	63
 #define SDL_K_DECLARE_MIN	64
@@ -132,10 +135,9 @@
 /*
  * ENTRY types
  */
-#define SDL_K_PARAM_DSC		1
-#define SDL_K_PARAM_SDESC	2
-#define SDL_K_PARAM_VAL		3
-#define SDL_K_PARAM_REF		4
+#define SDL_K_PARAM_NONE	0
+#define SDL_K_PARAM_VAL		1
+#define SDL_K_PARAM_REF		2
 
 /*
  * Radix input types
@@ -246,6 +248,14 @@ typedef struct
     char		*id;
     char		*prefix;
     char		*tag;
+    __int64_t		hbound;
+    __int64_t		lbound;
+    __int64_t		length;		/* for BITFIELDs only */
+    __int64_t		bitfieldType;	/* For BITFILEDs only */
+    __int64_t		memSize;	/* Actual space used in memory	*/
+    __int64_t		precision;
+    __int64_t		scale;
+    __int64_t		size;
     int			alignment;
     int			type;		/* data or user type	*/
     int			typeID;
@@ -253,17 +263,10 @@ typedef struct
     bool		dimension;
     bool		fill;
     bool		globalDef;
-    bool		mask;		/* for BITFIELDs only*/
+    bool		mask;		/* For BITFIELDs only*/
     bool		typeDef;
-    bool		_signed;	/* for BITFIELDs only */
+    bool		_signed;	/* For BITFIELDs only */
     bool		_unsigned;
-    __int64_t		hbound;
-    __int64_t		lbound;
-    __int64_t		length;		/* for BITFIELDs only */
-    __int64_t		memSize;	/* Actual space used in memory	*/
-    __int64_t		precision;
-    __int64_t		scale;
-    __int64_t		size;
 } SDL_ITEM;
 
 typedef struct
@@ -290,13 +293,22 @@ typedef struct
     __int64_t		bound;
     __int64_t		defaultValue;
     int			type;
+    int			passingMech;
     bool		defaultPresent;
     bool		dimension;
     bool		in;
     bool		list;
     bool		optional;
     bool		out;
+    bool		_unsigned;
 } SDL_PARAMETER;
+
+typedef struct
+{
+    char		*name;
+    int			type;
+    bool		_unsigned;
+} SDL_RETURNS;
 
 typedef struct
 {
@@ -307,8 +319,7 @@ typedef struct
     char		*linkage;
     char		*typeName;
     SDL_QUEUE		parameters;
-    int			type;
-    bool		returns;
+    SDL_RETURNS		returns;
     bool		variable;
 } SDL_ENTRY;
 
@@ -453,15 +464,17 @@ typedef enum
     Prefix,
     Radix,
     Reference,
-    Returns,
+    ReturnsNamed,
+    ReturnsType,
     Signed,
     Tag,
     Typedef,
     TypeName,
     Value,
-    Variable
+    Variable,
+    BitfieldType
 } SDL_OPTION_TYPE;
-#define SDL_K_MAX_OPTIONS	16
+#define SDL_K_OPTIONS_INCR	8
 typedef struct
 {
     SDL_OPTION_TYPE	option;
@@ -533,7 +546,8 @@ typedef struct
     bool		langEna[SDL_K_LANG_MAX];
     bool		langSpec[SDL_K_LANG_MAX];
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
-    SDL_OPTION		options[SDL_K_MAX_OPTIONS];
+    SDL_OPTION		*options;
+    SDL_PARAMETER	**parameters;
     SDL_DECLARE_LIST	declares;
     SDL_ITEM_LIST	items;
     SDL_AGGREGATE_LIST	aggregates;
@@ -546,6 +560,9 @@ typedef struct
     __int64_t		scale;
     int			aggregateDepth;
     int			optionsIdx;
+    int			optionsSize;
+    int			parameterIdx;
+    int			parameterSize;
 } SDL_CONTEXT;
 
 #endif /* _OPENSDL_DEFS_H_ */

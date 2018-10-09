@@ -46,6 +46,7 @@ extern _Bool trace;
 #define SDL_K_ITEM_CB		3
 #define SDL_K_CONSTANT_CB	4
 #define SDL_K_AGGREGATE_CB	5
+#define SDL_K_ENTRY_CB		6
 
 static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 {
@@ -59,7 +60,8 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 	(SDL_FUNC) &sdl_c_module_end,
 	(SDL_FUNC) &sdl_c_item,
 	(SDL_FUNC) &sdl_c_constant,
-	(SDL_FUNC) &sdl_c_aggregate
+	(SDL_FUNC) &sdl_c_aggregate,
+	(SDL_FUNC) &sdl_c_entry,
     }
 };
 
@@ -99,7 +101,6 @@ static int _sdl_aggregate_callback(
 			int depth);
 static SDL_DECLARE *_sdl_get_declare(SDL_DECLARE_LIST *declare, char *name);
 static SDL_ITEM *_sdl_get_item(SDL_ITEM_LIST *item, char *name);
-static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *name);
 static char *_sdl_get_tag(
         SDL_CONTEXT *context,
         char *tag,
@@ -490,6 +491,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_REMQUE(&context->locals, local);
 	if (trace == true)
 	{
+	    printf("--------------------------------\n");
 	    if (ii == 1)
 		printf("    Local Variables:\n");
 	    printf(
@@ -513,6 +515,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_REMQUE(&context->constants, constant);
 	if (trace == true)
 	{
+	    printf("--------------------------------\n");
 	    if (ii == 1)
 		printf("    CONSTANTs:\n");
 	    printf(
@@ -564,6 +567,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_REMQUE(&context->declares.header, declare);
 	if (trace == true)
 	{
+	    printf("--------------------------------\n");
 	    if (ii == 1)
 		printf("    DECLAREs:\n");
 	    printf(
@@ -596,6 +600,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_REMQUE(&context->items.header, item);
 	if (trace == true)
 	{
+	    printf("--------------------------------\n");
 	    if (ii == 1)
 		printf("    ITEMs:\n");
 	    printf(
@@ -642,8 +647,9 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	SDL_REMQUE(&context->aggregates.header, aggregate);
 	if (trace == true)
 	{
+	    printf("--------------------------------\n");
 	    if (ii == 1)
-		printf("    ITEMs:\n");
+		printf("    AGGREGATEs:\n");
 	    printf(
 	        "\t%2d: name: %s\n\t    structUnion: %s\n\t    prefix: %s\n"
 		"\t    marker: %s\n\t    tag: %s\n\t    origin: %s\n"
@@ -708,9 +714,68 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
     ii = 1;
     while (SDL_Q_EMPTY(&context->entries) == false)
     {
-	SDL_ENTRY *entry;
+	SDL_ENTRY	*entry;
+	int		jj;
 
 	SDL_REMQUE(&context->entries, entry);
+	if (trace == true)
+	{
+	    printf("--------------------------------\n");
+	    if (ii == 1)
+		printf("    ENTRYs:\n");
+
+	    printf("\t%2d: name: %s\n", ii++, entry->id);
+	    if (entry->alias != NULL)
+		printf("\t    alias: %s\n", entry->alias);
+	    if (entry->typeName != NULL)
+		printf("\t    typeName: %s\n", entry->typeName);
+	    if (entry->linkage != NULL)
+		printf("\t    linkage: %s\n", entry->linkage);
+	    printf(
+		"\t    returns.type: %d\n\t    returns._unsigned: %s\n",
+		entry->returns.type,
+		(entry->returns._unsigned ? "True" : "False"));
+	    if (entry->returns.name != NULL)
+		printf("\t    returns.named: %s\n", entry->returns.name);
+	}
+	jj = 1;
+	while (SDL_Q_EMPTY(&entry->parameters) == false)
+	{
+	    SDL_PARAMETER 	*param;
+
+	    SDL_REMQUE(&entry->parameters, param);
+	    if (trace == true)
+	    {
+		if (jj == 1)
+		    printf("    PARAMETERs:\n");
+		printf(
+		    "\t%2d: name: %s\n\t    type: %d\n\t    typeName: %s\n"
+		    "\t    bound: %ld\n\t    defaultValue: %ld\n"
+		    "\t    defaultPresent: %s\n\t    dimension: %s\n"
+		    "\t    in: %s\n\t    out: %s\n\t    list: %s\n"
+		    "\t    optional: %s\n\t    _unsigned: %s\n",
+		    jj++,
+		    param->name,
+		    param->type,
+		    param->typeName,
+		    param->bound,
+		    param->defaultValue,
+		    (param->defaultPresent == true ? "True" : "False"),
+		    (param->dimension== true ? "True" : "False"),
+		    (param->in == true ? "True" : "False"),
+		    (param->out == true ? "True" : "False"),
+		    (param->list == true ? "True" : "False"),
+		    (param->optional == true ? "True" : "False"),
+		    (param->_unsigned == true ? "True" : "False"));
+	    }
+	    if (param->comment != NULL)
+		free(param->comment);
+	    if (param->name != NULL)
+		free(param->name);
+	    if (param->typeName != NULL)
+		free(param->typeName);
+	    free(param);
+	}
 	free(entry->id);
 	if (entry->comment != NULL)
 	    free(entry->comment);
@@ -1517,6 +1582,19 @@ int sdl_aggregate(
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
+ *  name:
+ *	A pointer to the string containing the name for the AGGREGATE being
+ *	defined.
+ *  datatype:
+ *	An integer indicating either a base type, user type, or another
+ *	aggregate.
+ *  subaggrType:
+ *	A value indicating the type of subaggregate that is being requested to
+ *	be created.  This has one of the following enumarated values:
+ *
+ *		Unknown:	This is not a subaggregate but a member item.
+ *		Structure:	This is a structure aggregate.
+ *		Union:		This is a union aggregate.
  *
  * Output Parameters:
  *  None.
@@ -1529,7 +1607,6 @@ int sdl_aggregate_member(
 		SDL_CONTEXT *context,
 		char *name,
 		__int64_t datatype,
-		char *aggrId,
 		SDL_AGGR_TYPE subaggrType)
 {
     SDL_MEMBERS		*myMember = NULL;
@@ -1539,6 +1616,7 @@ int sdl_aggregate_member(
     SDL_SUBAGGR		*mySubAggr = (context->aggregateDepth > 1 ?
 					(SDL_SUBAGGR *) context->currentAggr :
 					NULL);
+    __int64_t		bfType = SDL_K_TYPE_BYTE;
     __int64_t		length = 0;
     int			retVal = 1;
     bool		mask = false;
@@ -1752,6 +1830,10 @@ int sdl_aggregate_member(
 			length = context->options[ii].value;
 		    break;
 
+		case BitfieldType:
+			bfType = context->options[ii].value;
+		    break;
+
 		default:
 		    break;
 	    }
@@ -1786,14 +1868,7 @@ int sdl_aggregate_member(
 		}
 		else if (datatype > 0)
 		    myMember->item._unsigned = true;
-		if (aggrId != NULL)
-		{
-		    myAggr = _sdl_get_aggregate(&context->aggregates, aggrId);
-
-		    myMember->item.type = myAggr->typeID;
-		}
-		else
-		    myMember->item.type = datatype;
+		myMember->item.type = datatype;
 		switch (datatype)
 		{
 		    case SDL_K_TYPE_DECIMAL:
@@ -1801,10 +1876,15 @@ int sdl_aggregate_member(
 			myMember->item.scale = context->scale;
 			break;
 
+		    /*
+		     * TODO: When mask is set, we need to define a constant
+		     * TODO: with the correct bit(s) set.
+		     */
 		    case SDL_K_TYPE_BITFLD:
 			myMember->item.length = (length == 0 ? 1 : length);
 			myMember->item.mask = mask;
 			myMember->item._signed = _signed;
+			myMember->item.bitfieldType = bfType;
 			break;
 		}
 		myMember->item.tag = _sdl_get_tag(
@@ -2077,6 +2157,238 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
     return (retVal);
 }
 
+/*
+ * sdl_entry
+ *  This function is called to create the ENTRY structure that will contain
+ *  all the information about the function/procedure definition being defined.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
+ *  name:
+ *	A pointer to the string to be associated with this entry definition.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_entry(SDL_CONTEXT *context, char *name)
+{
+    SDL_ENTRY	*myEntry = calloc(1, sizeof(SDL_ENTRY));
+    int		retVal = 1;
+    int		ii;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_entry\n", __FILE__, __LINE__);
+
+    if (myEntry != NULL)
+    {
+	myEntry->id = name;
+	SDL_Q_INIT(&myEntry->parameters);
+	for (ii = 0; ii < context->optionsIdx; ii++)
+	{
+	    switch(context->options[ii].option)
+	    {
+		case Alias:
+		    myEntry->alias = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Linkage:
+		    myEntry->linkage = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case TypeName:
+		    myEntry->typeName = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Variable:
+		    myEntry->variable = true;
+		    break;
+
+		case ReturnsType:
+		    myEntry->returns.type = context->options[ii].value;
+		    if (myEntry->returns.type >= 0)
+			myEntry->returns._unsigned = true;
+		    else
+			myEntry->returns.type = -myEntry->returns.type;
+		    break;
+
+		case ReturnsNamed:
+		    myEntry->returns.name = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		default:
+		    break;
+	    }
+	}
+	for (ii = 0; ii < context->parameterIdx; ii++)
+	{
+	    SDL_PARAMETER *myParam = context->parameters[ii];
+
+	    context->parameters[ii] = NULL;
+	    SDL_INSQUE(&myEntry->parameters, &myParam->header);
+	}
+	context->parameterIdx = 0;
+	SDL_INSQUE(&context->entries, &myEntry->header);
+
+	/*
+	 * Loop through all the possible languages and call the appropriate
+	 * output function for each of the enabled languages.
+	 */
+	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    if ((context->langSpec[ii] == true) &&
+		(context->langEna[ii] == true))
+		retVal = (*_outputFuncs[ii][SDL_K_ENTRY_CB])(
+					context->outFP[ii],
+					myEntry,
+					context);
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    _sdl_reset_options(context);
+    return (retVal);
+}
+
+/*
+ * sdl_add_parameter
+ *  This function is called when a parameter needs to be added to an entry.
+ *  We do this in two passes.  The first creates the parameter records, then
+ *  when creating the ENTRY record, these are copied into there and the array
+ *  cleaned up.  The list in the context block is used as an array of pointers
+ *  to PARAMETER definitions.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  datatype:
+ *	An integer indicating either a base type or a user type.  If a base,
+ *	get the default.  If a user, we may need to call ourselves again to
+ *	get what we came to get.
+ *  passing:
+ *	A value indicating how a parameter is passed (by reference or value).
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_add_parameter(SDL_CONTEXT *context, int datatype, int passing)
+{
+    int		retVal = 1;
+    int		ii;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_add_parameter\n", __FILE__, __LINE__);
+
+    /*
+     * If the stack is full, reallocate a larger stack.
+     */
+    if (context->parameterIdx >= context->parameterSize)
+    {
+	size_t	size;
+
+	context->parameterSize += SDL_K_OPTIONS_INCR;
+	size = context->parameterSize * sizeof(SDL_PARAMETER *);
+	context->parameters = realloc(context->parameters, size);
+    }
+
+    if (context->parameters != NULL)
+    {
+	SDL_PARAMETER	*param = calloc(1, sizeof(SDL_PARAMETER));
+
+	if (datatype < 0)
+	    param->type = -datatype;
+	else
+	{
+	    param->type = datatype;
+	    param->_unsigned = true;
+	}
+	param->passingMech = passing;
+
+	for (ii = 0; ii < context->optionsIdx; ii++)
+	{
+	    switch (context->options[ii].option)
+	    {
+		case In:
+		    param->in = true;
+		    context->options[ii].option = None;;
+		    break;
+
+		case Out:
+		    param->out = true;
+		    context->options[ii].option = None;;
+		    break;
+
+		case Named:
+		    param->name = context->options[ii].string;
+		    context->options[ii].option = None;;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Dimension:
+		    param->bound = context->options[ii].value;
+		    param->dimension = true;
+		    context->options[ii].option = None;;
+		    break;
+
+		case Default:
+		    param->defaultValue = context->options[ii].value;
+		    param->defaultPresent = true;
+		    context->options[ii].option = None;;
+		    break;
+
+		case TypeName:
+		    param->typeName = context->options[ii].string;
+		    context->options[ii].option = None;;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Optional:
+		    param->optional = true;
+		    context->options[ii].option = None;;
+		    break;
+
+		case List:
+		    param->list = true;
+		    context->options[ii].option = None;;
+		    break;
+
+		default:
+		    break;
+	    }
+	}
+	context->parameters[context->parameterIdx++] = param;
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
 /************************************************************************/
 /* Local Functions							*/
 /************************************************************************/
@@ -2224,50 +2536,6 @@ static SDL_ITEM *_sdl_get_item(SDL_ITEM_LIST *item, char *name)
 	else
 	    retVal = (SDL_ITEM *) retVal->header.flink;
     if (retVal == (SDL_ITEM *) &item->header)
-	retVal = NULL;
-
-    /*
-     * Return the results of this call back to the caller.
-     */
-    return(retVal);
-}
-
-/*
- * _sdl_get_aggregate
- *  This function is called to get the record of a previously defined
- *  AGGREGATE.  If the AGGREGATE has not yet been defined, then a NULL will be
- *  returned. Otherwise, the a pointer to the found AGGREGATE will be returned
- *  to the caller.
- *
- * Input Parameters:
- *  item:
- *	A pointer to the list containing all currently defined AGGREGATEs.
- *  name:
- *	A pointer to the name of the declared aggregate.
- *
- * Output Parameters:
- *  None.
- *
- * Return Value
- *  NULL:	AGGREGATE not found.
- *  !NULL:	An existing AGGREGATE.
- */
-static SDL_AGGREGATE *_sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, char *name)
-{
-    SDL_AGGREGATE	*retVal = (SDL_AGGREGATE *) aggregate->header.flink;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:_sdl_get_aggregate\n", __FILE__, __LINE__);
-
-    while (retVal != (SDL_AGGREGATE *) &aggregate->header)
-	if (strcmp(retVal->id, name) == 0)
-	    break;
-	else
-	    retVal = (SDL_AGGREGATE *) retVal->header.flink;
-    if (retVal == (SDL_AGGREGATE *) &aggregate->header)
 	retVal = NULL;
 
     /*
@@ -2768,11 +3036,17 @@ static void _sdl_reset_options(SDL_CONTEXT *context)
      * is not NULL, then free it.
      */
     for (ii = 0; ii < context->optionsIdx; ii++)
-	if (((context->options[ii].option == Prefix) ||
-	     (context->options[ii].option == Tag) ||
+	if (((context->options[ii].option == Alias) ||
+	     (context->options[ii].option == Based) ||
 	     (context->options[ii].option == Counter) ||
-	     (context->options[ii].option == TypeName) ||
-	     (context->options[ii].option == Marker)) &&
+	     (context->options[ii].option == Linkage) ||
+	     (context->options[ii].option == Marker) ||
+	     (context->options[ii].option == Named) ||
+	     (context->options[ii].option == Origin) ||
+	     (context->options[ii].option == Prefix) ||
+	     (context->options[ii].option == ReturnsNamed) ||
+	     (context->options[ii].option == Tag) ||
+	     (context->options[ii].option == TypeName)) &&
 	    (context->options[ii].string != NULL))
 	    free(context->options[ii].string);
 
@@ -2961,7 +3235,8 @@ static int _sdl_iterate_members(
 		"\t    tag: %s\n\t    typeID: %d\n\t    alignment: %d\n"
 		"\t    type: %d\n\t    _unsigned: %s\n\t    size: %ld\n"
 		"\t    memSize: %ld\n\t    typeDef: %s\n\t    fill: %s\n"
-		"\t    length: %ld\n\t    mask: %s\n\t    signed: %s\n",
+		"\t    length: %ld\n\t    mask: %s\n\t    signed: %s\n"
+		"\t    bitfieldType: %ld\n",
 		count,
 	        member->item.id,
 	        (member->item.prefix != NULL ? member->item.prefix : ""),
@@ -2976,7 +3251,8 @@ static int _sdl_iterate_members(
 	        (member->item.fill == true ? "True" : "False"),
 	        member->item.length,
 	        (member->item.mask == true ? "True" : "False"),
-	        (member->item._signed == true ? "True" : "False"));
+	        (member->item._signed == true ? "True" : "False"),
+	        member->item.bitfieldType);
 	    if (member->item.dimension == true)
 		printf(
 		    "\t    dimension: [%ld:%ld]\n",

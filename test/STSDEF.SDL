@@ -1,0 +1,67 @@
+{*
+{*****************************************************************************
+{*                                                                           *
+{* Copyright 1990 Compaq Computer Corporation                                *
+{*                                                                           *
+{* Compaq and the Compaq logo Registered in U.S. Patent and Trademark Office.*
+{*                                                                           *
+{* Confidential computer software. Valid license from Compaq required for    *
+{* possession, use or copying. Consistent with FAR 12.211 and 12.212,        *
+{* Commercial Computer Software, Computer Software Documentation, and        *
+{* Technical Data for Commercial Items are licensed to the U.S. Government   *
+{* under vendors standard commercial license.                                *
+{*                                                                           *
+{*****************************************************************************
+{
+{++
+{ facility:
+{
+{	SDL (Structure Definition Language)
+{
+{ abstract:
+{
+{	structure definition for status return codes and severity bits
+{
+{ author:
+{	c.t. pacy
+{ date:
+{	revised 22-DEC-1981	ctp
+{    8-Dec-2000	|  LJK	| EV1-65  Change copyright notice to Compaq format.
+{--
+
+
+module $stsdef;
+
+	aggregate $cond_value union prefix sts$;
+		"value" longword;
+		success bitfield mask;
+		status2 structure;
+			severity bitfield length 3 mask;
+		 	cond_id bitfield length 25 mask;
+		 	inhib_msg bitfield mask;
+			cntrl bitfield length 3;
+			end;
+		status3 structure;
+			status_fill3a bitfield length 3;
+			msg_no bitfield length 13 mask;
+	   		fac_no bitfield length 12 mask;
+			status_fill3b bitfield length 4;
+			end;
+		status4 structure;
+			status_fill4a bitfield length 3;
+			code bitfield length 12;
+			fac_sp bitfield mask;
+			status_fill4 bitfield length 11;
+			cust_def bitfield mask;
+			status_fill4b bitfield length 4;
+			end ;
+		end ;
+
+
+constant (warning,
+	success,
+	error,
+	info,
+	severe) equals 0 increment 1 prefix sts$;
+
+end_module;

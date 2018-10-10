@@ -129,6 +129,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %token SDL_K_EQUALS
 %token SDL_K_STRING
 %token SDL_K_INCR
+%token SDL_K_ENUM
 %token SDL_K_TYPENAME
 %token SDL_K_RADIX
 %token SDL_K_DEC
@@ -152,17 +153,28 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %token SDL_K_SIGNED
 %token SDL_K_UNSIGNED
 %token SDL_K_BYTE
+%token SDL_K_INT_B
 %token SDL_K_WORD
+%token SDL_K_INT_W
 %token SDL_K_LONG
-%token SDL_K_QUAD
-%token SDL_K_OCTA
+%token SDL_K_INT_L
+%token SDL_K_INT
 %token SDL_K_INT_HW
+%token SDL_K_HW_INT
+%token SDL_K_QUAD
+%token SDL_K_INT_Q
+%token SDL_K_OCTA
 %token SDL_K_VOID
 
 %token SDL_K_ADDR
-%token SDL_K_ADDRL
-%token SDL_K_ADDRQ
+%token SDL_K_ADDR_L
+%token SDL_K_ADDR_Q
 %token SDL_K_ADDR_HW
+%token SDL_K_HW_ADDR
+%token SDL_K_PTR
+%token SDL_K_PTR_L
+%token SDL_K_PTR_Q
+%token SDL_K_PTR_HW
 
 %token SDL_K_SFLOAT
 %token SDL_K_TFLOAT
@@ -479,6 +491,11 @@ increment
 	    { sdl_add_option(&context, Increment, $2, NULL); }
 	;
 
+increment
+	: SDL_K_ENUM
+	    { sdl_add_option(&context, Enumerate, 0, NULL); }
+	;
+
 constant
 	: SDL_K_CONSTANT _constant_body
 	;
@@ -567,12 +584,26 @@ _v_basetypes
 _v_integer
 	: SDL_K_BYTE _v_signed
 	    { $$ = SDL_K_TYPE_BYTE * $2; }
+	| SDL_K_INT_B _v_signed
+	    { $$ = SDL_K_TYPE_INT_B * $2; }
 	| SDL_K_WORD _v_signed
 	    { $$ = SDL_K_TYPE_WORD * $2; }
+	| SDL_K_INT_W _v_signed
+	    { $$ = SDL_K_TYPE_INT_W * $2; }
 	| SDL_K_LONG _v_signed
 	    { $$ = SDL_K_TYPE_LONG * $2; }
+	| SDL_K_INT _v_signed
+	    { $$ = SDL_K_TYPE_INT * $2; }
+	| SDL_K_INT_L _v_signed
+	    { $$ = SDL_K_TYPE_INT_B * $2; }
+	| SDL_K_INT_HW _v_signed
+	    { $$ = SDL_K_TYPE_INT_HW * $2; }
+	| SDL_K_HW_INT _v_signed
+	    { $$ = SDL_K_TYPE_HW_INT * $2; }
 	| SDL_K_QUAD _v_signed
 	    { $$ = SDL_K_TYPE_QUAD * $2; }
+	| SDL_K_INT_Q _v_signed
+	    { $$ = SDL_K_TYPE_INT_Q * $2; }
 	| SDL_K_OCTA _v_signed
 	    { $$ = SDL_K_TYPE_OCTA * $2; }
 	;
@@ -580,8 +611,12 @@ _v_integer
 _v_float
 	: SDL_K_SFLOAT
 	    { $$ = SDL_K_TYPE_SFLT; }
+	| SDL_K_SFLOAT SDL_K_COMPLEX
+	    { $$ = SDL_K_TYPE_SFLT_C; }
 	| SDL_K_TFLOAT
 	    { $$ = SDL_K_TYPE_TFLT; }
+	| SDL_K_TFLOAT SDL_K_COMPLEX
+	    { $$ = SDL_K_TYPE_TFLT_C; }
 	| SDL_K_DECIMAL SDL_K_PRECISION SDL_K_OPENP _v_expression SDL_K_COMMA
 	  _v_expression SDL_K_CLOSEP
 	    {
@@ -602,12 +637,22 @@ _v_signed
 _v_address
 	: SDL_K_ADDR _v_object
 	    { $$ = SDL_K_TYPE_ADDR; }
-	| SDL_K_ADDRL _v_object
-	    { $$ = SDL_K_TYPE_ADDRL; }
-	| SDL_K_ADDRQ _v_object
-	    { $$ = SDL_K_TYPE_ADDRQ; }
+	| SDL_K_ADDR_L _v_object
+	    { $$ = SDL_K_TYPE_ADDR_L; }
+	| SDL_K_ADDR_Q _v_object
+	    { $$ = SDL_K_TYPE_ADDR_Q; }
 	| SDL_K_ADDR_HW _v_object
-	    { $$ = SDL_K_TYPE_ADDRHW; }
+	    { $$ = SDL_K_TYPE_ADDR_HW; }
+	| SDL_K_HW_ADDR _v_object
+	    { $$ = SDL_K_TYPE_HW_ADDR; }
+	| SDL_K_PTR _v_object
+	    { $$ = SDL_K_TYPE_PTR; }
+	| SDL_K_PTR_L _v_object
+	    { $$ = SDL_K_TYPE_PTR_L; }
+	| SDL_K_PTR_Q _v_object
+	    { $$ = SDL_K_TYPE_PTR_Q; }
+	| SDL_K_PTR_HW _v_object
+	    { $$ = SDL_K_TYPE_PTR_HW; }
 	;
 
 _v_object
@@ -721,25 +766,24 @@ _t_aggr_id
 
 aggregate_body
 	: _t_aggr_id _v_datatypes
-	    { sdl_aggregate_member(&context, $1, $2, NULL, Unknown); }
+	    { sdl_aggregate_member(&context, $1, $2, Unknown); }
 	| _t_aggr_id _t_aggr_id
 	    {
 		sdl_aggregate_member(
 				&context,
 				$1,
 				sdl_aggrtype_idx(&context, $2),
-				NULL,
 				Unknown);
 	    }
 	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
 	    {
 	    	sdl_state_transition(&context, Subaggregate);
-		sdl_aggregate_member(&context, $1, $3, NULL, Structure);
+		sdl_aggregate_member(&context, $1, $3, Structure);
 	    }
 	| _t_aggr_id SDL_K_UNION _v_aggtypes
 	    {
 	    	sdl_state_transition(&context, Subaggregate);
-		sdl_aggregate_member(&context, $1, $3, NULL, Union);
+		sdl_aggregate_member(&context, $1, $3, Union);
 	    }
 	| _t_aggr_id SDL_K_BITFIELD bitfield_options SDL_K_SEMI
 	    {
@@ -747,7 +791,6 @@ aggregate_body
 			&context,
 			$1,
 			SDL_K_TYPE_BITFLD,
-			NULL,
 			Unknown);
 	    }
 	;

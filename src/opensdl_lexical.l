@@ -306,8 +306,8 @@ LITERAL[ \t\v\f\n\r]*[;]	{
 										unput(yycopy[len--]);
 
 									/*
-									 * Move the null-termination to the point where
-									 * the last unput byte was located.
+									 * Move the null-termination to the point
+									 * where the last unput byte was located.
 									 */
 									yycopy[len + 1] = '\0';
 								}
@@ -328,7 +328,7 @@ LITERAL[ \t\v\f\n\r]*[;]	{
 								return(retVal);
 							}
 						}
-CONSTANT				{
+<*>CONSTANT				{
 
 							/*
 							 * Push the current state onto the state stack.
@@ -437,6 +437,7 @@ CONSTANT				{
 <ST_CONST>STRING		{ return(SDL_K_STRING); }
 <ST_CONST>COUNTER		{ return(SDL_K_COUNTER); }
 <ST_CONST>INCREMENT		{ return(SDL_K_INCR); }
+<ST_CONST>ENUMERATE		{ return(SDL_K_ENUM); }
 <ST_CONST>RADIX			{
 							if (_sdl_push_start_state() == false)
 								yyterminate();
@@ -545,9 +546,16 @@ VARIABLE				{ return(SDL_K_VARIABLE); }
 LINKAGE					{ return(SDL_K_LINKAGE); }
 
 <*>BYTE					{ return(SDL_K_BYTE); }
+<*>INTEGER_BYTE			{ return(SDL_K_INT_B); }
 <*>WORD					{ return(SDL_K_WORD); }
+<*>INTEGER_WORD			{ return(SDL_K_INT_W); }
 <*>LONGWORD				{ return(SDL_K_LONG); }
+<*>INTEGER				{ return(SDL_K_INT); }
+<*>INTEGER_LONG			{ return(SDL_K_INT_L); }
+<*>INTEGER_HW			{ return(SDL_K_INT_HW); }
+<*>HARDWARE_INTEGER		{ return(SDL_K_HW_INT); }
 <*>QUADWORD				{ return(SDL_K_QUAD); }
+<*>INTEGER_QUAD			{ return(SDL_K_INT_Q); }
 <*>OCTAWORD				{ return(SDL_K_OCTA); }
 <*>S_FLOATING			{ return(SDL_K_SFLOAT); }
 <*>T_FLOATING			{ return(SDL_K_TFLOAT); }
@@ -555,11 +563,14 @@ LINKAGE					{ return(SDL_K_LINKAGE); }
 <*>BITFIELD				{ return(SDL_K_BITFIELD); }
 <*>CHARACTER			{ return(SDL_K_CHAR); }
 <*>ADDRESS				{ return(SDL_K_ADDR); }
-<*>POINTER				{ return(SDL_K_ADDR); }
-<*>POINTER_LONG			{ return(SDL_K_ADDRL); }
-<*>POINTER_QUAD			{ return(SDL_K_ADDRQ); }
-<*>POINTER_HW			{ return(SDL_K_ADDR_HW); }
-<*>HARDWARE_ADDRESS		{ return(SDL_K_ADDR_HW); }
+<*>ADDRESS_LONG			{ return(SDL_K_ADDR_L); }
+<*>ADDRESS_QUAD			{ return(SDL_K_ADDR_Q); }
+<*>ADDRESS_HW			{ return(SDL_K_ADDR_HW); }
+<*>HARDWARE_ADDRESS		{ return(SDL_K_HW_ADDR); }
+<*>POINTER				{ return(SDL_K_PTR); }
+<*>POINTER_HW			{ return(SDL_K_PTR_HW); }
+<*>POINTER_LONG			{ return(SDL_K_PTR_L); }
+<*>POINTER_QUAD			{ return(SDL_K_PTR_Q); }
 ANY						{ return(SDL_K_ANY); }
 <*>BOOLEAN				{ return(SDL_K_BOOL); }
 VOID					{ return(SDL_K_VOID); }
@@ -610,11 +621,11 @@ VARYING					{ return(SDL_K_VARY); }
 							yylval->tval = strdup(yytext);
 							return(t_variable);
 						}
-{Output_comment}		{
+<INITIAL,ST_AGGR>{Output_comment}	{
 							yylval->tval = strdup(yytext);
 							return(t_line_comment);
 						}
-{Block_comment}			{
+<INITIAL,ST_AGGR>{Block_comment}	{
 							char	*ptr, *yycopy;
 							int		ii;
 
@@ -655,7 +666,7 @@ VARYING					{ return(SDL_K_VARY); }
 							}
 							return(t_block_comment);
 						}
-{Local_comment}			{ /* eat local comments... */ }
+<*>{Local_comment}		{ /* eat local comments... */ }
 <*>[:space:]+			{ /* eat white spaces... */ }
 <*>"%"D[0-9]{1,20}		{
 							yylval->ival = strtol(&yytext[2], NULL, 10);

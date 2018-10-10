@@ -50,26 +50,46 @@
 #define SDL_K_TYPE_CONST	0
 #define SDL_K_TYPE_NONE		0
 #define	SDL_K_TYPE_BYTE		1
-#define	SDL_K_TYPE_WORD		2
-#define	SDL_K_TYPE_LONG		3
-#define	SDL_K_TYPE_QUAD		4
-#define	SDL_K_TYPE_OCTA		5
-#define	SDL_K_TYPE_TFLT		6
-#define	SDL_K_TYPE_SFLT		7
-#define SDL_K_TYPE_DECIMAL	8
-#define	SDL_K_TYPE_BITFLD	9
-#define	SDL_K_TYPE_CHAR		10
-#define	SDL_K_TYPE_CHAR_VARY	11
-#define	SDL_K_TYPE_CHAR_STAR	12
-#define	SDL_K_TYPE_ADDR		13
-#define	SDL_K_TYPE_ADDRL	14
-#define	SDL_K_TYPE_ADDRQ	15
-#define	SDL_K_TYPE_ADDRHW	16
-#define	SDL_K_TYPE_ANY		17
-#define	SDL_K_TYPE_BOOL		18
-#define	SDL_K_TYPE_SRUCT	19
-#define	SDL_K_TYPE_UNION	20
-#define SDL_K_TYPE_ENTRY	21
+#define	SDL_K_TYPE_INT_B	2
+#define	SDL_K_TYPE_WORD		3
+#define	SDL_K_TYPE_INT_W	4
+#define	SDL_K_TYPE_LONG		5
+#define	SDL_K_TYPE_INT_L	6
+#define	SDL_K_TYPE_INT		7
+#define	SDL_K_TYPE_INT_HW	8
+#define	SDL_K_TYPE_HW_INT	9
+#define	SDL_K_TYPE_QUAD		10
+#define	SDL_K_TYPE_INT_Q	11
+#define	SDL_K_TYPE_OCTA		12
+#define	SDL_K_TYPE_TFLT		13
+#define	SDL_K_TYPE_TFLT_C	14
+#define	SDL_K_TYPE_SFLT		15
+#define	SDL_K_TYPE_SFLT_C	16
+#define SDL_K_TYPE_DECIMAL	17
+#define	SDL_K_TYPE_BITFLD	18
+#define	SDL_K_TYPE_BITFLD_B	18
+#define	SDL_K_TYPE_BITFLD_W	19
+#define	SDL_K_TYPE_BITFLD_L	20
+#define	SDL_K_TYPE_BITFLD_Q	21
+#define	SDL_K_TYPE_BITFLD_O	22
+#define	SDL_K_TYPE_CHAR		23
+#define	SDL_K_TYPE_CHAR_VARY	24
+#define	SDL_K_TYPE_CHAR_STAR	25
+#define	SDL_K_TYPE_ADDR		26
+#define	SDL_K_TYPE_ADDR_L	27
+#define	SDL_K_TYPE_ADDR_Q	28
+#define	SDL_K_TYPE_ADDR_HW	29
+#define	SDL_K_TYPE_HW_ADDR	30
+#define	SDL_K_TYPE_PTR		31
+#define	SDL_K_TYPE_PTR_L	32
+#define	SDL_K_TYPE_PTR_Q	33
+#define	SDL_K_TYPE_PTR_HW	34
+#define	SDL_K_TYPE_ANY		35
+#define SDL_K_TYPE_VOID		36
+#define	SDL_K_TYPE_BOOL		37
+#define	SDL_K_TYPE_STRUCT	38
+#define	SDL_K_TYPE_UNION	39
+#define SDL_K_TYPE_ENTRY	40
 #define SDL_K_BASE_TYPE_MIN	1
 #define SDL_K_BASE_TYPE_MAX	63
 #define SDL_K_DECLARE_MIN	64
@@ -216,6 +236,7 @@ typedef struct
     };
     int			radix;
     int			type; /* Numeric or String */
+    bool		enumerate;
 } SDL_CONSTANT;
 
 /*
@@ -445,6 +466,7 @@ typedef enum
     Counter,
     Default,
     Dimension,
+    Enumerate,
     Fill,
     Common,
     Global,
@@ -552,6 +574,7 @@ typedef struct
     SDL_ITEM_LIST	items;
     SDL_AGGREGATE_LIST	aggregates;
     SDL_STATE		state;
+    SDL_STATE		constantPrevState;
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;
     SDL_QUEUE		entries;
@@ -563,6 +586,201 @@ typedef struct
     int			optionsSize;
     int			parameterIdx;
     int			parameterSize;
+    int			wordSize;	/* 32 or 64 */
 } SDL_CONTEXT;
+
+/*
+ *
+ */
+struct nod$_node
+{
+    void *nod$a_flink;
+    void *nod$a_blink;
+    void *nod$a_paren;
+    void *nod$a_child;
+    void *nod$a_comment;
+    union
+    {
+	int nod$l_typeinfo;
+	void *nod$a_typeinfo;
+    } nod$r_info;
+    union
+    {
+	int nod$l_typeinfo2;
+	void *nod$a_typeinfo2;
+	void *nod$a_symtab;
+    } nod$r_info2;
+    char nod$b_type;
+    char nod$b_boundary;
+    short nod$w_datatype;
+    int nod$l_offset;
+    union
+    {
+	int nod$l_fldsiz;
+	void *nod$a_fldsiz;
+    } nod$r_fldsiz;
+
+    /*
+     * Flags nod$v_%%dim indicate module SDLACTION.PLI
+     * has cached a pointer to an expression that cannot
+     * be evaluated yet.  Those flags will be cleared as
+     * SDLACTION.PLI finishes parsing the aggregate that
+     * contains the item.
+     */
+    union	/* A single longword used for two purposes */
+    {
+	int nod$l_hidim;	/* generally used as integer, but */
+	void *hidim;		/* SDLACTION.PLI caches a pointer. */
+    } mod$r_hidim;
+    union	/* A single longword used for two purposes */
+    {
+	int nod$l_lodim;	/* generally used as integer, but */
+	void *nod$a_lodim;	/* SDLACTION.PLI caches a pointer. */
+    } nof$r_lodim;
+
+    /*
+     * Flag nod$v_initial indicate module SDLACTION.PLI
+     * has cached a pointer to an expression that cannot
+     * be evaluated yet.  That flag will be cleared as
+     * SDLACTION.PLI finishes parsing the aggregate that
+     * contains the item.
+     */
+    union	/* A single longword used for two purposes */
+    {
+	int nod$l_initial; 	/* generally used as integer, but */
+	void *nod$a_initial;  	/* SDLACTION.PLI caches a pointer. */
+    } nod$r_initial;
+    int nod$l_srcline;
+    int nod$l_nodeid;
+    union
+    {
+	unsigned int nod$l_flags;
+	int nod$l_fixflags;
+	struct
+	{
+	    unsigned int nod$v_value : 1;
+#define nod$m_value	0x00000001
+	    unsigned int nod$v_mask : 1;
+#define nod$m_mask	0x00000002
+	    unsigned int nod$v_unsigned : 1;
+#define nod$m_unsigned	0x00000004
+	    unsigned int nod$v_common : 1;
+#define nod$m_common	0x00000008
+	    unsigned int nod$v_global : 1;
+#define nod$m_global	0x00000010
+	    unsigned int nod$v_varying : 1;
+#define nod$m_varying	0x00000020
+	    unsigned int nod$v_variable : 1;
+#define nod$m_variable	0x00000040
+	    unsigned int nod$v_based : 1;
+#define nod$m_based	0x00000080
+	    unsigned int nod$v_desc : 1;
+#define nod$m_desc 	0x00000100
+	    unsigned int nod$v_dimen : 1;	/* is dimensioned */
+#define nod$m_dimen 	0x00000200
+	    unsigned int nod$v_in : 1;
+#define nod$m_in	0x00000400
+	    unsigned int nod$v_out : 1;
+#define nod$m_out	0x00000800
+	    unsigned int nod$v_bottom : 1;
+#define nod$m_bottom 	0x00001000
+	    unsigned int nod$v_bound : 1;
+#define nod$m_bound 	0x00002000
+	    unsigned int nod$v_ref : 1;
+#define nod$m_ref	0x00004000
+	    unsigned int nod$v_userfill : 1;
+#define nod$m_userfill 	0x00008000
+	    unsigned int nod$v_alias : 1;
+#define nod$m_alias	0x00010000
+	    unsigned int nod$v_default : 1;	/* DEFAULT */
+#define nod$m_default	0x00020000
+	    unsigned int nod$v_vardim : 1;	/* "DIMENSION *" */
+#define nod$m_vardim	0x00040000
+	    unsigned int nod$v_link : 1;
+#define nod$m_link	0x00080000
+	    unsigned int nod$v_optional : 1;
+#define nod$m_optional	0x00100000
+	    unsigned int nod$v_signed : 1;
+#define nod$m_signed	0x00200000
+	    unsigned int nod$v_fixed_fldsiz : 1;
+#define nod$m_fixed_fldsiz	0x00400000
+	    unsigned int nod$v_generated : 1;
+#define nod$m_generated	0x00800000
+	    unsigned int nod$v_module : 1;
+#define nod$m_module	0x01000000
+	    unsigned int nod$v_list : 1;
+#define nod$m_list	0x02000000
+	    unsigned int nod$v_rtl_str_desc : 1;
+#define nod$m_rtl_str_desc	0x04000000
+	    unsigned int nod$v_complex : 1;
+#define nod$m_complex	0x08000000
+	    unsigned int nod$v_typedef : 1;
+#define nod$m_typedef	0x10000000
+	    unsigned int nod$v_declared : 1;
+#define nod$m_declared	0x20000000
+	    unsigned int nod$v_forward : 1;
+#define nod$m_forward	0x40000000
+	    unsigned int nod$v_align : 1;
+#define nod$m_align	0x80000000
+	} nod$r_flagstruc;
+    } nod$r_flagunion;
+    union
+    {
+	unsigned int nod$l_flags2;
+	int nod$l_fixflags2;
+	struct
+	{
+	    unsigned int nod$v_has_object : 1;
+	    unsigned int nod$v_offset_fixed : 1;
+	    unsigned int nod$v_length : 1;
+	    unsigned int nod$v_hidim : 1;
+	    unsigned int nod$v_lodim : 1;
+	    unsigned int nod$v_initial : 1;
+	    unsigned int nod$v_base_align : 1;
+	    unsigned int nod$v_offset_ref : 1;
+	} nod$r_flags2struc;
+    } nod$r_flags2union;
+    struct
+    {
+	short string_length;
+	char string_text[34];
+    } nod$t_naked;
+    struct
+    {
+	short string_length;
+	char string_text[34];
+    } nod$t_name;
+    struct
+    {
+	short string_length;
+	char string_text[34];
+    } nod$t_return_name;
+    struct
+    {
+	short string_length;
+	char string_text[32];
+    } nod$t_prefix;
+    struct
+    {
+	short string_length;
+	char string_text[32];
+    } nod$t_marker;
+    struct
+    {
+	short string_length;
+	char string_text[32];
+    } nod$t_tag;
+    struct
+    {
+	short string_length;
+	char string_text[32];
+    } nod$t_typename;
+    struct
+    {
+	short string_length;
+	char string_text[32];
+    } nod$t_maskstr;
+#define nod$k_nodesize 346
+};
 
 #endif /* _OPENSDL_DEFS_H_ */

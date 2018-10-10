@@ -224,6 +224,7 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 
 		case Constant:
 		    context->state = Constant;
+		    context->constantPrevState = Module;
 		    break;
 
 		case Item:
@@ -281,11 +282,7 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    switch (action)
 	    {
 		case DefinitionEnd:
-		    context->state = Module;
-		    sdl_constant_compl(context);
-		    break;
-
-		case Constant:
+		    context->state = context->constantPrevState;
 		    sdl_constant_compl(context);
 		    break;
 
@@ -316,6 +313,11 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 		    context->state = Subaggregate;
 		    break;
 
+		case Constant:
+		    context->state = Constant;
+		    context->constantPrevState = Aggregate;
+		    break;
+
 		default:
 		    retVal = 0;
 		    break;
@@ -344,6 +346,11 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 		case Subaggregate:
 		    break;
 
+		case Constant:
+		    context->state = Constant;
+		    context->constantPrevState = Subaggregate;
+		    break;
+
 		default:
 		    retVal = 0;
 		    break;
@@ -351,10 +358,21 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    break;
 
 	case Entry:
-	    if (action == DefinitionEnd)
-		context->state = Module;
-	    else
-		retVal = 0;
+	    switch (action)
+	    {
+		case DefinitionEnd:
+		    context->state = Module;
+		    break;
+
+		case Constant:
+		    context->state = Constant;
+		    context->constantPrevState = Entry;
+		    break;
+
+		default:
+		    retVal = 0;
+		    break;
+	    }
 	    break;
 
 	case IfLanguage:
@@ -927,6 +945,7 @@ int sdl_add_option(
 	    case Align:
 	    case Common:
 	    case Fill:
+	    case Enumerate:
 	    case Global:
 	    case In:
 	    case List:

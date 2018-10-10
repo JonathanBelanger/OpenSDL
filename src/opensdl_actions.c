@@ -26,6 +26,10 @@
  *
  *  V01.001	08-SEP-2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
+ *
+ *  V01.002	10-OCT-2018	Jonathan D. Belanger
+ *  Added a more complete definition of the possible data type keywords we can
+ *  get from the parser.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,25 +74,46 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
  */
 static char *_defaultTag[] =
 {
-    "K",	/* CONSTANT */
-    "B",	/* BYTE [UNSIGNED] */
-    "W",	/* WORD [UNSIGNED] */
-    "L",	/* LONGWORD [UNSIGNED] */
-    "Q",	/* QUADWORD [UNSIGNED] */
-    "O",	/* OCTAWORD [UNSIGNED] */
-    "F",	/* TFLOAT */
-    "D",	/* SFLOAT */
+    "B",	/* BYTE */
+    "IB",	/* INTEGER_BYTE */
+    "W",	/* WORD */
+    "IW",	/* INTEGER_WORD */
+    "L",	/* LONGWORD */
+    "IL",	/* INTEGER_LONG */
+    "IS",	/* INTEGER */
+    "IH",	/* INTEGER_HW */
+    "HI",	/* HARDWARE_INTEGER */
+    "Q",	/* QUADWORD */
+    "IQ",	/* INTEGER_QUAD */
+    "O",	/* OCTAWORD */
+    "F",	/* T_FLOATING */
+    "FC",	/* T_FLOATING_COMPLEX */
+    "D",	/* S_FLOATING */
+    "DC",	/* S_FLOATING COMPLEX */
     "P",	/* DECIMAL */
-    "V",	/* BITFIELD 'S' and 'M' for size and mask, respectively */
-    "T",	/* CHARACTER */
-    "A",	/* ADDRESS/POINTER */
-    "A",	/* POINTER_LONG */
-    "A",	/* POINTER_QUAD */
-    "A",	/* POINTER_HW/ADDRESS_HARDWARE */
+    "V",	/* BITFIELD */
+    "C",	/* CHAR */
+    "CV",	/* CHAR VARYING */
+    "CS",	/* CHAR * */
+    "A",	/* ADDRESS */
+    "AL",	/* ADDRESS_LONG */
+    "AQ",	/* ADDRESS QUAD */
+    "AH",	/* ADDRESS_HW */
+    "HA",	/* HARDWARE_ADDRESS */
+    "PS",	/* POINTER */
+    "PL",	/* POINTER_LONG */
+    "PQ",	/* POINTER_QUAD */
+    "PH",	/* POINTER_HW */
     "",		/* ANY */
-    "C",	/* BOOLEAN (Conditional) */
+    "Z",	/* VOID */
+    "BB",	/* BOOLEAN BYTE */
+    "BW",	/* BOOLEAN WORD */
+    "BL",	/* BOOLEAN LONGWORD */
+    "BQ",	/* BOOLEAN QUADWORD */
+    "BO",	/* BOOLEAN OCTAWORD */
     "R",	/* STRUCTURE */
-    "R"		/* UNION */
+    "R",	/* UNION */
+    "E",	/* ENTRY */
 };
 
 /*
@@ -115,7 +140,8 @@ static SDL_CONSTANT *_sdl_create_constant(
         char *typeName,
         int radix,
         __int64_t value,
-        char *string);
+        char *string,
+        bool enumerate);
 static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst);
 static bool _sdl_all_lower(const char *str);
 static void _sdl_reset_options(SDL_CONTEXT *context);
@@ -1328,6 +1354,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
     __int64_t		radix = SDL_K_RADIX_DEF;
     bool		incrementPresent = false;
     bool		localCreated = false;
+    bool		enumerate = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1339,34 +1366,47 @@ int sdl_constant_compl(SDL_CONTEXT *context)
      * Go find our options
      */
     for (ii = 0; ii < context->optionsIdx; ii++)
-	if (context->options[ii].option == Prefix)
+    {
+	switch(context->options[ii].option)
 	{
-	    prefix = context->options[ii].string;
-	    context->options[ii].string = NULL;
+	    case Prefix:
+		prefix = context->options[ii].string;
+		context->options[ii].string = NULL;
+		break;
+
+	    case Tag:
+		tag = context->options[ii].string;
+		context->options[ii].string = NULL;
+		break;
+
+	    case Counter:
+		counter = context->options[ii].string;
+		context->options[ii].string = NULL;
+		localCreated = sdl_set_local(context, counter, value) < 0;
+		break;
+
+	    case TypeName:
+		typeName = context->options[ii].string;
+		context->options[ii].string = NULL;
+		break;
+
+	    case Increment:
+		increment = context->options[ii].value;
+		incrementPresent = true;
+		break;
+
+	    case Radix:
+		radix = context->options[ii].value;
+		break;
+
+	    case Enumerate:
+		enumerate = true;
+		break;
+
+	    default:
+		break;
 	}
-	else if (context->options[ii].option == Tag)
-	{
-	    tag = context->options[ii].string;
-	    context->options[ii].string = NULL;
-	}
-	else if (context->options[ii].option == Counter)
-	{
-	    counter = context->options[ii].string;
-	    context->options[ii].string = NULL;
-	    localCreated = sdl_set_local(context, counter, value) < 0;
-	}
-	else if (context->options[ii].option == TypeName)
-	{
-	    typeName = context->options[ii].string;
-	    context->options[ii].string = NULL;
-	}
-	else if (context->options[ii].option == Increment)
-	{
-	    increment = context->options[ii].value;
-	    incrementPresent = true;
-	}
-	else if (context->options[ii].option == Radix)
-	    radix = context->options[ii].value;
+    }
 
     /*
      * Before we go too far, we need to determine what kind of definition
@@ -1389,7 +1429,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 				typeName,
 				radix,
 				value,
-				valueStr);
+				valueStr,
+				false);
 	if (myConst != NULL)
 	    retVal = _sdl_queue_constant(context, myConst);
 	else
@@ -1459,7 +1500,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 					typeName,
 					radix,
 					value,
-					NULL);
+					NULL,
+					enumerate);
 		if (myConst != NULL)
 		    retVal = _sdl_queue_constant(context, myConst);
 		else
@@ -1558,7 +1600,7 @@ int sdl_aggregate(
 	myAggr->tag = _sdl_get_tag(
 				context,
 				NULL,
-				SDL_K_TYPE_SRUCT,
+				SDL_K_TYPE_STRUCT,
 				_sdl_all_lower(name));
 	SDL_Q_INIT(&myAggr->members);
 	SDL_INSQUE(&context->aggregates.header, &myAggr->header);
@@ -1590,7 +1632,7 @@ int sdl_aggregate(
  *	aggregate.
  *  subaggrType:
  *	A value indicating the type of subaggregate that is being requested to
- *	be created.  This has one of the following enumarated values:
+ *	be created.  This has one of the following enumerated values:
  *
  *		Unknown:	This is not a subaggregate but a member item.
  *		Structure:	This is a structure aggregate.
@@ -1626,7 +1668,7 @@ int sdl_aggregate_member(
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_aggregate_member\n", __FILE__, __LINE__);
+	printf("%s:%d:sdl_aggregate_member(%d)\n", __FILE__, __LINE__, subaggrType);
 
     /*
      * Before we go too far, there may have been one or more options defined to
@@ -1911,7 +1953,7 @@ int sdl_aggregate_member(
 		myMember->subaggr.tag = _sdl_get_tag(
 						context,
 						NULL,
-						SDL_K_TYPE_SRUCT,
+						SDL_K_TYPE_STRUCT,
 						_sdl_all_lower(name));
 		SDL_Q_INIT(&myMember->subaggr.members);
 		context->aggregateDepth++;
@@ -2735,59 +2777,93 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
 	switch (item)
 	{
 	    case SDL_K_TYPE_BYTE:
-		retVal = sizeof(char);
+	    case SDL_K_TYPE_INT_B:
+	    case SDL_K_TYPE_BITFLD_B:
+	    case SDL_K_TYPE_CHAR:
+		retVal = 1;
 		break;
 
 	    case SDL_K_TYPE_WORD:
-		retVal = sizeof(short int);
+	    case SDL_K_TYPE_INT_W:
+	    case SDL_K_TYPE_BITFLD_W:
+		retVal = 2;
 		break;
 
 	    case SDL_K_TYPE_LONG:
-		retVal = sizeof(int);
+	    case SDL_K_TYPE_INT_L:
+	    case SDL_K_TYPE_INT:
+	    case SDL_K_TYPE_INT_HW:
+	    case SDL_K_TYPE_HW_INT:
+	    case SDL_K_TYPE_BITFLD_L:
+	    case SDL_K_TYPE_ADDR_L:
+	    case SDL_K_TYPE_PTR_L:
+		retVal = 4;
 		break;
 
 	    case SDL_K_TYPE_QUAD:
-		retVal = sizeof(__int64_t);
+	    case SDL_K_TYPE_INT_Q:
+	    case SDL_K_TYPE_BITFLD_Q:
+	    case SDL_K_TYPE_ADDR_Q:
+	    case SDL_K_TYPE_PTR_Q:
+		retVal = 8;
 		break;
 
 	    case SDL_K_TYPE_OCTA:
-		retVal = sizeof(__int128_t);
+	    case SDL_K_TYPE_BITFLD_O:
+		retVal = 16;
 		break;
 
 	    case SDL_K_TYPE_TFLT:
-		retVal = sizeof(float);
+		retVal = 4;
+		break;
+
+	    case SDL_K_TYPE_TFLT_C:
+		retVal = 8;
 		break;
 
 	    case SDL_K_TYPE_SFLT:
-		retVal = sizeof(double);
+		retVal = 8;
+		break;
+
+	    case SDL_K_TYPE_SFLT_C:
+		retVal = 16;
 		break;
 
 	    case SDL_K_TYPE_DECIMAL:
-		retVal = sizeof(float);
+		retVal = 2;	/* (2 * precision) + 1 */
 		break;
 
-	    case SDL_K_TYPE_CHAR:
-		retVal = sizeof(char);
+	    case SDL_K_TYPE_CHAR_VARY:
+		retVal = 1;	/* length + 2 bytes for stored length */
+		break;
+
+	    case SDL_K_TYPE_CHAR_STAR:
+		retVal = 1;
 		break;
 
 	    case SDL_K_TYPE_ADDR:
-		retVal = sizeof(void *);
+	    case SDL_K_TYPE_PTR:
+		retVal = context->wordSize / 8;
 		break;
 
-	    case SDL_K_TYPE_ADDRL:
-		retVal = sizeof(long int);
+	    case SDL_K_TYPE_ADDR_HW:
+	    case SDL_K_TYPE_HW_ADDR:
+	    case SDL_K_TYPE_PTR_HW:
+		retVal = context->wordSize / 8;
 		break;
 
-	    case SDL_K_TYPE_ADDRQ:
-		retVal = sizeof(long long int);
-		break;
-
-	    case SDL_K_TYPE_ADDRHW:
-		retVal = sizeof(void *);
+	    case SDL_K_TYPE_ANY:
+	    case SDL_K_TYPE_VOID:
+		retVal = 0;
 		break;
 
 	    case SDL_K_TYPE_BOOL:
-		retVal = sizeof(_Bool);
+		retVal = sizeof(bool);
+		break;
+
+	    case SDL_K_TYPE_STRUCT:
+	    case SDL_K_TYPE_UNION:
+		retVal = sizeof(bool);
 		break;
 
 	    default:
@@ -2837,13 +2913,16 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
  *  comment:
  *	A pointer to a comment string to be associated with this constant.
  *  typeName:
- *	A pointer to the typename associated to this constant.
+ *	A pointer to the type-name associated to this constant.
  *  radix:
  *	A value indicating the radix the value is to be displayed.
  *  value:
  *	A value for the actual constant.
  *  string:
  *	A pointer to a string value for the actual constant.
+ *  enumerate:
+ *	A flag to indicate that this constant should be defined as an
+ *	enumeration.
  *
  * Output Parameters:
  *  None.
@@ -2860,7 +2939,8 @@ static SDL_CONSTANT *_sdl_create_constant(
         char *typeName,
         int radix,
         __int64_t value,
-        char *string)
+        char *string,
+        bool enumerate)
 {
     SDL_CONSTANT *retVal = calloc(1, sizeof(SDL_CONSTANT));
 
@@ -2900,6 +2980,7 @@ static SDL_CONSTANT *_sdl_create_constant(
 	    retVal->type = SDL_K_CONST_STR;
 	    retVal->string = string;
 	}
+	retVal->enumerate = enumerate;
     }
 
     /*

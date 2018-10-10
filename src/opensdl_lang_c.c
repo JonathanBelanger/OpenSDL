@@ -43,7 +43,7 @@ static char	*_module_str[] =
     "\n/*** MODULE %s ",
     "IDENT = %s ",
     "***/",
-    "\n#include <ctype.h>\n#include <sysbool.h>\n"
+    "\n#include <stdint.h>\n#include <ctype.h>\n#include <sysbool.h>\n"
     "#ifdef _%s_\n#define _%s_ 1\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n",
     "\n#ifdef __cplusplus\n}\n#endif\n\n#endif /* _%s_ */"
 };
@@ -102,15 +102,7 @@ static char	*_parameter[] = {"%s %s", "%s *%s", ","};
 #define SDL_PARAM_REF_ENT   1
 #define SDL_PARAM_COM_ENT   3
 
-static char	*_aggregates[] = {"struct", "union"};
-#define SDL_AGGR_STR_ENT    0
-#define SDL_AGGR_UNI_ENT    1
-
-static char	*_typed = "typedef";
-
-static char	*_names[] = {"%s%s_%.*s", "_%s%s_%.*s_"};
-#define SDL_NAME_ENT	0
-#define SDL_TYPED_ENT	1
+static char	*_typed = "typedef %s";
 
 static char	*_sign[] = {"", "unsigned "};
 #define SDL_SIGNED	0
@@ -130,8 +122,11 @@ static char	*_types[] =
     " : %d",
     "[%d]",
     "struct {int string_length; char string_text[%d];} ",
-    "void *",
-    "%s "
+    "void ",
+    "%s ",
+    " *",
+    "struct %s",
+    "union %s"
 };
 #define SDL_BOOL_ENT	0
 #define SDL_BYTE_ENT	1
@@ -146,8 +141,11 @@ static char	*_types[] =
 #define SDL_BITF_ENT	9
 #define SDL_ARRAY_ENT	10
 #define SDL_VARY_ENT	11
-#define SDL_PTR_ENT	12
+#define SDL_VOID_ENT	12
 #define SDL_USER_ENT	13
+#define SDL_ADDR_ENT	14
+#define SDL_STRUCT_ENT	15
+#define SDL_UNION_ENT	16
 
 static char	*_scope[] = {"extern ", "globalref", "globaldef"};
 #define SDL_COMMON_ENT	0
@@ -490,10 +488,10 @@ int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 		retVal = 0;
 	}
 	if ((retVal == 1) &&
-	    (fprintf(fp, _module_str[SDL_MODINC_ENT]) < 0))
+	    (fprintf(fp, _module_str[SDL_MODC_ENT], context->ident) < 0))
 	    retVal = 0;
 	if ((retVal == 1) &&
-	    (fprintf(fp, _module_str[SDL_MODC_ENT], context->ident) < 0))
+	    (fprintf(fp, _module_str[SDL_MODINC_ENT]) < 0))
 	    retVal = 0;
 	if (retVal == 1)
 	{
@@ -623,9 +621,14 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	    case SDL_K_TYPE_DECIMAL:
 	    case SDL_K_TYPE_CHAR:
 	    case SDL_K_TYPE_ADDR:
-	    case SDL_K_TYPE_ADDRL:
-	    case SDL_K_TYPE_ADDRQ:
-	    case SDL_K_TYPE_ADDRHW:
+	    case SDL_K_TYPE_ADDR_L:
+	    case SDL_K_TYPE_ADDR_Q:
+	    case SDL_K_TYPE_ADDR_HW:
+	    case SDL_K_TYPE_HW_ADDR:
+	    case SDL_K_TYPE_PTR:
+	    case SDL_K_TYPE_PTR_L:
+	    case SDL_K_TYPE_PTR_Q:
+	    case SDL_K_TYPE_PTR_HW:
 		if (fprintf(fp, format) < 0)
 		    retVal = 0;
 		break;
@@ -906,8 +909,8 @@ int sdl_c_aggregate(
 		if (retVal == 1)
 		{
 		    char *which = (aggr.aggr->structUnion == Structure ?
-				_aggregates[SDL_AGGR_STR_ENT] :
-				_aggregates[SDL_AGGR_UNI_ENT]);
+				_types[SDL_STRUCT_ENT] :
+				_types[SDL_UNION_ENT]);
 		    char *fmt = (aggr.aggr->typeDef == true ?
 				"%s _%s\n%s{\n" :
 				"%s %s\n%s{\n");
@@ -947,8 +950,8 @@ int sdl_c_aggregate(
 		if (retVal == 1)
 		{
 		    char *which = (aggr.subaggr->structUnion == Structure ?
-				_aggregates[SDL_AGGR_STR_ENT] :
-				_aggregates[SDL_AGGR_UNI_ENT]);
+				_types[SDL_STRUCT_ENT] :
+				_types[SDL_UNION_ENT]);
 		    char *fmt = (aggr.subaggr->typeDef == true ?
 				"%s _%s\n%s{\n" :
 				"%s %s\n%s{\n");
@@ -1012,7 +1015,8 @@ int sdl_c_aggregate(
  */
 int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 {
-    int		retVal = 1;
+    SDL_PARAMETER	*param = (SDL_PARAMETER *) entry->parameters.flink;
+    int			retVal = 1;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1032,9 +1036,6 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     }
     else
     {
-	/*
-	 * TODO: How do we deal with unsigned?
-	 */
 	char *typeStr = _sdl_c_typeidStr(entry->returns.type, context);
 
 	if ((entry->returns.type >= SDL_K_BASE_TYPE_MIN) &&
@@ -1061,9 +1062,14 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 		case SDL_K_TYPE_DECIMAL:
 		case SDL_K_TYPE_CHAR:
 		case SDL_K_TYPE_ADDR:
-		case SDL_K_TYPE_ADDRL:
-		case SDL_K_TYPE_ADDRQ:
-		case SDL_K_TYPE_ADDRHW:
+		case SDL_K_TYPE_ADDR_L:
+		case SDL_K_TYPE_ADDR_Q:
+		case SDL_K_TYPE_ADDR_HW:
+		case SDL_K_TYPE_HW_ADDR:
+		case SDL_K_TYPE_PTR:
+		case SDL_K_TYPE_PTR_L:
+		case SDL_K_TYPE_PTR_Q:
+		case SDL_K_TYPE_PTR_HW:
 		    if (fprintf(fp, typeStr) < 0)
 			retVal = 0;
 		    break;
@@ -1082,6 +1088,10 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 	if ((retVal == 1) &&
 	    (fprintf(fp, _entry[SDL_ENTRY_ENT], typeStr, entry->id) < 0))
 	    retVal = 0;
+    }
+    while ((retVal == 1) && (param != (SDL_PARAMETER *) &entry->parameters))
+    {
+
     }
     if ((retVal == 1) &&
 	(fprintf(fp, _entry[SDL_ENTRYC_ENT]) < 0))
@@ -1254,10 +1264,14 @@ static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
 	     * TODO: We need more here (the base type).
 	     */
 	    case SDL_K_TYPE_ADDR:
-	    case SDL_K_TYPE_ADDRL:
-	    case SDL_K_TYPE_ADDRQ:
-	    case SDL_K_TYPE_ADDRHW:
-		retVal = _types[SDL_PTR_ENT];
+	    case SDL_K_TYPE_ADDR_L:
+	    case SDL_K_TYPE_ADDR_Q:
+	    case SDL_K_TYPE_ADDR_HW:
+	    case SDL_K_TYPE_HW_ADDR:
+	    case SDL_K_TYPE_PTR_L:
+	    case SDL_K_TYPE_PTR_Q:
+	    case SDL_K_TYPE_PTR_HW:
+		retVal = _types[SDL_ADDR_ENT];
 		break;
 
 	    case SDL_K_TYPE_BOOL:
@@ -1267,7 +1281,7 @@ static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
 	    /*
 	     * TODO: We need more here (the base type).
 	     */
-	    case SDL_K_TYPE_SRUCT:
+	    case SDL_K_TYPE_STRUCT:
 		retVal = _types[SDL_BYTE_ENT];
 		break;
 
@@ -1371,7 +1385,9 @@ static char *_sdl_c_leading_spaces(int depth)
     }
 
     /*
-     * Return back to the caller.
+     * Return the results back to the caller.
      */
     return(retVal);
 }
+
+

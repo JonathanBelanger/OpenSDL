@@ -59,7 +59,6 @@ int sdl_aggregate_member(
 		SDL_CONTEXT *context,
 		char *name,
 		__int64_t datatype,
-		char *aggrId,
 		SDL_AGGR_TYPE subaggType);
 int sdl_aggregate_compl(SDL_CONTEXT *context, char *name);
 int sdl_entry(SDL_CONTEXT *context, char *name);

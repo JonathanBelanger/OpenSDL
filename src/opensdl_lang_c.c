@@ -38,121 +38,60 @@
 extern char *sdl_months[];
 extern _Bool trace;
 
-static char	*_module_str[] =
+static char *_types[SDL_K_BASE_TYPE_MAX][2] =
 {
-    "\n/*** MODULE %s ",
-    "IDENT = %s ",
-    "***/",
-    "\n#include <stdint.h>\n#include <ctype.h>\n#include <sysbool.h>\n"
-    "#ifdef _%s_\n#define _%s_ 1\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n",
-    "\n#ifdef __cplusplus\n}\n#endif\n\n#endif /* _%s_ */"
+	/* 32-bit	64-bit	*/
+	{"void ",	"void "},	/* NONE */
+	{"char ",	"char "},	/* BYTE */
+	{"char ",	"char "},	/* INTEGER_BYTE */
+	{"short ",	"short "},	/* WORD */
+	{"short ",	"short "},	/* INTEGER_WORD */
+	{"int ",	"int "},	/* LONGWORD */
+	{"int ",	"int "},	/* INTEGER_LONG */
+	{"int ",	"int "},	/* INTEGER */
+	{"int ",	"__int64_t "},	/* INTEGER_HW */
+	{"int ",	"__int64_t "},	/* HARDWARE_INTEGER */
+	{"__int64_t ",	"int "},	/* QUADWORD */
+	{"__int64_t ",	"int "},	/* INTEGER_QUAD */
+	{"__int64_t ",	"__int128_t "},	/* OCTAWORD */
+	{"float ",	"float "},	/* T_FLOATING */
+	{"float ",	"float "},	/* T_FLOATING COMPLEX */
+	{"double ",	"double "},	/* S_FLOATING */
+	{"double ",	"double "},	/* S_FLOATING COMPLEX */
+	{"float ",	"float "},	/* F_FLOATING */
+	{"float ",	"float "},	/* F_FLOATING COMPLEX */
+	{"double ",	"double "},	/* D_FLOATING */
+	{"double ",	"double "},	/* D_FLOATING COMPLEX */
+	{"double ",	"double "},	/* G_FLOATING */
+	{"double ",	"double "},	/* G_FLOATING COMPLEX */
+	{"__int64_t ",	"__int128_t "},	/* H_FLOATING */
+	{"__int64_t ",	"__int128_t "},	/* H_FLOATING COMPLEX */
+	{"char ",	"char "},	/* DECIMAL */
+	{"int ",	"int "},	/* BITFIELD */
+	{"char ",	"char "},	/* BITFIELD BYTE */
+	{"short ",	"short "},	/* BITFIELD WORD */
+	{"int ",	"int "},	/* BITFIELD LONGWORD */
+	{"__int64_t ",	"__int64_t "},	/* BITFIELD QUADWORD */
+	{"__int64_t ",	"__int128_t "},	/* BITFIELD OCTAWORD */
+	{"char ",	"char "},	/* CHAR */
+	{NULL,		NULL},		/* CHAR VARYING */
+	{NULL,		NULL},		/* CHAR LENGTH(*) */
+	{NULL,		NULL},		/* ADDRESS */
+	{NULL,		"int "},	/* ADDRESS_LONG */
+	{NULL,		"__int64_t "},	/* ADDRESS_QUAD */
+	{NULL,		"__int64_t "},	/* ADDRESS_HW */
+	{NULL,		"__int64_t "},	/* HARDWARE_ADDRESS*/
+	{NULL,		NULL},		/* POINTER */
+	{NULL,		"int "},	/* POINTER_LONG */
+	{NULL,		"__int64_t "},	/* POINTER_QUAD */
+	{NULL,		"__int64_t "},	/* POINTER_HW */
+	{NULL,		NULL},		/* ANY */
+	{"void ",	"void "},	/* VOID */
+	{"bool ",	"bool "},	/* BOOLEAN */
+	{"struct ",	"struct "},	/* STRUCTURE */
+	{"union ",	"union "},	/* UNION */
+	{NULL,		NULL}		/* ENTRY */
 };
-#define SDL_MODULE_ENT	0
-#define SDL_IDENT_ENT	1
-#define SDL_MODC_ENT	2
-#define SDL_MODINC_ENT	3
-#define SDL_MODCOND_ENT	4
-#define SDL_MODEND_ENT	5
-
-static char	*_comments[] =
-{
-    "/*%s */",
-    "\n/*\n *%s",
-    "\n/*",
-    " *%s",
-    " *%s\n */",
-    " */",
-    "%s",
-    "\n/*%s*/"
-};
-#define SDL_LINE_COMMENT	0
-#define SDL_START1_COMMENT	1
-#define SDL_START2_COMMENT	2
-#define SDL_MID1_COMMENT	3
-#define SDL_END1_COMMENT	4
-#define SDL_END2_COMMENT	5
-#define SDL_MID2_COMMENT	6
-#define SDL_START_END_COMMENT	7
-
-static char *_constant[] =
-{
-    "#define ",
-    "%s%s_%s\t",
-    "%s%s\t",
-    "%d\t",
-    "0x%x\t",
-    "0%o\t",
-    "\"%s\"\t"
-};
-#define SDL_DEFINE_ENT	0
-#define SDL_CONST_TAG	1
-#define SDL_CONST_NOTAG	2
-#define SDL_DEC_ENT	3
-#define SDL_HEX_ENT	4
-#define SDL_OCT_ENT	5
-#define SDL_STR_ENT	6
-
-static char	*_entry[] = {"%s %s(", ");", "void %s("};
-#define SDL_ENTRY_ENT	0
-#define SDL_ENTRYC_ENT	1
-#define SDL_ENTRYP_ENT	2
-
-static char	*_parameter[] = {"%s %s", "%s *%s", ","};
-#define SDL_PARAM_VAL_ENT   0
-#define SDL_PARAM_REF_ENT   1
-#define SDL_PARAM_COM_ENT   3
-
-static char	*_typed = "typedef %s";
-
-static char	*_sign[] = {"", "unsigned "};
-#define SDL_SIGNED	0
-#define SDL_UNSIGNED	1
-
-static char	*_types[] =
-{
-    "bool ",
-    "%schar ",			/* SIGNED | UNSIGNED */
-    "%sshort int ",		/* SIGNED | UNSIGNED */
-    "%sint ",			/* SIGNED | UNSIGNED */
-    "%s__int64 ",		/* SIGNED | UNSIGNED */
-    "%s__int128 ",		/* SIGNED | UNSIGNED */
-    "float ",
-    "double float ",
-    "char ",
-    " : %d",
-    "[%d]",
-    "struct {int string_length; char string_text[%d];} ",
-    "void ",
-    "%s ",
-    " *",
-    "struct %s",
-    "union %s"
-};
-#define SDL_BOOL_ENT	0
-#define SDL_BYTE_ENT	1
-#define SDL_WORD_ENT	2
-#define SDL_LONG_ENT	3
-#define SDL_QUAD_ENT	4
-#define SDL_OCTA_ENT	5
-#define SDL_TFLT_ENT	6
-#define SDL_SFLT_ENT	7
-#define SDL_DECI_ENT	8
-#define SDL_CHAR_ENT	8
-#define SDL_BITF_ENT	9
-#define SDL_ARRAY_ENT	10
-#define SDL_VARY_ENT	11
-#define SDL_VOID_ENT	12
-#define SDL_USER_ENT	13
-#define SDL_ADDR_ENT	14
-#define SDL_STRUCT_ENT	15
-#define SDL_UNION_ENT	16
-
-static char	*_scope[] = {"extern ", "globalref", "globaldef"};
-#define SDL_COMMON_ENT	0
-#define SDL_GLOBAL_ENT	1
-#define SDL_GDEF_ENT	2
-
-static char	*_newLine = "\n";
 
 /*
  * Local Prototypes
@@ -405,27 +344,27 @@ int sdl_c_comment(
      * Determine the type of comment being used.
      */
     if (lineComment == true)
-	whichComment = _comments[SDL_LINE_COMMENT];
+	whichComment = "/*%s */";
     else if (startComment == true)
     {
 	if (endComment == true)
-	    whichComment = _comments[SDL_START_END_COMMENT];
+	    whichComment = "\n/*%s*/";
 	else if (strlen(comment) == 0)
-	    whichComment = _comments[SDL_START2_COMMENT];
+	    whichComment = "\n/*";
 	else
-	    whichComment = _comments[SDL_START1_COMMENT];
+	    whichComment = "\n/*\n *%s";
     }
     else if (endComment == true)
     {
 	if (strlen(comment) == 0)
-	    whichComment = _comments[SDL_END2_COMMENT];
+	    whichComment = " */";
 	else
-	    whichComment = _comments[SDL_END1_COMMENT];
+	    whichComment = " *%s\n */";
     }
     else if (middleComment == true)
-	whichComment = _comments[SDL_MID1_COMMENT];
+	whichComment = " *%s";
     else
-	whichComment = _comments[SDL_MID2_COMMENT];
+	whichComment = "%s";
 
     /*
      * If the file has been opened, then write out the comment.
@@ -434,7 +373,7 @@ int sdl_c_comment(
     {
 	if (fprintf(fp, whichComment, comment) < 0)
 	    retVal = 0;
-	else if (fprintf(fp, _newLine) < 0)
+	else if (fprintf(fp, "\n") < 0)
 	    retVal = 0;
     }
     else
@@ -467,7 +406,7 @@ int sdl_c_comment(
  */
 int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 {
-    int	retVal = 1;
+    int		retVal = 1;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -480,29 +419,50 @@ int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
      */
     if (fp != NULL)
     {
-	if (fprintf(fp, _module_str[SDL_MODULE_ENT], context->module) < 0)
+	if (fprintf(fp, "\n/*** MODULE %s ", context->module) < 0)
 	    retVal = 0;
 	else if ((context->ident != NULL) && (strlen(context->ident) > 0))
 	{
-	    if (fprintf(fp, _module_str[SDL_IDENT_ENT], context->ident) < 0)
+	    if (fprintf(fp, "IDENT = %s ", context->ident) < 0)
 		retVal = 0;
 	}
-	if ((retVal == 1) &&
-	    (fprintf(fp, _module_str[SDL_MODC_ENT], context->ident) < 0))
+	if ((retVal == 1) && (fprintf(fp, "***/\n") < 0))
 	    retVal = 0;
 	if ((retVal == 1) &&
-	    (fprintf(fp, _module_str[SDL_MODINC_ENT]) < 0))
+	    (fprintf(
+		fp,
+		"#include <stdint.h>\n"
+		"#include <ctype.h>\n"
+		"#include <sysbool.h>\n") < 0))
 	    retVal = 0;
 	if (retVal == 1)
 	{
-	    if (fprintf(fp, _newLine) < 0)
-		retVal = 0;
-	    else if (fprintf(
+	    if (fprintf(
 			fp,
-			_module_str[SDL_MODCOND_ENT],
+			"\n#ifdef _%s_\n#define _%s_ 1\n"
+			"#ifdef __cplusplus\nextern \"C\" {\n"
+			"#endif\n",
 			strupr(context->module),
 			strupr(context->module)) < 0)
 		retVal = 0;
+	}
+
+	/*
+	 * Only do alignment pragmas if we are building for a 64-bit
+	 * environment.
+	 */
+	if ((context->wordSize == 64) && (retVal == 1))
+	{
+	    if (fprintf(fp, "#pragma __member_alignment __save\n") < 0)
+		retVal = 0;
+	    else
+	    {
+		if (fprintf(
+			fp,
+			"#pragma __%smember_alignment\n",
+			(context->memberAlign == true ? "" : "no")) < 0)
+		    retVal = 0;
+	    }
 	}
     }
     else
@@ -548,9 +508,10 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
      */
     if (fp != NULL)
     {
-	if (fprintf(fp, _module_str[SDL_MODEND_ENT], strupr(context->module)) < 0)
-	    retVal = 0;
-	else if (fprintf(fp, _newLine) < 0)
+	if (fprintf(
+		fp,
+		"\n#ifdef __cplusplus\n}\n#endif\n\n#endif /* _%s_ */\n",
+		strupr(context->module)) < 0)
 	    retVal = 0;
     }
     else
@@ -584,7 +545,9 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
  */
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
+    char	*sign = (item->_unsigned == true ? "unsigned " : "");
     char	*format = _sdl_c_typeidStr(item->type, context);
+    int		bits = (context->wordSize / 32) - 1;	/* 0 = 32, 1 = 64 */
     int		retVal = 1;
 
     /*
@@ -608,10 +571,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	    case SDL_K_TYPE_LONG:
 	    case SDL_K_TYPE_QUAD:
 	    case SDL_K_TYPE_OCTA:
-		if (fprintf(
-			fp,
-			format,
-			_sign[item->_unsigned ? SDL_UNSIGNED : SDL_SIGNED]) < 0)
+		if (fprintf(fp, format, sign) < 0)
 		    retVal = 0;
 		break;
 
@@ -635,10 +595,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 
 	    case SDL_K_TYPE_BITFLD:
 		format = _sdl_c_typeidStr(item->bitfieldType, context);
-		if (fprintf(
-			fp,
-			format,
-			_sign[item->_signed ? SDL_SIGNED : SDL_UNSIGNED]) < 0)
+		if (fprintf(fp, format, sign) < 0)
 		    retVal = 0;
 		break;
 
@@ -680,15 +637,20 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 		 */
 		if (dim > 0)
 		{
-		    if (fprintf(fp, _types[SDL_ARRAY_ENT], dim) < 0)
+		    if (fprintf(fp, "[%d]", dim) < 0)
 			retVal = 0;
 		}
 	    }
-	    else if (item->type == SDL_K_TYPE_BITFLD)
+	    else if ((item->type == SDL_K_TYPE_BITFLD) ||
+		     (item->type == SDL_K_TYPE_BITFLD_B) ||
+		     (item->type == SDL_K_TYPE_BITFLD_W) ||
+		     (item->type == SDL_K_TYPE_BITFLD_L) ||
+		     (item->type == SDL_K_TYPE_BITFLD_Q) ||
+		     (item->type == SDL_K_TYPE_BITFLD_O))
 	    {
 		if (fprintf(
 			fp,
-			_types[SDL_BITF_ENT],
+			_types[item->type][bits],
 			item->length) < 0)
 		    retVal = 0;
 	    }
@@ -728,6 +690,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 {
     char 	*prefix = (constant->prefix ? constant->prefix : "");
+    char	*name = _sdl_c_generate_name(constant->id, prefix, constant->tag);
     int		retVal = 1;
 
     /*
@@ -739,61 +702,46 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
     /*
      * Now let's do some output.
      *
-     * First the #define portion.
+     * First the #define <name> portion.
      */
-    if (fprintf(fp, _constant[SDL_DEFINE_ENT]) < 0)
+    if (fprintf(fp, "#define %s\t", name) < 0)
 	retVal = 0;
 
     /*
-     * Next the <name> portion.
+     * If first part was successful and this is a string constant, then output
+     * the string value.
      */
-    if (strlen(constant->tag) > 0)
+    if (retVal == 1)
     {
-	if (fprintf(
-	        fp,
-	        _constant[SDL_CONST_TAG],
-	        prefix,
-	        constant->tag,
-	        constant->id) < 0)
-	    retVal = 0;
-    }
-    else
-    {
-	if (fprintf(fp, _constant[SDL_CONST_NOTAG], prefix, constant->id) < 0)
-	    retVal = 0;
-    }
-
-    /*
-     * If name was successful and this is a string constant, then output the
-     * string value.
-     */
-    if ((retVal == 1) && (constant->type == SDL_K_CONST_STR))
-    {
-	if (fprintf(fp, _constant[SDL_STR_ENT], constant->string) < 0)
-	    retVal = 0;
-    }
-
-    /*
-     * It isn't a string, so it much be a value.  Output the value based on the
-     * request RADIX.
-     */
-    else if (retVal == 1)
-    {
-	switch (constant->radix)
+	switch (constant->type)
 	{
-	    case SDL_K_RADIX_DEC:
-		if (fprintf(fp, _constant[SDL_DEC_ENT], constant->value) < 0)
+	    case SDL_K_CONST_STR:
+		if (fprintf(fp, "\"%s\"\t", constant->string) < 0)
 		    retVal = 0;
 		break;
 
-	    case SDL_K_RADIX_OCT:
-		if (fprintf(fp, _constant[SDL_OCT_ENT], constant->value) < 0)
-		    retVal = 0;
-		break;
+	    case SDL_K_CONST_NUM:
+		switch (constant->radix)
+		{
+		    case SDL_K_RADIX_DEC:
+			if (fprintf(fp, "%ld\t", constant->value) < 0)
+			    retVal = 0;
+			break;
 
-	    case SDL_K_RADIX_HEX:
-		if (fprintf(fp, _constant[SDL_HEX_ENT], constant->value) < 0)
-		    retVal = 0;
+		    case SDL_K_RADIX_OCT:
+			if (fprintf(fp, "0%lo\t", constant->value) < 0)
+			    retVal = 0;
+			break;
+
+		    case SDL_K_RADIX_HEX:
+			if (fprintf(fp, "0x%lx\t", constant->value) < 0)
+			    retVal = 0;
+			break;
+
+		    default:
+			retVal = 0;
+			break;
+		}
 		break;
 
 	    default:
@@ -807,13 +755,13 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
      * as well.
      */
     if ((retVal == 1) && (constant->comment != NULL))
-	if (fprintf(fp, _comments[SDL_LINE_COMMENT], constant->comment) < 0)
+	if (fprintf(fp, "/*%s */", constant->comment) < 0)
 	    retVal = 0;
 
     /*
      * Move to the next line in the output file.
      */
-    if ((retVal == 1) && (fprintf(fp, _newLine) < 0))
+    if ((retVal == 1) && (fprintf(fp, "\n") < 0))
 	retVal = 0;
 
     /*
@@ -877,6 +825,7 @@ int sdl_c_aggregate(
     char		*name = NULL;
     char		*spaces = _sdl_c_leading_spaces(depth);
     SDL_LANG_AGGR	aggr = { .parameter = param };
+    int			bits = (context->wordSize / 32) - 1;  /* 0=32, 1=64 */
     int			retVal = 1;
 
     /*
@@ -903,14 +852,14 @@ int sdl_c_aggregate(
 	    {
 		if (aggr.aggr->typeDef == true)
 		{
-		    if (fprintf(fp, "%s ", _typed) < 0)
+		    if (fprintf(fp, "typedef ") < 0)
 			retVal = 0;
 		}
 		if (retVal == 1)
 		{
 		    char *which = (aggr.aggr->structUnion == Structure ?
-				_types[SDL_STRUCT_ENT] :
-				_types[SDL_UNION_ENT]);
+				_types[SDL_K_TYPE_STRUCT][bits] :
+				_types[SDL_K_TYPE_UNION][bits]);
 		    char *fmt = (aggr.aggr->typeDef == true ?
 				"%s _%s\n%s{\n" :
 				"%s %s\n%s{\n");
@@ -944,14 +893,14 @@ int sdl_c_aggregate(
 	    {
 		if (aggr.subaggr->typeDef == true)
 		{
-		    if (fprintf(fp, "%s%s ", spaces, _typed) < 0)
+		    if (fprintf(fp, "%stypedef ", spaces) < 0)
 			retVal = 0;
 		}
 		if (retVal == 1)
 		{
 		    char *which = (aggr.subaggr->structUnion == Structure ?
-				_types[SDL_STRUCT_ENT] :
-				_types[SDL_UNION_ENT]);
+				_types[SDL_K_TYPE_STRUCT][bits] :
+				_types[SDL_K_TYPE_UNION][bits]);
 		    char *fmt = (aggr.subaggr->typeDef == true ?
 				"%s _%s\n%s{\n" :
 				"%s %s\n%s{\n");
@@ -1031,7 +980,7 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
      */
     if (entry->returns.type == SDL_K_TYPE_NONE)
     {
-	if (fprintf(fp, _entry[SDL_ENTRYP_ENT], entry->id) < 0)
+	if (fprintf(fp, "void %s(", entry->id) < 0)
 	    retVal = 0;
     }
     else
@@ -1050,9 +999,7 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 		    if (fprintf(
 			    fp,
 			    typeStr,
-			    _sign[entry->returns._unsigned ?
-				    SDL_UNSIGNED :
-				    SDL_SIGNED]) < 0)
+			    (entry->returns._unsigned ? "unsigned " : "")) < 0)
 			retVal = 0;
 		    break;
 
@@ -1086,15 +1033,15 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 		typeStr = entry->returns.name;
 	}
 	if ((retVal == 1) &&
-	    (fprintf(fp, _entry[SDL_ENTRY_ENT], typeStr, entry->id) < 0))
+	    (fprintf(fp, "%s %s(", typeStr, entry->id) < 0))
 	    retVal = 0;
     }
     while ((retVal == 1) && (param != (SDL_PARAMETER *) &entry->parameters))
     {
-
+	param = param->header.flink;
     }
     if ((retVal == 1) &&
-	(fprintf(fp, _entry[SDL_ENTRYC_ENT]) < 0))
+	(fprintf(fp, ");\n") < 0))
 	retVal = 0;
 
     /*
@@ -1210,6 +1157,7 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
 static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
 {
     char	*retVal = NULL;
+    int		bits = (context->wordSize / 32) - 1;	/* 0 = 32, 1 = 64 */
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1218,83 +1166,7 @@ static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
 	printf("%s:%d:_sdl_c_typeidStr\n", __FILE__, __LINE__);
 
     if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
-	switch (typeID)
-	{
-	    case SDL_K_TYPE_BYTE:
-		retVal = _types[SDL_BYTE_ENT];
-		break;
-
-	    case SDL_K_TYPE_WORD:
-		retVal = _types[SDL_WORD_ENT];
-		break;
-
-	    case SDL_K_TYPE_LONG:
-		retVal = _types[SDL_LONG_ENT];
-		break;
-
-	    case SDL_K_TYPE_QUAD:
-		retVal = _types[SDL_QUAD_ENT];
-		break;
-
-	    case SDL_K_TYPE_OCTA:
-		retVal = _types[SDL_OCTA_ENT];
-		break;
-
-	    case SDL_K_TYPE_TFLT:
-		retVal = _types[SDL_TFLT_ENT];
-		break;
-
-	    case SDL_K_TYPE_SFLT:
-		retVal = _types[SDL_SFLT_ENT];
-		break;
-
-	    case SDL_K_TYPE_DECIMAL:
-		retVal = _types[SDL_DECI_ENT];
-		break;
-
-	    case SDL_K_TYPE_BITFLD:
-		retVal = _types[SDL_BYTE_ENT];
-		break;
-
-	    case SDL_K_TYPE_CHAR:
-		retVal = _types[SDL_CHAR_ENT];
-		break;
-
-	    /*
-	     * TODO: We need more here (the base type).
-	     */
-	    case SDL_K_TYPE_ADDR:
-	    case SDL_K_TYPE_ADDR_L:
-	    case SDL_K_TYPE_ADDR_Q:
-	    case SDL_K_TYPE_ADDR_HW:
-	    case SDL_K_TYPE_HW_ADDR:
-	    case SDL_K_TYPE_PTR_L:
-	    case SDL_K_TYPE_PTR_Q:
-	    case SDL_K_TYPE_PTR_HW:
-		retVal = _types[SDL_ADDR_ENT];
-		break;
-
-	    case SDL_K_TYPE_BOOL:
-		retVal = _types[SDL_BOOL_ENT];
-		break;
-
-	    /*
-	     * TODO: We need more here (the base type).
-	     */
-	    case SDL_K_TYPE_STRUCT:
-		retVal = _types[SDL_BYTE_ENT];
-		break;
-
-	    /*
-	     * TODO: We need more here (the base type).
-	     */
-	    case SDL_K_TYPE_UNION:
-		retVal = _types[SDL_BYTE_ENT];
-		break;
-
-	    default:
-		break;
-	}
+	retVal = _types[typeID][bits];
     else if ((typeID >= SDL_K_DECLARE_MIN) && (typeID <= SDL_K_DECLARE_MAX))
     {
 	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, typeID);

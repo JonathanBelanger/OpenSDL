@@ -150,6 +150,9 @@ int main(int argc, char *argv[])
 	context.langEna[ii] = true;
     }
     context.langSpec[SDL_K_LANG_C] = true; /* C/C++ only supported languages */
+    context.wordSize = 64;		/* default to 64-bits */
+    context.memberAlign = true;		/* default to member alignment */
+    context.commentsOff = false;		/* default to member alignment */
 
     /*
      * Initialize the dimension array and the options index.

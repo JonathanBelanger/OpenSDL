@@ -178,6 +178,10 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 
 %token SDL_K_SFLOAT
 %token SDL_K_TFLOAT
+%token SDL_K_FFLOAT
+%token SDL_K_DFLOAT
+%token SDL_K_GFLOAT
+%token SDL_K_HFLOAT
 %token SDL_K_COMPLEX
 %token SDL_K_DECIMAL
 %token SDL_K_PRECISION
@@ -325,9 +329,11 @@ module_body
 	| counter
 	| _typename
 	| increment
+	| enumerate
 	| radix
 	| dimension
 	| storage
+	| _typedef
 	| origin
 	| entry
 	| definition_end
@@ -491,9 +497,9 @@ increment
 	    { sdl_add_option(&context, Increment, $2, NULL); }
 	;
 
-increment
-	: SDL_K_ENUM
-	    { sdl_add_option(&context, Enumerate, 0, NULL); }
+enumerate
+	: SDL_K_ENUM _t_id
+	    { sdl_add_option(&context, Enumerate, 0, $2); }
 	;
 
 constant
@@ -684,13 +690,16 @@ item
 	    }
 	;
 
+_typedef
+	: SDL_K_TYPEDEF
+	    { sdl_add_option(&context, Typedef, 0, NULL); }
+	;
+
 storage
 	: SDL_K_COMMON
 	    { sdl_add_option(&context, Common, 0, NULL); }
 	| SDL_K_GLOBAL
 	    { sdl_add_option(&context, Global, 0, NULL); }
-	| SDL_K_TYPEDEF
-	    { sdl_add_option(&context, Typedef, 0, NULL); }
 	| SDL_K_BASED _t_aggr_id
 	    { sdl_add_option(&context, Based, 0, $2); }
 	| SDL_K_FILL

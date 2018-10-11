@@ -90,6 +90,14 @@ static char *_defaultTag[] =
     "FC",	/* T_FLOATING_COMPLEX */
     "D",	/* S_FLOATING */
     "DC",	/* S_FLOATING COMPLEX */
+    "F",	/* F_FLOATING */
+    "FC",	/* F_FLOATING_COMPLEX */
+    "D",	/* D_FLOATING */
+    "DC",	/* D_FLOATING COMPLEX */
+    "G",	/* G_FLOATING */
+    "GC",	/* G_FLOATING_COMPLEX */
+    "H",	/* H_FLOATING */
+    "HC",	/* H_FLOATING COMPLEX */
     "P",	/* DECIMAL */
     "V",	/* BITFIELD */
     "C",	/* CHAR */
@@ -197,7 +205,9 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment)
      * function for each of the enabled languages.
      */
     for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
+	if ((context->langSpec[ii] == true) &&
+	    (context->langEna[ii] == true) &&
+	    (context->commentsOff == false))
 	    retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
 				context->outFP[ii],
 				&comment[2],	/* Skip past comment token */
@@ -2810,22 +2820,33 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
 
 	    case SDL_K_TYPE_OCTA:
 	    case SDL_K_TYPE_BITFLD_O:
+	    case SDL_K_TYPE_HFLT:
 		retVal = 16;
 		break;
 
+	    case SDL_K_TYPE_HFLT_C:
+		retVal = 32;
+		break;
+
 	    case SDL_K_TYPE_TFLT:
+	    case SDL_K_TYPE_FFLT:
 		retVal = 4;
 		break;
 
 	    case SDL_K_TYPE_TFLT_C:
+	    case SDL_K_TYPE_FFLT_C:
 		retVal = 8;
 		break;
 
 	    case SDL_K_TYPE_SFLT:
+	    case SDL_K_TYPE_DFLT:
+	    case SDL_K_TYPE_GFLT:
 		retVal = 8;
 		break;
 
 	    case SDL_K_TYPE_SFLT_C:
+	    case SDL_K_TYPE_DFLT_C:
+	    case SDL_K_TYPE_GFLT_C:
 		retVal = 16;
 		break;
 

@@ -65,33 +65,41 @@
 #define	SDL_K_TYPE_TFLT_C	14
 #define	SDL_K_TYPE_SFLT		15
 #define	SDL_K_TYPE_SFLT_C	16
-#define SDL_K_TYPE_DECIMAL	17
-#define	SDL_K_TYPE_BITFLD	18
-#define	SDL_K_TYPE_BITFLD_B	18
-#define	SDL_K_TYPE_BITFLD_W	19
-#define	SDL_K_TYPE_BITFLD_L	20
-#define	SDL_K_TYPE_BITFLD_Q	21
-#define	SDL_K_TYPE_BITFLD_O	22
-#define	SDL_K_TYPE_CHAR		23
-#define	SDL_K_TYPE_CHAR_VARY	24
-#define	SDL_K_TYPE_CHAR_STAR	25
-#define	SDL_K_TYPE_ADDR		26
-#define	SDL_K_TYPE_ADDR_L	27
-#define	SDL_K_TYPE_ADDR_Q	28
-#define	SDL_K_TYPE_ADDR_HW	29
-#define	SDL_K_TYPE_HW_ADDR	30
-#define	SDL_K_TYPE_PTR		31
-#define	SDL_K_TYPE_PTR_L	32
-#define	SDL_K_TYPE_PTR_Q	33
-#define	SDL_K_TYPE_PTR_HW	34
-#define	SDL_K_TYPE_ANY		35
-#define SDL_K_TYPE_VOID		36
-#define	SDL_K_TYPE_BOOL		37
-#define	SDL_K_TYPE_STRUCT	38
-#define	SDL_K_TYPE_UNION	39
-#define SDL_K_TYPE_ENTRY	40
+#define	SDL_K_TYPE_FFLT		17
+#define	SDL_K_TYPE_FFLT_C	18
+#define	SDL_K_TYPE_DFLT		19
+#define	SDL_K_TYPE_DFLT_C	20
+#define	SDL_K_TYPE_GFLT		21
+#define	SDL_K_TYPE_GFLT_C	22
+#define	SDL_K_TYPE_HFLT		23
+#define	SDL_K_TYPE_HFLT_C	24
+#define SDL_K_TYPE_DECIMAL	25
+#define	SDL_K_TYPE_BITFLD	26
+#define	SDL_K_TYPE_BITFLD_B	27
+#define	SDL_K_TYPE_BITFLD_W	28
+#define	SDL_K_TYPE_BITFLD_L	29
+#define	SDL_K_TYPE_BITFLD_Q	30
+#define	SDL_K_TYPE_BITFLD_O	31
+#define	SDL_K_TYPE_CHAR		32
+#define	SDL_K_TYPE_CHAR_VARY	33
+#define	SDL_K_TYPE_CHAR_STAR	34
+#define	SDL_K_TYPE_ADDR		35
+#define	SDL_K_TYPE_ADDR_L	36
+#define	SDL_K_TYPE_ADDR_Q	37
+#define	SDL_K_TYPE_ADDR_HW	38
+#define	SDL_K_TYPE_HW_ADDR	39
+#define	SDL_K_TYPE_PTR		40
+#define	SDL_K_TYPE_PTR_L	41
+#define	SDL_K_TYPE_PTR_Q	42
+#define	SDL_K_TYPE_PTR_HW	43
+#define	SDL_K_TYPE_ANY		44
+#define SDL_K_TYPE_VOID		45
+#define	SDL_K_TYPE_BOOL		46
+#define	SDL_K_TYPE_STRUCT	47
+#define	SDL_K_TYPE_UNION	48
+#define SDL_K_TYPE_ENTRY	49
 #define SDL_K_BASE_TYPE_MIN	1
-#define SDL_K_BASE_TYPE_MAX	63
+#define SDL_K_BASE_TYPE_MAX	50	/* 1 + the largest number */
 #define SDL_K_DECLARE_MIN	64
 #define SDL_K_DECLARE_MAX	255
 #define SDL_K_ITEM_MIN		256
@@ -587,6 +595,8 @@ typedef struct
     int			parameterIdx;
     int			parameterSize;
     int			wordSize;	/* 32 or 64 */
+    bool		memberAlign;
+    bool		commentsOff;
 } SDL_CONTEXT;
 
 /*

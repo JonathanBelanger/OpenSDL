@@ -559,6 +559,10 @@ LINKAGE					{ return(SDL_K_LINKAGE); }
 <*>OCTAWORD				{ return(SDL_K_OCTA); }
 <*>S_FLOATING			{ return(SDL_K_SFLOAT); }
 <*>T_FLOATING			{ return(SDL_K_TFLOAT); }
+<*>F_FLOATING			{ return(SDL_K_FFLOAT); }
+<*>D_FLOATING			{ return(SDL_K_DFLOAT); }
+<*>G_FLOATING			{ return(SDL_K_GFLOAT); }
+<*>H_FLOATING			{ return(SDL_K_HFLOAT); }
 <*>DECIMAL				{ return(SDL_K_DECIMAL); }
 <*>BITFIELD				{ return(SDL_K_BITFIELD); }
 <*>CHARACTER			{ return(SDL_K_CHAR); }

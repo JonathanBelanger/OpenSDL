@@ -559,6 +559,7 @@ LINKAGE					{ return(SDL_K_LINKAGE); }
 <*>OCTAWORD				{ return(SDL_K_OCTA); }
 <*>S_FLOATING			{ return(SDL_K_SFLOAT); }
 <*>T_FLOATING			{ return(SDL_K_TFLOAT); }
+<*>X_FLOATING			{ return(SDL_K_XFLOAT); }
 <*>F_FLOATING			{ return(SDL_K_FFLOAT); }
 <*>D_FLOATING			{ return(SDL_K_DFLOAT); }
 <*>G_FLOATING			{ return(SDL_K_GFLOAT); }

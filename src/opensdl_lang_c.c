@@ -42,54 +42,57 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2] =
 {
 	/* 32-bit	64-bit	*/
 	{"void ",	"void "},	/* NONE */
-	{"char ",	"char "},	/* BYTE */
-	{"char ",	"char "},	/* INTEGER_BYTE */
-	{"short ",	"short "},	/* WORD */
-	{"short ",	"short "},	/* INTEGER_WORD */
-	{"int ",	"int "},	/* LONGWORD */
-	{"int ",	"int "},	/* INTEGER_LONG */
+	{"int8_t ",	"int8_t "},	/* BYTE */
+	{"int8_t ",	"int8_t "},	/* INTEGER_BYTE */
+	{"int16_t ",	"int16_t "},	/* WORD */
+	{"int16_t ",	"int16_t "},	/* INTEGER_WORD */
+	{"int32_t ",	"int32_t "},	/* LONGWORD */
+	{"int32_t ",	"int32_t "},	/* INTEGER_LONG */
 	{"int ",	"int "},	/* INTEGER */
-	{"int ",	"__int64_t "},	/* INTEGER_HW */
-	{"int ",	"__int64_t "},	/* HARDWARE_INTEGER */
-	{"__int64_t ",	"int "},	/* QUADWORD */
-	{"__int64_t ",	"int "},	/* INTEGER_QUAD */
-	{"__int64_t ",	"__int128_t "},	/* OCTAWORD */
+	{"int32_t ",	"int64_t "},	/* INTEGER_HW */
+	{"int32_t ",	"int64_t "},	/* HARDWARE_INTEGER */
+	{"int64_t ",	"int64_t "},	/* QUADWORD */
+	{"int64_t ",	"int64_t "},	/* INTEGER_QUAD */
+	{"__int128_t ",	"__int128_t "},	/* OCTAWORD */
 	{"float ",	"float "},	/* T_FLOATING */
-	{"float ",	"float "},	/* T_FLOATING COMPLEX */
+	{"float complex","float complex"},/* T_FLOATING COMPLEX */
 	{"double ",	"double "},	/* S_FLOATING */
-	{"double ",	"double "},	/* S_FLOATING COMPLEX */
+	{"double complex","double complex"},/* S_FLOATING COMPLEX */
+	{"long double ","long double "},/* X_FLOATING */
+	{"long double complex ","long double complex "},/* X_FLOATING COMPLEX */
 	{"float ",	"float "},	/* F_FLOATING */
 	{"float ",	"float "},	/* F_FLOATING COMPLEX */
 	{"double ",	"double "},	/* D_FLOATING */
 	{"double ",	"double "},	/* D_FLOATING COMPLEX */
 	{"double ",	"double "},	/* G_FLOATING */
 	{"double ",	"double "},	/* G_FLOATING COMPLEX */
-	{"__int64_t ",	"__int128_t "},	/* H_FLOATING */
-	{"__int64_t ",	"__int128_t "},	/* H_FLOATING COMPLEX */
+	{"long double ","long doubvle "},/* H_FLOATING */
+	{"long double complex ","long double complex "},/* H_FLOATING COMPLEX */
 	{"char ",	"char "},	/* DECIMAL */
 	{"int ",	"int "},	/* BITFIELD */
-	{"char ",	"char "},	/* BITFIELD BYTE */
-	{"short ",	"short "},	/* BITFIELD WORD */
-	{"int ",	"int "},	/* BITFIELD LONGWORD */
-	{"__int64_t ",	"__int64_t "},	/* BITFIELD QUADWORD */
-	{"__int64_t ",	"__int128_t "},	/* BITFIELD OCTAWORD */
+	{"int8_t ",	"int8_t "},	/* BITFIELD BYTE */
+	{"int16_t ",	"int16_t "},	/* BITFIELD WORD */
+	{"int32_t ",	"int32_t "},	/* BITFIELD LONGWORD */
+	{"int64_t ",	"int64_t "},	/* BITFIELD QUADWORD */
+	{"__int128_t ",	"__int128_t "},	/* BITFIELD OCTAWORD */
 	{"char ",	"char "},	/* CHAR */
 	{NULL,		NULL},		/* CHAR VARYING */
 	{NULL,		NULL},		/* CHAR LENGTH(*) */
 	{NULL,		NULL},		/* ADDRESS */
-	{NULL,		"int "},	/* ADDRESS_LONG */
-	{NULL,		"__int64_t "},	/* ADDRESS_QUAD */
-	{NULL,		"__int64_t "},	/* ADDRESS_HW */
-	{NULL,		"__int64_t "},	/* HARDWARE_ADDRESS*/
+	{"int32_t",	"int32_t "},	/* ADDRESS_LONG */
+	{"int64_t ",	"int64_t "},	/* ADDRESS_QUAD */
+	{"int32_t ",	"int64_t "},	/* ADDRESS_HW */
+	{"int32_t",	"int64_t "},	/* HARDWARE_ADDRESS*/
 	{NULL,		NULL},		/* POINTER */
-	{NULL,		"int "},	/* POINTER_LONG */
-	{NULL,		"__int64_t "},	/* POINTER_QUAD */
-	{NULL,		"__int64_t "},	/* POINTER_HW */
+	{"int32_t ",	"int32_t "},	/* POINTER_LONG */
+	{"int64_t ",	"int64_t "},	/* POINTER_QUAD */
+	{"int32_t ",	"int64_t "},	/* POINTER_HW */
 	{NULL,		NULL},		/* ANY */
 	{"void ",	"void "},	/* VOID */
 	{"bool ",	"bool "},	/* BOOLEAN */
 	{"struct ",	"struct "},	/* STRUCTURE */
 	{"union ",	"union "},	/* UNION */
+	{"enum ",	"enum "},	/* ENUM */
 	{NULL,		NULL}		/* ENTRY */
 };
 
@@ -419,6 +422,10 @@ int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
      */
     if (fp != NULL)
     {
+
+	/*
+	 * Write out the MODULE comment at near the top of the file.
+	 */
 	if (fprintf(fp, "\n/*** MODULE %s ", context->module) < 0)
 	    retVal = 0;
 	else if ((context->ident != NULL) && (strlen(context->ident) > 0))
@@ -428,42 +435,43 @@ int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 	}
 	if ((retVal == 1) && (fprintf(fp, "***/\n") < 0))
 	    retVal = 0;
+
+	/*
+	 * We include some standard C headers that will simplify the rest of
+	 * the definitions.
+	 */
 	if ((retVal == 1) &&
 	    (fprintf(
 		fp,
 		"#include <stdint.h>\n"
 		"#include <ctype.h>\n"
-		"#include <sysbool.h>\n") < 0))
+		"#include <sysbool.h>\n"
+		"#include <complex.h>") < 0))
 	    retVal = 0;
+
+	/*
+	 * We now put in the "if not defined" statements to make sure that this
+	 * header file, itself, can only be included once.
+	 */
 	if (retVal == 1)
 	{
 	    if (fprintf(
 			fp,
-			"\n#ifdef _%s_\n#define _%s_ 1\n"
-			"#ifdef __cplusplus\nextern \"C\" {\n"
-			"#endif\n",
+			"\n#ifndef _%s_\n#define _%s_ 1\n",
 			strupr(context->module),
 			strupr(context->module)) < 0)
 		retVal = 0;
 	}
 
 	/*
-	 * Only do alignment pragmas if we are building for a 64-bit
-	 * environment.
+	 * Finally, put in the items to allow C++ to be able to include this
+	 * header file.
 	 */
-	if ((context->wordSize == 64) && (retVal == 1))
-	{
-	    if (fprintf(fp, "#pragma __member_alignment __save\n") < 0)
-		retVal = 0;
-	    else
-	    {
-		if (fprintf(
-			fp,
-			"#pragma __%smember_alignment\n",
-			(context->memberAlign == true ? "" : "no")) < 0)
-		    retVal = 0;
-	    }
-	}
+	if ((retVal == 1) && (fprintf(
+				fp,
+				"#ifdef __cplusplus\nextern \"C\" {\n"
+				"#endif\n") < 0))
+	    retVal = 0;
     }
     else
 	retVal = 0;
@@ -508,9 +516,14 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
      */
     if (fp != NULL)
     {
+
+	/*
+	 * Finally, close of the C++ mode and the close to only allow this
+	 * header file to be included once.
+	 */
 	if (fprintf(
 		fp,
-		"\n#ifdef __cplusplus\n}\n#endif\n\n#endif /* _%s_ */\n",
+		"\n#ifdef __cplusplus\n}\n#endif\n#endif /* _%s_ */\n",
 		strupr(context->module)) < 0)
 	    retVal = 0;
     }
@@ -546,8 +559,8 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
     char	*sign = (item->_unsigned == true ? "unsigned " : "");
-    char	*format = _sdl_c_typeidStr(item->type, context);
-    int		bits = (context->wordSize / 32) - 1;	/* 0 = 32, 1 = 64 */
+    char	*type = _sdl_c_typeidStr(item->type, context);
+    char	*name = _sdl_c_generate_name(item->id, item->prefix, item->tag);
     int		retVal = 1;
 
     /*
@@ -558,105 +571,70 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 
     /*
      * Output the ITEM declaration.
-     * TODO: We need to be able to handle typedefs and user defined types.
-     * TODO: Varying
-     * TODO: CHARACTER LENGTH X
      */
-    if (fp != NULL)
+    if ((fp != NULL) && (name != NULL))
     {
-	switch (item->type)
+
+	/*
+	 * If typedef is indicated, then let's start with that.
+	 */
+	if (item->typeDef == true)
 	{
-	    case SDL_K_TYPE_BYTE:
-	    case SDL_K_TYPE_WORD:
-	    case SDL_K_TYPE_LONG:
-	    case SDL_K_TYPE_QUAD:
-	    case SDL_K_TYPE_OCTA:
-		if (fprintf(fp, format, sign) < 0)
-		    retVal = 0;
-		break;
-
-	    case SDL_K_TYPE_BOOL:
-	    case SDL_K_TYPE_TFLT:
-	    case SDL_K_TYPE_SFLT:
-	    case SDL_K_TYPE_DECIMAL:
-	    case SDL_K_TYPE_CHAR:
-	    case SDL_K_TYPE_ADDR:
-	    case SDL_K_TYPE_ADDR_L:
-	    case SDL_K_TYPE_ADDR_Q:
-	    case SDL_K_TYPE_ADDR_HW:
-	    case SDL_K_TYPE_HW_ADDR:
-	    case SDL_K_TYPE_PTR:
-	    case SDL_K_TYPE_PTR_L:
-	    case SDL_K_TYPE_PTR_Q:
-	    case SDL_K_TYPE_PTR_HW:
-		if (fprintf(fp, format) < 0)
-		    retVal = 0;
-		break;
-
-	    case SDL_K_TYPE_BITFLD:
-		format = _sdl_c_typeidStr(item->bitfieldType, context);
-		if (fprintf(fp, format, sign) < 0)
-		    retVal = 0;
-		break;
-
-	    default:
-		break;
-	}
-	if (retVal == 1)
-	{
-	    char *name = _sdl_c_generate_name(
-				item->id,
-				item->prefix,
-				item->tag);
-
-	    if (name != NULL)
-	    {
-		retVal = (fprintf(fp, name) < 0) ? 0 : 1;
-		free(name);
-	    }
-	    else
+	    if (fprintf(fp, "typedef ") < 0)
 		retVal = 0;
 	}
+
+	/*
+	 * Now we need to output the type and name.
+	 * TODO: Need to handle Addresses, Bitfields, and Aggregates.
+	 */
 	if (retVal == 1)
 	{
-	    if ((item->dimension == true) ||
-		(item->type == SDL_K_TYPE_DECIMAL) ||
-		(item->type == SDL_K_TYPE_CHAR))
+	    if (fprintf(fp, "%s%s %s", sign, type, name) < 0)
+		retVal = 0;
+	}
+
+	/*
+	 * If there is a dimension specified, then generate that.
+	 */
+	if ((retVal == 1) && (item->dimension == true))
+	{
+	    if (fprintf(fp, "[%ld]", item->hbound - item->lbound + 1) < 0)
+		retVal = 0;
+	}
+
+	/*
+	 * Next, if there is an alignment need, then we add an attribute
+	 * statement.
+	 */
+	if ((retVal == 1) && (context->memberAlign == true))
+	{
+	    switch(item->alignment)
 	    {
-		int	dim;
+		case SDL_K_NOALIGN:
+		    break;
 
-		if (item->dimension == true)
-		    dim = item->hbound - item->lbound + 1;
-		else if (item->type == SDL_K_TYPE_CHAR)
-		    dim = item->length;
-		else
-		    dim = item->precision / 2  + 1;
-
-		/*
-		 * TODO:Need to handle CHARACTER LENGTH * definitions.
-		 */
-		if (dim > 0)
-		{
-		    if (fprintf(fp, "[%d]", dim) < 0)
+		case SDL_K_ALIGN:
+		    if (fprintf(fp, " __attribute__ ((aligned))") < 0)
 			retVal = 0;
-		}
-	    }
-	    else if ((item->type == SDL_K_TYPE_BITFLD) ||
-		     (item->type == SDL_K_TYPE_BITFLD_B) ||
-		     (item->type == SDL_K_TYPE_BITFLD_W) ||
-		     (item->type == SDL_K_TYPE_BITFLD_L) ||
-		     (item->type == SDL_K_TYPE_BITFLD_Q) ||
-		     (item->type == SDL_K_TYPE_BITFLD_O))
-	    {
-		if (fprintf(
-			fp,
-			_types[item->type][bits],
-			item->length) < 0)
-		    retVal = 0;
+		    break;
+
+		default:
+		    if (fprintf(
+			    fp,
+			    " __attribute__ ((aligned (%d)))",
+			    item->alignment) < 0)
+			retVal = 0;
+		    break;
 	    }
 	}
-	if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
-	    retVal = 0;
+
+	/*
+	 * Finally, we close off the declaration.
+	 */
+	if (retVal == 1)
+	    if (fprintf(fp, ";\n") < 0)
+		retVal = 0;
     }
     else
 	retVal = 0;
@@ -1050,6 +1028,103 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     return(retVal);
 }
 
+/*
+ * sdl_c_enumerate
+ *  This function is called after all the fields for an CONSTANT keyword with
+ *  an ENUMERATE argument has been processed.
+ *
+ * Input Parameters:
+ *  fp:
+ *	A pointer to the file pointer to write out the information.
+ *  _enum:
+ *	A pointer to the ENUMERATE record
+ *  context:
+ *	A pointer to the context block to be used to determine the type string.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
+{
+    SDL_ENUM_MEMBER	*myMem = (SDL_ENUM_MEMBER *) _enum->members.flink;
+    char		*name = _sdl_c_generate_name(
+					_enum->id,
+					_enum->prefix,
+					_enum->tag);
+    int			retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_c_enumerate\n", __FILE__, __LINE__);
+
+    if (name != NULL)
+    {
+	/*
+	 * If typedef has been requested, then we need to start with that.
+	 * Otherwise, we just start with an enum statement.
+	 */
+	if (_enum->typeDef == true)
+	{
+	    if (fprintf(fp, "typedef enum _%s\n{\n", name) < 0)
+		retVal = 0;
+	}
+	else
+	{
+	    if (fprintf(fp, "enum %s\n{\n", name) < 0)
+		retVal = 0;
+	}
+
+	/*
+	 * Loop through each of the entries in the member list.
+	 */
+	while((retVal == 1) && (myMem != (SDL_ENUM_MEMBER *) &_enum->members))
+	{
+	    if (fprintf(fp, "    %s", myMem->id) < 0)
+		retVal = 0;
+	    else
+	    {
+		if (myMem->valueSet == true)
+		{
+		    if (fprintf(fp, " = %ld,\n", myMem->value) < 0)
+			retVal = 0;
+		}
+		else if (fprintf(fp, ",\n") < 0)
+		    retVal = 0;
+	    }
+	}
+
+	/*
+	 * Finally, we need to close of the enum definition.
+	 */
+	if (retVal == 1)
+	{
+	    if (_enum->typeDef == true)
+	    {
+		if (fprintf(fp, "} %s;\n", name) < 0)
+		    retVal = 0;
+	    }
+	    else
+	    {
+		if (fprintf(fp, "};\n") < 0)
+		    retVal = 0;
+	    }
+	}
+	free(name);
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
 /************************************************************************
  * Local Functions							*
  ************************************************************************/
@@ -1261,5 +1336,3 @@ static char *_sdl_c_leading_spaces(int depth)
      */
     return(retVal);
 }
-
-

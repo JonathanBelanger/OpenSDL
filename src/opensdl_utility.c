@@ -971,7 +971,7 @@ int sdl_add_option(
 	    case Length:
 	    case Radix:
 	    case ReturnsType:
-	    case BitfieldType:
+	    case SubType:
 		context->options[context->optionsIdx].option = option;
 		context->options[context->optionsIdx++].value = value;
 		break;

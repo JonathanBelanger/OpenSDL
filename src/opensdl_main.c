@@ -70,6 +70,7 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 	(SDL_FUNC) NULL,
 	(SDL_FUNC) NULL,
 	(SDL_FUNC) NULL,
+	(SDL_FUNC) NULL,
 	(SDL_FUNC) NULL
     }
 };
@@ -152,7 +153,7 @@ int main(int argc, char *argv[])
     context.langSpec[SDL_K_LANG_C] = true; /* C/C++ only supported languages */
     context.wordSize = 64;		/* default to 64-bits */
     context.memberAlign = true;		/* default to member alignment */
-    context.commentsOff = false;		/* default to member alignment */
+    context.commentsOff = false;	/* default to comments off */
 
     /*
      * Initialize the dimension array and the options index.

@@ -65,47 +65,52 @@
 #define	SDL_K_TYPE_TFLT_C	14
 #define	SDL_K_TYPE_SFLT		15
 #define	SDL_K_TYPE_SFLT_C	16
-#define	SDL_K_TYPE_FFLT		17
-#define	SDL_K_TYPE_FFLT_C	18
-#define	SDL_K_TYPE_DFLT		19
-#define	SDL_K_TYPE_DFLT_C	20
-#define	SDL_K_TYPE_GFLT		21
-#define	SDL_K_TYPE_GFLT_C	22
-#define	SDL_K_TYPE_HFLT		23
-#define	SDL_K_TYPE_HFLT_C	24
-#define SDL_K_TYPE_DECIMAL	25
-#define	SDL_K_TYPE_BITFLD	26
-#define	SDL_K_TYPE_BITFLD_B	27
-#define	SDL_K_TYPE_BITFLD_W	28
-#define	SDL_K_TYPE_BITFLD_L	29
-#define	SDL_K_TYPE_BITFLD_Q	30
-#define	SDL_K_TYPE_BITFLD_O	31
-#define	SDL_K_TYPE_CHAR		32
-#define	SDL_K_TYPE_CHAR_VARY	33
-#define	SDL_K_TYPE_CHAR_STAR	34
-#define	SDL_K_TYPE_ADDR		35
-#define	SDL_K_TYPE_ADDR_L	36
-#define	SDL_K_TYPE_ADDR_Q	37
-#define	SDL_K_TYPE_ADDR_HW	38
-#define	SDL_K_TYPE_HW_ADDR	39
-#define	SDL_K_TYPE_PTR		40
-#define	SDL_K_TYPE_PTR_L	41
-#define	SDL_K_TYPE_PTR_Q	42
-#define	SDL_K_TYPE_PTR_HW	43
-#define	SDL_K_TYPE_ANY		44
-#define SDL_K_TYPE_VOID		45
-#define	SDL_K_TYPE_BOOL		46
-#define	SDL_K_TYPE_STRUCT	47
-#define	SDL_K_TYPE_UNION	48
-#define SDL_K_TYPE_ENTRY	49
+#define	SDL_K_TYPE_XFLT		17
+#define	SDL_K_TYPE_XFLT_C	18
+#define	SDL_K_TYPE_FFLT		19
+#define	SDL_K_TYPE_FFLT_C	20
+#define	SDL_K_TYPE_DFLT		21
+#define	SDL_K_TYPE_DFLT_C	22
+#define	SDL_K_TYPE_GFLT		23
+#define	SDL_K_TYPE_GFLT_C	24
+#define	SDL_K_TYPE_HFLT		25
+#define	SDL_K_TYPE_HFLT_C	26
+#define SDL_K_TYPE_DECIMAL	27
+#define	SDL_K_TYPE_BITFLD	28
+#define	SDL_K_TYPE_BITFLD_B	29
+#define	SDL_K_TYPE_BITFLD_W	30
+#define	SDL_K_TYPE_BITFLD_L	31
+#define	SDL_K_TYPE_BITFLD_Q	32
+#define	SDL_K_TYPE_BITFLD_O	33
+#define	SDL_K_TYPE_CHAR		34
+#define	SDL_K_TYPE_CHAR_VARY	35
+#define	SDL_K_TYPE_CHAR_STAR	36
+#define	SDL_K_TYPE_ADDR		37
+#define	SDL_K_TYPE_ADDR_L	38
+#define	SDL_K_TYPE_ADDR_Q	39
+#define	SDL_K_TYPE_ADDR_HW	40
+#define	SDL_K_TYPE_HW_ADDR	41
+#define	SDL_K_TYPE_PTR		42
+#define	SDL_K_TYPE_PTR_L	43
+#define	SDL_K_TYPE_PTR_Q	44
+#define	SDL_K_TYPE_PTR_HW	45
+#define	SDL_K_TYPE_ANY		46
+#define SDL_K_TYPE_VOID		47
+#define	SDL_K_TYPE_BOOL		48
+#define	SDL_K_TYPE_STRUCT	49
+#define	SDL_K_TYPE_UNION	50
+#define SDL_K_TYPE_ENUM		51
+#define SDL_K_TYPE_ENTRY	52	/* Always the last Base type */
 #define SDL_K_BASE_TYPE_MIN	1
-#define SDL_K_BASE_TYPE_MAX	50	/* 1 + the largest number */
+#define SDL_K_BASE_TYPE_MAX	SDL_K_TYPE_ENTRY + 1
 #define SDL_K_DECLARE_MIN	64
 #define SDL_K_DECLARE_MAX	255
 #define SDL_K_ITEM_MIN		256
 #define SDL_K_ITEM_MAX		511
 #define SDL_K_AGGREGATE_MIN	512
 #define SDL_K_AGGREGATE_MAX	1023
+#define SDL_K_ENUM_MIN		1024
+#define SDL_K_ENUM_MAX		1279
 
 /*
  * Data type modifiers.
@@ -212,7 +217,7 @@ typedef struct
 {
     SDL_QUEUE		header;
     char		*id; /* Variable name	*/
-    __int64_t		value; /* Variable value	*/
+    int64_t		value; /* Variable value	*/
 } SDL_LOCAL_VARIABLE;
 
 /*
@@ -239,13 +244,43 @@ typedef struct
     char		*typeName;
     union
     {
-	char		*string;
-	__int64_t	value;
+	char	*string;
+	int64_t	value;
     };
     int			radix;
     int			type; /* Numeric or String */
-    bool		enumerate;
 } SDL_CONSTANT;
+
+/*
+ * The following definitions are used to declare a CONSTANT that is indicated
+ * as an enumeration.
+ */
+typedef struct
+{
+    SDL_QUEUE		header;
+    char		*comment;
+    char		*id;
+    int64_t		value;
+    bool		valueSet;
+} SDL_ENUM_MEMBER;
+
+typedef struct
+{
+    SDL_QUEUE		header;
+    SDL_QUEUE		members;
+    char		*id;
+    char		*prefix;
+    char		*tag;
+    int64_t		size;
+    int64_t		memSize;	/* Actual space used in memory	*/
+    bool		typeDef;
+} SDL_ENUMERATE;
+
+typedef struct
+{
+    SDL_QUEUE		header;
+    int			nextID;
+} SDL_ENUM_LIST;
 
 /*
  * The following definitions are used to declare a set of DECLARE items.
@@ -256,7 +291,7 @@ typedef struct
     char		*id;
     char		*prefix;
     char		*tag;
-    __int64_t		size;
+    int64_t		size;
     int			type;
     int			typeID;
 } SDL_DECLARE;
@@ -277,14 +312,14 @@ typedef struct
     char		*id;
     char		*prefix;
     char		*tag;
-    __int64_t		hbound;
-    __int64_t		lbound;
-    __int64_t		length;		/* for BITFIELDs only */
-    __int64_t		bitfieldType;	/* For BITFILEDs only */
-    __int64_t		memSize;	/* Actual space used in memory	*/
-    __int64_t		precision;
-    __int64_t		scale;
-    __int64_t		size;
+    int64_t		hbound;
+    int64_t		lbound;
+    int64_t		length;		/* for BITFIELDs only */
+    int64_t		subType;	/* For BITFILEDs and ADDRESSes only */
+    int64_t		memSize;	/* Actual space used in memory	*/
+    int64_t		precision;
+    int64_t		scale;
+    int64_t		size;
     int			alignment;
     int			type;		/* data or user type	*/
     int			typeID;
@@ -316,11 +351,11 @@ typedef struct
     char		*typeName;
     union
     {
-	int		data;
-	char		*aggrName;
+	int	data;
+	char	*aggrName;
     };
-    __int64_t		bound;
-    __int64_t		defaultValue;
+    int64_t		bound;
+    int64_t		defaultValue;
     int			type;
     int			passingMech;
     bool		defaultPresent;
@@ -374,11 +409,11 @@ typedef struct
     void		*parent;	/* aggregateDepth determines level */
     SDL_QUEUE		members;
     SDL_AGGR_TYPE	structUnion;
-    __int64_t		currentOffset;
-    __int64_t		hbound;
-    __int64_t		lbound;
-    __int64_t		memSize;	/* Actual space used in memory	*/
-    __int64_t		size;
+    int64_t		currentOffset;
+    int64_t		hbound;
+    int64_t		lbound;
+    int64_t		memSize;	/* Actual space used in memory	*/
+    int64_t		size;
     int			alignment;
     int			currentBitOffset;
     int			type;
@@ -417,11 +452,11 @@ typedef struct
     char		*tag;
     SDL_QUEUE		members;
     SDL_ORIGIN		origin;
-    __int64_t		currentOffset;
-    __int64_t		hbound;
-    __int64_t		lbound;
-    __int64_t		memSize;	/* Actual space used in memory	*/
-    __int64_t		size;
+    int64_t		currentOffset;
+    int64_t		hbound;
+    int64_t		lbound;
+    int64_t		memSize;	/* Actual space used in memory	*/
+    int64_t		size;
     SDL_AGGR_TYPE	structUnion;
     int			alignment;
     int			currentBitOffset;
@@ -502,7 +537,7 @@ typedef enum
     TypeName,
     Value,
     Variable,
-    BitfieldType
+    SubType
 } SDL_OPTION_TYPE;
 #define SDL_K_OPTIONS_INCR	8
 typedef struct
@@ -510,8 +545,8 @@ typedef struct
     SDL_OPTION_TYPE	option;
     union
     {
-	__int64_t	value;
-	char		*string;
+	int64_t	value;
+	char	*string;
     };
 } SDL_OPTION;
 
@@ -555,8 +590,8 @@ typedef struct
     char		*id;
     union
     {
-	__int64_t 	value;
-	char		*valueStr;
+	int64_t value;
+	char	*valueStr;
     };
     bool		string;
 } SDL_CONSTANT_DEF;
@@ -581,14 +616,15 @@ typedef struct
     SDL_DECLARE_LIST	declares;
     SDL_ITEM_LIST	items;
     SDL_AGGREGATE_LIST	aggregates;
+    SDL_ENUM_LIST	enums;
     SDL_STATE		state;
     SDL_STATE		constantPrevState;
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;
     SDL_QUEUE		entries;
     SDL_CONSTANT_DEF	constDef;
-    __int64_t		precision;
-    __int64_t		scale;
+    int64_t		precision;
+    int64_t		scale;
     int			aggregateDepth;
     int			optionsIdx;
     int			optionsSize;

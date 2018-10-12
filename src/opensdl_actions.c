@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <complex.h>
 #include "opensdl_defs.h"
 #include "opensdl_lang.h"
 #include "opensdl_utility.h"
@@ -51,6 +52,7 @@ extern _Bool trace;
 #define SDL_K_CONSTANT_CB	4
 #define SDL_K_AGGREGATE_CB	5
 #define SDL_K_ENTRY_CB		6
+#define SDL_K_ENUM_CB		7
 
 static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 {
@@ -66,6 +68,7 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 	(SDL_FUNC) &sdl_c_constant,
 	(SDL_FUNC) &sdl_c_aggregate,
 	(SDL_FUNC) &sdl_c_entry,
+	(SDL_FUNC) &sdl_c_enumerate
     }
 };
 
@@ -74,6 +77,7 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
  */
 static char *_defaultTag[] =
 {
+    "K",	/* CONSTANT */
     "B",	/* BYTE */
     "IB",	/* INTEGER_BYTE */
     "W",	/* WORD */
@@ -86,10 +90,12 @@ static char *_defaultTag[] =
     "Q",	/* QUADWORD */
     "IQ",	/* INTEGER_QUAD */
     "O",	/* OCTAWORD */
-    "F",	/* T_FLOATING */
-    "FC",	/* T_FLOATING_COMPLEX */
-    "D",	/* S_FLOATING */
-    "DC",	/* S_FLOATING COMPLEX */
+    "T",	/* T_FLOATING */
+    "TC",	/* T_FLOATING_COMPLEX */
+    "S",	/* S_FLOATING */
+    "SC",	/* S_FLOATING COMPLEX */
+    "X",	/* X_FLOATING */
+    "XC",	/* X_FLOATING COMPLEX */
     "F",	/* F_FLOATING */
     "FC",	/* F_FLOATING_COMPLEX */
     "D",	/* D_FLOATING */
@@ -99,7 +105,12 @@ static char *_defaultTag[] =
     "H",	/* H_FLOATING */
     "HC",	/* H_FLOATING COMPLEX */
     "P",	/* DECIMAL */
-    "V",	/* BITFIELD */
+    "V",	/* BITFIELD		("M" for mask;	"S" for size) */
+    "VB",	/* BITFIELD BYTE	("MB" for mask;	"SB" for size) */
+    "VW",	/* BITFIELD WORD	("MW" for mask;	"SW" for size) */
+    "VL",	/* BITFIELD LONGWORD 	("ML" for mask;	"SL" for size) */
+    "VQ",	/* BITFIELD QUADWORD	("MQ" for mask;	"SQ" for size) */
+    "VO",	/* BITFIELD OCTAWORD	("MO" for mask;	"SO" for size) */
     "C",	/* CHAR */
     "CV",	/* CHAR VARYING */
     "CS",	/* CHAR * */
@@ -114,13 +125,10 @@ static char *_defaultTag[] =
     "PH",	/* POINTER_HW */
     "",		/* ANY */
     "Z",	/* VOID */
-    "BB",	/* BOOLEAN BYTE */
-    "BW",	/* BOOLEAN WORD */
-    "BL",	/* BOOLEAN LONGWORD */
-    "BQ",	/* BOOLEAN QUADWORD */
-    "BO",	/* BOOLEAN OCTAWORD */
+    "B",	/* BOOLEAN */
     "R",	/* STRUCTURE */
     "R",	/* UNION */
+    "N",	/* ENUM */
     "E",	/* ENTRY */
 };
 
@@ -139,7 +147,7 @@ static char *_sdl_get_tag(
         char *tag,
         int datatype,
         bool lower);
-static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item);
+static int64_t _sdl_sizeof(SDL_CONTEXT *context, int item);
 static SDL_CONSTANT *_sdl_create_constant(
         char *id,
         char *prefix,
@@ -147,10 +155,16 @@ static SDL_CONSTANT *_sdl_create_constant(
         char *comment,
         char *typeName,
         int radix,
-        __int64_t value,
-        char *string,
-        bool enumerate);
+        int64_t value,
+        char *string);
 static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst);
+static SDL_ENUMERATE *_sdl_create_enum(
+				SDL_CONTEXT *context,
+				char *id,
+				char *prefix,
+				char *tag,
+				bool typeDef);
+static int _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum);
 static bool _sdl_all_lower(const char *str);
 static void _sdl_reset_options(SDL_CONTEXT *context);
 static int _sdl_iterate_members(
@@ -360,7 +374,7 @@ int sdl_comment_block(SDL_CONTEXT *context, char *comment)
  *  0:	An error occurred.
  *  -1:	Normal Successful Completion, local variable created.
  */
-int sdl_set_local(SDL_CONTEXT *context, char *name, __int64_t value)
+int sdl_set_local(SDL_CONTEXT *context, char *name, int64_t value)
 {
     SDL_LOCAL_VARIABLE	*local = sdl_find_local(context, name);
     int			retVal = 1;
@@ -590,6 +604,64 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	if (constant->typeName != NULL)
 	    free(constant->typeName);
 	free(constant);
+    }
+
+    /*
+     * Clean out all the enumeration definitions.
+     */
+    ii = 1;
+    while(SDL_Q_EMPTY(&context->enums.header) == false)
+    {
+	SDL_ENUMERATE	*_enum;
+	int		jj;
+
+	SDL_REMQUE(&context->enums.header, _enum);
+	if (trace == true)
+	{
+	    printf("--------------------------------\n");
+	    if (ii == 1)
+		printf("    ENUMs:\n");
+	    printf(
+	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
+		"\t    _typeDef: %s\n",
+		ii++,
+		_enum->id,
+		(_enum->prefix == NULL ? "" : _enum->prefix),
+		(_enum->tag == NULL ? "" : _enum->tag),
+		(_enum->typeDef == true ? "True" : "False"));
+	}
+	jj = 1;
+	while(SDL_Q_EMPTY(&_enum->header) == false)
+	{
+	    SDL_ENUM_MEMBER *member;
+
+	    SDL_REMQUE(&_enum->header, member);
+	    if (trace == true)
+	    {
+		if (jj == 1)
+		    printf("    ENUM_MEMBERs:\n");
+		printf(
+		    "\t%2d: name: %s\n\t    value: %ld\n\t    valueSet: %s\n",
+		    jj++,
+		    member->id,
+		    member->value,
+		    (member->valueSet == true ? "True" : "False"));
+		    if (member->comment != NULL)
+			printf(
+			    "\t    comment: %s\n",
+			    member->comment);
+	    }
+	    free(member->id);
+	    if (member->comment != NULL)
+		free(member->comment);
+	    free(member);
+	}
+	free(_enum->id);
+	if (_enum->prefix != NULL)
+	    free(_enum->prefix);
+	if (_enum->tag != NULL)
+	    free(_enum->tag);
+	free(_enum);
     }
 
     /*
@@ -1185,6 +1257,7 @@ int sdl_item_compl(SDL_CONTEXT *context)
     SDL_ITEM	*myItem = context->items.header.blink;
     char	*prefix = NULL;
     char	*tag = NULL;
+    int64_t	addrType = SDL_K_TYPE_NONE;
     int		ii, retVal = 1;
     int		storage = 0;
     int		basealign = 0;
@@ -1200,29 +1273,46 @@ int sdl_item_compl(SDL_CONTEXT *context)
      * Go find our options
      */
     for (ii = 0; ii < context->optionsIdx; ii++)
-	if (context->options[ii].option == Prefix)
+	switch(context->options[ii].option)
 	{
-	    prefix = context->options[ii].string;
-	    context->options[ii].string = NULL;
+	    case Prefix:
+		prefix = context->options[ii].string;
+		context->options[ii].string = NULL;
+		break;
+
+	    case Tag:
+		tag = context->options[ii].string;
+		context->options[ii].string = NULL;
+		break;
+
+	    case BaseAlign:
+		basealign= context->options[ii].value;
+		break;
+
+	    case Dimension:
+		dimension = context->options[ii].value;
+		myItem->dimension = true;
+		break;
+
+	    case Common:
+		storage |= SDL_M_STOR_COMM;
+		break;
+
+	    case Global:
+		storage |= SDL_M_STOR_GLOB;
+		break;
+
+	    case Typedef:
+		storage |= SDL_M_STOR_TYPED;
+		break;
+
+	    case SubType:
+		addrType= context->options[ii].value;
+		break;
+
+	    default:
+		break;
 	}
-	else if (context->options[ii].option == Tag)
-	{
-	    tag = context->options[ii].string;
-	    context->options[ii].string = NULL;
-	}
-	else if (context->options[ii].option == BaseAlign)
-	    basealign= context->options[ii].value;
-	else if (context->options[ii].option == Dimension)
-	{
-	    dimension = context->options[ii].value;
-	    myItem->dimension = true;
-	}
-	else if (context->options[ii].option == Common)
-	    storage |= SDL_M_STOR_COMM;
-	else if (context->options[ii].option == Global)
-	    storage |= SDL_M_STOR_GLOB;
-	else if (context->options[ii].option == Typedef)
-	    storage |= SDL_M_STOR_TYPED;
 
     /*
      * We only update, never create.
@@ -1245,6 +1335,20 @@ int sdl_item_compl(SDL_CONTEXT *context)
 		    tag,
 		    myItem->type,
 		    _sdl_all_lower(myItem->id));
+
+	/*
+	 * Addresses can have sub-types.
+	 */
+	if ((myItem->type == SDL_K_TYPE_ADDR) ||
+	    (myItem->type == SDL_K_TYPE_ADDR_L) ||
+	    (myItem->type == SDL_K_TYPE_ADDR_Q) ||
+	    (myItem->type == SDL_K_TYPE_ADDR_HW) ||
+	    (myItem->type == SDL_K_TYPE_HW_ADDR) ||
+	    (myItem->type == SDL_K_TYPE_PTR) ||
+	    (myItem->type == SDL_K_TYPE_PTR_L) ||
+	    (myItem->type == SDL_K_TYPE_PTR_Q) ||
+	    (myItem->type == SDL_K_TYPE_PTR_HW))
+	    myItem->subType = addrType;
 
 	/*
 	 * Loop through all the possible languages and call the appropriate
@@ -1292,7 +1396,7 @@ int sdl_item_compl(SDL_CONTEXT *context)
 int sdl_constant(
 		SDL_CONTEXT *context,
 		char *id,
-		__int64_t value,
+		int64_t value,
 		char *valueStr)
 {
     int		retVal = 1;
@@ -1348,8 +1452,9 @@ int sdl_constant(
 int sdl_constant_compl(SDL_CONTEXT *context)
 {
     SDL_CONSTANT	*myConst;
+    SDL_ENUMERATE	*myEnum = NULL;
     char 		*id = context->constDef.id;
-    __int64_t		value = context->constDef.value;
+    int64_t		value = context->constDef.value;
     char		*valueStr = context->constDef.string ?
 					context->constDef.valueStr :
 					NULL;
@@ -1360,11 +1465,13 @@ int sdl_constant_compl(SDL_CONTEXT *context)
     char		*tag = NULL;
     char		*counter = NULL;
     char		*typeName = NULL;
-    __int64_t		increment = 0;
-    __int64_t		radix = SDL_K_RADIX_DEF;
+    char		*enumName = NULL;
+    int64_t		increment = 0;
+    int64_t		radix = SDL_K_RADIX_DEF;
+    int			datatype = SDL_K_TYPE_CONST;
     bool		incrementPresent = false;
     bool		localCreated = false;
-    bool		enumerate = false;
+    bool		typeDef = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1410,7 +1517,12 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 		break;
 
 	    case Enumerate:
-		enumerate = true;
+		enumName = context->options[ii].string;
+		context->options[ii].string = NULL;
+		break;
+
+	    case Typedef:
+		typeDef = true;
 		break;
 
 	    default:
@@ -1423,15 +1535,30 @@ int sdl_constant_compl(SDL_CONTEXT *context)
      * we have.  First let's see if there is one or multiple names needing
      * to be created.
      */
-    if (comma == NULL)
+    if (comma == NULL)	/* single CONSTANT or ENUM */
     {
+
+	/*
+	 * If we are not declaring a string constant and an enum name was
+	 * specified, then we are not creating a CONSTANT, but an ENUM.  Adjust
+	 * the data-type accordingly.
+	 */
+	if ((valueStr == NULL) && (enumName != NULL))
+	    datatype = SDL_K_TYPE_ENUM;
 	if (tag == NULL)
 	    tag = _sdl_get_tag(
 			context,
 			NULL,
-			SDL_K_TYPE_CONST,
+			datatype,
 			_sdl_all_lower(id));
-	myConst = _sdl_create_constant(
+
+	/*
+	 * OK, we have the tag we need, so if we are really creating a
+	 * CONSTANT, then do so now.
+	 */
+	if ((valueStr != NULL) || (enumName == NULL))
+	{
+	    myConst = _sdl_create_constant(
 				id,
 				prefix,
 				tag,
@@ -1439,20 +1566,65 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 				typeName,
 				radix,
 				value,
-				valueStr,
-				false);
-	if (myConst != NULL)
-	    retVal = _sdl_queue_constant(context, myConst);
+				valueStr);
+	    if (myConst != NULL)
+		retVal = _sdl_queue_constant(context, myConst);
+	    else
+		retVal = 0;
+	}
+
+	/*
+	 * Otherwise, we are creating an enumeration (just one).
+	 */
 	else
-	    retVal = 0;
+	{
+	    myEnum = _sdl_create_enum(context, enumName, prefix, tag, typeDef);
+	    if (myEnum != NULL)
+	    {
+		SDL_ENUM_MEMBER *myMem = calloc(1, sizeof(SDL_ENUM_MEMBER));
+
+		if (myMem != NULL)
+		{
+
+		    /*
+		     * Initialize the lone enumeration member and queue it up.
+		     */
+		    myMem->id = id;
+		    myMem->value = value;
+		    myMem->valueSet = value != 0;
+		    SDL_INSQUE(&myEnum->members, &myMem->header);
+		}
+		else
+		{
+		    free(myEnum);
+		    myEnum = NULL;
+		    retVal = 0;
+		}
+	    }
+	    else
+		retVal = 0;
+	}
     }
-    else
+    else	/* list of CONSTANTs or ENUMs */
     {
 	char 		*ptr = id;
 	char		*nl;
-	__int64_t	prevValue = value;
+	int64_t	prevValue = value;
 	bool		freeTag = tag == NULL;
 	bool		done = false;
+
+	/*
+	 * If an enum name was specified, then we are not creating a CONSTANT,
+	 * but an ENUM.  Adjust the data-type accordingly.  Also, allocate and
+	 * initialize the ENUM parent.
+	 */
+	if (enumName != NULL)
+	{
+	    datatype = SDL_K_TYPE_ENUM;
+	    myEnum = _sdl_create_enum(context, enumName, prefix, tag, typeDef);
+	    if (myEnum == NULL)
+		retVal = 0;
+	}
 
 	sdl_trim_str(ptr, SDL_M_LEAD);
 	while ((done == false) && (retVal == 1))
@@ -1496,30 +1668,44 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	    }
 	    if (strlen(name) > 0)
 	    {
-		if (freeTag == true)
-		    tag = _sdl_get_tag(
-				context,
-				NULL,
-				SDL_K_TYPE_CONST,
-				_sdl_all_lower(id));
-		myConst = _sdl_create_constant(
-					name,
-					prefix,
-					tag,
-					comment,
-					typeName,
-					radix,
-					value,
-					NULL,
-					enumerate);
-		if (myConst != NULL)
-		    retVal = _sdl_queue_constant(context, myConst);
-		else
-		    retVal = 0;
-		if (freeTag == true)
+		if (myEnum == NULL)
 		{
-		    free(tag);
-		    tag = NULL;
+		    if (freeTag == true)
+			tag = _sdl_get_tag(
+				    context,
+				    NULL,
+				    datatype,
+				    _sdl_all_lower(id));
+		    myConst = _sdl_create_constant(
+					    name,
+					    prefix,
+					    tag,
+					    comment,
+					    typeName,
+					    radix,
+					    value,
+					    NULL);
+		    if (myConst != NULL)
+			retVal = _sdl_queue_constant(context, myConst);
+		    else
+			retVal = 0;
+		    if (freeTag == true)
+		    {
+			free(tag);
+			tag = NULL;
+		    }
+		}
+		else
+		{
+		    SDL_ENUM_MEMBER *myMem = calloc(1, sizeof(SDL_ENUM_MEMBER));
+
+		    if (myMem != NULL)
+		    {
+			myMem->id = id;
+			myMem->value = value;
+			myMem->valueSet = (value - prevValue) != 1;
+			SDL_INSQUE(&myEnum->members, &myMem->header);
+		    }
 		}
 	    }
 	    if ((retVal == 1) && (counter != NULL) && (prevValue != value))
@@ -1535,9 +1721,17 @@ int sdl_constant_compl(SDL_CONTEXT *context)
     }
 
     /*
+     * If we created an enumeration, then go complete it (this will output it
+     * to the lanugage output files).
+     */
+    if ((retVal == 1) && (myEnum != NULL))
+	retVal = _sdl_enum_compl(context,myEnum);
+
+    /*
      * Deallocate all the memory.
      */
-    free(id);
+    if (id != NULL)
+	free(id);
     if (prefix != NULL)
 	free(prefix);
     if (tag != NULL)
@@ -1546,6 +1740,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	free(counter);
     if (typeName != NULL)
 	free(typeName);
+    if (enumName != NULL)
+	free(enumName);
 
     /*
      * Return the results of this call back to the caller.
@@ -1582,7 +1778,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 int sdl_aggregate(
 	SDL_CONTEXT *context,
 	char *name,
-	__int64_t datatype,
+	int64_t datatype,
 	bool unionAggr)
 {
     SDL_AGGREGATE	*myAggr = calloc(1, sizeof(SDL_AGGREGATE));
@@ -1658,7 +1854,7 @@ int sdl_aggregate(
 int sdl_aggregate_member(
 		SDL_CONTEXT *context,
 		char *name,
-		__int64_t datatype,
+		int64_t datatype,
 		SDL_AGGR_TYPE subaggrType)
 {
     SDL_MEMBERS		*myMember = NULL;
@@ -1668,8 +1864,8 @@ int sdl_aggregate_member(
     SDL_SUBAGGR		*mySubAggr = (context->aggregateDepth > 1 ?
 					(SDL_SUBAGGR *) context->currentAggr :
 					NULL);
-    __int64_t		bfType = SDL_K_TYPE_BYTE;
-    __int64_t		length = 0;
+    int64_t		subType = SDL_K_TYPE_BYTE;
+    int64_t		length = 0;
     int			retVal = 1;
     bool		mask = false;
     bool		_signed = false;
@@ -1686,7 +1882,7 @@ int sdl_aggregate_member(
      */
     if (context->optionsIdx > 0)
     {
-	__int64_t	dimension;
+	int64_t	dimension;
 	int		ii;
 
 	/*
@@ -1879,11 +2075,11 @@ int sdl_aggregate_member(
 		    break;
 
 		case Length:
-			length = context->options[ii].value;
+		    length = context->options[ii].value;
 		    break;
 
-		case BitfieldType:
-			bfType = context->options[ii].value;
+		case SubType:
+		    subType = context->options[ii].value;
 		    break;
 
 		default:
@@ -1936,7 +2132,19 @@ int sdl_aggregate_member(
 			myMember->item.length = (length == 0 ? 1 : length);
 			myMember->item.mask = mask;
 			myMember->item._signed = _signed;
-			myMember->item.bitfieldType = bfType;
+			myMember->item.subType = subType;
+			break;
+
+		    case SDL_K_TYPE_ADDR:
+		    case SDL_K_TYPE_ADDR_L:
+		    case SDL_K_TYPE_ADDR_Q:
+		    case SDL_K_TYPE_ADDR_HW:
+		    case SDL_K_TYPE_HW_ADDR:
+		    case SDL_K_TYPE_PTR:
+		    case SDL_K_TYPE_PTR_L:
+		    case SDL_K_TYPE_PTR_Q:
+		    case SDL_K_TYPE_PTR_HW:
+			myMember->item.subType = subType;
 			break;
 		}
 		myMember->item.tag = _sdl_get_tag(
@@ -2027,7 +2235,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
     if (context->optionsIdx > 0)
     {
 	SDL_MEMBERS	*myMember = NULL;
-	__int64_t	dimension;
+	int64_t	dimension;
 	int		ii;
 
 	/*
@@ -2626,8 +2834,11 @@ static SDL_ITEM *_sdl_get_item(SDL_ITEM_LIST *item, char *name)
  * Return Values:
  *  A pointer to a user specified tag or a default tag.
  */
-static char *_sdl_get_tag(SDL_CONTEXT *context, char *tag, int datatype,
-bool lower)
+static char *_sdl_get_tag(
+		SDL_CONTEXT *context,
+		char *tag,
+		int datatype,
+		bool lower)
 {
     char	*retVal = tag;
 
@@ -2773,9 +2984,9 @@ bool lower)
  *  A value greater than or equal to zero, representing the size of the
  *  indicated type.
  */
-static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
+static int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
 {
-    __int64_t	retVal = 0;
+    int64_t	retVal = 0;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -2786,28 +2997,45 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
     if ((item >= SDL_K_BASE_TYPE_MIN) && (item <= SDL_K_BASE_TYPE_MAX))
 	switch (item)
 	{
+	    case SDL_K_TYPE_NONE:
+		retVal = 0;
+		break;
+
 	    case SDL_K_TYPE_BYTE:
 	    case SDL_K_TYPE_INT_B:
 	    case SDL_K_TYPE_BITFLD_B:
+		retVal = sizeof(int8_t);
+		break;
+
 	    case SDL_K_TYPE_CHAR:
-		retVal = 1;
+		retVal = sizeof(char);
 		break;
 
 	    case SDL_K_TYPE_WORD:
 	    case SDL_K_TYPE_INT_W:
 	    case SDL_K_TYPE_BITFLD_W:
-		retVal = 2;
+		retVal = sizeof(int16_t);
 		break;
 
 	    case SDL_K_TYPE_LONG:
 	    case SDL_K_TYPE_INT_L:
-	    case SDL_K_TYPE_INT:
-	    case SDL_K_TYPE_INT_HW:
-	    case SDL_K_TYPE_HW_INT:
 	    case SDL_K_TYPE_BITFLD_L:
 	    case SDL_K_TYPE_ADDR_L:
 	    case SDL_K_TYPE_PTR_L:
-		retVal = 4;
+		retVal = sizeof(int32_t);
+		break;
+
+	    case SDL_K_TYPE_INT:
+	    case SDL_K_TYPE_BITFLD:
+		retVal = sizeof(int);
+		break;
+
+	    case SDL_K_TYPE_INT_HW:
+	    case SDL_K_TYPE_HW_INT:
+		if (context->wordSize == 32)
+		    retVal = sizeof(int32_t);
+		else
+		    retVal = sizeof(int64_t);
 		break;
 
 	    case SDL_K_TYPE_QUAD:
@@ -2815,55 +3043,61 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
 	    case SDL_K_TYPE_BITFLD_Q:
 	    case SDL_K_TYPE_ADDR_Q:
 	    case SDL_K_TYPE_PTR_Q:
-		retVal = 8;
+		retVal = sizeof(int64_t);
 		break;
 
 	    case SDL_K_TYPE_OCTA:
 	    case SDL_K_TYPE_BITFLD_O:
+		retVal = sizeof(__int128_t);
+		break;
+
 	    case SDL_K_TYPE_HFLT:
-		retVal = 16;
+	    case SDL_K_TYPE_XFLT:
+		retVal = sizeof(long double);
 		break;
 
 	    case SDL_K_TYPE_HFLT_C:
-		retVal = 32;
+	    case SDL_K_TYPE_XFLT_C:
+		retVal = sizeof(long double _Complex);
 		break;
 
 	    case SDL_K_TYPE_TFLT:
 	    case SDL_K_TYPE_FFLT:
-		retVal = 4;
+		retVal = sizeof(float);
 		break;
 
 	    case SDL_K_TYPE_TFLT_C:
 	    case SDL_K_TYPE_FFLT_C:
-		retVal = 8;
+		retVal = sizeof(float _Complex);
 		break;
 
 	    case SDL_K_TYPE_SFLT:
 	    case SDL_K_TYPE_DFLT:
 	    case SDL_K_TYPE_GFLT:
-		retVal = 8;
+		retVal = sizeof(double);
 		break;
 
 	    case SDL_K_TYPE_SFLT_C:
 	    case SDL_K_TYPE_DFLT_C:
 	    case SDL_K_TYPE_GFLT_C:
-		retVal = 16;
+		retVal = sizeof(double _Complex);
 		break;
 
 	    case SDL_K_TYPE_DECIMAL:
-		retVal = 2;	/* (2 * precision) + 1 */
+		retVal = 2;		/* (2 * precision) + 1 */
 		break;
 
 	    case SDL_K_TYPE_CHAR_VARY:
-		retVal = 1;	/* length + 2 bytes for stored length */
+		retVal = sizeof(char);	/* length + 2 bytes for stored length */
 		break;
 
 	    case SDL_K_TYPE_CHAR_STAR:
-		retVal = 1;
+		retVal = sizeof(char);
 		break;
 
 	    case SDL_K_TYPE_ADDR:
 	    case SDL_K_TYPE_PTR:
+	    case SDL_K_TYPE_ENTRY:
 		retVal = context->wordSize / 8;
 		break;
 
@@ -2875,6 +3109,8 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
 
 	    case SDL_K_TYPE_ANY:
 	    case SDL_K_TYPE_VOID:
+	    case SDL_K_TYPE_STRUCT:
+	    case SDL_K_TYPE_UNION:
 		retVal = 0;
 		break;
 
@@ -2882,9 +3118,8 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
 		retVal = sizeof(bool);
 		break;
 
-	    case SDL_K_TYPE_STRUCT:
-	    case SDL_K_TYPE_UNION:
-		retVal = sizeof(bool);
+	    case SDL_K_TYPE_ENUM:
+		retVal = sizeof(int);
 		break;
 
 	    default:
@@ -2941,9 +3176,6 @@ static __int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
  *	A value for the actual constant.
  *  string:
  *	A pointer to a string value for the actual constant.
- *  enumerate:
- *	A flag to indicate that this constant should be defined as an
- *	enumeration.
  *
  * Output Parameters:
  *  None.
@@ -2959,9 +3191,8 @@ static SDL_CONSTANT *_sdl_create_constant(
         char *comment,
         char *typeName,
         int radix,
-        __int64_t value,
-        char *string,
-        bool enumerate)
+        int64_t value,
+        char *string)
 {
     SDL_CONSTANT *retVal = calloc(1, sizeof(SDL_CONSTANT));
 
@@ -3001,7 +3232,6 @@ static SDL_CONSTANT *_sdl_create_constant(
 	    retVal->type = SDL_K_CONST_STR;
 	    retVal->string = string;
 	}
-	retVal->enumerate = enumerate;
     }
 
     /*
@@ -3021,7 +3251,7 @@ static SDL_CONSTANT *_sdl_create_constant(
  *	A pointer to the context structure where we maintain information about
  *	the current state of the parsing.
  *  myConst:
- *	A pointer to the constant structure to be queued upo and put put.
+ *	A pointer to the constant structure to be queued up and put put.
  *
  * Output Parameters:
  *  None.
@@ -3057,6 +3287,122 @@ static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst)
 		retVal = (*_outputFuncs[ii][SDL_K_CONSTANT_CB])(
 		        context->outFP[ii],
 		        myConst,
+		        context);
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * _sdl_create_enum
+ *  This function is called to create an enumerate record and return it back to
+ *  the caller.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  id:
+ *  	A pointer to the enum identifier string.
+ *  prefix:
+ *	A pointer to the prefix to be prepended before the tag and id.
+ *  tag:
+ *	A pointer to the tag to be added between the prefix and the id.
+ *  typeDef:
+ *	A boolean value indicating that this enumeration will be declared as a
+ *	typedef.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  NULL:	Failed to allocate the memory required.
+ *  !NULL:	Normal Successful Completion.
+ */
+static SDL_ENUMERATE *_sdl_create_enum(
+				SDL_CONTEXT *context,
+				char *id,
+				char *prefix,
+				char *tag,
+				bool typeDef)
+{
+    SDL_ENUMERATE	*retVal = calloc(1, sizeof(SDL_ENUMERATE));
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_create_enum\n", __FILE__, __LINE__);
+
+    if (retVal != NULL)
+    {
+	SDL_Q_INIT(&retVal->members);
+	retVal->id = strdup(id);
+	if (prefix != NULL)
+	    retVal->prefix = strdup(prefix);
+	else
+	    retVal->prefix = NULL;
+	retVal->tag = strdup(tag);
+	retVal->typeDef = typeDef;
+	retVal->size = _sdl_sizeof(context, SDL_K_TYPE_ENUM);
+	SDL_INSQUE(&context->enums.header, &retVal->header);
+    }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * _sdl_enum_compl
+ *  This function is called to call the language specific output routines to
+ *  output and enumeration.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  myEnum:
+ *	A pointer to the ENUMERATE structure to be output.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+static int _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
+{
+    int retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_enum_compl\n", __FILE__, __LINE__);
+
+    if (myEnum != NULL)
+    {
+	int ii;
+
+	/*
+	 * Loop through all the possible languages and call the
+	 * appropriate output function for each of the enabled
+	 * languages.
+	 */
+	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    if ((context->langSpec[ii] == true)
+		    && (context->langEna[ii] == true))
+		retVal = (*_outputFuncs[ii][SDL_K_ENUM_CB])(
+		        context->outFP[ii],
+		        myEnum,
 		        context);
     }
     else
@@ -3354,7 +3700,7 @@ static int _sdl_iterate_members(
 	        member->item.length,
 	        (member->item.mask == true ? "True" : "False"),
 	        (member->item._signed == true ? "True" : "False"),
-	        member->item.bitfieldType);
+	        member->item.subType);
 	    if (member->item.dimension == true)
 		printf(
 		    "\t    dimension: [%ld:%ld]\n",

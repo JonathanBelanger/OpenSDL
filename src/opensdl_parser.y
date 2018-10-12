@@ -182,6 +182,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %token SDL_K_DFLOAT
 %token SDL_K_GFLOAT
 %token SDL_K_HFLOAT
+%token SDL_K_XFLOAT
 %token SDL_K_COMPLEX
 %token SDL_K_DECIMAL
 %token SDL_K_PRECISION
@@ -615,14 +616,34 @@ _v_integer
 	;
 
 _v_float
-	: SDL_K_SFLOAT
-	    { $$ = SDL_K_TYPE_SFLT; }
-	| SDL_K_SFLOAT SDL_K_COMPLEX
-	    { $$ = SDL_K_TYPE_SFLT_C; }
-	| SDL_K_TFLOAT
+	: SDL_K_TFLOAT
 	    { $$ = SDL_K_TYPE_TFLT; }
 	| SDL_K_TFLOAT SDL_K_COMPLEX
 	    { $$ = SDL_K_TYPE_TFLT_C; }
+	| SDL_K_SFLOAT
+	    { $$ = SDL_K_TYPE_SFLT; }
+	| SDL_K_SFLOAT SDL_K_COMPLEX
+	    { $$ = SDL_K_TYPE_SFLT_C; }
+	| SDL_K_XFLOAT
+	    { $$ = SDL_K_TYPE_XFLT; }
+	| SDL_K_XFLOAT SDL_K_COMPLEX
+	    { $$ = SDL_K_TYPE_XFLT_C; }
+	| SDL_K_FFLOAT
+	    { $$ = SDL_K_TYPE_FFLT; }
+	| SDL_K_FFLOAT SDL_K_COMPLEX
+	    { $$ = SDL_K_TYPE_FFLT_C; }
+	| SDL_K_DFLOAT
+	    { $$ = SDL_K_TYPE_DFLT; }
+	| SDL_K_DFLOAT SDL_K_COMPLEX
+	    { $$ = SDL_K_TYPE_DFLT_C; }
+	| SDL_K_GFLOAT
+	    { $$ = SDL_K_TYPE_GFLT; }
+	| SDL_K_GFLOAT SDL_K_COMPLEX
+	    { $$ = SDL_K_TYPE_GFLT_C; }
+	| SDL_K_HFLOAT
+	    { $$ = SDL_K_TYPE_HFLT; }
+	| SDL_K_HFLOAT SDL_K_COMPLEX
+	    { $$ = SDL_K_TYPE_HFLT_C; }
 	| SDL_K_DECIMAL SDL_K_PRECISION SDL_K_OPENP _v_expression SDL_K_COMMA
 	  _v_expression SDL_K_CLOSEP
 	    {
@@ -642,23 +663,50 @@ _v_signed
 
 _v_address
 	: SDL_K_ADDR _v_object
-	    { $$ = SDL_K_TYPE_ADDR; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_ADDR;
+	    }
 	| SDL_K_ADDR_L _v_object
-	    { $$ = SDL_K_TYPE_ADDR_L; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_ADDR_L;
+	    }
 	| SDL_K_ADDR_Q _v_object
-	    { $$ = SDL_K_TYPE_ADDR_Q; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_ADDR_Q;
+	    }
 	| SDL_K_ADDR_HW _v_object
-	    { $$ = SDL_K_TYPE_ADDR_HW; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_ADDR_HW;
+	    }
 	| SDL_K_HW_ADDR _v_object
-	    { $$ = SDL_K_TYPE_HW_ADDR; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_HW_ADDR;
+	    }
 	| SDL_K_PTR _v_object
-	    { $$ = SDL_K_TYPE_PTR; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_PTR;
+	    }
 	| SDL_K_PTR_L _v_object
-	    { $$ = SDL_K_TYPE_PTR_L; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_PTR_L;
+	    }
 	| SDL_K_PTR_Q _v_object
-	    { $$ = SDL_K_TYPE_PTR_Q; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_PTR_Q;
+	    }
 	| SDL_K_PTR_HW _v_object
-	    { $$ = SDL_K_TYPE_PTR_HW; }
+	    {
+		sdl_add_option(&context, SubType, $2, NULL);
+		$$ = SDL_K_TYPE_PTR_HW;
+	    }
 	;
 
 _v_object
@@ -811,15 +859,15 @@ bitfield_options
 
 bitfield_choices
 	: SDL_K_BYTE
-	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_BYTE, NULL); }
+	    { sdl_add_option(&context, SubType, SDL_K_TYPE_BYTE, NULL); }
 	| SDL_K_WORD
-	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_WORD, NULL); }
+	    { sdl_add_option(&context, SubType, SDL_K_TYPE_WORD, NULL); }
 	| SDL_K_LONG
-	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_LONG, NULL); }
+	    { sdl_add_option(&context, SubType, SDL_K_TYPE_LONG, NULL); }
 	| SDL_K_QUAD
-	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_QUAD, NULL); }
+	    { sdl_add_option(&context, SubType, SDL_K_TYPE_QUAD, NULL); }
 	| SDL_K_OCTA
-	    { sdl_add_option(&context, BitfieldType, SDL_K_TYPE_OCTA, NULL); }
+	    { sdl_add_option(&context, SubType, SDL_K_TYPE_OCTA, NULL); }
 	| SDL_K_LENGTH _v_expression
 	    { sdl_add_option(&context, Length, $2, NULL); }
 	| SDL_K_MASK

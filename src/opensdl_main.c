@@ -187,6 +187,8 @@ int main(int argc, char *argv[])
     context.items.nextID = SDL_K_ITEM_MIN;
     SDL_Q_INIT(&context.aggregates.header);
     context.aggregates.nextID = SDL_K_AGGREGATE_MIN;
+    SDL_Q_INIT(&context.enums.header);
+    context.enums.nextID = SDL_K_ENUM_MIN;
     SDL_Q_INIT(&context.entries);
 
     /*

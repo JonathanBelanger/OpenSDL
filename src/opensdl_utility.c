@@ -559,6 +559,48 @@ SDL_AGGREGATE *sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, int typeID)
 }
 
 /*
+ * sdl_get_enum
+ *  This function is called to get the record of a previously defined
+ *  ENUMERATE.
+ *
+ * Input Parameters:
+ *  enums:
+ *	A pointer to the list containing all currently defined ENUMSs.
+ *  typeID:
+ *	A value assigned to the declared item.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Value
+ *  NULL:	Local variable not found.
+ *  !NULL:	An existing ENUMERATE.
+ */
+SDL_ENUMERATE *sdl_get_enum(SDL_ENUM_LIST *enums, int typeID)
+{
+    SDL_ENUMERATE	*retVal = (SDL_ENUMERATE *) enums->header.flink;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_get_enum\n", __FILE__, __LINE__);
+
+    while (retVal != (SDL_ENUMERATE *) &enums->header)
+	if (retVal->typeID == typeID)
+	    break;
+	else
+	    retVal = (SDL_ENUMERATE *) retVal->header.flink;
+    if (retVal == (SDL_ENUMERATE *) &enums->header)
+	retVal = NULL;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
  * sdl_usertype_idx
  *  This function is called to return the user type id associated with a
  *  particular user type.

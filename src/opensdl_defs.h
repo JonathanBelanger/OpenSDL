@@ -273,6 +273,7 @@ typedef struct
     char		*tag;
     int64_t		size;
     int64_t		memSize;	/* Actual space used in memory	*/
+    int			typeID;
     bool		typeDef;
 } SDL_ENUMERATE;
 

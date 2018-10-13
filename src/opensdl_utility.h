@@ -34,6 +34,7 @@ SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name);
 SDL_DECLARE *sdl_get_declare(SDL_DECLARE_LIST *declare, int typeID);
 SDL_ITEM *sdl_get_item(SDL_ITEM_LIST *item, int typeID);
 SDL_AGGREGATE *sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, int typeID);
+SDL_ENUMERATE *sdl_get_enum(SDL_ENUM_LIST *enums, int typeID);
 int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value);
 int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype);
 int sdl_aggrtype_idx(SDL_CONTEXT *context, char *aggregateName);

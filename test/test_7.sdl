@@ -30,7 +30,7 @@
 /+
 // Test 7: This is going to test ITEM.
 /-
-MODULE test_6;
+MODULE test_7;
 
 DECLARE foobar SIZEOF OCTAWORD;
 
@@ -46,8 +46,8 @@ ITEM block_list_id0 WORD;
 
 /+
 // Test 7c: Basic ITEM of DECLAREd type.
-ITEM block_list_id1 foobar; 
 /-
+ITEM block_list_id1 foobar; 
 
 /+
 // Test 7d: ITEM with a DIMENSION, a PREFIX, and a TAG.

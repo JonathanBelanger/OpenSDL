@@ -100,7 +100,7 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2] =
  * Local Prototypes
  */
 static char *_sdl_c_generate_name(char *name, char *prefix, char *tag);
-static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context);
+static char *_sdl_c_typeidStr(int typeID, int subType, SDL_CONTEXT *context);
 static char *_sdl_c_leading_spaces(int depth);
 
 /*
@@ -559,7 +559,7 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
     char	*sign = (item->_unsigned == true ? "unsigned " : "");
-    char	*type = _sdl_c_typeidStr(item->type, context);
+    char	*type = _sdl_c_typeidStr(item->type, item->subType, context);
     char	*name = _sdl_c_generate_name(item->id, item->prefix, item->tag);
     int		retVal = 1;
 
@@ -586,21 +586,35 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 
 	/*
 	 * Now we need to output the type and name.
-	 * TODO: Need to handle Addresses, Bitfields, and Aggregates.
 	 */
 	if (retVal == 1)
 	{
-	    if (fprintf(fp, "%s%s %s", sign, type, name) < 0)
+	    char *addr = ((item->typeID == SDL_K_TYPE_ADDR) ||
+			  (item->typeID == SDL_K_TYPE_PTR)) ? "*" : "";
+	    if (fprintf(fp, "%s%s %s%s", sign, type, addr, name) < 0)
 		retVal = 0;
 	}
 
 	/*
 	 * If there is a dimension specified, then generate that.
 	 */
-	if ((retVal == 1) && (item->dimension == true))
+	if (retVal == 1)
 	{
-	    if (fprintf(fp, "[%ld]", item->hbound - item->lbound + 1) < 0)
-		retVal = 0;
+	    if ((item->typeID == SDL_K_TYPE_BITFLD) ||
+		(item->typeID == SDL_K_TYPE_BITFLD_B) ||
+		(item->typeID == SDL_K_TYPE_BITFLD_W) ||
+		(item->typeID == SDL_K_TYPE_BITFLD_L) ||
+		(item->typeID == SDL_K_TYPE_BITFLD_Q) ||
+		(item->typeID == SDL_K_TYPE_BITFLD_O))
+	    {
+		if (fprintf(fp, ": %ld", item->length) < 0)
+		    retVal = 0;
+	    }
+	    else if (item->dimension == true)
+	    {
+		if (fprintf(fp, "[%ld]", item->hbound - item->lbound + 1) < 0)
+		    retVal = 0;
+	    }
 	}
 
 	/*
@@ -963,7 +977,7 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     }
     else
     {
-	char *typeStr = _sdl_c_typeidStr(entry->returns.type, context);
+	char *typeStr = _sdl_c_typeidStr(entry->returns.type, 0, context);
 
 	if ((entry->returns.type >= SDL_K_BASE_TYPE_MIN) &&
 	    (entry->returns.type <= SDL_K_BASE_TYPE_MAX))
@@ -1225,11 +1239,14 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
  * Input Parameters:
  *  typeID:
  *	A value indicating the type to be converted.
+ *  subType:
+ *	A value indicating the subType to be converted, when the type is
+ *	ADDRESS or POINTER.
  *  context:
  *	A pointer to the context block to be used for converting a type into
  *	a string.
  */
-static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
+static char *_sdl_c_typeidStr(int typeID, int subType, SDL_CONTEXT *context)
 {
     char	*retVal = NULL;
     int		bits = (context->wordSize / 32) - 1;	/* 0 = 32, 1 = 64 */
@@ -1241,20 +1258,25 @@ static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
 	printf("%s:%d:_sdl_c_typeidStr\n", __FILE__, __LINE__);
 
     if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
-	retVal = _types[typeID][bits];
+    {
+	if ((typeID == SDL_K_TYPE_ADDR) || (typeID == SDL_K_TYPE_PTR))
+	    retVal = _types[subType][bits];
+	else
+	    retVal = _types[typeID][bits];
+    }
     else if ((typeID >= SDL_K_DECLARE_MIN) && (typeID <= SDL_K_DECLARE_MAX))
     {
 	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, typeID);
 
 	if (myDeclare != NULL)
-	    retVal = _sdl_c_typeidStr(myDeclare->type, context);
+	    retVal = _sdl_c_typeidStr(myDeclare->type, subType, context);
     }
     else if ((typeID >= SDL_K_ITEM_MIN) && (typeID <= SDL_K_ITEM_MAX))
     {
 	SDL_ITEM *myItem = sdl_get_item(&context->items, typeID);
 
 	if (myItem != NULL)
-	    retVal = _sdl_c_typeidStr(myItem->type, context);
+	    retVal = _sdl_c_typeidStr(myItem->type, subType, context);
     }
     else if ((typeID >= SDL_K_AGGREGATE_MIN) && (typeID <= SDL_K_AGGREGATE_MAX))
     {
@@ -1262,7 +1284,7 @@ static char *_sdl_c_typeidStr(int typeID, SDL_CONTEXT *context)
 	    sdl_get_aggregate(&context->aggregates, typeID);
 
 	if (myAggregate!= NULL)
-	    retVal = _sdl_c_typeidStr(myAggregate->type, context);
+	    retVal = _sdl_c_typeidStr(myAggregate->type, subType, context);
     }
 
     /*

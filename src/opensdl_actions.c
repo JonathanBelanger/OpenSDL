@@ -3147,6 +3147,8 @@ static int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
 	if (myAggregate != NULL)
 	    retVal = myAggregate->size;
     }
+    else if ((item >= SDL_K_ENUM_MIN) && (item <= SDL_K_ENUM_MAX))
+	retVal = sizeof(int);
 
     /*
      * Return the results of this call back to the caller.
@@ -3350,6 +3352,7 @@ static SDL_ENUMERATE *_sdl_create_enum(
 	retVal->tag = strdup(tag);
 	retVal->typeDef = typeDef;
 	retVal->size = _sdl_sizeof(context, SDL_K_TYPE_ENUM);
+	retVal->typeID = context->enums.nextID++;
 	SDL_INSQUE(&context->enums.header, &retVal->header);
     }
 

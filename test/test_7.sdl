@@ -32,7 +32,7 @@
 /-
 MODULE test_7;
 
-DECLARE foobar SIZEOF OCTAWORD;
+DECLARE foobar SIZEOF QUADWORD;
 
 /+
 // Test 7a: Basic ITEM of ADDRESS.
@@ -103,11 +103,11 @@ ITEM percentage DECIMAL PRECISION (3,2);
 //
 // DECLARE type SIZEOF ADDRESS (CHARACTER);
 // ITEM type ADDRESS (bar SIZEOF LONGWORD);
-//
-//DECLARE tree SIZEOF (16);
-//ITEM tree_pointer ADDRESS (tree);
-//ITEM tree_storage tree DIMENSION 1000;
 /-
+DECLARE tree SIZEOF (16);
+ITEM tree_pointer ADDRESS (tree);
+ITEM tree_storage tree DIMENSION 1000;
+
 
 /+
 // Test 7n: ITEM with COMMMON.

@@ -445,8 +445,8 @@ int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 		fp,
 		"#include <stdint.h>\n"
 		"#include <ctype.h>\n"
-		"#include <sysbool.h>\n"
-		"#include <complex.h>") < 0))
+		"#include <stdbool.h>\n"
+		"#include <complex.h>\n") < 0))
 	    retVal = 0;
 
 	/*

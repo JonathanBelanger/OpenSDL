@@ -174,7 +174,6 @@ static int _sdl_iterate_members(
 		int (*callback)(),
 		int depth,
 		int count);
-static void _sdl_dealloc_members(SDL_QUEUE *members);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -399,11 +398,11 @@ int sdl_set_local(SDL_CONTEXT *context, char *name, int64_t value)
      */
     if (local == NULL)
     {
-	local = calloc(1, sizeof(SDL_LOCAL_VARIABLE));
+	local = sdl_allocate_block(LocalBlock, NULL);
 	if (local != NULL)
 	{
 	    local->id = name;
-	    SDL_INSQUE(&context->locals, &local->header);
+	    SDL_INSQUE(&context->locals, &local->header.queue);
 	    retVal = -1;
 	}
 	else
@@ -550,8 +549,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		local->id,
 		local->value);
 	}
-	free(local->id);
-	free(local);
+	sdl_deallocate_block(&local->header);
     }
 
     /*
@@ -594,16 +592,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		    "\t    comment: %s\n",
 		    constant->comment);
 	}
-	free(constant->id);
-	if (constant->prefix != NULL)
-	    free(constant->prefix);
-	if (constant->tag != NULL)
-	    free(constant->tag);
-	if (constant->comment != NULL)
-	    free(constant->comment);
-	if (constant->typeName != NULL)
-	    free(constant->typeName);
-	free(constant);
+	sdl_deallocate_block(&constant->header);
     }
 
     /*
@@ -613,6 +602,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
     while(SDL_Q_EMPTY(&context->enums.header) == false)
     {
 	SDL_ENUMERATE	*_enum;
+	SDL_ENUM_MEMBER *member;
 	int		jj;
 
 	SDL_REMQUE(&context->enums.header, _enum);
@@ -631,11 +621,9 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		(_enum->typeDef == true ? "True" : "False"));
 	}
 	jj = 1;
-	while(SDL_Q_EMPTY(&_enum->header) == false)
+	member = (SDL_ENUM_MEMBER *) _enum->members.flink;
+	while (&member->header.queue != &_enum->members)
 	{
-	    SDL_ENUM_MEMBER *member;
-
-	    SDL_REMQUE(&_enum->header, member);
 	    if (trace == true)
 	    {
 		if (jj == 1)
@@ -651,17 +639,9 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 			    "\t    comment: %s\n",
 			    member->comment);
 	    }
-	    free(member->id);
-	    if (member->comment != NULL)
-		free(member->comment);
-	    free(member);
+	    member = (SDL_ENUM_MEMBER *) member->header.queue.flink;
 	}
-	free(_enum->id);
-	if (_enum->prefix != NULL)
-	    free(_enum->prefix);
-	if (_enum->tag != NULL)
-	    free(_enum->tag);
-	free(_enum);
+	sdl_deallocate_block(&_enum->header);
     }
 
     /*
@@ -689,12 +669,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	        declare->type,
 	        declare->size);
 	}
-	free(declare->id);
-	if (declare->prefix != NULL)
-	    free(declare->prefix);
-	if (declare->tag != NULL)
-	    free(declare->tag);
-	free(declare);
+	sdl_deallocate_block(&declare->header);
     }
 
     /*
@@ -734,14 +709,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		    item->lbound,
 		    item->hbound);
 	}
-	free(item->id);
-	if (item->prefix != NULL)
-	    free(item->prefix);
-	if (item->tag != NULL)
-	    free(item->tag);
-	if (item->comment != NULL)
-	    free(item->comment);
-	free(item);
+	sdl_deallocate_block(&item->header);
     }
 
     /*
@@ -768,7 +736,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		"\t    _unsigned: %s\n",
 	        ii++,
 	        aggregate->id,
-	        (aggregate->structUnion == Union ? "UNION" : "STRUCTURE"),
+	        (aggregate->aggType == SDL_K_TYPE_UNION ? "UNION" : "STRUCTURE"),
 	        (aggregate->prefix != NULL ? aggregate->prefix : ""),
 	        (aggregate->marker != NULL ? aggregate->marker : ""),
 	        (aggregate->tag != NULL ? aggregate->tag : ""),
@@ -799,21 +767,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 			NULL,
 			1,
 			1);
-
-	free(aggregate->id);
-	if (aggregate->prefix != NULL)
-	    free(aggregate->prefix);
-	if (aggregate->tag != NULL)
-	    free(aggregate->tag);
-	if (aggregate->marker != NULL)
-	    free(aggregate->marker);
-	if (aggregate->comment != NULL)
-	    free(aggregate->comment);
-	if (aggregate->basedPtrName != NULL)
-	    free(aggregate->basedPtrName);
-	if (aggregate->origin.id != NULL)
-	    free(aggregate->origin.id);
-	free(aggregate);
+	sdl_deallocate_block(&aggregate->header);
     }
 
     /*
@@ -823,6 +777,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
     while (SDL_Q_EMPTY(&context->entries) == false)
     {
 	SDL_ENTRY	*entry;
+	SDL_PARAMETER 	*param;
 	int		jj;
 
 	SDL_REMQUE(&context->entries, entry);
@@ -847,11 +802,9 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		printf("\t    returns.named: %s\n", entry->returns.name);
 	}
 	jj = 1;
-	while (SDL_Q_EMPTY(&entry->parameters) == false)
+	param = (SDL_PARAMETER *) entry->parameters.flink;
+	while (&param->header.queue != &entry->parameters)
 	{
-	    SDL_PARAMETER 	*param;
-
-	    SDL_REMQUE(&entry->parameters, param);
 	    if (trace == true)
 	    {
 		if (jj == 1)
@@ -876,24 +829,9 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		    (param->optional == true ? "True" : "False"),
 		    (param->_unsigned == true ? "True" : "False"));
 	    }
-	    if (param->comment != NULL)
-		free(param->comment);
-	    if (param->name != NULL)
-		free(param->name);
-	    if (param->typeName != NULL)
-		free(param->typeName);
-	    free(param);
+	    param = (SDL_PARAMETER *) param->header.queue.flink;
 	}
-	free(entry->id);
-	if (entry->comment != NULL)
-	    free(entry->comment);
-	if (entry->alias != NULL)
-	    free(entry->alias);
-	if (entry->linkage != NULL)
-	    free(entry->linkage);
-	if (entry->typeName != NULL)
-	    free(entry->typeName);
-	free(entry);
+	sdl_deallocate_block(&entry->header);
     }
 
     /*
@@ -951,11 +889,11 @@ int sdl_literal(SDL_QUEUE *literals, char *line)
     if (trace == true)
 	printf("%s:%d:sdl_literal(%.*s)\n", __FILE__, __LINE__, (int) len, line);
 
-    literalLine = (SDL_LITERAL *) calloc(1, sizeof(SDL_LITERAL));
+    literalLine = sdl_allocate_block(LiteralBlock, NULL);
     if (literalLine != NULL)
     {
 	literalLine->line = line;
-	SDL_INSQUE(literals, &literalLine->header);
+	SDL_INSQUE(literals, &literalLine->header.queue);
     }
     else
     {
@@ -1021,8 +959,7 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals)
 	/*
 	 * Free up all the memory we allocated for this literal line.
 	 */
-	free(literalLine->line);
-	free(literalLine);
+	sdl_deallocate_block(&literalLine->header);
     }
 
     /*
@@ -1068,8 +1005,7 @@ int sdl_declare(SDL_CONTEXT *context, char *name, int sizeType)
      */
     if (myDeclare == NULL)
     {
-	myDeclare = (SDL_DECLARE *) calloc(1, sizeof(SDL_DECLARE));
-
+	myDeclare = sdl_allocate_block(DeclareBlock, NULL);
 	if (myDeclare != NULL)
 	{
 	    myDeclare->id = name;
@@ -1084,7 +1020,7 @@ int sdl_declare(SDL_CONTEXT *context, char *name, int sizeType)
 		myDeclare->size = _sdl_sizeof(context, sizeType);
 		myDeclare->type = sizeType;
 	    }
-	    SDL_INSQUE(&context->declares.header, &myDeclare->header);
+	    SDL_INSQUE(&context->declares.header, &myDeclare->header.queue);
 	}
 	else
 	{
@@ -1197,11 +1133,12 @@ int sdl_item(SDL_CONTEXT *context, char *name, int datatype)
 
     /*
      * We only complete, never create.
+     * TODO: Need to check to make sure we are not defining yet another ITEM
+     * TODO: with the same name (NOTE: It has to be completely the same).
      */
     if (myItem == NULL)
     {
-	myItem = (SDL_ITEM *) calloc(1, sizeof(SDL_ITEM));
-
+	myItem = sdl_allocate_block(ItemBlock, NULL);
 	if (myItem != NULL)
 	{
 	    myItem->id = name;
@@ -1220,7 +1157,7 @@ int sdl_item(SDL_CONTEXT *context, char *name, int datatype)
 		myItem->scale = context->scale;
 	    }
 	    myItem->size = _sdl_sizeof(context, datatype);
-	    SDL_INSQUE(&context->items.header, &myItem->header);
+	    SDL_INSQUE(&context->items.header, &myItem->header.queue);
 	}
     }
     else
@@ -1581,7 +1518,9 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	    myEnum = _sdl_create_enum(context, enumName, prefix, tag, typeDef);
 	    if (myEnum != NULL)
 	    {
-		SDL_ENUM_MEMBER *myMem = calloc(1, sizeof(SDL_ENUM_MEMBER));
+		SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
+						EnumMemberBlock,
+						&myEnum->header);
 
 		if (myMem != NULL)
 		{
@@ -1592,7 +1531,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 		    myMem->id = id;
 		    myMem->value = value;
 		    myMem->valueSet = value != 0;
-		    SDL_INSQUE(&myEnum->members, &myMem->header);
+		    SDL_INSQUE(&myEnum->members, &myMem->header.queue);
 		}
 		else
 		{
@@ -1697,14 +1636,16 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 		}
 		else
 		{
-		    SDL_ENUM_MEMBER *myMem = calloc(1, sizeof(SDL_ENUM_MEMBER));
+		    SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
+							EnumMemberBlock,
+							&myEnum->header);
 
 		    if (myMem != NULL)
 		    {
 			myMem->id = id;
 			myMem->value = value;
 			myMem->valueSet = (value - prevValue) != 1;
-			SDL_INSQUE(&myEnum->members, &myMem->header);
+			SDL_INSQUE(&myEnum->members, &myMem->header.queue);
 		    }
 		}
 	    }
@@ -1722,7 +1663,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 
     /*
      * If we created an enumeration, then go complete it (this will output it
-     * to the lanugage output files).
+     * to the language output files).
      */
     if ((retVal == 1) && (myEnum != NULL))
 	retVal = _sdl_enum_compl(context,myEnum);
@@ -1764,9 +1705,9 @@ int sdl_constant_compl(SDL_CONTEXT *context)
  *	definition.
  *  datatype:
  *	A value to be associated with the datatype for this item.
- *  unionAggr:
- *	A boolean value indicating if this AGGREGATE is for a UNION or
- *	STRUCTURE definition.
+ *  aggType:
+ *	A value indicating if this AGGREGATE is for a UNION or STRUCTURE
+ *	definition.
  *
  * Output Parameters:
  *  None.
@@ -1779,9 +1720,9 @@ int sdl_aggregate(
 	SDL_CONTEXT *context,
 	char *name,
 	int64_t datatype,
-	bool unionAggr)
+	int aggType)
 {
-    SDL_AGGREGATE	*myAggr = calloc(1, sizeof(SDL_AGGREGATE));
+    SDL_AGGREGATE	*myAggr = sdl_allocate_block(AggregateBlock, NULL);
     int			retVal = 1;
 
     /*
@@ -1802,14 +1743,14 @@ int sdl_aggregate(
 	else if (datatype > 0)
 	    myAggr->_unsigned = true;
 	myAggr->type = datatype;
-	myAggr->structUnion = unionAggr ? Union : Structure;
+	myAggr->aggType = aggType;
 	myAggr->tag = _sdl_get_tag(
 				context,
 				NULL,
 				SDL_K_TYPE_STRUCT,
 				_sdl_all_lower(name));
 	SDL_Q_INIT(&myAggr->members);
-	SDL_INSQUE(&context->aggregates.header, &myAggr->header);
+	SDL_INSQUE(&context->aggregates.header, &myAggr->header.queue);
 	context->currentAggr = myAggr;
 	context->aggregateDepth++;
     }
@@ -1836,13 +1777,9 @@ int sdl_aggregate(
  *  datatype:
  *	An integer indicating either a base type, user type, or another
  *	aggregate.
- *  subaggrType:
+ *  aggType:
  *	A value indicating the type of subaggregate that is being requested to
- *	be created.  This has one of the following enumerated values:
- *
- *		Unknown:	This is not a subaggregate but a member item.
- *		Structure:	This is a structure aggregate.
- *		Union:		This is a union aggregate.
+ *	be created.
  *
  * Output Parameters:
  *  None.
@@ -1855,7 +1792,7 @@ int sdl_aggregate_member(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t datatype,
-		SDL_AGGR_TYPE subaggrType)
+		int aggType)
 {
     SDL_MEMBERS		*myMember = NULL;
     SDL_AGGREGATE	*myAggr = (context->aggregateDepth > 1 ?
@@ -1874,7 +1811,7 @@ int sdl_aggregate_member(
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_aggregate_member(%d)\n", __FILE__, __LINE__, subaggrType);
+	printf("%s:%d:sdl_aggregate_member(%d)\n", __FILE__, __LINE__, aggType);
 
     /*
      * Before we go too far, there may have been one or more options defined to
@@ -1903,10 +1840,12 @@ int sdl_aggregate_member(
 	}
 
 	/*
-	 * If the current member is not Unknown (and ITEM member), then it is
+	 * If the current member is not a STRUCTURE or UNION, then it is
 	 * the current aggregate, of which we already have the address.
 	 */
-	if ((myMember != NULL) && (myMember->type != Unknown))
+	if ((myMember != NULL) &&
+	    ((myMember->type == SDL_K_TYPE_STRUCT) ||
+	     (myMember->type == SDL_K_TYPE_UNION)))
 	    myMember = NULL;
 
 	/*
@@ -2097,17 +2036,44 @@ int sdl_aggregate_member(
      * OK, we took care of adding the options to our predecessor, so now we
      * need to start a new member.
      */
-    myMember = (SDL_MEMBERS *) calloc(1, sizeof(SDL_MEMBERS));
+    myMember = sdl_allocate_block(
+			AggrMemberBlock,
+			(myAggr != NULL ?
+				&myAggr->header :
+				&mySubAggr->parent->header));
     if (myMember != NULL)
     {
 
 	/*
 	 * Determine the type of member we are being asked to create.
 	 */
-	myMember->type = subaggrType;
-	switch (subaggrType)
+	myMember->type = aggType;
+	switch (aggType)
 	{
-	    case Unknown:
+	    case SDL_K_TYPE_STRUCT:
+	    case SDL_K_TYPE_UNION:
+		myMember->subaggr.id = name;
+		myMember->subaggr.aggType = aggType;
+		if (datatype < 0)
+		{
+		    myMember->subaggr._unsigned = false;
+		    datatype = -datatype;
+		}
+		else if (datatype > 0)
+		    myMember->subaggr._unsigned = true;
+		myMember->subaggr.type = datatype;
+		myMember->subaggr.parent = context->currentAggr;
+		myMember->subaggr.tag = _sdl_get_tag(
+						context,
+						NULL,
+						SDL_K_TYPE_STRUCT,
+						_sdl_all_lower(name));
+		SDL_Q_INIT(&myMember->subaggr.members);
+		context->aggregateDepth++;
+		context->currentAggr = &myMember->subaggr;
+		break;
+
+	    default:
 		myMember->item.id = name;
 		if (datatype < 0)
 		{
@@ -2154,37 +2120,14 @@ int sdl_aggregate_member(
 						_sdl_all_lower(name));
 		myMember->item.size = _sdl_sizeof(context, datatype);
 		break;
-
-	    case Structure:
-	    case Union:
-		myMember->subaggr.id = name;
-		myMember->subaggr.structUnion = subaggrType;
-		if (datatype < 0)
-		{
-		    myMember->subaggr._unsigned = false;
-		    datatype = -datatype;
-		}
-		else if (datatype > 0)
-		    myMember->subaggr._unsigned = true;
-		myMember->subaggr.type = datatype;
-		myMember->subaggr.parent = context->currentAggr;
-		myMember->subaggr.tag = _sdl_get_tag(
-						context,
-						NULL,
-						SDL_K_TYPE_STRUCT,
-						_sdl_all_lower(name));
-		SDL_Q_INIT(&myMember->subaggr.members);
-		context->aggregateDepth++;
-		context->currentAggr = &myMember->subaggr;
-		break;
 	}
 	if (mySubAggr != NULL)
 	{
-	    SDL_INSQUE(&mySubAggr->members, &myMember->header);
+	    SDL_INSQUE(&mySubAggr->members, &myMember->header.queue);
 	}
 	else
 	{
-	    SDL_INSQUE(&myAggr->members, &myMember->header);
+	    SDL_INSQUE(&myAggr->members, &myMember->header.queue);
 	}
     }
     else
@@ -2235,7 +2178,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
     if (context->optionsIdx > 0)
     {
 	SDL_MEMBERS	*myMember = NULL;
-	int64_t	dimension;
+	int64_t		dimension;
 	int		ii;
 
 	/*
@@ -2254,7 +2197,9 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
 	    if (SDL_Q_EMPTY(&mySubAggr->members) == false)
 		myMember = mySubAggr->members.blink;
 	}
-	if ((myMember != NULL) && (myMember->type != Unknown))
+	if ((myMember != NULL) &&
+	    ((myMember->type != SDL_K_TYPE_STRUCT) ||
+	     (myMember->type != SDL_K_TYPE_UNION)))
 	    myMember = NULL;
 	for (ii = 0; ii < context->optionsIdx; ii++)
 	    switch (context->options[ii].option)
@@ -2438,7 +2383,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
  */
 int sdl_entry(SDL_CONTEXT *context, char *name)
 {
-    SDL_ENTRY	*myEntry = calloc(1, sizeof(SDL_ENTRY));
+    SDL_ENTRY	*myEntry = sdl_allocate_block(EntryBlock, NULL);
     int		retVal = 1;
     int		ii;
 
@@ -2497,10 +2442,11 @@ int sdl_entry(SDL_CONTEXT *context, char *name)
 	    SDL_PARAMETER *myParam = context->parameters[ii];
 
 	    context->parameters[ii] = NULL;
-	    SDL_INSQUE(&myEntry->parameters, &myParam->header);
+	    myParam->header.parent = &myEntry->header;
+	    SDL_INSQUE(&myEntry->parameters, &myParam->header.queue);
 	}
 	context->parameterIdx = 0;
-	SDL_INSQUE(&context->entries, &myEntry->header);
+	SDL_INSQUE(&context->entries, &myEntry->header.queue);
 
 	/*
 	 * Loop through all the possible languages and call the appropriate
@@ -2575,7 +2521,7 @@ int sdl_add_parameter(SDL_CONTEXT *context, int datatype, int passing)
 
     if (context->parameters != NULL)
     {
-	SDL_PARAMETER	*param = calloc(1, sizeof(SDL_PARAMETER));
+	SDL_PARAMETER	*param = sdl_allocate_block(ParameterBlock, NULL);
 
 	if (datatype < 0)
 	    param->type = -datatype;
@@ -2682,12 +2628,8 @@ static int _sdl_aggregate_callback(
 			bool ending,
 			int depth)
 {
-    void		*param = (member->type == Unknown ?
-				(void *) &member->item :
-				(void *) &member->subaggr);
-    SDL_LANG_AGGR_TYPE	type = (member->type == Unknown ?
-				LangItem :
-				LangSubaggregate);
+    void		*param;
+    SDL_LANG_AGGR_TYPE	type;
     int			retVal = 1;
     int			ii;
 
@@ -2696,6 +2638,18 @@ static int _sdl_aggregate_callback(
      */
     if (trace == true)
 	printf("%s:%d:_sdl_aggregate_callback\n", __FILE__, __LINE__);
+
+    if ((member->type == SDL_K_TYPE_STRUCT) ||
+	(member->type == SDL_K_TYPE_UNION))
+    {
+	param = (void *) &member->subaggr;
+	type = LangSubaggregate;
+    }
+    else
+    {
+	param = (void *) &member->item;
+	type = LangItem;
+    }
 
     /*
      * Loop through all the possible languages and call the appropriate
@@ -2751,7 +2705,7 @@ static SDL_DECLARE *_sdl_get_declare(SDL_DECLARE_LIST *declare, char *name)
 	if (strcmp(retVal->id, name) == 0)
 	    break;
 	else
-	    retVal = (SDL_DECLARE *) retVal->header.flink;
+	    retVal = (SDL_DECLARE *) retVal->header.queue.flink;
     if (retVal == (SDL_DECLARE *) &declare->header)
 	retVal = NULL;
 
@@ -2794,7 +2748,7 @@ static SDL_ITEM *_sdl_get_item(SDL_ITEM_LIST *item, char *name)
 	if (strcmp(retVal->id, name) == 0)
 	    break;
 	else
-	    retVal = (SDL_ITEM *) retVal->header.flink;
+	    retVal = (SDL_ITEM *) retVal->header.queue.flink;
     if (retVal == (SDL_ITEM *) &item->header)
 	retVal = NULL;
 
@@ -3196,7 +3150,7 @@ static SDL_CONSTANT *_sdl_create_constant(
         int64_t value,
         char *string)
 {
-    SDL_CONSTANT *retVal = calloc(1, sizeof(SDL_CONSTANT));
+    SDL_CONSTANT *retVal = sdl_allocate_block(ConstantBlock, NULL);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -3276,7 +3230,7 @@ static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst)
     {
 	int ii;
 
-	SDL_INSQUE(&context->constants, &myConst->header);
+	SDL_INSQUE(&context->constants, &myConst->header.queue);
 
 	/*
 	 * Loop through all the possible languages and call the
@@ -3333,7 +3287,7 @@ static SDL_ENUMERATE *_sdl_create_enum(
 				char *tag,
 				bool typeDef)
 {
-    SDL_ENUMERATE	*retVal = calloc(1, sizeof(SDL_ENUMERATE));
+    SDL_ENUMERATE	*retVal = sdl_allocate_block(EnumerateBlock, NULL);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -3353,7 +3307,7 @@ static SDL_ENUMERATE *_sdl_create_enum(
 	retVal->typeDef = typeDef;
 	retVal->size = _sdl_sizeof(context, SDL_K_TYPE_ENUM);
 	retVal->typeID = context->enums.nextID++;
-	SDL_INSQUE(&context->enums.header, &retVal->header);
+	SDL_INSQUE(&context->enums.header, &retVal->header.queue);
     }
 
     /*
@@ -3513,66 +3467,6 @@ static void _sdl_reset_options(SDL_CONTEXT *context)
 }
 
 /*
- * _sdl_dealloc_members
- *  This function is called when we have iterated through all the items, traced
- *  what we could, but did not have a callback provided to call about
- *  outputting the AGGREGATE.  So we just go through each level, getting rid of
- *  any memory at that level and then get rid of the level itself.
- *
- * Input Parameters:
- *  members:
- *	The address of the top-most member queue (in the AGGREGATE structure).
- *
- * Output Parameters:
- *  None.
- *
- * Return Value:
- *  None.
- */
-static void _sdl_dealloc_members(SDL_QUEUE *members)
-{
-    SDL_MEMBERS *member;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:_sdl_dealloc_members\n", __FILE__, __LINE__);
-
-    while (SDL_Q_EMPTY(members) == false)
-    {
-	SDL_REMQUE(members, member);
-	if (member->type == Unknown)
-	{
-	    free(member->item.id);
-	    if (member->item.comment != NULL)
-		free(member->item.comment);
-	    if (member->item.prefix != NULL)
-		free(member->item.prefix);
-	    if (member->item.tag != NULL)
-		free(member->item.tag);
-	}
-	else	/* Structure || Union */
-	{
-	    _sdl_dealloc_members(&member->subaggr.members);
-	    free(member->subaggr.id);
-	    if (member->subaggr.comment != NULL)
-		free(member->subaggr.comment);
-	    if (member->subaggr.prefix != NULL)
-		free(member->subaggr.prefix);
-	    if (member->subaggr.tag != NULL)
-		free(member->subaggr.tag);
-	    if (member->subaggr.basedPtrName != NULL)
-		free(member->subaggr.basedPtrName);
-	    if (member->subaggr.marker != NULL)
-		free(member->subaggr.marker);
-	}
-	free(member);
-    }
-    return;
-}
-
-/*
  * _sdl_iterate_members
  *  This function is called to iterate through each of the members and if that
  *  member is a subaggregate, call itself to iterate through that level.  If
@@ -3621,8 +3515,8 @@ static int _sdl_iterate_members(
     if (trace == true)
 	printf("%s:%d:_sdl_iterate_members\n", __FILE__, __LINE__);
 
-    if ((member->type == Structure) ||
-	(member->type == Union))
+    if ((member->type == SDL_K_TYPE_STRUCT) ||
+	(member->type == SDL_K_TYPE_UNION))
     {
 	SDL_SUBAGGR *subaggr = &member->subaggr;
 
@@ -3640,7 +3534,7 @@ static int _sdl_iterate_members(
 		(subaggr->prefix != NULL ? subaggr->prefix : ""),
 		(subaggr->tag != NULL ? subaggr->tag : ""),
 		(subaggr->marker != NULL ? subaggr->marker : ""),
-		(subaggr->structUnion == Structure ? "STRUCTURE" : "UNION"),
+		(subaggr->aggType == SDL_K_TYPE_STRUCT ? "STRUCTURE" : "UNION"),
 		subaggr->typeID,
 		subaggr->alignment,
 		subaggr->type,
@@ -3669,10 +3563,10 @@ static int _sdl_iterate_members(
 				1);
 	if (callback != NULL)
 	    (*callback)(context, member, true, depth);
-	if (member->header.flink != qhead)
+	if (member->header.queue.flink != qhead)
 	    retVal = _sdl_iterate_members(
 				context,
-				member->header.flink,
+				member->header.queue.flink,
 				qhead,
 				callback,
 				depth, count + 1);
@@ -3712,22 +3606,15 @@ static int _sdl_iterate_members(
 	}
 	if (callback != NULL)
 	    (*callback)(context, member, false, depth);
-	if (member->header.flink != qhead)
+	if (member->header.queue.flink != qhead)
 	    retVal = _sdl_iterate_members(
 				context,
-				member->header.flink,
+				member->header.queue.flink,
 				qhead,
 				callback,
 				depth,
 				count + 1);
     }
-
-    /*
-     * If the callback was supplied as a NULL, then we are hear to deallocate
-     * all the memory associated with the aggregate and its member children.
-     */
-    if ((callback == NULL) && (depth == 1))
-	_sdl_dealloc_members(qhead);
 
     /*
      * Return the results back to the caller.

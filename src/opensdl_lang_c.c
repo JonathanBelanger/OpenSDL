@@ -849,9 +849,7 @@ int sdl_c_aggregate(
 		}
 		if (retVal == 1)
 		{
-		    char *which = (aggr.aggr->structUnion == Structure ?
-				_types[SDL_K_TYPE_STRUCT][bits] :
-				_types[SDL_K_TYPE_UNION][bits]);
+		    char *which = _types[aggr.aggr->aggType][bits];
 		    char *fmt = (aggr.aggr->typeDef == true ?
 				"%s _%s\n%s{\n" :
 				"%s %s\n%s{\n");
@@ -890,9 +888,7 @@ int sdl_c_aggregate(
 		}
 		if (retVal == 1)
 		{
-		    char *which = (aggr.subaggr->structUnion == Structure ?
-				_types[SDL_K_TYPE_STRUCT][bits] :
-				_types[SDL_K_TYPE_UNION][bits]);
+		    char *which = _types[aggr.subaggr->aggType][bits];
 		    char *fmt = (aggr.subaggr->typeDef == true ?
 				"%s _%s\n%s{\n" :
 				"%s %s\n%s{\n");
@@ -1030,7 +1026,7 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     }
     while ((retVal == 1) && (param != (SDL_PARAMETER *) &entry->parameters))
     {
-	param = param->header.flink;
+	param = param->header.queue.flink;
     }
     if ((retVal == 1) &&
 	(fprintf(fp, ");\n") < 0))

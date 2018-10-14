@@ -789,12 +789,12 @@ aggregate
 	: SDL_K_AGGREGATE _t_id SDL_K_STRUCTURE _v_aggtypes
 	   {
 	    	sdl_state_transition(&context, Aggregate);
-	    	sdl_aggregate(&context, $2, $4, false);
+	    	sdl_aggregate(&context, $2, $4, SDL_K_TYPE_STRUCT);
 	   }
 	| SDL_K_AGGREGATE _t_id SDL_K_UNION _v_aggtypes
 	   {
 	    	sdl_state_transition(&context, Aggregate);
-	    	sdl_aggregate(&context, $2, $4, true);
+	    	sdl_aggregate(&context, $2, $4, SDL_K_TYPE_UNION);
 	   }
 	| aggregate_body
 	| SDL_K_END _t_aggr_id SDL_K_SEMI
@@ -823,24 +823,24 @@ _t_aggr_id
 
 aggregate_body
 	: _t_aggr_id _v_datatypes
-	    { sdl_aggregate_member(&context, $1, $2, Unknown); }
+	    { sdl_aggregate_member(&context, $1, $2, SDL_K_TYPE_NONE); }
 	| _t_aggr_id _t_aggr_id
 	    {
 		sdl_aggregate_member(
 				&context,
 				$1,
 				sdl_aggrtype_idx(&context, $2),
-				Unknown);
+				SDL_K_TYPE_NONE);
 	    }
 	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
 	    {
 	    	sdl_state_transition(&context, Subaggregate);
-		sdl_aggregate_member(&context, $1, $3, Structure);
+		sdl_aggregate_member(&context, $1, $3, SDL_K_TYPE_STRUCT);
 	    }
 	| _t_aggr_id SDL_K_UNION _v_aggtypes
 	    {
 	    	sdl_state_transition(&context, Subaggregate);
-		sdl_aggregate_member(&context, $1, $3, Union);
+		sdl_aggregate_member(&context, $1, $3, SDL_K_TYPE_UNION);
 	    }
 	| _t_aggr_id SDL_K_BITFIELD bitfield_options SDL_K_SEMI
 	    {
@@ -848,7 +848,7 @@ aggregate_body
 			&context,
 			$1,
 			SDL_K_TYPE_BITFLD,
-			Unknown);
+			SDL_K_TYPE_NONE);
 	    }
 	;
 

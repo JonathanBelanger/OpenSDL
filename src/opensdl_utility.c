@@ -138,7 +138,7 @@ SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name)
 	if (strcmp(retVal->id, name) == 0)
 	    break;
 	else
-	    retVal = (SDL_LOCAL_VARIABLE *) retVal->header.flink;
+	    retVal = (SDL_LOCAL_VARIABLE *) retVal->header.queue.flink;
 
     /*
      * If we ended up at the head of the queue, then we did not find what we
@@ -465,7 +465,7 @@ SDL_DECLARE *sdl_get_declare(SDL_DECLARE_LIST *declare, int typeID)
 	if (retVal->typeID == typeID)
 	    break;
 	else
-	    retVal = (SDL_DECLARE *) retVal->header.flink;
+	    retVal = (SDL_DECLARE *) retVal->header.queue.flink;
     if (retVal == (SDL_DECLARE *) &declare->header)
 	retVal = NULL;
 
@@ -506,7 +506,7 @@ SDL_ITEM *sdl_get_item(SDL_ITEM_LIST *item, int typeID)
 	if (retVal->typeID == typeID)
 	    break;
 	else
-	    retVal = (SDL_ITEM *) retVal->header.flink;
+	    retVal = (SDL_ITEM *) retVal->header.queue.flink;
     if (retVal == (SDL_ITEM *) &item->header)
 	retVal = NULL;
 
@@ -548,7 +548,7 @@ SDL_AGGREGATE *sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, int typeID)
 	if (retVal->typeID == typeID)
 	    break;
 	else
-	    retVal = (SDL_AGGREGATE *) retVal->header.flink;
+	    retVal = (SDL_AGGREGATE *) retVal->header.queue.flink;
     if (retVal == (SDL_AGGREGATE *) &aggregate->header)
 	retVal = NULL;
 
@@ -590,7 +590,7 @@ SDL_ENUMERATE *sdl_get_enum(SDL_ENUM_LIST *enums, int typeID)
 	if (retVal->typeID == typeID)
 	    break;
 	else
-	    retVal = (SDL_ENUMERATE *) retVal->header.flink;
+	    retVal = (SDL_ENUMERATE *) retVal->header.queue.flink;
     if (retVal == (SDL_ENUMERATE *) &enums->header)
 	retVal = NULL;
 
@@ -637,7 +637,7 @@ int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype)
 	    break;
 	}
 	else
-	    myDeclare = (SDL_DECLARE *) myDeclare->header.flink;
+	    myDeclare = (SDL_DECLARE *) myDeclare->header.queue.flink;
 
     /*
      * Return the results of this call back to the caller.
@@ -684,7 +684,7 @@ int sdl_aggrtype_idx(SDL_CONTEXT *context, char *aggregateName)
 	    break;
 	}
 	else
-	    myAggregate = (SDL_AGGREGATE *) myAggregate->header.flink;
+	    myAggregate = (SDL_AGGREGATE *) myAggregate->header.queue.flink;
 
     /*
      * Return the results of this call back to the caller.
@@ -1250,6 +1250,404 @@ void sdl_trim_str(char *str, int type)
     {
 	while (isspace(str[--destIdx]))
 	    str[destIdx] = '\0';
+    }
+
+    /*
+     * Return back to the caller.
+     */
+    return;
+}
+
+/*
+ * sdl_allocate_blk
+ *  This function is called to allocate one of the blocks needed to maintain
+ *  the information parsed from the input file(s).
+ *
+ * Input Parameters:
+ *  blockID:
+ *	A value indicating the type of block to be allocated.
+ *  parent:
+ *	A pointer to the parent block for this block.  If this is NULL, then
+ *	there is no particular parent we need to concern ourselves.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  NULL:	Error in either block ID or the attempt to allocate memory
+ *		failed.
+ *  !NULL:	Normal successful completion.
+ */
+void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
+{
+    void	*retVal = NULL;
+
+    /*
+     * Determine which block to allocate.
+     */
+    switch(blockID)
+    {
+	case LocalBlock:
+	    retVal = calloc(1, sizeof(SDL_LOCAL_VARIABLE));
+	    if (retVal != NULL)
+	    {
+		SDL_LOCAL_VARIABLE *local = (SDL_LOCAL_VARIABLE *) retVal;
+
+		local->header.parent = parent;
+		local->header.blockID = blockID;
+	    }
+	    break;
+
+	case LiteralBlock:
+	    retVal = calloc(1, sizeof(SDL_LITERAL));
+	    if (retVal != NULL)
+	    {
+		SDL_LITERAL *literal = (SDL_LITERAL *) retVal;
+
+		literal->header.parent = parent;
+		literal->header.blockID = blockID;
+	    }
+	    break;
+
+	case ConstantBlock:
+	    retVal = calloc(1, sizeof(SDL_CONSTANT));
+	    if (retVal != NULL)
+	    {
+		SDL_CONSTANT *constBlk = (SDL_CONSTANT *) retVal;
+
+		constBlk->header.parent = parent;
+		constBlk->header.blockID = blockID;
+	    }
+	    break;
+
+	case EnumMemberBlock:
+	    retVal = calloc(1, sizeof(SDL_ENUM_MEMBER));
+	    if (retVal != NULL)
+	    {
+		SDL_ENUM_MEMBER *member = (SDL_ENUM_MEMBER *) retVal;
+
+		member->header.parent = parent;
+		member->header.blockID = blockID;
+	    }
+	    break;
+
+	case EnumerateBlock:
+	    retVal = calloc(1, sizeof(SDL_ENUMERATE));
+	    if (retVal != NULL)
+	    {
+		SDL_ENUMERATE *myEnum  = (SDL_ENUMERATE *) retVal;
+
+		myEnum->header.parent = parent;
+		myEnum->header.blockID = blockID;
+		SDL_Q_INIT(&myEnum->members);
+	    }
+	    break;
+
+	case DeclareBlock:
+	    retVal = calloc(1, sizeof(SDL_DECLARE));
+	    if (retVal != NULL)
+	    {
+		SDL_DECLARE *decl = (SDL_DECLARE *) retVal;
+
+		decl->header.parent = parent;
+		decl->header.blockID = blockID;
+	    }
+	    break;
+
+	case ItemBlock:
+	    retVal = calloc(1, sizeof(SDL_ITEM));
+	    if (retVal != NULL)
+	    {
+		SDL_ITEM *item = (SDL_ITEM *) retVal;
+
+		item->header.parent = parent;
+		item->header.blockID = blockID;
+	    }
+	    break;
+
+	case AggrMemberBlock:
+	    retVal = calloc(1, sizeof(SDL_MEMBERS));
+	    if (retVal != NULL)
+	    {
+		SDL_MEMBERS *member = (SDL_MEMBERS *) retVal;
+
+		member->header.parent = parent;
+		member->header.blockID = blockID;
+	    }
+	    break;
+
+	case AggregateBlock:
+	    retVal = calloc(1, sizeof(SDL_AGGREGATE));
+	    if (retVal != NULL)
+	    {
+		SDL_AGGREGATE *aggr= (SDL_AGGREGATE *) retVal;
+
+		aggr->header.parent = parent;
+		aggr->header.blockID = blockID;
+		SDL_Q_INIT(&aggr->members);
+	    }
+	    break;
+
+	case ParameterBlock:
+	    retVal = calloc(1, sizeof(SDL_PARAMETER));
+	    if (retVal != NULL)
+	    {
+		SDL_PARAMETER *param = (SDL_PARAMETER *) retVal;
+
+		param->header.parent = parent;
+		param->header.blockID = blockID;
+	    }
+	    break;
+
+	case EntryBlock:
+	    retVal = calloc(1, sizeof(SDL_ENTRY));
+	    if (retVal != NULL)
+	    {
+		SDL_ENTRY *entry = (SDL_ENTRY *) retVal;
+
+		entry->header.parent = parent;
+		entry->header.blockID = blockID;
+		SDL_Q_INIT(&entry->parameters);
+	    }
+	    break;
+
+	default:
+	    break;
+    }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_deallocate_blk
+ *  This function is called to deallocate one of the blocks allocated to
+ *  maintain the information parsed from the input file(s).
+ *
+ * Input Parameters:
+ *  block:
+ *	A pointer to the block to be deallocated.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  None.
+ */
+void sdl_deallocate_block(SDL_HEADER *block)
+{
+
+    /*
+     * Determine which block to allocate.
+     */
+    switch(block->blockID)
+    {
+	case LocalBlock:
+	    if (block != NULL)
+	    {
+		SDL_LOCAL_VARIABLE *local = (SDL_LOCAL_VARIABLE *) block;
+
+		if (local->id != NULL)
+		    free(local->id);
+	    }
+	    break;
+
+	case LiteralBlock:
+	    if (block != NULL)
+	    {
+		SDL_LITERAL *literal = (SDL_LITERAL *) block;
+
+		if (literal->line != NULL)
+		    free(literal->line);
+	    }
+	    break;
+
+	case ConstantBlock:
+	    if (block != NULL)
+	    {
+		SDL_CONSTANT *constBlk = (SDL_CONSTANT *) block;
+
+		if (constBlk->comment != NULL)
+		    free(constBlk->comment);
+		if (constBlk->id != NULL)
+		    free(constBlk->id);
+		if (constBlk->prefix != NULL)
+		    free(constBlk->prefix);
+		if (constBlk->tag != NULL)
+		    free(constBlk->tag);
+		if (constBlk->typeName != NULL)
+		    free(constBlk->typeName);
+		if ((constBlk->type == SDL_K_CONST_STR) &&
+		    (constBlk->string != NULL))
+		    free(constBlk->string);
+	    }
+	    break;
+
+	case EnumMemberBlock:
+	    if (block != NULL)
+	    {
+		SDL_ENUM_MEMBER *member = (SDL_ENUM_MEMBER *) block;
+
+		if (member->comment != NULL)
+		    free(member->comment);
+		if (member->id != NULL)
+		    free(member->id);
+	    }
+	    break;
+
+	case EnumerateBlock:
+	    if (block != NULL)
+	    {
+		SDL_ENUMERATE *myEnum = (SDL_ENUMERATE *) block;
+		SDL_ENUM_MEMBER *member;
+
+		while (SDL_Q_EMPTY(&myEnum->members) == false)
+		{
+		    SDL_REMQUE(&myEnum->members, member);
+		    sdl_deallocate_block(&member->header);
+		}
+		if (myEnum->id != NULL)
+		    free(myEnum->id);
+		if (myEnum->prefix != NULL)
+		    free(myEnum->prefix);
+		if (myEnum->tag != NULL)
+		    free(myEnum->tag);
+	    }
+	    break;
+
+	case DeclareBlock:
+	    if (block != NULL)
+	    {
+		SDL_DECLARE *decl = (SDL_DECLARE *) block;
+
+		if (decl->id != NULL)
+		    free(decl->id);
+		if (decl->prefix != NULL)
+		    free(decl->prefix);
+		if (decl->tag != NULL)
+		    free(decl->tag);
+	    }
+	    break;
+
+	case ItemBlock:
+	    if (block != NULL)
+	    {
+		SDL_ITEM *item = (SDL_ITEM *) block;
+
+		if (item->comment != NULL)
+		    free(item->comment);
+		if (item->id != NULL)
+		    free(item->id);
+		if (item->prefix != NULL)
+		    free(item->prefix);
+		if (item->tag != NULL)
+		    free(item->tag);
+	    }
+	    break;
+
+	case AggrMemberBlock:
+	    if (block != NULL)
+	    {
+		SDL_MEMBERS *member = (SDL_MEMBERS *) block;
+
+		if ((member->type == SDL_K_TYPE_STRUCT) ||
+		    (member->type == SDL_K_TYPE_UNION))
+		{
+		    if (member->subaggr.basedPtrName != NULL)
+			free(member->subaggr.basedPtrName);
+		    if (member->subaggr.comment != NULL)
+			free(member->subaggr.comment);
+		    if (member->subaggr.id != NULL)
+			free(member->subaggr.id);
+		    if (member->subaggr.marker != NULL)
+			free(member->subaggr.marker);
+		    if (member->subaggr.prefix != NULL)
+			free(member->subaggr.prefix);
+		    if (member->subaggr.tag != NULL)
+			free(member->subaggr.tag);
+		}
+		else
+		{
+		    if (member->item.comment != NULL)
+			free(member->item.comment);
+		    if (member->item.id != NULL)
+			free(member->item.id);
+		    if (member->item.prefix != NULL)
+			free(member->item.prefix);
+		    if (member->item.tag != NULL)
+			free(member->item.tag);
+		}
+	    }
+	    break;
+
+	case AggregateBlock:
+	    if (block != NULL)
+	    {
+		SDL_AGGREGATE *aggr = (SDL_AGGREGATE *) block;
+		SDL_MEMBERS *member;
+
+		while (SDL_Q_EMPTY(&aggr->members) == false)
+		{
+		    SDL_REMQUE(&aggr->members, member);
+		    sdl_deallocate_block(&member->header);
+		}
+		if (aggr->basedPtrName != NULL)
+		    free(aggr->basedPtrName);
+		if (aggr->comment != NULL)
+		    free(aggr->comment);
+		if (aggr->id != NULL)
+		    free(aggr->id);
+		if (aggr->marker != NULL)
+		    free(aggr->marker);
+		if (aggr->prefix != NULL)
+		    free(aggr->prefix);
+		if (aggr->tag != NULL)
+		    free(aggr->tag);
+	    }
+	    break;
+
+	case ParameterBlock:
+	    if (block != NULL)
+	    {
+		SDL_PARAMETER *param = (SDL_PARAMETER *) block;
+
+		if (param->comment != NULL)
+		    free(param->comment);
+		if (param->name != NULL)
+		    free(param->name);
+		if (param->typeName != NULL)
+		    free(param->typeName);
+	    }
+	    break;
+
+	case EntryBlock:
+	    if (block != NULL)
+	    {
+		SDL_ENTRY *entry = (SDL_ENTRY *) block;
+		SDL_PARAMETER *param;
+
+		while (SDL_Q_EMPTY(&entry->parameters) == false)
+		{
+		    SDL_REMQUE(&entry->parameters, param);
+		    sdl_deallocate_block(&param->header);
+		}
+		if (entry->alias != NULL)
+		    free(entry->alias);
+		if (param->comment != NULL)
+		    free(param->comment);
+		if (entry->id != NULL)
+		    free(entry->id);
+		if (entry->linkage != NULL)
+		    free(entry->linkage);
+		if (entry->typeName != NULL)
+		    free(entry->typeName);
+	    }
+	    break;
+
+	default:
+	    break;
     }
 
     /*

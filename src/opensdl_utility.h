@@ -59,4 +59,7 @@ int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale);
 void sdl_trim_str(char *str, int type);
 __int64_t *sdl_increment(__int64_t value);
 
+void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent);
+void sdl_deallocate_block(SDL_HEADER *block);
+
 #endif	/* _OPENSDL_UTILITY_H_ */

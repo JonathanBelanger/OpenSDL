@@ -30,6 +30,9 @@
  *
  *  V01.002	04-OCT-2018	Jonathan D. Belanger
  *  Reorganized and moved Queue definitions to their own header file.
+ *
+ *  V01.003	14-OCT-2018	Jonathan D. Belanger
+ *  Added a block header definition to be used for all allocated blocks.
  */
 #ifndef _OPENSDL_DEFS_H_
 #define _OPENSDL_DEFS_H_
@@ -210,12 +213,39 @@
 #define	SDL_K_OFF_BIT		3	/* bit offset from previous */
 
 /*
+ * The following definitions are going to be used for the allocation,
+ * processing, and deallocation of the various OpenSDL blocks.
+ */
+typedef enum
+{
+    NotABlock,
+    LocalBlock,
+    LiteralBlock,
+    ConstantBlock,
+    EnumMemberBlock,
+    EnumerateBlock,
+    DeclareBlock,
+    ItemBlock,
+    AggrMemberBlock,
+    AggregateBlock,
+    ParameterBlock,
+    EntryBlock
+} SDL_BLOCK_ID;
+
+typedef struct _sdl_header
+{
+    SDL_QUEUE		queue;
+    struct _sdl_header	*parent;
+    SDL_BLOCK_ID	blockID;
+} SDL_HEADER;
+
+/*
  * The following definitions are used to maintain a list of zero or more local
  * variables
  */
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*id; /* Variable name	*/
     int64_t		value; /* Variable value	*/
 } SDL_LOCAL_VARIABLE;
@@ -227,7 +257,7 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*line;
 } SDL_LITERAL;
 
@@ -236,7 +266,7 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*comment;
     char		*id;
     char		*prefix;
@@ -257,7 +287,7 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*comment;
     char		*id;
     int64_t		value;
@@ -266,7 +296,7 @@ typedef struct
 
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     SDL_QUEUE		members;
     char		*id;
     char		*prefix;
@@ -288,7 +318,7 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*id;
     char		*prefix;
     char		*tag;
@@ -308,7 +338,7 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*comment;
     char		*id;
     char		*prefix;
@@ -346,14 +376,14 @@ typedef struct
  */
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*comment;
     char		*name;
     char		*typeName;
     union
     {
 	int	data;
-	char	*aggrName;
+	char	*aggrName;	/* TODO: This is not needed */
     };
     int64_t		bound;
     int64_t		defaultValue;
@@ -377,7 +407,7 @@ typedef struct
 
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*alias;
     char		*comment;
     char		*id;
@@ -391,14 +421,6 @@ typedef struct
 /*
  * The following definitions are used to declare a single AGGREGATE.
  */
-
-typedef enum
-{
-    Unknown,
-    Structure,
-    Union
-} SDL_AGGR_TYPE;
-
 typedef struct
 {
     char		*basedPtrName;
@@ -407,9 +429,8 @@ typedef struct
     char		*marker;
     char		*prefix;
     char		*tag;
-    void		*parent;	/* aggregateDepth determines level */
+    struct _sdl_member	*parent;
     SDL_QUEUE		members;
-    SDL_AGGR_TYPE	structUnion;
     int64_t		currentOffset;
     int64_t		hbound;
     int64_t		lbound;
@@ -417,6 +438,7 @@ typedef struct
     int64_t		size;
     int			alignment;
     int			currentBitOffset;
+    int			aggType;
     int			type;
     int			typeID;
     bool		dimension;
@@ -425,15 +447,15 @@ typedef struct
     bool		_unsigned;
 } SDL_SUBAGGR;
 
-typedef struct
+typedef struct _sdl_member
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     union
     {
 	SDL_ITEM    	item;
 	SDL_SUBAGGR	subaggr;
     };
-    SDL_AGGR_TYPE	type;
+    int			type;
 } SDL_MEMBERS;
 
 typedef struct
@@ -444,7 +466,7 @@ typedef struct
 
 typedef struct
 {
-    SDL_QUEUE		header;
+    SDL_HEADER		header;
     char		*comment;
     char		*basedPtrName;
     char		*id;
@@ -458,7 +480,7 @@ typedef struct
     int64_t		lbound;
     int64_t		memSize;	/* Actual space used in memory	*/
     int64_t		size;
-    SDL_AGGR_TYPE	structUnion;
+    int			aggType;
     int			alignment;
     int			currentBitOffset;
     int			type;

@@ -41,58 +41,58 @@ extern _Bool trace;
 static char *_types[SDL_K_BASE_TYPE_MAX][2] =
 {
 	/* 32-bit	64-bit	*/
-	{"void ",	"void "},	/* NONE */
-	{"int8_t ",	"int8_t "},	/* BYTE */
-	{"int8_t ",	"int8_t "},	/* INTEGER_BYTE */
-	{"int16_t ",	"int16_t "},	/* WORD */
-	{"int16_t ",	"int16_t "},	/* INTEGER_WORD */
-	{"int32_t ",	"int32_t "},	/* LONGWORD */
-	{"int32_t ",	"int32_t "},	/* INTEGER_LONG */
-	{"int ",	"int "},	/* INTEGER */
-	{"int32_t ",	"int64_t "},	/* INTEGER_HW */
-	{"int32_t ",	"int64_t "},	/* HARDWARE_INTEGER */
-	{"int64_t ",	"int64_t "},	/* QUADWORD */
-	{"int64_t ",	"int64_t "},	/* INTEGER_QUAD */
-	{"__int128_t ",	"__int128_t "},	/* OCTAWORD */
-	{"float ",	"float "},	/* T_FLOATING */
+	{"void",	"void"},	/* NONE */
+	{"int8_t",	"int8_t"},	/* BYTE */
+	{"int8_t",	"int8_t"},	/* INTEGER_BYTE */
+	{"int16_t",	"int16_t"},	/* WORD */
+	{"int16_t",	"int16_t"},	/* INTEGER_WORD */
+	{"int32_t",	"int32_t"},	/* LONGWORD */
+	{"int32_t",	"int32_t"},	/* INTEGER_LONG */
+	{"int",		"int"},		/* INTEGER */
+	{"int32_t",	"int64_t"},	/* INTEGER_HW */
+	{"int32_t",	"int64_t"},	/* HARDWARE_INTEGER */
+	{"int64_t",	"int64_t"},	/* QUADWORD */
+	{"int64_t",	"int64_t"},	/* INTEGER_QUAD */
+	{"__int128_t",	"__int128_t"},	/* OCTAWORD */
+	{"float",	"float"},	/* T_FLOATING */
 	{"float complex","float complex"},/* T_FLOATING COMPLEX */
-	{"double ",	"double "},	/* S_FLOATING */
+	{"double",	"double"},	/* S_FLOATING */
 	{"double complex","double complex"},/* S_FLOATING COMPLEX */
-	{"long double ","long double "},/* X_FLOATING */
-	{"long double complex ","long double complex "},/* X_FLOATING COMPLEX */
-	{"float ",	"float "},	/* F_FLOATING */
-	{"float ",	"float "},	/* F_FLOATING COMPLEX */
-	{"double ",	"double "},	/* D_FLOATING */
-	{"double ",	"double "},	/* D_FLOATING COMPLEX */
-	{"double ",	"double "},	/* G_FLOATING */
-	{"double ",	"double "},	/* G_FLOATING COMPLEX */
-	{"long double ","long doubvle "},/* H_FLOATING */
-	{"long double complex ","long double complex "},/* H_FLOATING COMPLEX */
-	{"char ",	"char "},	/* DECIMAL */
-	{"int ",	"int "},	/* BITFIELD */
-	{"int8_t ",	"int8_t "},	/* BITFIELD BYTE */
-	{"int16_t ",	"int16_t "},	/* BITFIELD WORD */
-	{"int32_t ",	"int32_t "},	/* BITFIELD LONGWORD */
-	{"int64_t ",	"int64_t "},	/* BITFIELD QUADWORD */
-	{"__int128_t ",	"__int128_t "},	/* BITFIELD OCTAWORD */
-	{"char ",	"char "},	/* CHAR */
+	{"long double","long double"},/* X_FLOATING */
+	{"long double complex","long double complex"},/* X_FLOATING COMPLEX */
+	{"float",	"float"},	/* F_FLOATING */
+	{"float",	"float"},	/* F_FLOATING COMPLEX */
+	{"double",	"double"},	/* D_FLOATING */
+	{"double",	"double"},	/* D_FLOATING COMPLEX */
+	{"double",	"double"},	/* G_FLOATING */
+	{"double",	"double"},	/* G_FLOATING COMPLEX */
+	{"long double","long double"},/* H_FLOATING */
+	{"long double complex","long double complex"},/* H_FLOATING COMPLEX */
+	{"char",	"char"},	/* DECIMAL */
+	{"int",		"int"},		/* BITFIELD */
+	{"int8_t",	"int8_t"},	/* BITFIELD BYTE */
+	{"int16_t",	"int16_t"},	/* BITFIELD WORD */
+	{"int32_t",	"int32_t"},	/* BITFIELD LONGWORD */
+	{"int64_t",	"int64_t"},	/* BITFIELD QUADWORD */
+	{"__int128_t",	"__int128_t"},	/* BITFIELD OCTAWORD */
+	{"char",	"char"},	/* CHAR */
 	{NULL,		NULL},		/* CHAR VARYING */
 	{NULL,		NULL},		/* CHAR LENGTH(*) */
 	{NULL,		NULL},		/* ADDRESS */
-	{"int32_t",	"int32_t "},	/* ADDRESS_LONG */
-	{"int64_t ",	"int64_t "},	/* ADDRESS_QUAD */
-	{"int32_t ",	"int64_t "},	/* ADDRESS_HW */
-	{"int32_t",	"int64_t "},	/* HARDWARE_ADDRESS*/
+	{"int32_t",	"int32_t"},	/* ADDRESS_LONG */
+	{"int64_t",	"int64_t"},	/* ADDRESS_QUAD */
+	{"int32_t",	"int64_t"},	/* ADDRESS_HW */
+	{"int32_t",	"int64_t"},	/* HARDWARE_ADDRESS*/
 	{NULL,		NULL},		/* POINTER */
-	{"int32_t ",	"int32_t "},	/* POINTER_LONG */
-	{"int64_t ",	"int64_t "},	/* POINTER_QUAD */
-	{"int32_t ",	"int64_t "},	/* POINTER_HW */
+	{"int32_t",	"int32_t"},	/* POINTER_LONG */
+	{"int64_t",	"int64_t"},	/* POINTER_QUAD */
+	{"int32_t",	"int64_t"},	/* POINTER_HW */
 	{NULL,		NULL},		/* ANY */
-	{"void ",	"void "},	/* VOID */
-	{"bool ",	"bool "},	/* BOOLEAN */
-	{"struct ",	"struct "},	/* STRUCTURE */
-	{"union ",	"union "},	/* UNION */
-	{"enum ",	"enum "},	/* ENUM */
+	{"void",	"void"},	/* VOID */
+	{"bool",	"bool"},	/* BOOLEAN */
+	{"struct",	"struct"},	/* STRUCTURE */
+	{"union",	"union"},	/* UNION */
+	{"enum",	"enum"},	/* ENUM */
 	{NULL,		NULL}		/* ENTRY */
 };
 
@@ -100,7 +100,11 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2] =
  * Local Prototypes
  */
 static char *_sdl_c_generate_name(char *name, char *prefix, char *tag);
-static char *_sdl_c_typeidStr(int typeID, int subType, SDL_CONTEXT *context);
+static char *_sdl_c_typeidStr(
+			int typeID,
+			int subType,
+			SDL_CONTEXT *context,
+			bool *freeMe);
 static char *_sdl_c_leading_spaces(int depth);
 
 /*
@@ -443,8 +447,8 @@ int sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 	if ((retVal == 1) &&
 	    (fprintf(
 		fp,
-		"#include <stdint.h>\n"
 		"#include <ctype.h>\n"
+		"#include <stdint.h>\n"
 		"#include <stdbool.h>\n"
 		"#include <complex.h>\n") < 0))
 	    retVal = 0;
@@ -559,9 +563,10 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
     char	*sign = (item->_unsigned == true ? "unsigned " : "");
-    char	*type = _sdl_c_typeidStr(item->type, item->subType, context);
+    char	*type;
     char	*name = _sdl_c_generate_name(item->id, item->prefix, item->tag);
     int		retVal = 1;
+    bool	freeMe = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -574,6 +579,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
      */
     if ((fp != NULL) && (name != NULL))
     {
+	type = _sdl_c_typeidStr(item->type, item->subType, context, &freeMe);
 
 	/*
 	 * If typedef is indicated, then let's start with that.
@@ -583,16 +589,34 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	    if (fprintf(fp, "typedef ") < 0)
 		retVal = 0;
 	}
+	else if (item->commonDef == true)
+	{
+	    if (fprintf(fp, "extern ") < 0)
+		retVal = 0;
+	}
 
 	/*
 	 * Now we need to output the type and name.
 	 */
 	if (retVal == 1)
 	{
-	    char *addr = ((item->typeID == SDL_K_TYPE_ADDR) ||
-			  (item->typeID == SDL_K_TYPE_PTR)) ? "*" : "";
-	    if (fprintf(fp, "%s%s %s%s", sign, type, addr, name) < 0)
-		retVal = 0;
+	    if (item->type == SDL_K_TYPE_CHAR_VARY)
+	    {
+		if (fprintf(
+			fp,
+			"struct {short string_length; "
+			"char string_text[%ld] %s;",
+			item->length,
+			name) < 0)
+		    retVal = 0;
+	    }
+	    else
+	    {
+		char *addr = ((item->type == SDL_K_TYPE_ADDR) ||
+			      (item->type == SDL_K_TYPE_PTR)) ? "*" : "";
+		if (fprintf(fp, "%s%s %s%s", sign, type, addr, name) < 0)
+		    retVal = 0;
+	    }
 	}
 
 	/*
@@ -600,19 +624,26 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	 */
 	if (retVal == 1)
 	{
-	    if ((item->typeID == SDL_K_TYPE_BITFLD) ||
-		(item->typeID == SDL_K_TYPE_BITFLD_B) ||
-		(item->typeID == SDL_K_TYPE_BITFLD_W) ||
-		(item->typeID == SDL_K_TYPE_BITFLD_L) ||
-		(item->typeID == SDL_K_TYPE_BITFLD_Q) ||
-		(item->typeID == SDL_K_TYPE_BITFLD_O))
+	    if ((item->type == SDL_K_TYPE_BITFLD) ||
+		(item->type == SDL_K_TYPE_BITFLD_B) ||
+		(item->type == SDL_K_TYPE_BITFLD_W) ||
+		(item->type == SDL_K_TYPE_BITFLD_L) ||
+		(item->type == SDL_K_TYPE_BITFLD_Q) ||
+		(item->type == SDL_K_TYPE_BITFLD_O))
 	    {
 		if (fprintf(fp, ": %ld", item->length) < 0)
 		    retVal = 0;
 	    }
-	    else if (item->dimension == true)
+	    else if ((item->dimension == true) ||
+		     (item->type == SDL_K_TYPE_DECIMAL))
 	    {
-		if (fprintf(fp, "[%ld]", item->hbound - item->lbound + 1) < 0)
+		int64_t	len;
+
+		if (item->type == SDL_K_TYPE_DECIMAL)
+		    len = (item->precision / 2) + 1;
+		else
+		    len = item->hbound - item->lbound + 1;
+		if (fprintf(fp, "[%ld]", len) < 0)
 		    retVal = 0;
 	    }
 	}
@@ -653,6 +684,9 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
     else
 	retVal = 0;
 
+    if (freeMe == true)
+	free(type);
+
     /*
      * Return the results of this call back to the caller.
      */
@@ -684,6 +718,7 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
     char 	*prefix = (constant->prefix ? constant->prefix : "");
     char	*name = _sdl_c_generate_name(constant->id, prefix, constant->tag);
     int		retVal = 1;
+    int		size = context->wordSize;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -702,6 +737,9 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
     /*
      * If first part was successful and this is a string constant, then output
      * the string value.
+     *
+     * TODO: Need to figure out how to have masks of BYTE, WORD, LONG, QUAD,
+     * TODO: and OCTA lengths.
      */
     if (retVal == 1)
     {
@@ -721,12 +759,20 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 			break;
 
 		    case SDL_K_RADIX_OCT:
-			if (fprintf(fp, "0%lo\t", constant->value) < 0)
+			if (fprintf(
+				fp,
+				"0%0*lo\t",
+				(size / 3) + 1,
+				constant->value) < 0)
 			    retVal = 0;
 			break;
 
 		    case SDL_K_RADIX_HEX:
-			if (fprintf(fp, "0x%lx\t", constant->value) < 0)
+			if (fprintf(
+				fp,
+				"0x%0*lx\t",
+				(size / 4),
+				constant->value) < 0)
 			    retVal = 0;
 			break;
 
@@ -816,7 +862,7 @@ int sdl_c_aggregate(
 {
     char		*name = NULL;
     char		*spaces = _sdl_c_leading_spaces(depth);
-    SDL_LANG_AGGR	aggr = { .parameter = param };
+    SDL_LANG_AGGR	my = { .parameter = param };
     int			bits = (context->wordSize / 32) - 1;  /* 0=32, 1=64 */
     int			retVal = 1;
 
@@ -833,24 +879,24 @@ int sdl_c_aggregate(
     {
 	case LangAggregate:
 	    name = _sdl_c_generate_name(
-				aggr.aggr->id,
-				aggr.aggr->prefix,
-				aggr.aggr->tag);
+				my.aggr->id,
+				my.aggr->prefix,
+				my.aggr->tag);
 
 	    /*
 	     * Are we starting or ending an AGGREGATE?
 	     */
 	    if ((ending == false) && (retVal == 1) && (name != NULL))
 	    {
-		if (aggr.aggr->typeDef == true)
+		if (my.aggr->typeDef == true)
 		{
 		    if (fprintf(fp, "typedef ") < 0)
 			retVal = 0;
 		}
 		if (retVal == 1)
 		{
-		    char *which = _types[aggr.aggr->aggType][bits];
-		    char *fmt = (aggr.aggr->typeDef == true ?
+		    char *which = _types[my.aggr->aggType][bits];
+		    char *fmt = (my.aggr->typeDef == true ?
 				"%s _%s\n%s{\n" :
 				"%s %s\n%s{\n");
 
@@ -860,9 +906,8 @@ int sdl_c_aggregate(
 	    }
 	    else if ((retVal == 1) && (name != NULL))
 	    {
-		char *fmt = (aggr.aggr->typeDef == true ?
-					"%s} %s;\n" :
-					"%s};\n");
+		char *fmt = (my.aggr->typeDef == true ? "%s} %s" : "%s}");
+
 		if (fprintf(fp, fmt, spaces, name) < 0)
 		    retVal = 0;
 	    }
@@ -872,24 +917,24 @@ int sdl_c_aggregate(
 
 	case LangSubaggregate:
 	    name = _sdl_c_generate_name(
-				aggr.subaggr->id,
-				aggr.subaggr->prefix,
-				aggr.subaggr->tag);
+				my.subaggr->id,
+				my.subaggr->prefix,
+				my.subaggr->tag);
 
 	    /*
 	     * Are we starting or ending an AGGREGATE?
 	     */
 	    if ((ending == false) && (retVal == 1) && (name != NULL))
 	    {
-		if (aggr.subaggr->typeDef == true)
+		if (my.subaggr->typeDef == true)
 		{
 		    if (fprintf(fp, "%stypedef ", spaces) < 0)
 			retVal = 0;
 		}
 		if (retVal == 1)
 		{
-		    char *which = _types[aggr.subaggr->aggType][bits];
-		    char *fmt = (aggr.subaggr->typeDef == true ?
+		    char *which = _types[my.subaggr->aggType][bits];
+		    char *fmt = (my.subaggr->typeDef == true ?
 				"%s _%s\n%s{\n" :
 				"%s %s\n%s{\n");
 
@@ -899,7 +944,7 @@ int sdl_c_aggregate(
 	    }
 	    else if ((retVal == 1) && (name != NULL))
 	    {
-		char *fmt = (aggr.subaggr->typeDef == true ?
+		char *fmt = (my.subaggr->typeDef == true ?
 					"%s} %s;\n" :
 					"%s};\n");
 
@@ -912,7 +957,7 @@ int sdl_c_aggregate(
 
 	case LangItem:
 	    if (retVal == 1)
-		retVal = sdl_c_item(fp, aggr.item, context);
+		retVal = sdl_c_item(fp, my.item, context);
 	    break;
     }
 
@@ -954,6 +999,7 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 {
     SDL_PARAMETER	*param = (SDL_PARAMETER *) entry->parameters.flink;
     int			retVal = 1;
+    bool		freeMe = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -973,7 +1019,11 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     }
     else
     {
-	char *typeStr = _sdl_c_typeidStr(entry->returns.type, 0, context);
+	char *typeStr = _sdl_c_typeidStr(
+				entry->returns.type,
+				0,
+				context,
+				&freeMe);
 
 	if ((entry->returns.type >= SDL_K_BASE_TYPE_MIN) &&
 	    (entry->returns.type <= SDL_K_BASE_TYPE_MAX))
@@ -1241,8 +1291,22 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
  *  context:
  *	A pointer to the context block to be used for converting a type into
  *	a string.
+ *
+ * Output Parameters:
+ *  freeMe:
+ *	A pointer to a boolean to receive an indicator that the returned string
+ *	needs to be freed.
+ *
+ * Return Values:
+ *  NULL:	Failed to convert the type to a string.
+ *  !NULL:	A pointer to the type string to be written out to the output
+ *		file.
  */
-static char *_sdl_c_typeidStr(int typeID, int subType, SDL_CONTEXT *context)
+static char *_sdl_c_typeidStr(
+			int typeID,
+			int subType,
+			SDL_CONTEXT *context,
+			bool *freeMe)
 {
     char	*retVal = NULL;
     int		bits = (context->wordSize / 32) - 1;	/* 0 = 32, 1 = 64 */
@@ -1253,10 +1317,11 @@ static char *_sdl_c_typeidStr(int typeID, int subType, SDL_CONTEXT *context)
     if (trace == true)
 	printf("%s:%d:_sdl_c_typeidStr\n", __FILE__, __LINE__);
 
+    *freeMe = false;
     if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
     {
 	if ((typeID == SDL_K_TYPE_ADDR) || (typeID == SDL_K_TYPE_PTR))
-	    retVal = _types[subType][bits];
+	    retVal = _sdl_c_typeidStr(subType, 0, context, freeMe);
 	else
 	    retVal = _types[typeID][bits];
     }
@@ -1265,14 +1330,19 @@ static char *_sdl_c_typeidStr(int typeID, int subType, SDL_CONTEXT *context)
 	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, typeID);
 
 	if (myDeclare != NULL)
-	    retVal = _sdl_c_typeidStr(myDeclare->type, subType, context);
+	    retVal = _sdl_c_generate_name(
+				myDeclare->id,
+				myDeclare->prefix,
+				myDeclare->tag);
+	if (retVal != NULL)
+	    *freeMe = true;
     }
     else if ((typeID >= SDL_K_ITEM_MIN) && (typeID <= SDL_K_ITEM_MAX))
     {
 	SDL_ITEM *myItem = sdl_get_item(&context->items, typeID);
 
 	if (myItem != NULL)
-	    retVal = _sdl_c_typeidStr(myItem->type, subType, context);
+	    retVal = _sdl_c_typeidStr(myItem->type, subType, context, freeMe);
     }
     else if ((typeID >= SDL_K_AGGREGATE_MIN) && (typeID <= SDL_K_AGGREGATE_MAX))
     {
@@ -1280,7 +1350,11 @@ static char *_sdl_c_typeidStr(int typeID, int subType, SDL_CONTEXT *context)
 	    sdl_get_aggregate(&context->aggregates, typeID);
 
 	if (myAggregate!= NULL)
-	    retVal = _sdl_c_typeidStr(myAggregate->type, subType, context);
+	    retVal = _sdl_c_typeidStr(
+				myAggregate->type,
+				subType,
+				context,
+				freeMe);
     }
 
     /*

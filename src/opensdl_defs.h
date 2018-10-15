@@ -114,6 +114,7 @@
 #define SDL_K_AGGREGATE_MAX	1023
 #define SDL_K_ENUM_MIN		1024
 #define SDL_K_ENUM_MAX		1279
+#define SDL_K_SIZEOF_MIN	1280
 
 /*
  * Data type modifiers.
@@ -325,6 +326,7 @@ typedef struct
     int64_t		size;
     int			type;
     int			typeID;
+    bool		_unsigned;
 } SDL_DECLARE;
 
 typedef struct
@@ -401,7 +403,7 @@ typedef struct
 typedef struct
 {
     char		*name;
-    int			type;
+    int64_t		type;
     bool		_unsigned;
 } SDL_RETURNS;
 

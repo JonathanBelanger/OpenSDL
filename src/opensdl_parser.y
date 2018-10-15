@@ -449,9 +449,9 @@ declare
 
 _v_sizeof
 	: SDL_K_OPENP _v_expression SDL_K_CLOSEP
-	    { $$ = -$2; }
+	    { $$ = $2 * SDL_K_SIZEOF_MIN; }
 	| _v_datatypes
-	    { $$ = abs($1); }
+	    { $$ = $1; }
 	;
 
 prefix
@@ -665,47 +665,47 @@ _v_address
 	: SDL_K_ADDR _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_ADDR;
+		$$ = -SDL_K_TYPE_ADDR;
 	    }
 	| SDL_K_ADDR_L _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_ADDR_L;
+		$$ = -SDL_K_TYPE_ADDR_L;
 	    }
 	| SDL_K_ADDR_Q _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_ADDR_Q;
+		$$ = -SDL_K_TYPE_ADDR_Q;
 	    }
 	| SDL_K_ADDR_HW _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_ADDR_HW;
+		$$ = -SDL_K_TYPE_ADDR_HW;
 	    }
 	| SDL_K_HW_ADDR _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_HW_ADDR;
+		$$ = -SDL_K_TYPE_HW_ADDR;
 	    }
 	| SDL_K_PTR _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_PTR;
+		$$ = -SDL_K_TYPE_PTR;
 	    }
 	| SDL_K_PTR_L _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_PTR_L;
+		$$ = -SDL_K_TYPE_PTR_L;
 	    }
 	| SDL_K_PTR_Q _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_PTR_Q;
+		$$ = -SDL_K_TYPE_PTR_Q;
 	    }
 	| SDL_K_PTR_HW _v_object
 	    {
 		sdl_add_option(&context, SubType, $2, NULL);
-		$$ = SDL_K_TYPE_PTR_HW;
+		$$ = -SDL_K_TYPE_PTR_HW;
 	    }
 	;
 

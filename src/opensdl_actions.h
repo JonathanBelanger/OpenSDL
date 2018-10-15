@@ -40,9 +40,9 @@ int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName);
 int sdl_module_end(SDL_CONTEXT *context, char *moduleName);
 int sdl_literal(SDL_QUEUE *literals, char *line);
 int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals);
-int sdl_declare(SDL_CONTEXT *context, char *name, int size);
+int sdl_declare(SDL_CONTEXT *context, char *name, int64_t size);
 int sdl_declare_compl(SDL_CONTEXT *context);
-int sdl_item(SDL_CONTEXT *context, char *name, int datatype);
+int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype);
 int sdl_item_compl(SDL_CONTEXT *context);
 int sdl_constant(
 		SDL_CONTEXT *context,
@@ -62,7 +62,7 @@ int sdl_aggregate_member(
 		int aggType);
 int sdl_aggregate_compl(SDL_CONTEXT *context, char *name);
 int sdl_entry(SDL_CONTEXT *context, char *name);
-int sdl_add_parameter(SDL_CONTEXT *context, int datatype, int passing);
+int sdl_add_parameter(SDL_CONTEXT *context, int64_t datatype, int passing);
 
 /*
  * These are used to specify the constant information being saved.

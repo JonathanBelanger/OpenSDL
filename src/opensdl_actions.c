@@ -174,6 +174,7 @@ static int _sdl_iterate_members(
 		int (*callback)(),
 		int depth,
 		int count);
+static bool _sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -795,7 +796,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	    if (entry->linkage != NULL)
 		printf("\t    linkage: %s\n", entry->linkage);
 	    printf(
-		"\t    returns.type: %d\n\t    returns._unsigned: %s\n",
+		"\t    returns.type: %ld\n\t    returns._unsigned: %s\n",
 		entry->returns.type,
 		(entry->returns._unsigned ? "True" : "False"));
 	    if (entry->returns.name != NULL)
@@ -989,7 +990,7 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_declare(SDL_CONTEXT *context, char *name, int sizeType)
+int sdl_declare(SDL_CONTEXT *context, char *name, int64_t sizeType)
 {
     SDL_DECLARE	*myDeclare = _sdl_get_declare(&context->declares, name);
     int		retVal = 1;
@@ -1010,9 +1011,10 @@ int sdl_declare(SDL_CONTEXT *context, char *name, int sizeType)
 	{
 	    myDeclare->id = name;
 	    myDeclare->typeID = context->declares.nextID++;
-	    if (sizeType < 0)
+	    myDeclare->_unsigned = _sdl_isUnsigned(context, &sizeType);
+	    if (sizeType >= SDL_K_SIZEOF_MIN)
 	    {
-		myDeclare->size = -sizeType;
+		myDeclare->size = sizeType / SDL_K_SIZEOF_MIN;
 		myDeclare->type = SDL_K_TYPE_CHAR;
 	    }
 	    else
@@ -1120,7 +1122,7 @@ int sdl_declare_compl(SDL_CONTEXT *context)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_item(SDL_CONTEXT *context, char *name, int datatype)
+int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype)
 {
     SDL_ITEM	*myItem = _sdl_get_item(&context->items, name);
     int		retVal = 1;
@@ -1143,13 +1145,7 @@ int sdl_item(SDL_CONTEXT *context, char *name, int datatype)
 	{
 	    myItem->id = name;
 	    myItem->typeID = context->items.nextID++;
-	    if (datatype < 0)
-	    {
-		myItem->_unsigned = false;
-		datatype = -datatype;
-	    }
-	    else
-		myItem->_unsigned = true;
+	    myItem->_unsigned = _sdl_isUnsigned(context, &datatype);
 	    myItem->type = datatype;
 	    if (datatype == SDL_K_TYPE_DECIMAL)
 	    {
@@ -1735,19 +1731,13 @@ int sdl_aggregate(
     {
 	myAggr->id = name;
 	myAggr->typeID = context->aggregates.nextID++;
-	if (datatype < 0)
-	{
-	    myAggr->_unsigned = false;
-	    datatype = -datatype;
-	}
-	else if (datatype > 0)
-	    myAggr->_unsigned = true;
+	myAggr->_unsigned = _sdl_isUnsigned(context, &datatype);
 	myAggr->type = datatype;
 	myAggr->aggType = aggType;
 	myAggr->tag = _sdl_get_tag(
 				context,
 				NULL,
-				SDL_K_TYPE_STRUCT,
+				aggType,
 				_sdl_all_lower(name));
 	SDL_Q_INIT(&myAggr->members);
 	SDL_INSQUE(&context->aggregates.header, &myAggr->header.queue);
@@ -2054,19 +2044,15 @@ int sdl_aggregate_member(
 	    case SDL_K_TYPE_UNION:
 		myMember->subaggr.id = name;
 		myMember->subaggr.aggType = aggType;
-		if (datatype < 0)
-		{
-		    myMember->subaggr._unsigned = false;
-		    datatype = -datatype;
-		}
-		else if (datatype > 0)
-		    myMember->subaggr._unsigned = true;
+		myMember->subaggr._unsigned = _sdl_isUnsigned(
+							context,
+							&datatype);
 		myMember->subaggr.type = datatype;
 		myMember->subaggr.parent = context->currentAggr;
 		myMember->subaggr.tag = _sdl_get_tag(
 						context,
 						NULL,
-						SDL_K_TYPE_STRUCT,
+						aggType,
 						_sdl_all_lower(name));
 		SDL_Q_INIT(&myMember->subaggr.members);
 		context->aggregateDepth++;
@@ -2075,13 +2061,7 @@ int sdl_aggregate_member(
 
 	    default:
 		myMember->item.id = name;
-		if (datatype < 0)
-		{
-		    myMember->item._unsigned = false;
-		    datatype = -datatype;
-		}
-		else if (datatype > 0)
-		    myMember->item._unsigned = true;
+		myMember->item._unsigned = _sdl_isUnsigned(context, &datatype);
 		myMember->item.type = datatype;
 		switch (datatype)
 		{
@@ -2422,10 +2402,9 @@ int sdl_entry(SDL_CONTEXT *context, char *name)
 
 		case ReturnsType:
 		    myEntry->returns.type = context->options[ii].value;
-		    if (myEntry->returns.type >= 0)
-			myEntry->returns._unsigned = true;
-		    else
-			myEntry->returns.type = -myEntry->returns.type;
+		    myEntry->returns._unsigned = _sdl_isUnsigned(
+							context,
+							&myEntry->returns.type);
 		    break;
 
 		case ReturnsNamed:
@@ -2496,7 +2475,7 @@ int sdl_entry(SDL_CONTEXT *context, char *name)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_add_parameter(SDL_CONTEXT *context, int datatype, int passing)
+int sdl_add_parameter(SDL_CONTEXT *context, int64_t datatype, int passing)
 {
     int		retVal = 1;
     int		ii;
@@ -2523,13 +2502,7 @@ int sdl_add_parameter(SDL_CONTEXT *context, int datatype, int passing)
     {
 	SDL_PARAMETER	*param = sdl_allocate_block(ParameterBlock, NULL);
 
-	if (datatype < 0)
-	    param->type = -datatype;
-	else
-	{
-	    param->type = datatype;
-	    param->_unsigned = true;
-	}
+	param->_unsigned = _sdl_isUnsigned(context, &datatype);
 	param->passingMech = passing;
 
 	for (ii = 0; ii < context->optionsIdx; ii++)
@@ -3615,6 +3588,49 @@ static int _sdl_iterate_members(
 				depth,
 				count + 1);
     }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * _sdl_isUnsigned
+ *  This function is called to determine if a particular data type is unsigned
+ *  (signed is the default).
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  datatype:
+ *	A pointer to the value indicating the datatype we are looking up.
+ *
+ * Output Parameters:
+ *  datatype:
+ *	A pointer to the value to receive the updated datatype value (always
+ *	a positive value).
+ *
+ * Return Values:
+ *  true:	The data type is for an unsigned value.
+ *  false:	The data type is for a signed value or not relevant to the
+ *  		data type.
+ */
+static bool _sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype)
+{
+    bool	retVal = false;
+    int64_t	myDatatype = *datatype;
+
+    /*
+     * If the data type is less than zero, then it is signed.  Otherwise, it
+     * may or may not be unsigned.
+     */
+    if (myDatatype <= 0)
+	*datatype = -myDatatype;
+    else if ((myDatatype >= SDL_K_TYPE_BYTE) &&
+	     (myDatatype <= SDL_K_TYPE_OCTA))
+	retVal = true;
 
     /*
      * Return the results back to the caller.

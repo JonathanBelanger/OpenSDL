@@ -77,7 +77,7 @@ ITEM MyItem LONGWORD UNSIGNED BASEALIGN (3);
 /+
 // Test 7i: Another with DIMENSION.
 /-
-ITEM node_pointers DIMENSION 0:255 ADDRESS;
+ITEM node_pointers ADDRESS DIMENSION 0:255;
 
 /+
 // Test 7j: A BOOLEAN datatype.

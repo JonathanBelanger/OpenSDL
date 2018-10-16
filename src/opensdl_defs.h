@@ -305,6 +305,7 @@ typedef struct
     int64_t		size;
     int64_t		memSize;	/* Actual space used in memory	*/
     int			typeID;
+    int			alignment;
     bool		typeDef;
 } SDL_ENUMERATE;
 

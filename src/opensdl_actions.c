@@ -147,7 +147,6 @@ static char *_sdl_get_tag(
         char *tag,
         int datatype,
         bool lower);
-static int64_t _sdl_sizeof(SDL_CONTEXT *context, int item);
 static SDL_CONSTANT *_sdl_create_constant(
         char *id,
         char *prefix,
@@ -1019,7 +1018,7 @@ int sdl_declare(SDL_CONTEXT *context, char *name, int64_t sizeType)
 	    }
 	    else
 	    {
-		myDeclare->size = _sdl_sizeof(context, sizeType);
+		myDeclare->size = sdl_sizeof(context, sizeType);
 		myDeclare->type = sizeType;
 	    }
 	    SDL_INSQUE(&context->declares.header, &myDeclare->header.queue);
@@ -1152,7 +1151,7 @@ int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype)
 		myItem->precision = context->precision;
 		myItem->scale = context->scale;
 	    }
-	    myItem->size = _sdl_sizeof(context, datatype);
+	    myItem->size = sdl_sizeof(context, datatype);
 	    SDL_INSQUE(&context->items.header, &myItem->header.queue);
 	}
     }
@@ -2098,7 +2097,7 @@ int sdl_aggregate_member(
 						NULL,
 						datatype,
 						_sdl_all_lower(name));
-		myMember->item.size = _sdl_sizeof(context, datatype);
+		myMember->item.size = sdl_sizeof(context, datatype);
 		break;
 	}
 	if (mySubAggr != NULL)
@@ -2896,194 +2895,6 @@ static char *_sdl_get_tag(
 }
 
 /*
- * _sdl_sizeof
- *  This function is called to return the length of an item, based on the item
- *  indicated.  The item can be either a base type, or a user type.
- *
- * Input Parameters:
- *  item:
- *	A value indicating the item type for which we need the size.
- *
- * Output Parameters:
- *  None.
- *
- * Return Value:
- *  A value greater than or equal to zero, representing the size of the
- *  indicated type.
- */
-static int64_t _sdl_sizeof(SDL_CONTEXT *context, int item)
-{
-    int64_t	retVal = 0;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:sdl_sizeof\n", __FILE__, __LINE__);
-
-    if ((item >= SDL_K_BASE_TYPE_MIN) && (item <= SDL_K_BASE_TYPE_MAX))
-	switch (item)
-	{
-	    case SDL_K_TYPE_NONE:
-		retVal = 0;
-		break;
-
-	    case SDL_K_TYPE_BYTE:
-	    case SDL_K_TYPE_INT_B:
-	    case SDL_K_TYPE_BITFLD_B:
-		retVal = sizeof(int8_t);
-		break;
-
-	    case SDL_K_TYPE_CHAR:
-		retVal = sizeof(char);
-		break;
-
-	    case SDL_K_TYPE_WORD:
-	    case SDL_K_TYPE_INT_W:
-	    case SDL_K_TYPE_BITFLD_W:
-		retVal = sizeof(int16_t);
-		break;
-
-	    case SDL_K_TYPE_LONG:
-	    case SDL_K_TYPE_INT_L:
-	    case SDL_K_TYPE_BITFLD_L:
-	    case SDL_K_TYPE_ADDR_L:
-	    case SDL_K_TYPE_PTR_L:
-		retVal = sizeof(int32_t);
-		break;
-
-	    case SDL_K_TYPE_INT:
-	    case SDL_K_TYPE_BITFLD:
-		retVal = sizeof(int);
-		break;
-
-	    case SDL_K_TYPE_INT_HW:
-	    case SDL_K_TYPE_HW_INT:
-		if (context->wordSize == 32)
-		    retVal = sizeof(int32_t);
-		else
-		    retVal = sizeof(int64_t);
-		break;
-
-	    case SDL_K_TYPE_QUAD:
-	    case SDL_K_TYPE_INT_Q:
-	    case SDL_K_TYPE_BITFLD_Q:
-	    case SDL_K_TYPE_ADDR_Q:
-	    case SDL_K_TYPE_PTR_Q:
-		retVal = sizeof(int64_t);
-		break;
-
-	    case SDL_K_TYPE_OCTA:
-	    case SDL_K_TYPE_BITFLD_O:
-		retVal = sizeof(__int128_t);
-		break;
-
-	    case SDL_K_TYPE_HFLT:
-	    case SDL_K_TYPE_XFLT:
-		retVal = sizeof(long double);
-		break;
-
-	    case SDL_K_TYPE_HFLT_C:
-	    case SDL_K_TYPE_XFLT_C:
-		retVal = sizeof(long double _Complex);
-		break;
-
-	    case SDL_K_TYPE_TFLT:
-	    case SDL_K_TYPE_FFLT:
-		retVal = sizeof(float);
-		break;
-
-	    case SDL_K_TYPE_TFLT_C:
-	    case SDL_K_TYPE_FFLT_C:
-		retVal = sizeof(float _Complex);
-		break;
-
-	    case SDL_K_TYPE_SFLT:
-	    case SDL_K_TYPE_DFLT:
-	    case SDL_K_TYPE_GFLT:
-		retVal = sizeof(double);
-		break;
-
-	    case SDL_K_TYPE_SFLT_C:
-	    case SDL_K_TYPE_DFLT_C:
-	    case SDL_K_TYPE_GFLT_C:
-		retVal = sizeof(double _Complex);
-		break;
-
-	    case SDL_K_TYPE_DECIMAL:
-		retVal = 2;		/* (2 * precision) + 1 */
-		break;
-
-	    case SDL_K_TYPE_CHAR_VARY:
-		retVal = sizeof(char);	/* length + 2 bytes for stored length */
-		break;
-
-	    case SDL_K_TYPE_CHAR_STAR:
-		retVal = sizeof(char);
-		break;
-
-	    case SDL_K_TYPE_ADDR:
-	    case SDL_K_TYPE_PTR:
-	    case SDL_K_TYPE_ENTRY:
-		retVal = context->wordSize / 8;
-		break;
-
-	    case SDL_K_TYPE_ADDR_HW:
-	    case SDL_K_TYPE_HW_ADDR:
-	    case SDL_K_TYPE_PTR_HW:
-		retVal = context->wordSize / 8;
-		break;
-
-	    case SDL_K_TYPE_ANY:
-	    case SDL_K_TYPE_VOID:
-	    case SDL_K_TYPE_STRUCT:
-	    case SDL_K_TYPE_UNION:
-		retVal = 0;
-		break;
-
-	    case SDL_K_TYPE_BOOL:
-		retVal = sizeof(bool);
-		break;
-
-	    case SDL_K_TYPE_ENUM:
-		retVal = sizeof(int);
-		break;
-
-	    default:
-		break;
-	}
-    else if ((item >= SDL_K_DECLARE_MIN) && (item <= SDL_K_DECLARE_MAX))
-    {
-	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, item);
-
-	if (myDeclare != NULL)
-	    retVal = myDeclare->size;
-    }
-    else if ((item >= SDL_K_ITEM_MIN) && (item <= SDL_K_ITEM_MAX))
-    {
-	SDL_ITEM *myItem = sdl_get_item(&context->items, item);
-
-	if (myItem != NULL)
-	    retVal = myItem->size;
-    }
-    else if ((item >= SDL_K_AGGREGATE_MIN) && (item <= SDL_K_AGGREGATE_MAX))
-    {
-	SDL_AGGREGATE *myAggregate =
-	    sdl_get_aggregate(&context->aggregates, item);
-
-	if (myAggregate != NULL)
-	    retVal = myAggregate->size;
-    }
-    else if ((item >= SDL_K_ENUM_MIN) && (item <= SDL_K_ENUM_MAX))
-	retVal = sizeof(int);
-
-    /*
-     * Return the results of this call back to the caller.
-     */
-    return(retVal);
-}
-
-/*
  * _sdl_create_constant
  *  This function is called to create a constant record and return it back to
  *  the caller.
@@ -3278,7 +3089,7 @@ static SDL_ENUMERATE *_sdl_create_enum(
 	    retVal->prefix = NULL;
 	retVal->tag = strdup(tag);
 	retVal->typeDef = typeDef;
-	retVal->size = _sdl_sizeof(context, SDL_K_TYPE_ENUM);
+	retVal->size = sdl_sizeof(context, SDL_K_TYPE_ENUM);
 	retVal->typeID = context->enums.nextID++;
 	SDL_INSQUE(&context->enums.header, &retVal->header.queue);
     }

@@ -61,7 +61,7 @@
 #include "opensdl_actions.h"
 
 SDL_CONTEXT			context;
-SDL_QUEUE			literal;		/* A list of lines in the between LITERAL/END_LITERAL */
+SDL_QUEUE			literal;
 
 void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %}
@@ -727,7 +727,13 @@ basealign
 	: SDL_K_BASEALIGN SDL_K_OPENP _v_expression SDL_K_CLOSEP
 	    { sdl_add_option(&context, BaseAlign, pow(2, $3), NULL); }
 	| SDL_K_BASEALIGN _v_datatypes
-	    { sdl_add_option(&context, BaseAlign, -$2, NULL); }
+	    {
+		sdl_add_option(
+			&context,
+			BaseAlign,
+			sdl_sizeof(&context, $2),
+			NULL);
+	    }
 	;
 
 item

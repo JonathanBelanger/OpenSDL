@@ -99,6 +99,10 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2] =
 /*
  * Local Prototypes
  */
+static int _sdl_c_output_alignment(
+			FILE *fp,
+			int alignment,
+			SDL_CONTEXT *context);
 static char *_sdl_c_generate_name(char *name, char *prefix, char *tag);
 static char *_sdl_c_typeidStr(
 			int typeID,
@@ -652,27 +656,8 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	 * Next, if there is an alignment need, then we add an attribute
 	 * statement.
 	 */
-	if ((retVal == 1) && (context->memberAlign == true))
-	{
-	    switch(item->alignment)
-	    {
-		case SDL_K_NOALIGN:
-		    break;
-
-		case SDL_K_ALIGN:
-		    if (fprintf(fp, " __attribute__ ((aligned))") < 0)
-			retVal = 0;
-		    break;
-
-		default:
-		    if (fprintf(
-			    fp,
-			    " __attribute__ ((aligned (%d)))",
-			    item->alignment) < 0)
-			retVal = 0;
-		    break;
-	    }
-	}
+	if (retVal == 1)
+	    retVal = _sdl_c_output_alignment(fp, item->alignment, context);
 
 	/*
 	 * Finally, we close off the declaration.
@@ -888,7 +873,10 @@ int sdl_c_aggregate(
 	     */
 	    if ((ending == false) && (retVal == 1) && (name != NULL))
 	    {
-		if (my.aggr->typeDef == true)
+		if (my.aggr->commonDef == true)
+		    if (fprintf(fp, "extern ") < 0)
+			retVal = 0;
+		if ((retVal == 1) && (my.aggr->typeDef == true))
 		{
 		    if (fprintf(fp, "typedef ") < 0)
 			retVal = 0;
@@ -896,11 +884,15 @@ int sdl_c_aggregate(
 		if (retVal == 1)
 		{
 		    char *which = _types[my.aggr->aggType][bits];
-		    char *fmt = (my.aggr->typeDef == true ?
-				"%s _%s\n%s{\n" :
-				"%s %s\n%s{\n");
+		    char *td = (my.aggr->typeDef == true ? "_" : "");
 
-		    if (fprintf(fp, fmt, which, name, spaces) < 0)
+		    if (fprintf(
+			    fp,
+			    "%s %s%s\n%s{\n",
+			    which,
+			    td,
+			    name,
+			    spaces) < 0)
 			retVal = 0;
 		}
 	    }
@@ -909,6 +901,18 @@ int sdl_c_aggregate(
 		char *fmt = (my.aggr->typeDef == true ? "%s} %s" : "%s}");
 
 		if (fprintf(fp, fmt, spaces, name) < 0)
+		    retVal = 0;
+
+		/*
+		 * Next, if there is an alignment need, then we add an attribute
+		 * statement.
+		 */
+		if (retVal == 1)
+		    retVal = _sdl_c_output_alignment(
+						fp,
+						my.aggr->alignment,
+						context);
+		if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
 		    retVal = 0;
 	    }
 	    else if (name == NULL)
@@ -926,29 +930,31 @@ int sdl_c_aggregate(
 	     */
 	    if ((ending == false) && (retVal == 1) && (name != NULL))
 	    {
-		if (my.subaggr->typeDef == true)
-		{
-		    if (fprintf(fp, "%stypedef ", spaces) < 0)
-			retVal = 0;
-		}
+		if (fprintf(fp, "%s", spaces) < 0)
+		    retVal = 0;
 		if (retVal == 1)
 		{
 		    char *which = _types[my.subaggr->aggType][bits];
-		    char *fmt = (my.subaggr->typeDef == true ?
-				"%s _%s\n%s{\n" :
-				"%s %s\n%s{\n");
 
-		    if (fprintf(fp, fmt, which, name, spaces) < 0)
+		    if (fprintf(fp, "%s %s\n%s{\n", which, name, spaces) < 0)
 			    retVal = 0;
 		}
 	    }
 	    else if ((retVal == 1) && (name != NULL))
 	    {
-		char *fmt = (my.subaggr->typeDef == true ?
-					"%s} %s;\n" :
-					"%s};\n");
+		if (fprintf(fp, "}") < 0)
+		    retVal = 0;
 
-		if (fprintf(fp, fmt, spaces, name) < 0)
+		/*
+		 * Next, if there is an alignment need, then we add an attribute
+		 * statement.
+		 */
+		if (retVal == 1)
+		    retVal = _sdl_c_output_alignment(
+						fp,
+						my.aggr->alignment,
+						context);
+		if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
 		    retVal = 0;
 	    }
 	    else if (name == NULL)
@@ -998,6 +1004,9 @@ int sdl_c_aggregate(
 int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 {
     SDL_PARAMETER	*param = (SDL_PARAMETER *) entry->parameters.flink;
+    char		*sign;
+    char		*type;
+    char		*addr;
     int			retVal = 1;
     bool		freeMe = false;
 
@@ -1019,67 +1028,41 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     }
     else
     {
-	char *typeStr = _sdl_c_typeidStr(
-				entry->returns.type,
-				0,
-				context,
-				&freeMe);
-
-	if ((entry->returns.type >= SDL_K_BASE_TYPE_MIN) &&
-	    (entry->returns.type <= SDL_K_BASE_TYPE_MAX))
-	    switch (entry->returns.type)
-	    {
-		case SDL_K_TYPE_BYTE:
-		case SDL_K_TYPE_WORD:
-		case SDL_K_TYPE_LONG:
-		case SDL_K_TYPE_QUAD:
-		case SDL_K_TYPE_OCTA:
-		    if (fprintf(
-			    fp,
-			    typeStr,
-			    (entry->returns._unsigned ? "unsigned " : "")) < 0)
-			retVal = 0;
-		    break;
-
-		case SDL_K_TYPE_BOOL:
-		case SDL_K_TYPE_TFLT:
-		case SDL_K_TYPE_SFLT:
-		case SDL_K_TYPE_DECIMAL:
-		case SDL_K_TYPE_CHAR:
-		case SDL_K_TYPE_ADDR:
-		case SDL_K_TYPE_ADDR_L:
-		case SDL_K_TYPE_ADDR_Q:
-		case SDL_K_TYPE_ADDR_HW:
-		case SDL_K_TYPE_HW_ADDR:
-		case SDL_K_TYPE_PTR:
-		case SDL_K_TYPE_PTR_L:
-		case SDL_K_TYPE_PTR_Q:
-		case SDL_K_TYPE_PTR_HW:
-		    if (fprintf(fp, typeStr) < 0)
-			retVal = 0;
-		    break;
-
-		default:
-		    break;
-	    }
-	else if ((entry->returns.type >= SDL_K_AGGREGATE_MIN) &&
-	         (entry->returns.type <= SDL_K_AGGREGATE_MIN))
-	{
-	    if (fprintf(fp, "%s ", typeStr) < 0)
-		retVal = 0;
-	    else
-		typeStr = entry->returns.name;
-	}
-	if ((retVal == 1) &&
-	    (fprintf(fp, "%s %s(", typeStr, entry->id) < 0))
+	sign = (entry->returns._unsigned == true ? "unsigned " : "");
+	type = _sdl_c_typeidStr(entry->returns.type, 0, context, &freeMe);
+	addr = ((entry->returns.type == SDL_K_TYPE_ADDR) ||
+		(entry->returns.type == SDL_K_TYPE_PTR)) ? "*" : "";
+	if (fprintf(fp, "%s%s %s%s", sign, type, addr, entry->id) < 0)
 	    retVal = 0;
+	if ((freeMe == true) && (type != NULL))
+	    free(type);
     }
     while ((retVal == 1) && (param != (SDL_PARAMETER *) &entry->parameters))
     {
+	sign = (param->_unsigned == true ? "unsigned " : "");
+	type = _sdl_c_typeidStr(param->type, 0, context, &freeMe);
+	switch (param->passingMech)
+	{
+	    case SDL_K_PARAM_REF:
+		addr = "*";
+		break;
+
+	    default:
+		addr = "";
+		break;
+	}
+	if (fprintf(fp, "\n\t%s%s %s%s", sign, type, addr, param->name) < 0)
+	    retVal = 0;
+	if ((freeMe == true) && (type != NULL))
+	    free(type);
 	param = param->header.queue.flink;
+	if ((retVal == 1) && (param != (SDL_PARAMETER *) &entry->parameters))
+	{
+	    if (fprintf(fp, ",") < 0)
+		    retVal = 0;
+	}
     }
-    if ((retVal == 1) &&
-	(fprintf(fp, ");\n") < 0))
+    if ((retVal == 1) && (fprintf(fp, ");\n") < 0))
 	retVal = 0;
 
     /*
@@ -1162,19 +1145,20 @@ int sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 	/*
 	 * Finally, we need to close of the enum definition.
 	 */
-	if (retVal == 1)
+	if ((retVal == 1) && (fprintf(fp, "}") < 0))
+	    retVal = 0;
+	if ((retVal == 1) && (_enum->typeDef == true))
 	{
-	    if (_enum->typeDef == true)
-	    {
-		if (fprintf(fp, "} %s;\n", name) < 0)
-		    retVal = 0;
-	    }
-	    else
-	    {
-		if (fprintf(fp, "};\n") < 0)
-		    retVal = 0;
-	    }
+	    if (fprintf(fp, " %s", name) < 0)
+		retVal = 0;
 	}
+	if (retVal == 1)
+	    retVal = _sdl_c_output_alignment(
+					fp,
+					_enum->alignment,
+					context);
+	if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
+	    retVal = 0;
 	free(name);
     }
     else
@@ -1188,6 +1172,62 @@ int sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 /************************************************************************
  * Local Functions							*
  ************************************************************************/
+
+/*
+ * _sdl_c_output_alignment
+ *  This function is called to output the alignment definitions for ITEMs,
+ *  AGGREGATEs,and subaggregates.
+ *
+ * Input Parameters:
+ *  fp:
+ *	A pointer to the file pointer to write out the information.
+ *  alignment:
+ *  	A value indicating the alignment requirement.
+ *  context:
+ *	A pointer to the context block to be used for converting a type into
+ *	a string.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+static int _sdl_c_output_alignment(
+			FILE *fp,
+			int alignment,
+			SDL_CONTEXT *context)
+{
+    int		retVal = 1;
+
+    if (context->memberAlign == true)
+    {
+	switch(alignment)
+	{
+	    case SDL_K_NOALIGN:
+		break;
+
+	    case SDL_K_ALIGN:
+		if (fprintf(fp, " __attribute__ ((aligned))") < 0)
+		    retVal = 0;
+		break;
+
+	    default:
+		if (fprintf(
+			fp,
+			" __attribute__ ((aligned (%d)))",
+			alignment) < 0)
+		    retVal = 0;
+		break;
+	}
+    }
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
 
 /*
  * _sdl_c_generate_name
@@ -1318,7 +1358,9 @@ static char *_sdl_c_typeidStr(
 	printf("%s:%d:_sdl_c_typeidStr\n", __FILE__, __LINE__);
 
     *freeMe = false;
-    if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
+    if (typeID == SDL_K_TYPE_NONE)
+	retVal = _types[SDL_K_TYPE_VOID][bits];
+    else if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
     {
 	if ((typeID == SDL_K_TYPE_ADDR) || (typeID == SDL_K_TYPE_PTR))
 	    retVal = _sdl_c_typeidStr(subType, 0, context, freeMe);

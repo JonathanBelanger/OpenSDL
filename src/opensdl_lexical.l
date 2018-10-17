@@ -533,6 +533,8 @@ SIZEOF					{ return(SDL_K_SIZEOF); }
 
 REFERENCE				{ return(SDL_K_REF); }
 VALUE					{ return(SDL_K_VALUE); }
+DESCRIPTOR				{ return(SDL_K_DESC); }
+RTL_STR_DESC			{ return(SDL_K_STR_DESC); }
 IN						{ return(SDL_K_IN); }
 OUT						{ return(SDL_K_OUT); }
 DEFAULT					{ return(SDL_K_DEFAULT); }

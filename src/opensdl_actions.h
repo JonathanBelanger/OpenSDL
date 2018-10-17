@@ -48,7 +48,8 @@ int sdl_constant(
 		SDL_CONTEXT *context,
 		char *id,
 		__int64_t value,
-		char *valueStr);
+		char *valueStr,
+		int size);
 int sdl_constant_compl(SDL_CONTEXT *context);
 int sdl_aggregate(
 		SDL_CONTEXT *context,

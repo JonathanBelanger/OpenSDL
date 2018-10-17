@@ -102,8 +102,9 @@
 #define	SDL_K_TYPE_BOOL		48
 #define	SDL_K_TYPE_STRUCT	49
 #define	SDL_K_TYPE_UNION	50
-#define SDL_K_TYPE_ENUM		51
-#define SDL_K_TYPE_ENTRY	52	/* Always the last Base type */
+#define SDL_K_TYPE_IMPLICIT	51
+#define SDL_K_TYPE_ENUM		52
+#define SDL_K_TYPE_ENTRY	53	/* Always the last Base type */
 #define SDL_K_BASE_TYPE_MIN	1
 #define SDL_K_BASE_TYPE_MAX	SDL_K_TYPE_ENTRY + 1
 #define SDL_K_DECLARE_MIN	64
@@ -279,7 +280,8 @@ typedef struct
 	int64_t	value;
     };
     int			radix;
-    int			type; /* Numeric or String */
+    int			type;	/* Numeric or String */
+    int			size;	/* Number of bytes to be output (for masks) */
 } SDL_CONSTANT;
 
 /*
@@ -383,11 +385,7 @@ typedef struct
     char		*comment;
     char		*name;
     char		*typeName;
-    union
-    {
-	int	data;
-	char	*aggrName;	/* TODO: This is not needed */
-    };
+    int			data;
     int64_t		bound;
     int64_t		defaultValue;
     int			type;
@@ -619,6 +617,7 @@ typedef struct
 	int64_t value;
 	char	*valueStr;
     };
+    int			size;
     bool		string;
 } SDL_CONSTANT_DEF;
 

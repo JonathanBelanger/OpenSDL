@@ -138,6 +138,8 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 
 %token SDL_K_REF
 %token SDL_K_VALUE
+%token SDL_K_DESC
+%token SDL_K_STR_DESC
 %token SDL_K_IN
 %token SDL_K_OUT
 %token SDL_K_DEFAULT
@@ -521,12 +523,12 @@ _clause
 	: t_constant_name SDL_K_EQUALS _v_expression
 	    {
 		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, $3, NULL);
+		sdl_constant(&context, $1, $3, NULL, 0);
 	    }
 	| t_constant_names SDL_K_EQUALS _v_expression
 	    {
 		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, $3, NULL);
+		sdl_constant(&context, $1, $3, NULL, 0);
 	    }
 	;
 
@@ -534,17 +536,17 @@ _complex_clause
 	: t_constant_name SDL_K_EQUALS SDL_K_STRING t_string
 	    {
 		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, 0, $4);
+		sdl_constant(&context, $1, 0, $4, 0);
 	    }
 	| t_constant_name SDL_K_EQUALS _v_expression
 	    {
 		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, $3, NULL);
+		sdl_constant(&context, $1, $3, NULL, 0);
 	    }
 	| t_constant_names SDL_K_EQUALS _v_expression
 	    {
 		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, $3, NULL);
+		sdl_constant(&context, $1, $3, NULL, 0);
 	    }
 	;
 
@@ -712,6 +714,8 @@ _v_address
 _v_object
 	: %empty
 	    { $$ = 0; }
+	| _v_datatypes
+	    { $$ = $1; }
 	| SDL_K_OPENP SDL_K_ENTRY _basealign SDL_K_CLOSEP
 	    { $$ = SDL_K_TYPE_ENTRY; }
 	| SDL_K_OPENP _v_datatypes _basealign SDL_K_CLOSEP
@@ -925,6 +929,10 @@ _v_passing_option
 	| SDL_K_VALUE
 	   { $$ = SDL_K_PARAM_VAL; }
 	| SDL_K_REF
+	   { $$ = SDL_K_PARAM_REF; }
+	| SDL_K_DESC
+	   { $$ = SDL_K_PARAM_REF; }
+	| SDL_K_STR_DESC
 	   { $$ = SDL_K_PARAM_REF; }
 	;
 

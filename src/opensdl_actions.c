@@ -128,6 +128,7 @@ static char *_defaultTag[] =
     "B",	/* BOOLEAN */
     "R",	/* STRUCTURE */
     "R",	/* UNION */
+    "R",	/* IMPLICIT UNION */
     "N",	/* ENUM */
     "E",	/* ENTRY */
 };
@@ -155,7 +156,8 @@ static SDL_CONSTANT *_sdl_create_constant(
         char *typeName,
         int radix,
         int64_t value,
-        char *string);
+        char *string,
+        int size);
 static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst);
 static SDL_ENUMERATE *_sdl_create_enum(
 				SDL_CONTEXT *context,
@@ -736,7 +738,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 		"\t    _unsigned: %s\n",
 	        ii++,
 	        aggregate->id,
-	        (aggregate->aggType == SDL_K_TYPE_UNION ? "UNION" : "STRUCTURE"),
+	        (aggregate->aggType == SDL_K_TYPE_STRUCT ? "STRUCTURE" : "UNION"),
 	        (aggregate->prefix != NULL ? aggregate->prefix : ""),
 	        (aggregate->marker != NULL ? aggregate->marker : ""),
 	        (aggregate->tag != NULL ? aggregate->tag : ""),
@@ -1317,6 +1319,10 @@ int sdl_item_compl(SDL_CONTEXT *context)
  *  valueStr:
  *	A pointer to a string to be associated with the constant.  If this is
  *	NULL, then value is used.  Otherwise, this is used.
+ *  size:
+ *	A value to indicate the number of bytes to be output when writing out
+ *	the constant value.  This is used for masks and is the size of the
+ *	largest potential mask value.
  *
  * Output Parameters:
  *  None.
@@ -1329,7 +1335,8 @@ int sdl_constant(
 		SDL_CONTEXT *context,
 		char *id,
 		int64_t value,
-		char *valueStr)
+		char *valueStr,
+		int size)
 {
     int		retVal = 1;
 
@@ -1353,6 +1360,7 @@ int sdl_constant(
     {
 	context->constDef.value = value;
 	context->constDef.string = false;
+	context->constDef.size = size;
     }
 
     /*
@@ -1401,6 +1409,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
     int64_t		increment = 0;
     int64_t		radix = SDL_K_RADIX_DEF;
     int			datatype = SDL_K_TYPE_CONST;
+    int			size = context->constDef.size;
     bool		incrementPresent = false;
     bool		localCreated = false;
     bool		typeDef = false;
@@ -1498,7 +1507,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 				typeName,
 				radix,
 				value,
-				valueStr);
+				valueStr,
+				size);
 	    if (myConst != NULL)
 		retVal = _sdl_queue_constant(context, myConst);
 	    else
@@ -1618,7 +1628,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 					    typeName,
 					    radix,
 					    value,
-					    NULL);
+					    NULL,
+					    size);
 		    if (myConst != NULL)
 			retVal = _sdl_queue_constant(context, myConst);
 		    else
@@ -1699,7 +1710,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
  *	A pointer to the string to be associated with this aggregate
  *	definition.
  *  datatype:
- *	A value to be associated with the datatype for this item.
+ *	A value to be associated with the datatype for this item.  If this is
+ *	specified as one of the base type, then we have an implicit union.
  *  aggType:
  *	A value indicating if this AGGREGATE is for a UNION or STRUCTURE
  *	definition.
@@ -1732,7 +1744,10 @@ int sdl_aggregate(
 	myAggr->typeID = context->aggregates.nextID++;
 	myAggr->_unsigned = _sdl_isUnsigned(context, &datatype);
 	myAggr->type = datatype;
-	myAggr->aggType = aggType;
+	if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
+	    myAggr->aggType = SDL_K_TYPE_IMPLICIT;
+	else
+	    myAggr->aggType = aggType;
 	myAggr->tag = _sdl_get_tag(
 				context,
 				NULL,
@@ -1829,12 +1844,13 @@ int sdl_aggregate_member(
 	}
 
 	/*
-	 * If the current member is not a STRUCTURE or UNION, then it is
-	 * the current aggregate, of which we already have the address.
+	 * If the current member is not a STRUCTURE or [IMPLICIT] UNION, then
+	 * it is the current aggregate, of which we already have the address.
 	 */
 	if ((myMember != NULL) &&
 	    ((myMember->type == SDL_K_TYPE_STRUCT) ||
-	     (myMember->type == SDL_K_TYPE_UNION)))
+	     (myMember->type == SDL_K_TYPE_UNION) ||
+	     (myMember->type == SDL_K_TYPE_IMPLICIT)))
 	    myMember = NULL;
 
 	/*
@@ -2036,7 +2052,10 @@ int sdl_aggregate_member(
 	/*
 	 * Determine the type of member we are being asked to create.
 	 */
-	myMember->type = aggType;
+	if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
+	    myMember->type = SDL_K_TYPE_IMPLICIT;
+	else
+	    myMember->type = aggType;
 	switch (aggType)
 	{
 	    case SDL_K_TYPE_STRUCT:
@@ -2469,7 +2488,6 @@ int sdl_entry(SDL_CONTEXT *context, char *name)
  *
  * Output Parameters:
  *  None.
- *
  * Return Values:
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
@@ -2502,6 +2520,7 @@ int sdl_add_parameter(SDL_CONTEXT *context, int64_t datatype, int passing)
 	SDL_PARAMETER	*param = sdl_allocate_block(ParameterBlock, NULL);
 
 	param->_unsigned = _sdl_isUnsigned(context, &datatype);
+	param->type = datatype;
 	param->passingMech = passing;
 
 	for (ii = 0; ii < context->optionsIdx; ii++)
@@ -2916,6 +2935,9 @@ static char *_sdl_get_tag(
  *	A value for the actual constant.
  *  string:
  *	A pointer to a string value for the actual constant.
+ *  size:
+ *	The number of bytes that this constant represents (used for outputting
+ *	MASK constants).
  *
  * Output Parameters:
  *  None.
@@ -2932,7 +2954,8 @@ static SDL_CONSTANT *_sdl_create_constant(
         char *typeName,
         int radix,
         int64_t value,
-        char *string)
+        char *string,
+        int size)
 {
     SDL_CONSTANT *retVal = sdl_allocate_block(ConstantBlock, NULL);
 
@@ -2972,6 +2995,7 @@ static SDL_CONSTANT *_sdl_create_constant(
 	    retVal->type = SDL_K_CONST_STR;
 	    retVal->string = string;
 	}
+	retVal->size = size;
     }
 
     /*

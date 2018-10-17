@@ -1635,8 +1635,6 @@ void sdl_deallocate_block(SDL_HEADER *block)
 		}
 		if (entry->alias != NULL)
 		    free(entry->alias);
-		if (param->comment != NULL)
-		    free(param->comment);
 		if (entry->id != NULL)
 		    free(entry->id);
 		if (entry->linkage != NULL)

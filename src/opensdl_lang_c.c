@@ -77,7 +77,7 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2] =
 	{"__int128_t",	"__int128_t"},	/* BITFIELD OCTAWORD */
 	{"char",	"char"},	/* CHAR */
 	{NULL,		NULL},		/* CHAR VARYING */
-	{NULL,		NULL},		/* CHAR LENGTH(*) */
+	{"char",	"char"},	/* CHAR LENGTH(*) */
 	{NULL,		NULL},		/* ADDRESS */
 	{"int32_t",	"int32_t"},	/* ADDRESS_LONG */
 	{"int64_t",	"int64_t"},	/* ADDRESS_QUAD */
@@ -87,7 +87,7 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2] =
 	{"int32_t",	"int32_t"},	/* POINTER_LONG */
 	{"int64_t",	"int64_t"},	/* POINTER_QUAD */
 	{"int32_t",	"int64_t"},	/* POINTER_HW */
-	{NULL,		NULL},		/* ANY */
+	{"void",	"void"},	/* ANY */
 	{"void",	"void"},	/* VOID */
 	{"bool",	"bool"},	/* BOOLEAN */
 	{"struct",	"struct"},	/* STRUCTURE */
@@ -635,7 +635,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 		(item->type == SDL_K_TYPE_BITFLD_Q) ||
 		(item->type == SDL_K_TYPE_BITFLD_O))
 	    {
-		if (fprintf(fp, ": %ld", item->length) < 0)
+		if (fprintf(fp, " : %ld", item->length) < 0)
 		    retVal = 0;
 	    }
 	    else if ((item->dimension == true) ||
@@ -703,13 +703,19 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
     char 	*prefix = (constant->prefix ? constant->prefix : "");
     char	*name = _sdl_c_generate_name(constant->id, prefix, constant->tag);
     int		retVal = 1;
-    int		size = context->wordSize;
+    int		size = constant->size;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
 	printf("%s:%d:sdl_c_constant\n", __FILE__, __LINE__);
+
+    /*
+     * Make sure we have the size set correctly.
+     */
+    if (size == 0)
+	size = context->wordSize;
 
     /*
      * Now let's do some output.
@@ -722,9 +728,6 @@ int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
     /*
      * If first part was successful and this is a string constant, then output
      * the string value.
-     *
-     * TODO: Need to figure out how to have masks of BYTE, WORD, LONG, QUAD,
-     * TODO: and OCTA lengths.
      */
     if (retVal == 1)
     {
@@ -898,10 +901,16 @@ int sdl_c_aggregate(
 	    }
 	    else if ((retVal == 1) && (name != NULL))
 	    {
-		char *fmt = (my.aggr->typeDef == true ? "%s} %s" : "%s}");
-
-		if (fprintf(fp, fmt, spaces, name) < 0)
-		    retVal = 0;
+		if (my.aggr->typeDef == true)
+		{
+		    if (fprintf(fp, "} %s", name) < 0)
+			retVal = 0;
+		}
+		else
+		{
+		    if (fprintf(fp, "}") < 0)
+			retVal = 0;
+		}
 
 		/*
 		 * Next, if there is an alignment need, then we add an attribute
@@ -930,15 +939,10 @@ int sdl_c_aggregate(
 	     */
 	    if ((ending == false) && (retVal == 1) && (name != NULL))
 	    {
-		if (fprintf(fp, "%s", spaces) < 0)
-		    retVal = 0;
-		if (retVal == 1)
-		{
-		    char *which = _types[my.subaggr->aggType][bits];
+		char *which = _types[my.subaggr->aggType][bits];
 
-		    if (fprintf(fp, "%s %s\n%s{\n", which, name, spaces) < 0)
-			    retVal = 0;
-		}
+		if (fprintf(fp, "%s %s\n%s{\n", which, name, spaces) < 0)
+		    retVal = 0;
 	    }
 	    else if ((retVal == 1) && (name != NULL))
 	    {
@@ -1004,11 +1008,12 @@ int sdl_c_aggregate(
 int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 {
     SDL_PARAMETER	*param = (SDL_PARAMETER *) entry->parameters.flink;
-    char		*sign;
     char		*type;
-    char		*addr;
+    char		outBuf[256];
+    size_t		outLen = 0;
     int			retVal = 1;
     bool		freeMe = false;
+    bool		firstLine = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1028,38 +1033,71 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     }
     else
     {
-	sign = (entry->returns._unsigned == true ? "unsigned " : "");
 	type = _sdl_c_typeidStr(entry->returns.type, 0, context, &freeMe);
-	addr = ((entry->returns.type == SDL_K_TYPE_ADDR) ||
-		(entry->returns.type == SDL_K_TYPE_PTR)) ? "*" : "";
-	if (fprintf(fp, "%s%s %s%s", sign, type, addr, entry->id) < 0)
+	if (entry->returns._unsigned == true)
+	    outLen += sprintf(&outBuf[outLen], "unsigend ");
+	outLen += sprintf(&outBuf[outLen], "%s ", type);
+	if ((entry->returns.type == SDL_K_TYPE_ADDR) ||
+	    (entry->returns.type == SDL_K_TYPE_PTR))
+	    outLen += sprintf(&outBuf[outLen], "%s", "*");
+	outLen += sprintf(&outBuf[outLen], "%s(", entry->id);
+	if (fprintf(fp, outBuf) < 0)
 	    retVal = 0;
 	if ((freeMe == true) && (type != NULL))
 	    free(type);
     }
+
+    /*
+     * OK, parameter passing can be rather complex, especially when you have
+     * an address passed by reference.  So, we are going to need to break the
+     * parameter output into multiple steps.
+     */
+    outLen = 0;
     while ((retVal == 1) && (param != (SDL_PARAMETER *) &entry->parameters))
     {
-	sign = (param->_unsigned == true ? "unsigned " : "");
 	type = _sdl_c_typeidStr(param->type, 0, context, &freeMe);
-	switch (param->passingMech)
-	{
-	    case SDL_K_PARAM_REF:
-		addr = "*";
-		break;
-
-	    default:
-		addr = "";
-		break;
-	}
-	if (fprintf(fp, "\n\t%s%s %s%s", sign, type, addr, param->name) < 0)
-	    retVal = 0;
+	if (param->_unsigned == true)
+	    outLen += sprintf(&outBuf[outLen], "unsigned ");
+	outLen += sprintf(&outBuf[outLen], "%s", type);
+	if ((param->type == SDL_K_TYPE_ADDR) ||
+	    (param->type == SDL_K_TYPE_PTR) ||
+	    (param->passingMech == SDL_K_PARAM_REF) ||
+	    (param->name != NULL))
+	    outLen += sprintf(&outBuf[outLen], " ");
+	if ((param->type == SDL_K_TYPE_ADDR) ||
+	    (param->type == SDL_K_TYPE_PTR) ||
+	    (param->type == SDL_K_TYPE_CHAR_STAR))
+	    outLen += sprintf(&outBuf[outLen], "%s", "*");
+	if (param->passingMech == SDL_K_PARAM_REF)
+	    outLen += sprintf(&outBuf[outLen], "%s", "*");
+	if (param->name != NULL)
+	    outLen += sprintf(&outBuf[outLen], param->name);
 	if ((freeMe == true) && (type != NULL))
 	    free(type);
+
+	/*
+	 * Move to the next parameter, if there is one.
+	 */
 	param = param->header.queue.flink;
-	if ((retVal == 1) && (param != (SDL_PARAMETER *) &entry->parameters))
+	outLen = 0;
+
+	if ((firstLine == false) &&
+	    (param == (SDL_PARAMETER *) &entry->parameters))
 	{
-	    if (fprintf(fp, ",") < 0)
-		    retVal = 0;
+	    if (fprintf(fp, outBuf) < 0)		/* only parameter */
+		retVal = 0;
+	}
+	else if ((firstLine == true) &&
+		(param == (SDL_PARAMETER *) &entry->parameters))
+	{
+	    if (fprintf(fp, "\n\t%s", outBuf) < 0)	/* last parameter */
+		retVal = 0;
+	}
+	else
+	{
+	    if (fprintf(fp, "\n\t%s,", outBuf) < 0)	/* other parameter */
+		retVal = 0;
+	    firstLine = true;
 	}
     }
     if ((retVal == 1) && (fprintf(fp, ");\n") < 0))

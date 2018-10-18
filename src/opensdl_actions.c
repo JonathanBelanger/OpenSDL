@@ -157,14 +157,16 @@ static SDL_CONSTANT *_sdl_create_constant(
         int radix,
         int64_t value,
         char *string,
-        int size);
+        int size,
+        int srcLineNo);
 static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst);
 static SDL_ENUMERATE *_sdl_create_enum(
 				SDL_CONTEXT *context,
 				char *id,
 				char *prefix,
 				char *tag,
-				bool typeDef);
+				bool typeDef,
+				int srcLineNo);
 static int _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum);
 static bool _sdl_all_lower(const char *str);
 static void _sdl_reset_options(SDL_CONTEXT *context);
@@ -176,6 +178,7 @@ static int _sdl_iterate_members(
 		int depth,
 		int count);
 static bool _sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);
+bool _sdl_isItem(SDL_MEMBERS *member);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -366,6 +369,8 @@ int sdl_comment_block(SDL_CONTEXT *context, char *comment)
  *	A pointer to the name of the local variable.
  *  value:
  *	A 64-bit integer value the local variable it to be set.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -375,7 +380,11 @@ int sdl_comment_block(SDL_CONTEXT *context, char *comment)
  *  0:	An error occurred.
  *  -1:	Normal Successful Completion, local variable created.
  */
-int sdl_set_local(SDL_CONTEXT *context, char *name, int64_t value)
+int sdl_set_local(
+		SDL_CONTEXT *context,
+		char *name,
+		int64_t value,
+		int srcLineNo)
 {
     SDL_LOCAL_VARIABLE	*local = sdl_find_local(context, name);
     int			retVal = 1;
@@ -400,7 +409,7 @@ int sdl_set_local(SDL_CONTEXT *context, char *name, int64_t value)
      */
     if (local == NULL)
     {
-	local = sdl_allocate_block(LocalBlock, NULL);
+	local = sdl_allocate_block(LocalBlock, NULL, srcLineNo);
 	if (local != NULL)
 	{
 	    local->id = name;
@@ -862,6 +871,8 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
  *	A pointer to the queue containing the current set of literal lines.
  *  line:
  *  	A pointer to the line of text from the input file.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -870,7 +881,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_literal(SDL_QUEUE *literals, char *line)
+int sdl_literal(SDL_QUEUE *literals, char *line, int srcLineNo)
 {
     SDL_LITERAL	*literalLine;
     int		retVal = 1;
@@ -891,7 +902,7 @@ int sdl_literal(SDL_QUEUE *literals, char *line)
     if (trace == true)
 	printf("%s:%d:sdl_literal(%.*s)\n", __FILE__, __LINE__, (int) len, line);
 
-    literalLine = sdl_allocate_block(LiteralBlock, NULL);
+    literalLine = sdl_allocate_block(LiteralBlock, NULL, srcLineNo);
     if (literalLine != NULL)
     {
 	literalLine->line = line;
@@ -920,6 +931,8 @@ int sdl_literal(SDL_QUEUE *literals, char *line)
  *	the current parsing.
  *  literals:
  *	A pointer to the queue containing the current set of literal lines.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -928,7 +941,7 @@ int sdl_literal(SDL_QUEUE *literals, char *line)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals)
+int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals, int srcLineNo)
 {
     SDL_LITERAL	*literalLine;
     int		retVal = 1;
@@ -983,6 +996,8 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals)
  *	A pointer to a string containing the name of the type.
  *  sizeType:
  *	A value indicating the size or datatype of the declaration.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -991,7 +1006,11 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_declare(SDL_CONTEXT *context, char *name, int64_t sizeType)
+int sdl_declare(
+	SDL_CONTEXT *context,
+	char *name,
+	int64_t sizeType,
+	int srcLineNo)
 {
     SDL_DECLARE	*myDeclare = _sdl_get_declare(&context->declares, name);
     int		retVal = 1;
@@ -1007,7 +1026,7 @@ int sdl_declare(SDL_CONTEXT *context, char *name, int64_t sizeType)
      */
     if (myDeclare == NULL)
     {
-	myDeclare = sdl_allocate_block(DeclareBlock, NULL);
+	myDeclare = sdl_allocate_block(DeclareBlock, NULL, srcLineNo);
 	if (myDeclare != NULL)
 	{
 	    myDeclare->id = name;
@@ -1046,6 +1065,8 @@ int sdl_declare(SDL_CONTEXT *context, char *name, int64_t sizeType)
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -1054,7 +1075,7 @@ int sdl_declare(SDL_CONTEXT *context, char *name, int64_t sizeType)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_declare_compl(SDL_CONTEXT *context)
+int sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
 {
     SDL_DECLARE	*myDeclare = (SDL_DECLARE *) context->declares.header.blink;
     char 	*prefix = NULL;
@@ -1115,6 +1136,8 @@ int sdl_declare_compl(SDL_CONTEXT *context)
  *	A pointer the the name of the item to be defined.
  *  datatype:
  *	A value to be associated with the datatype for this item.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -1123,7 +1146,7 @@ int sdl_declare_compl(SDL_CONTEXT *context)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype)
+int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype, int srcLineNo)
 {
     SDL_ITEM	*myItem = _sdl_get_item(&context->items, name);
     int		retVal = 1;
@@ -1141,7 +1164,7 @@ int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype)
      */
     if (myItem == NULL)
     {
-	myItem = sdl_allocate_block(ItemBlock, NULL);
+	myItem = sdl_allocate_block(ItemBlock, NULL, srcLineNo);
 	if (myItem != NULL)
 	{
 	    myItem->id = name;
@@ -1178,6 +1201,8 @@ int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype)
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -1186,7 +1211,7 @@ int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_item_compl(SDL_CONTEXT *context)
+int sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
 {
     SDL_ITEM	*myItem = context->items.header.blink;
     char	*prefix = NULL;
@@ -1323,6 +1348,8 @@ int sdl_item_compl(SDL_CONTEXT *context)
  *	A value to indicate the number of bytes to be output when writing out
  *	the constant value.  This is used for masks and is the size of the
  *	largest potential mask value.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -1336,7 +1363,8 @@ int sdl_constant(
 		char *id,
 		int64_t value,
 		char *valueStr,
-		int size)
+		int size,
+		int srcLineNo)
 {
     int		retVal = 1;
 
@@ -1378,6 +1406,8 @@ int sdl_constant(
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -1389,7 +1419,7 @@ int sdl_constant(
 #define _SDL_OUTPUT_COMMENT	0
 #define _SDL_COMMA_		2
 #define _SDL_COMMENT_LIST_NULL	3
-int sdl_constant_compl(SDL_CONTEXT *context)
+int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 {
     SDL_CONSTANT	*myConst;
     SDL_ENUMERATE	*myEnum = NULL;
@@ -1440,7 +1470,11 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	    case Counter:
 		counter = context->options[ii].string;
 		context->options[ii].string = NULL;
-		localCreated = sdl_set_local(context, counter, value) < 0;
+		localCreated = sdl_set_local(
+					context,
+					counter,
+					value,
+					srcLineNo) < 0;
 		break;
 
 	    case TypeName:
@@ -1508,7 +1542,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 				radix,
 				value,
 				valueStr,
-				size);
+				size,
+				srcLineNo);
 	    if (myConst != NULL)
 		retVal = _sdl_queue_constant(context, myConst);
 	    else
@@ -1520,12 +1555,19 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	 */
 	else
 	{
-	    myEnum = _sdl_create_enum(context, enumName, prefix, tag, typeDef);
+	    myEnum = _sdl_create_enum(
+				context,
+				enumName,
+				prefix,
+				tag,
+				typeDef,
+				srcLineNo);
 	    if (myEnum != NULL)
 	    {
 		SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
 						EnumMemberBlock,
-						&myEnum->header);
+						&myEnum->header,
+						srcLineNo);
 
 		if (myMem != NULL)
 		{
@@ -1565,7 +1607,13 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	if (enumName != NULL)
 	{
 	    datatype = SDL_K_TYPE_ENUM;
-	    myEnum = _sdl_create_enum(context, enumName, prefix, tag, typeDef);
+	    myEnum = _sdl_create_enum(
+				context,
+				enumName,
+				prefix,
+				tag,
+				typeDef,
+				srcLineNo);
 	    if (myEnum == NULL)
 		retVal = 0;
 	}
@@ -1629,7 +1677,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 					    radix,
 					    value,
 					    NULL,
-					    size);
+					    size,
+					    srcLineNo);
 		    if (myConst != NULL)
 			retVal = _sdl_queue_constant(context, myConst);
 		    else
@@ -1644,7 +1693,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 		{
 		    SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
 							EnumMemberBlock,
-							&myEnum->header);
+							&myEnum->header,
+							srcLineNo);
 
 		    if (myMem != NULL)
 		    {
@@ -1657,7 +1707,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
 	    }
 	    if ((retVal == 1) && (counter != NULL) && (prevValue != value))
 	    {
-		retVal = sdl_set_local(context, counter, value);
+		retVal = sdl_set_local(context, counter, value, srcLineNo);
 		prevValue = value;
 	    }
 	    if (incrementPresent == true)
@@ -1672,7 +1722,7 @@ int sdl_constant_compl(SDL_CONTEXT *context)
      * to the language output files).
      */
     if ((retVal == 1) && (myEnum != NULL))
-	retVal = _sdl_enum_compl(context,myEnum);
+	retVal = _sdl_enum_compl(context, myEnum);
 
     /*
      * Deallocate all the memory.
@@ -1715,6 +1765,8 @@ int sdl_constant_compl(SDL_CONTEXT *context)
  *  aggType:
  *	A value indicating if this AGGREGATE is for a UNION or STRUCTURE
  *	definition.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -1727,9 +1779,13 @@ int sdl_aggregate(
 	SDL_CONTEXT *context,
 	char *name,
 	int64_t datatype,
-	int aggType)
+	int aggType,
+	int srcLineNo)
 {
-    SDL_AGGREGATE	*myAggr = sdl_allocate_block(AggregateBlock, NULL);
+    SDL_AGGREGATE	*myAggr = sdl_allocate_block(
+					AggregateBlock,
+					NULL,
+					srcLineNo);
     int			retVal = 1;
 
     /*
@@ -1784,6 +1840,8 @@ int sdl_aggregate(
  *  aggType:
  *	A value indicating the type of subaggregate that is being requested to
  *	be created.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -1796,7 +1854,8 @@ int sdl_aggregate_member(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t datatype,
-		int aggType)
+		int aggType,
+		int srcLineNo)
 {
     SDL_MEMBERS		*myMember = NULL;
     SDL_AGGREGATE	*myAggr = (context->aggregateDepth > 1 ?
@@ -1847,10 +1906,7 @@ int sdl_aggregate_member(
 	 * If the current member is not a STRUCTURE or [IMPLICIT] UNION, then
 	 * it is the current aggregate, of which we already have the address.
 	 */
-	if ((myMember != NULL) &&
-	    ((myMember->type == SDL_K_TYPE_STRUCT) ||
-	     (myMember->type == SDL_K_TYPE_UNION) ||
-	     (myMember->type == SDL_K_TYPE_IMPLICIT)))
+	if ((myMember != NULL) && (_sdl_isItem(myMember) == true))
 	    myMember = NULL;
 
 	/*
@@ -2045,9 +2101,12 @@ int sdl_aggregate_member(
 			AggrMemberBlock,
 			(myAggr != NULL ?
 				&myAggr->header :
-				&mySubAggr->parent->header));
+				&mySubAggr->parent->header),
+				srcLineNo);
     if (myMember != NULL)
     {
+	if (myAggr != NULL)
+	    myMember->header.top = true;
 
 	/*
 	 * Determine the type of member we are being asked to create.
@@ -2081,6 +2140,7 @@ int sdl_aggregate_member(
 		myMember->item.id = name;
 		myMember->item._unsigned = _sdl_isUnsigned(context, &datatype);
 		myMember->item.type = datatype;
+		myMember->item.srcLineNo = myMember->srcLineNo;
 		switch (datatype)
 		{
 		    case SDL_K_TYPE_DECIMAL:
@@ -2149,6 +2209,8 @@ int sdl_aggregate_member(
  *  name:
  *	A pointer to the string to be associated with this aggregate
  *	definition.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -2157,7 +2219,7 @@ int sdl_aggregate_member(
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
+int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 {
     SDL_AGGREGATE	*myAggr = (SDL_AGGREGATE *) context->currentAggr;
     SDL_SUBAGGR		*mySubAggr = (SDL_SUBAGGR *) context->currentAggr;
@@ -2195,9 +2257,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
 	    if (SDL_Q_EMPTY(&mySubAggr->members) == false)
 		myMember = mySubAggr->members.blink;
 	}
-	if ((myMember != NULL) &&
-	    ((myMember->type != SDL_K_TYPE_STRUCT) ||
-	     (myMember->type != SDL_K_TYPE_UNION)))
+	if ((myMember != NULL) && (_sdl_isItem(myMember) == true))
 	    myMember = NULL;
 	for (ii = 0; ii < context->optionsIdx; ii++)
 	    switch (context->options[ii].option)
@@ -2371,6 +2431,8 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
  *	the current parsing.
  *  name:
  *	A pointer to the string to be associated with this entry definition.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -2379,9 +2441,9 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_entry(SDL_CONTEXT *context, char *name)
+int sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
 {
-    SDL_ENTRY	*myEntry = sdl_allocate_block(EntryBlock, NULL);
+    SDL_ENTRY	*myEntry = sdl_allocate_block(EntryBlock, NULL, srcLineNo);
     int		retVal = 1;
     int		ii;
 
@@ -2485,6 +2547,8 @@ int sdl_entry(SDL_CONTEXT *context, char *name)
  *	get what we came to get.
  *  passing:
  *	A value indicating how a parameter is passed (by reference or value).
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -2492,7 +2556,11 @@ int sdl_entry(SDL_CONTEXT *context, char *name)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_add_parameter(SDL_CONTEXT *context, int64_t datatype, int passing)
+int sdl_add_parameter(
+		SDL_CONTEXT *context,
+		int64_t datatype,
+		int passing,
+		int srcLineNo)
 {
     int		retVal = 1;
     int		ii;
@@ -2517,7 +2585,10 @@ int sdl_add_parameter(SDL_CONTEXT *context, int64_t datatype, int passing)
 
     if (context->parameters != NULL)
     {
-	SDL_PARAMETER	*param = sdl_allocate_block(ParameterBlock, NULL);
+	SDL_PARAMETER	*param = sdl_allocate_block(
+					ParameterBlock,
+					NULL,
+					srcLineNo);
 
 	param->_unsigned = _sdl_isUnsigned(context, &datatype);
 	param->type = datatype;
@@ -2630,8 +2701,7 @@ static int _sdl_aggregate_callback(
     if (trace == true)
 	printf("%s:%d:_sdl_aggregate_callback\n", __FILE__, __LINE__);
 
-    if ((member->type == SDL_K_TYPE_STRUCT) ||
-	(member->type == SDL_K_TYPE_UNION))
+    if (_sdl_isItem(member) == false)
     {
 	param = (void *) &member->subaggr;
 	type = LangSubaggregate;
@@ -2938,6 +3008,8 @@ static char *_sdl_get_tag(
  *  size:
  *	The number of bytes that this constant represents (used for outputting
  *	MASK constants).
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -2955,9 +3027,10 @@ static SDL_CONSTANT *_sdl_create_constant(
         int radix,
         int64_t value,
         char *string,
-        int size)
+        int size,
+        int srcLineNo)
 {
-    SDL_CONSTANT *retVal = sdl_allocate_block(ConstantBlock, NULL);
+    SDL_CONSTANT *retVal = sdl_allocate_block(ConstantBlock, NULL, srcLineNo);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -3080,6 +3153,8 @@ static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst)
  *  typeDef:
  *	A boolean value indicating that this enumeration will be declared as a
  *	typedef.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -3093,9 +3168,13 @@ static SDL_ENUMERATE *_sdl_create_enum(
 				char *id,
 				char *prefix,
 				char *tag,
-				bool typeDef)
+				bool typeDef,
+				int srcLineNo)
 {
-    SDL_ENUMERATE	*retVal = sdl_allocate_block(EnumerateBlock, NULL);
+    SDL_ENUMERATE	*retVal = sdl_allocate_block(
+					EnumerateBlock,
+					NULL,
+					srcLineNo);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -3323,8 +3402,7 @@ static int _sdl_iterate_members(
     if (trace == true)
 	printf("%s:%d:_sdl_iterate_members\n", __FILE__, __LINE__);
 
-    if ((member->type == SDL_K_TYPE_STRUCT) ||
-	(member->type == SDL_K_TYPE_UNION))
+    if (_sdl_isItem(member) == false)
     {
 	SDL_SUBAGGR *subaggr = &member->subaggr;
 
@@ -3465,6 +3543,37 @@ static bool _sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype)
 	*datatype = -myDatatype;
     else if ((myDatatype >= SDL_K_TYPE_BYTE) &&
 	     (myDatatype <= SDL_K_TYPE_OCTA))
+	retVal = true;
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * _sdl_isItem
+ *  This function is called to determine if an AGGREGATE or subaggregate member
+ *  is an ITEM or a subaggregate.
+ *
+ * Input Parameters:
+ *  member:
+ *	A pointer to the member to check out.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  true:	The member is an ITEM.
+ *  false:	The member is a subaggregate.
+ */
+bool _sdl_isItem(SDL_MEMBERS *member)
+{
+    bool	retVal = false;
+
+    if ((member->type != SDL_K_TYPE_STRUCT) &&
+	(member->type != SDL_K_TYPE_UNION) &&
+	(member->type != SDL_K_TYPE_IMPLICIT))
 	retVal = true;
 
     /*

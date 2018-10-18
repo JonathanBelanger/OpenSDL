@@ -274,9 +274,9 @@ file_layout
 
 comments
 	: t_line_comment
-	    { sdl_comment_line(&context, $1); }
+	    { sdl_comment_line(&context, $1, yylineno); }
 	| t_block_comment
-	    { sdl_comment_block(&context, $1); }
+	    { sdl_comment_block(&context, $1, yylineno); }
 	;
 
 module_format
@@ -294,13 +294,13 @@ _t_id
 module
 	: SDL_K_MODULE t_name
 	    { 
-		sdl_state_transition(&context, Module);
-		sdl_module(&context, $2, NULL);
+		sdl_state_transition(&context, Module, yylineno);
+		sdl_module(&context, $2, NULL, yylineno);
 	    }
 	| SDL_K_MODULE t_name SDL_K_IDENT t_string
 	    {
-		sdl_state_transition(&context, Module);
-		sdl_module(&context, $2, $4);
+		sdl_state_transition(&context, Module, yylineno);
+		sdl_module(&context, $2, $4, yylineno);
 	    }
 	;
 
@@ -314,8 +314,8 @@ _t_module_name
 end_module
 	: SDL_K_END_MODULE _t_module_name
 	    {
-		sdl_state_transition(&context, DefinitionEnd);
-		sdl_module_end(&context, $2);
+		sdl_state_transition(&context, DefinitionEnd, yylineno);
+		sdl_module_end(&context, $2, yylineno);
 	    }
 	;
 
@@ -352,7 +352,7 @@ definition_end
 		    case Constant:
 		    case Item:
 		    case Entry:
-			sdl_state_transition(&context, DefinitionEnd);
+			sdl_state_transition(&context, DefinitionEnd, yylineno);
 			break;
 
 		    default:
@@ -428,24 +428,24 @@ _v_number
 varset
 	: t_variable SDL_K_EQ _v_expression
 	    {
-		sdl_state_transition(&context, Local);
-		sdl_set_local(&context, $1, $3);
+		sdl_state_transition(&context, Local, yylineno);
+		sdl_set_local(&context, $1, $3, yylineno);
 	    }
 	;
 
 literal
 	: SDL_K_LITERAL
 	| t_literal_string
-	    { sdl_literal(&literal, $1); }
+	    { sdl_literal(&literal, $1, yylineno); }
 	| SDL_K_END_LITERAL
-	    { sdl_literal_end(&context, &literal); }
+	    { sdl_literal_end(&context, &literal, yylineno); }
 	;
 
 declare
 	: SDL_K_DECLARE _t_id SDL_K_SIZEOF _v_sizeof
 	    { 
-		sdl_state_transition(&context, Declare);
-		sdl_declare(&context, $2, $4);
+		sdl_state_transition(&context, Declare, yylineno);
+		sdl_declare(&context, $2, $4, yylineno);
 	    }
 	;
 
@@ -458,51 +458,51 @@ _v_sizeof
 
 prefix
 	: SDL_K_PREFIX _t_id
-	    { sdl_add_option(&context, Prefix, 0, $2); }
+	    { sdl_add_option(&context, Prefix, 0, $2, yylineno); }
 	| SDL_K_PREFIX _t_aggr_id
-	    { sdl_add_option(&context, Prefix, 0, $2); }
+	    { sdl_add_option(&context, Prefix, 0, $2, yylineno); }
 	;
 
 marker
 	: SDL_K_MARKER _t_aggr_id
-	    { sdl_add_option(&context, Marker, 0, $2); }
+	    { sdl_add_option(&context, Marker, 0, $2, yylineno); }
 	;
 
 tag
 	: SDL_K_TAG _t_id
-	    { sdl_add_option(&context, Tag, 0, $2); }
+	    { sdl_add_option(&context, Tag, 0, $2, yylineno); }
 	| SDL_K_TAG _t_aggr_id
-	    { sdl_add_option(&context, Tag, 0, $2); }
+	    { sdl_add_option(&context, Tag, 0, $2, yylineno); }
 	;
 
 origin
 	: SDL_K_ORIGIN _t_aggr_id
-	    { sdl_add_option(&context, Origin, 0, $2); }
+	    { sdl_add_option(&context, Origin, 0, $2, yylineno); }
 	;
 
 counter
 	: SDL_K_COUNTER t_variable
-	    { sdl_add_option(&context, Counter, 0, $2); }
+	    { sdl_add_option(&context, Counter, 0, $2, yylineno); }
 	;
 
 _typename
 	: SDL_K_TYPENAME _t_id
-	    { sdl_add_option(&context, TypeName, 0, $2); }
+	    { sdl_add_option(&context, TypeName, 0, $2, yylineno); }
 	;
 
 radix
 	: SDL_K_RADIX v_int
-	    { sdl_add_option(&context, Radix, $2, NULL); }
+	    { sdl_add_option(&context, Radix, $2, NULL, yylineno); }
 	;
 
 increment
 	: SDL_K_INCR _v_expression
-	    { sdl_add_option(&context, Increment, $2, NULL); }
+	    { sdl_add_option(&context, Increment, $2, NULL, yylineno); }
 	;
 
 enumerate
 	: SDL_K_ENUM _t_id
-	    { sdl_add_option(&context, Enumerate, 0, $2); }
+	    { sdl_add_option(&context, Enumerate, 0, $2, yylineno); }
 	;
 
 constant
@@ -522,31 +522,31 @@ _clause_list
 _clause
 	: t_constant_name SDL_K_EQUALS _v_expression
 	    {
-		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, $3, NULL, 0);
+		sdl_state_transition(&context, Constant, yylineno);
+		sdl_constant(&context, $1, $3, NULL, 0, yylineno);
 	    }
 	| t_constant_names SDL_K_EQUALS _v_expression
 	    {
 		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, $3, NULL, 0);
+		sdl_constant(&context, $1, $3, NULL, 0, yylineno);
 	    }
 	;
 
 _complex_clause
 	: t_constant_name SDL_K_EQUALS SDL_K_STRING t_string
 	    {
-		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, 0, $4, 0);
+		sdl_state_transition(&context, Constant, yylineno);
+		sdl_constant(&context, $1, 0, $4, 0, yylineno);
 	    }
 	| t_constant_name SDL_K_EQUALS _v_expression
 	    {
-		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, $3, NULL, 0);
+		sdl_state_transition(&context, Constant, yylineno);
+		sdl_constant(&context, $1, $3, NULL, 0, yylineno);
 	    }
 	| t_constant_names SDL_K_EQUALS _v_expression
 	    {
-		sdl_state_transition(&context, Constant);
-		sdl_constant(&context, $1, $3, NULL, 0);
+		sdl_state_transition(&context, Constant, yylineno);
+		sdl_constant(&context, $1, $3, NULL, 0, yylineno);
 	    }
 	;
 
@@ -577,7 +577,7 @@ _v_basetypes
 	    { $$ = SDL_K_TYPE_CHAR; }
 	| SDL_K_CHAR SDL_K_LENGTH _v_expression SDL_K_VARY
 	    {
-		sdl_add_option(&context, Length, $3, NULL);
+		sdl_add_option(&context, Length, $3, NULL, yylineno);
 		$$ = SDL_K_TYPE_CHAR_VARY;
 	    }
 	| SDL_K_CHAR SDL_K_LENGTH SDL_K_MULT
@@ -666,47 +666,47 @@ _v_signed
 _v_address
 	: SDL_K_ADDR _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_ADDR;
 	    }
 	| SDL_K_ADDR_L _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_ADDR_L;
 	    }
 	| SDL_K_ADDR_Q _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_ADDR_Q;
 	    }
 	| SDL_K_ADDR_HW _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_ADDR_HW;
 	    }
 	| SDL_K_HW_ADDR _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_HW_ADDR;
 	    }
 	| SDL_K_PTR _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_PTR;
 	    }
 	| SDL_K_PTR_L _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_PTR_L;
 	    }
 	| SDL_K_PTR_Q _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_PTR_Q;
 	    }
 	| SDL_K_PTR_HW _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL);
+		sdl_add_option(&context, SubType, $2, NULL, yylineno);
 		$$ = -SDL_K_TYPE_PTR_HW;
 	    }
 	;
@@ -729,43 +729,51 @@ _basealign
 
 basealign
 	: SDL_K_BASEALIGN SDL_K_OPENP _v_expression SDL_K_CLOSEP
-	    { sdl_add_option(&context, BaseAlign, pow(2, $3), NULL); }
+	    {
+		sdl_add_option(
+			&context,
+			BaseAlign,
+			pow(2, $3),
+			NULL,
+			yylineno);
+	    }
 	| SDL_K_BASEALIGN _v_datatypes
 	    {
 		sdl_add_option(
 			&context,
 			BaseAlign,
 			sdl_sizeof(&context, $2),
-			NULL);
+			NULL,
+			yylineno);
 	    }
 	;
 
 item
 	: SDL_K_ITEM _t_id _v_datatypes
 	    {
-		sdl_state_transition(&context, Item);
-		sdl_item(&context, $2, $3);
+		sdl_state_transition(&context, Item, yylineno);
+		sdl_item(&context, $2, $3, yylineno);
 	    }
 	;
 
 _typedef
 	: SDL_K_TYPEDEF
-	    { sdl_add_option(&context, Typedef, 0, NULL); }
+	    { sdl_add_option(&context, Typedef, 0, NULL, yylineno); }
 	;
 
 storage
 	: SDL_K_COMMON
-	    { sdl_add_option(&context, Common, 0, NULL); }
+	    { sdl_add_option(&context, Common, 0, NULL, yylineno); }
 	| SDL_K_GLOBAL
-	    { sdl_add_option(&context, Global, 0, NULL); }
+	    { sdl_add_option(&context, Global, 0, NULL, yylineno); }
 	| SDL_K_BASED _t_aggr_id
-	    { sdl_add_option(&context, Based, 0, $2); }
+	    { sdl_add_option(&context, Based, 0, $2, yylineno); }
 	| SDL_K_FILL
-	    { sdl_add_option(&context, Fill, 0, NULL); }
+	    { sdl_add_option(&context, Fill, 0, NULL, yylineno); }
 	| SDL_KWD_ALIGN
-	    { sdl_add_option(&context, Align, 0, NULL); }
+	    { sdl_add_option(&context, Align, 0, NULL, yylineno); }
 	| SDL_KWD_NOALIGN
-	    { sdl_add_option(&context, NoAlign, 0, NULL); }
+	    { sdl_add_option(&context, NoAlign, 0, NULL, yylineno); }
 	| basealign
 	;
 
@@ -776,7 +784,8 @@ dimension
 			&context,
 			Dimension,
 			sdl_dimension(&context, 1, $2),
-			NULL);
+			NULL,
+			yylineno);
 	    }
 	| SDL_K_DIMENSION _v_expression SDL_K_FULL _v_expression
 	    { 
@@ -784,7 +793,8 @@ dimension
 			&context,
 			Dimension,
 			sdl_dimension(&context, $2, $4),
-			NULL);
+			NULL,
+			yylineno);
 	    }
 	;
 
@@ -798,29 +808,29 @@ _v_aggtypes
 aggregate
 	: SDL_K_AGGREGATE _t_id SDL_K_STRUCTURE _v_aggtypes
 	   {
-	    	sdl_state_transition(&context, Aggregate);
-	    	sdl_aggregate(&context, $2, $4, SDL_K_TYPE_STRUCT);
+	    	sdl_state_transition(&context, Aggregate, yylineno);
+	    	sdl_aggregate(&context, $2, $4, SDL_K_TYPE_STRUCT, yylineno);
 	   }
 	| SDL_K_AGGREGATE _t_id SDL_K_UNION _v_aggtypes
 	   {
-	    	sdl_state_transition(&context, Aggregate);
-	    	sdl_aggregate(&context, $2, $4, SDL_K_TYPE_UNION);
+	    	sdl_state_transition(&context, Aggregate, yylineno);
+	    	sdl_aggregate(&context, $2, $4, SDL_K_TYPE_UNION, yylineno);
 	   }
 	| aggregate_body
 	| SDL_K_END _t_aggr_id SDL_K_SEMI
 	   {
-	    	sdl_state_transition(&context, DefinitionEnd);
-		sdl_aggregate_compl(&context, $2);
+	    	sdl_state_transition(&context, DefinitionEnd, yylineno);
+		sdl_aggregate_compl(&context, $2, yylineno);
 	   }
 	| SDL_K_END SDL_K_SEMI
 	   {
-	    	sdl_state_transition(&context, DefinitionEnd);
-		sdl_aggregate_compl(&context, NULL);
+	    	sdl_state_transition(&context, DefinitionEnd, yylineno);
+		sdl_aggregate_compl(&context, NULL, yylineno);
 	   }
 	| SDL_K_END _t_id SDL_K_SEMI
 	   {
-	    	sdl_state_transition(&context, DefinitionEnd);
-		sdl_aggregate_compl(&context, $2);
+	    	sdl_state_transition(&context, DefinitionEnd, yylineno);
+		sdl_aggregate_compl(&context, $2, yylineno);
 	   }
 	;
 
@@ -833,24 +843,42 @@ _t_aggr_id
 
 aggregate_body
 	: _t_aggr_id _v_datatypes
-	    { sdl_aggregate_member(&context, $1, $2, SDL_K_TYPE_NONE); }
+	    {
+		sdl_aggregate_member(
+			&context,
+			$1,
+			$2,
+			SDL_K_TYPE_NONE,
+			yylineno);
+	    }
 	| _t_aggr_id _t_aggr_id
 	    {
 		sdl_aggregate_member(
-				&context,
-				$1,
-				sdl_aggrtype_idx(&context, $2),
-				SDL_K_TYPE_NONE);
+			&context,
+			$1,
+			sdl_aggrtype_idx(&context, $2),
+			SDL_K_TYPE_NONE,
+			yylineno);
 	    }
 	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
 	    {
-	    	sdl_state_transition(&context, Subaggregate);
-		sdl_aggregate_member(&context, $1, $3, SDL_K_TYPE_STRUCT);
+	    	sdl_state_transition(&context, Subaggregate, yylineno);
+		sdl_aggregate_member(
+			&context,
+			$1,
+			$3,
+			SDL_K_TYPE_STRUCT,
+			yylineno);
 	    }
 	| _t_aggr_id SDL_K_UNION _v_aggtypes
 	    {
-	    	sdl_state_transition(&context, Subaggregate);
-		sdl_aggregate_member(&context, $1, $3, SDL_K_TYPE_UNION);
+	    	sdl_state_transition(&context, Subaggregate, yylineno);
+		sdl_aggregate_member(
+			&context,
+			$1,
+			$3,
+			SDL_K_TYPE_UNION,
+			yylineno);
 	    }
 	| _t_aggr_id SDL_K_BITFIELD bitfield_options SDL_K_SEMI
 	    {
@@ -858,7 +886,8 @@ aggregate_body
 			&context,
 			$1,
 			SDL_K_TYPE_BITFLD,
-			SDL_K_TYPE_NONE);
+			SDL_K_TYPE_NONE,
+			yylineno);
 	    }
 	;
 
@@ -869,28 +898,63 @@ bitfield_options
 
 bitfield_choices
 	: SDL_K_BYTE
-	    { sdl_add_option(&context, SubType, SDL_K_TYPE_BYTE, NULL); }
+	    {
+		sdl_add_option(
+			&context,
+			SubType,
+			SDL_K_TYPE_BYTE,
+			NULL,
+			yylineno);
+	    }
 	| SDL_K_WORD
-	    { sdl_add_option(&context, SubType, SDL_K_TYPE_WORD, NULL); }
+	    {
+		sdl_add_option(
+			&context,
+			SubType,
+			SDL_K_TYPE_WORD,
+			NULL,
+			yylineno);
+	    }
 	| SDL_K_LONG
-	    { sdl_add_option(&context, SubType, SDL_K_TYPE_LONG, NULL); }
+	    {
+		sdl_add_option(
+			&context,
+			SubType,
+			SDL_K_TYPE_LONG,
+			NULL,
+			yylineno);
+	    }
 	| SDL_K_QUAD
-	    { sdl_add_option(&context, SubType, SDL_K_TYPE_QUAD, NULL); }
+	    {
+		sdl_add_option(
+			&context,
+			SubType,
+			SDL_K_TYPE_QUAD,
+			NULL,
+			yylineno);
+	    }
 	| SDL_K_OCTA
-	    { sdl_add_option(&context, SubType, SDL_K_TYPE_OCTA, NULL); }
+	    {
+		sdl_add_option(
+			&context,
+			SubType,
+			SDL_K_TYPE_OCTA,
+			NULL,
+			yylineno);
+	    }
 	| SDL_K_LENGTH _v_expression
-	    { sdl_add_option(&context, Length, $2, NULL); }
+	    { sdl_add_option(&context, Length, $2, NULL, yylineno); }
 	| SDL_K_MASK
-	    { sdl_add_option(&context, Mask, 0, NULL); }
+	    { sdl_add_option(&context, Mask, 0, NULL, yylineno); }
 	| SDL_K_SIGNED
-	    { sdl_add_option(&context, Signed, 0, NULL); }
+	    { sdl_add_option(&context, Signed, 0, NULL, yylineno); }
 	;
 
 entry
 	: SDL_K_ENTRY _t_id entry_options
 	    {
-	    	sdl_state_transition(&context, Entry);
-		sdl_entry(&context, $2);
+	    	sdl_state_transition(&context, Entry, yylineno);
+		sdl_entry(&context, $2, yylineno);
 	    }
 	;
 
@@ -901,15 +965,15 @@ entry_options
 
 entry_choices
 	: SDL_K_ALIAS _t_id
-	    { sdl_add_option(&context, Alias, 0, $2); }
+	    { sdl_add_option(&context, Alias, 0, $2, yylineno); }
 	| SDL_K_LINKAGE _t_id
-	    { sdl_add_option(&context, Linkage, 0, $2); }
+	    { sdl_add_option(&context, Linkage, 0, $2, yylineno); }
 	| SDL_K_VARIABLE
-	    { sdl_add_option(&context, Variable, 0, NULL); }
+	    { sdl_add_option(&context, Variable, 0, NULL, yylineno); }
 	| SDL_K_RETURNS _v_datatypes _a_returns_options
 	    {
-		sdl_add_option(&context, ReturnsType, $2, NULL);
-		sdl_add_option(&context, ReturnsNamed, 0, $3);
+		sdl_add_option(&context, ReturnsType, $2, NULL, yylineno);
+		sdl_add_option(&context, ReturnsNamed, 0, $3, yylineno);
 	    }
 	| SDL_K_PARAM SDL_K_OPENP parameter_desc SDL_K_CLOSEP
 	;
@@ -920,7 +984,7 @@ parameter_desc
 
 parameter_options
 	: _v_datatypes _v_passing_option parameter_choices
-	   { sdl_add_parameter(&context, $1, $2); }
+	   { sdl_add_parameter(&context, $1, $2, yylineno); }
 	;
 
 _v_passing_option
@@ -943,21 +1007,21 @@ parameter_choices
 
 parameter_loop
 	: SDL_K_IN
-	    { sdl_add_option(&context, In, 0, NULL); }
+	    { sdl_add_option(&context, In, 0, NULL, yylineno); }
 	| SDL_K_OUT
-	    { sdl_add_option(&context, Out, 0, NULL); }
+	    { sdl_add_option(&context, Out, 0, NULL, yylineno); }
 	| _a_named
-	    { sdl_add_option(&context, Named, 0, $1); }
+	    { sdl_add_option(&context, Named, 0, $1, yylineno); }
 	| SDL_K_DIMENSION _v_expression
-	    { sdl_add_option(&context, Dimension, $2, NULL); }
+	    { sdl_add_option(&context, Dimension, $2, NULL, yylineno); }
 	| SDL_K_DEFAULT _v_expression
-	    { sdl_add_option(&context, Default, $2, NULL); }
+	    { sdl_add_option(&context, Default, $2, NULL, yylineno); }
 	| SDL_K_TYPENAME _t_id
-	    { sdl_add_option(&context, TypeName, 0, $2); }
+	    { sdl_add_option(&context, TypeName, 0, $2, yylineno); }
 	| SDL_K_OPT
-	    { sdl_add_option(&context, Optional, 0, NULL); }
+	    { sdl_add_option(&context, Optional, 0, NULL, yylineno); }
 	| SDL_K_LIST
-	    { sdl_add_option(&context, List, 0, NULL); }
+	    { sdl_add_option(&context, List, 0, NULL, yylineno); }
 	;
 
 _a_returns_options

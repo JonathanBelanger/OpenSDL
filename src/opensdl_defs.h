@@ -192,8 +192,8 @@
  * NOTE: A value greater than zero is used to calculate the alignment as
  * 2^value.
  */
-#define	SDL_K_ALIGN		-1
-#define	SDL_K_NOALIGN		0
+#define	SDL_K_NOALIGN		-1
+#define	SDL_K_ALIGN		0
 
 /*
  * Operations that can be performed on local variables
@@ -237,8 +237,9 @@ typedef enum
 typedef struct _sdl_header
 {
     SDL_QUEUE		queue;
-    struct _sdl_header	*parent;
+    void 		*parent;
     SDL_BLOCK_ID	blockID;
+    bool		top;
 } SDL_HEADER;
 
 /*
@@ -250,6 +251,7 @@ typedef struct
     SDL_HEADER		header;
     char		*id; /* Variable name	*/
     int64_t		value; /* Variable value	*/
+    int			srcLineNo;
 } SDL_LOCAL_VARIABLE;
 
 /*
@@ -261,6 +263,7 @@ typedef struct
 {
     SDL_HEADER		header;
     char		*line;
+    int			srcLineNo;
 } SDL_LITERAL;
 
 /*
@@ -282,6 +285,7 @@ typedef struct
     int			radix;
     int			type;	/* Numeric or String */
     int			size;	/* Number of bytes to be output (for masks) */
+    int			srcLineNo;
 } SDL_CONSTANT;
 
 /*
@@ -294,6 +298,7 @@ typedef struct
     char		*comment;
     char		*id;
     int64_t		value;
+    int			srcLineNo;
     bool		valueSet;
 } SDL_ENUM_MEMBER;
 
@@ -308,6 +313,7 @@ typedef struct
     int64_t		memSize;	/* Actual space used in memory	*/
     int			typeID;
     int			alignment;
+    int			srcLineNo;
     bool		typeDef;
 } SDL_ENUMERATE;
 
@@ -327,6 +333,7 @@ typedef struct
     char		*prefix;
     char		*tag;
     int64_t		size;
+    int			srcLineNo;
     int			type;
     int			typeID;
     bool		_unsigned;
@@ -357,6 +364,7 @@ typedef struct
     int64_t		scale;
     int64_t		size;
     int			alignment;
+    int			srcLineNo;
     int			type;		/* data or user type	*/
     int			typeID;
     bool		commonDef;
@@ -388,8 +396,9 @@ typedef struct
     int			data;
     int64_t		bound;
     int64_t		defaultValue;
-    int			type;
     int			passingMech;
+    int			srcLineNo;
+    int			type;
     bool		defaultPresent;
     bool		dimension;
     bool		in;
@@ -403,6 +412,7 @@ typedef struct
 {
     char		*name;
     int64_t		type;
+    int			srcLineNo;
     bool		_unsigned;
 } SDL_RETURNS;
 
@@ -416,6 +426,7 @@ typedef struct
     char		*typeName;
     SDL_QUEUE		parameters;
     SDL_RETURNS		returns;
+    int			srcLineNo;
     bool		variable;
 } SDL_ENTRY;
 
@@ -456,6 +467,8 @@ typedef struct _sdl_member
 	SDL_ITEM    	item;
 	SDL_SUBAGGR	subaggr;
     };
+    int64_t		offset;
+    int			srcLineNo;
     int			type;
 } SDL_MEMBERS;
 
@@ -463,6 +476,7 @@ typedef struct
 {
     char 		*id;
     SDL_MEMBERS		*origin;
+    int			srcLineNo;
 } SDL_ORIGIN;
 
 typedef struct
@@ -484,6 +498,7 @@ typedef struct
     int			aggType;
     int			alignment;
     int			currentBitOffset;
+    int			srcLineNo;
     int			type;
     int			typeID;
     bool		commonDef;
@@ -619,6 +634,7 @@ typedef struct
     };
     int			size;
     bool		string;
+    int			srcLineNo;
 } SDL_CONSTANT_DEF;
 
 /*
@@ -663,36 +679,72 @@ typedef struct
 /*
  *
  */
-struct nod$_node
+#define sdl_m_value		0x00000001
+#define sdl_m_mask		0x00000002
+#define sdl_m_unsigned		0x00000004
+#define sdl_m_common		0x00000008
+#define sdl_m_global		0x00000010
+#define sdl_m_varying		0x00000020
+#define sdl_m_variable		0x00000040
+#define sdl_m_based		0x00000080
+#define sdl_m_desc 		0x00000100
+#define sdl_m_dimen 		0x00000200
+#define sdl_m_in		0x00000400
+#define sdl_m_out		0x00000800
+#define sdl_m_bottom 		0x00001000
+#define sdl_m_bound 		0x00002000
+#define sdl_m_ref		0x00004000
+#define sdl_m_userfill 		0x00008000
+#define sdl_m_alias		0x00010000
+#define sdl_m_default		0x00020000
+#define sdl_m_vardim		0x00040000
+#define sdl_m_link		0x00080000
+#define sdl_m_optional		0x00100000
+#define sdl_m_signed		0x00200000
+#define sdl_m_fixed_fldsiz	0x00400000
+#define sdl_m_generated		0x00800000
+#define sdl_m_module		0x01000000
+#define sdl_m_list		0x02000000
+#define sdl_m_rtl_str_desc	0x04000000
+#define sdl_m_complex		0x08000000
+#define sdl_m_typedef		0x10000000
+#define sdl_m_declared		0x20000000
+#define sdl_m_forward		0x40000000
+#define sdl_m_align		0x80000000
+
+/*
+ *
+ */
+typedef struct sdl_r_node
 {
-    void *nod$a_flink;
-    void *nod$a_blink;
-    void *nod$a_paren;
-    void *nod$a_child;
-    void *nod$a_comment;
+    struct sdl_r_node *sdl_a_flink;
+    struct sdl_r_node *sdl_a_blink;
+    struct sdl_r_node *sdl_a_parent;
+    struct sdl_r_node *sdl_a_child;
+    struct sdl_r_node *sdl_a_comment;
     union
     {
-	int nod$l_typeinfo;
-	void *nod$a_typeinfo;
-    } nod$r_info;
+	int sdl_l_typeinfo;
+	void *sdl_a_typeinfo;
+    } sdl_r_info;
     union
     {
-	int nod$l_typeinfo2;
-	void *nod$a_typeinfo2;
-	void *nod$a_symtab;
-    } nod$r_info2;
-    char nod$b_type;
-    char nod$b_boundary;
-    short nod$w_datatype;
-    int nod$l_offset;
+	int sdl_l_typeinfo2;
+	void *sdl_a_typeinfo2;
+	void *sdl_a_symtab;
+    } sdl_r_info2;
+    char sdl_b_type;
+    char sdl_b_boundary;
+    short sdl_w_datatype;
+    int sdl_l_offset;
     union
     {
-	int nod$l_fldsiz;
-	void *nod$a_fldsiz;
-    } nod$r_fldsiz;
+	int sdl_l_fldsiz;
+	void *sdl_a_fldsiz;
+    } sdl_r_fldsiz;
 
     /*
-     * Flags nod$v_%%dim indicate module SDLACTION.PLI
+     * Flags sdl_v_%%dim indicate module SDLACTION.PLI
      * has cached a pointer to an expression that cannot
      * be evaluated yet.  Those flags will be cleared as
      * SDLACTION.PLI finishes parsing the aggregate that
@@ -700,17 +752,17 @@ struct nod$_node
      */
     union	/* A single longword used for two purposes */
     {
-	int nod$l_hidim;	/* generally used as integer, but */
+	int sdl_l_hidim;	/* generally used as integer, but */
 	void *hidim;		/* SDLACTION.PLI caches a pointer. */
     } mod$r_hidim;
     union	/* A single longword used for two purposes */
     {
-	int nod$l_lodim;	/* generally used as integer, but */
-	void *nod$a_lodim;	/* SDLACTION.PLI caches a pointer. */
+	int sdl_l_lodim;	/* generally used as integer, but */
+	void *sdl_a_lodim;	/* SDLACTION.PLI caches a pointer. */
     } nof$r_lodim;
 
     /*
-     * Flag nod$v_initial indicate module SDLACTION.PLI
+     * Flag sdl_v_initial indicate module SDLACTION.PLI
      * has cached a pointer to an expression that cannot
      * be evaluated yet.  That flag will be cleared as
      * SDLACTION.PLI finishes parsing the aggregate that
@@ -718,140 +770,108 @@ struct nod$_node
      */
     union	/* A single longword used for two purposes */
     {
-	int nod$l_initial; 	/* generally used as integer, but */
-	void *nod$a_initial;  	/* SDLACTION.PLI caches a pointer. */
-    } nod$r_initial;
-    int nod$l_srcline;
-    int nod$l_nodeid;
+	int sdl_l_initial; 	/* generally used as integer, but */
+	void *sdl_a_initial;  	/* SDLACTION.PLI caches a pointer. */
+    } sdl_r_initial;
+    int sdl_l_srcline;
+    int sdl_l_nodeid;
     union
     {
-	unsigned int nod$l_flags;
-	int nod$l_fixflags;
+	unsigned int sdl_l_flags;
+	int sdl_l_fixflags;
 	struct
 	{
-	    unsigned int nod$v_value : 1;
-#define nod$m_value	0x00000001
-	    unsigned int nod$v_mask : 1;
-#define nod$m_mask	0x00000002
-	    unsigned int nod$v_unsigned : 1;
-#define nod$m_unsigned	0x00000004
-	    unsigned int nod$v_common : 1;
-#define nod$m_common	0x00000008
-	    unsigned int nod$v_global : 1;
-#define nod$m_global	0x00000010
-	    unsigned int nod$v_varying : 1;
-#define nod$m_varying	0x00000020
-	    unsigned int nod$v_variable : 1;
-#define nod$m_variable	0x00000040
-	    unsigned int nod$v_based : 1;
-#define nod$m_based	0x00000080
-	    unsigned int nod$v_desc : 1;
-#define nod$m_desc 	0x00000100
-	    unsigned int nod$v_dimen : 1;	/* is dimensioned */
-#define nod$m_dimen 	0x00000200
-	    unsigned int nod$v_in : 1;
-#define nod$m_in	0x00000400
-	    unsigned int nod$v_out : 1;
-#define nod$m_out	0x00000800
-	    unsigned int nod$v_bottom : 1;
-#define nod$m_bottom 	0x00001000
-	    unsigned int nod$v_bound : 1;
-#define nod$m_bound 	0x00002000
-	    unsigned int nod$v_ref : 1;
-#define nod$m_ref	0x00004000
-	    unsigned int nod$v_userfill : 1;
-#define nod$m_userfill 	0x00008000
-	    unsigned int nod$v_alias : 1;
-#define nod$m_alias	0x00010000
-	    unsigned int nod$v_default : 1;	/* DEFAULT */
-#define nod$m_default	0x00020000
-	    unsigned int nod$v_vardim : 1;	/* "DIMENSION *" */
-#define nod$m_vardim	0x00040000
-	    unsigned int nod$v_link : 1;
-#define nod$m_link	0x00080000
-	    unsigned int nod$v_optional : 1;
-#define nod$m_optional	0x00100000
-	    unsigned int nod$v_signed : 1;
-#define nod$m_signed	0x00200000
-	    unsigned int nod$v_fixed_fldsiz : 1;
-#define nod$m_fixed_fldsiz	0x00400000
-	    unsigned int nod$v_generated : 1;
-#define nod$m_generated	0x00800000
-	    unsigned int nod$v_module : 1;
-#define nod$m_module	0x01000000
-	    unsigned int nod$v_list : 1;
-#define nod$m_list	0x02000000
-	    unsigned int nod$v_rtl_str_desc : 1;
-#define nod$m_rtl_str_desc	0x04000000
-	    unsigned int nod$v_complex : 1;
-#define nod$m_complex	0x08000000
-	    unsigned int nod$v_typedef : 1;
-#define nod$m_typedef	0x10000000
-	    unsigned int nod$v_declared : 1;
-#define nod$m_declared	0x20000000
-	    unsigned int nod$v_forward : 1;
-#define nod$m_forward	0x40000000
-	    unsigned int nod$v_align : 1;
-#define nod$m_align	0x80000000
-	} nod$r_flagstruc;
-    } nod$r_flagunion;
+	    unsigned int sdl_v_value : 1;
+	    unsigned int sdl_v_mask : 1;
+	    unsigned int sdl_v_unsigned : 1;
+	    unsigned int sdl_v_common : 1;
+	    unsigned int sdl_v_global : 1;
+	    unsigned int sdl_v_varying : 1;
+	    unsigned int sdl_v_variable : 1;
+	    unsigned int sdl_v_based : 1;
+	    unsigned int sdl_v_desc : 1;
+	    unsigned int sdl_v_dimen : 1;	/* is dimensioned */
+	    unsigned int sdl_v_in : 1;
+	    unsigned int sdl_v_out : 1;
+	    unsigned int sdl_v_bottom : 1;
+	    unsigned int sdl_v_bound : 1;
+	    unsigned int sdl_v_ref : 1;
+	    unsigned int sdl_v_userfill : 1;
+	    unsigned int sdl_v_alias : 1;
+	    unsigned int sdl_v_default : 1;	/* DEFAULT */
+	    unsigned int sdl_v_vardim : 1;	/* "DIMENSION *" */
+	    unsigned int sdl_v_link : 1;
+	    unsigned int sdl_v_optional : 1;
+	    unsigned int sdl_v_signed : 1;
+	    unsigned int sdl_v_fixed_fldsiz : 1;
+	    unsigned int sdl_v_generated : 1;
+	    unsigned int sdl_v_module : 1;
+	    unsigned int sdl_v_list : 1;
+	    unsigned int sdl_v_rtl_str_desc : 1;
+	    unsigned int sdl_v_complex : 1;
+	    unsigned int sdl_v_typedef : 1;
+	    unsigned int sdl_v_declared : 1;
+	    unsigned int sdl_v_forward : 1;
+	    unsigned int sdl_v_align : 1;
+	} sdl_r_flagstruc;
+    } sdl_r_flagunion;
     union
     {
-	unsigned int nod$l_flags2;
-	int nod$l_fixflags2;
+	unsigned int sdl_l_flags2;
+	int sdl_l_fixflags2;
 	struct
 	{
-	    unsigned int nod$v_has_object : 1;
-	    unsigned int nod$v_offset_fixed : 1;
-	    unsigned int nod$v_length : 1;
-	    unsigned int nod$v_hidim : 1;
-	    unsigned int nod$v_lodim : 1;
-	    unsigned int nod$v_initial : 1;
-	    unsigned int nod$v_base_align : 1;
-	    unsigned int nod$v_offset_ref : 1;
-	} nod$r_flags2struc;
-    } nod$r_flags2union;
+	    unsigned int sdl_v_has_object : 1;
+	    unsigned int sdl_v_offset_fixed : 1;
+	    unsigned int sdl_v_length : 1;
+	    unsigned int sdl_v_hidim : 1;
+	    unsigned int sdl_v_lodim : 1;
+	    unsigned int sdl_v_initial : 1;
+	    unsigned int sdl_v_base_align : 1;
+	    unsigned int sdl_v_offset_ref : 1;
+	} sdl_r_flags2struc;
+    } sdl_r_flags2union;
     struct
     {
 	short string_length;
 	char string_text[34];
-    } nod$t_naked;
+    } sdl_t_naked;
     struct
     {
 	short string_length;
 	char string_text[34];
-    } nod$t_name;
+    } sdl_t_name;
     struct
     {
 	short string_length;
 	char string_text[34];
-    } nod$t_return_name;
+    } sdl_t_return_name;
     struct
     {
 	short string_length;
 	char string_text[32];
-    } nod$t_prefix;
+    } sdl_t_prefix;
     struct
     {
 	short string_length;
 	char string_text[32];
-    } nod$t_marker;
+    } sdl_t_marker;
     struct
     {
 	short string_length;
 	char string_text[32];
-    } nod$t_tag;
+    } sdl_t_tag;
     struct
     {
 	short string_length;
 	char string_text[32];
-    } nod$t_typename;
+    } sdl_t_typename;
     struct
     {
 	short string_length;
 	char string_text[32];
-    } nod$t_maskstr;
-#define nod$k_nodesize 346
-};
+    } sdl_t_maskstr;
+} SDL_R_NODE;
+#define sdl_k_nodesize sizeof(SDL_R_NODE)
 
 #endif /* _OPENSDL_DEFS_H_ */

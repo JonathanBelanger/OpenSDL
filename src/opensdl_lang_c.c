@@ -889,13 +889,15 @@ int sdl_c_aggregate(
 		    char *which = _types[my.aggr->aggType][bits];
 		    char *td = (my.aggr->typeDef == true ? "_" : "");
 
-		    if (fprintf(
-			    fp,
-			    "%s %s%s\n%s{\n",
-			    which,
-			    td,
-			    name,
-			    spaces) < 0)
+		    if (fprintf(fp, "%s", which) < 0)
+			retVal = 0;
+			if (retVal == 1)
+			    retVal = _sdl_c_output_alignment(
+							fp,
+							my.aggr->alignment,
+							context);
+		    if ((retVal == 1) &&
+			(fprintf(fp, " %s%s\n%s{\n", td, name, spaces) < 0))
 			retVal = 0;
 		}
 	    }
@@ -911,16 +913,6 @@ int sdl_c_aggregate(
 		    if (fprintf(fp, "}") < 0)
 			retVal = 0;
 		}
-
-		/*
-		 * Next, if there is an alignment need, then we add an attribute
-		 * statement.
-		 */
-		if (retVal == 1)
-		    retVal = _sdl_c_output_alignment(
-						fp,
-						my.aggr->alignment,
-						context);
 		if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
 		    retVal = 0;
 	    }
@@ -941,24 +933,19 @@ int sdl_c_aggregate(
 	    {
 		char *which = _types[my.subaggr->aggType][bits];
 
-		if (fprintf(fp, "%s %s\n%s{\n", which, name, spaces) < 0)
+		if (fprintf(fp, "%s ", which) < 0)
+		    retVal = 0;
+		if (retVal == 1)
+		    retVal = _sdl_c_output_alignment(
+						fp,
+						my.subaggr->alignment,
+						context);
+		if ((retVal == 1) && (fprintf(fp, "\n%s{\n", spaces) < 0))
 		    retVal = 0;
 	    }
 	    else if ((retVal == 1) && (name != NULL))
 	    {
-		if (fprintf(fp, "}") < 0)
-		    retVal = 0;
-
-		/*
-		 * Next, if there is an alignment need, then we add an attribute
-		 * statement.
-		 */
-		if (retVal == 1)
-		    retVal = _sdl_c_output_alignment(
-						fp,
-						my.aggr->alignment,
-						context);
-		if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
+		if (fprintf(fp, "} %s;\n", name) < 0)
 		    retVal = 0;
 	    }
 	    else if (name == NULL)
@@ -1244,6 +1231,8 @@ static int _sdl_c_output_alignment(
 	switch(alignment)
 	{
 	    case SDL_K_NOALIGN:
+		if (fprintf(fp, " __attribute__ ((__packed__))") < 0)
+		    retVal = 0;
 		break;
 
 	    case SDL_K_ALIGN:

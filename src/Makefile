@@ -53,7 +53,7 @@ debug: LFLAGS += -d
 debug: YFLAGS += --debug
 debug: all
 
-all: $(EXE)/opensdl.exe
+all: $(EXE)/opensdl.exe $(EXE)/struct_test.exe
 
 $(BIN)/opensdl_parser.c $(BIN)/opensdl_parser.h : $(SRC)/opensdl_parser.y
 	bison $(YFLAGS) -v --report=lookahead -d -Lc -o $@ $<
@@ -79,6 +79,9 @@ $(BIN)/opensdl_lang_c.o : $(SRC)/opensdl_lang_c.c $(SDLDEFS)
 
 $(EXE)/opensdl.exe : $(SRC)/opensdl_main.c $(OBJS) $(BIN)/opensdl_parser.h $(BIN)/opensdl_lexical.h $(SDLDEFS)
 	$(CC) $(CFLAGS) -o $@ $< $(OBJS) $(LDFLAGS)
+
+$(EXE)/struct_test.exe : $(TST)/struct_test.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
 .PHONY: clean
 clean:

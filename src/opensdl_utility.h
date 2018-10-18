@@ -28,7 +28,7 @@
 #ifndef _OPENSDL_UTILITY_H_
 #define _OPENSDL_UTILITY_H_
 
-int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action);
+int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int ssrcLineNo);
 char *sdl_unquote_str(char *str);
 SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name);
 SDL_DECLARE *sdl_get_declare(SDL_DECLARE_LIST *declare, int typeID);
@@ -59,7 +59,10 @@ int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale);
 void sdl_trim_str(char *str, int type);
 __int64_t *sdl_increment(__int64_t value);
 
-void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent);
+void *sdl_allocate_block(
+		SDL_BLOCK_ID blockID,
+		SDL_HEADER *parent,
+		int srcLineNo);
 void sdl_deallocate_block(SDL_HEADER *block);
 int64_t sdl_sizeof(SDL_CONTEXT *context, int item);
 

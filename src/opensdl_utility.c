@@ -165,6 +165,8 @@ SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name)
  *  action:
  *	A value representing what is being parsed.  This may or may not cause a
  *	state transition.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -173,7 +175,7 @@ SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name)
  *  1:	Normal Successful Completion.
  *  0:	Action invalid in current state.
  */
-int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
+int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLineNo)
 {
     int		retVal = 1;
 
@@ -272,7 +274,7 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    if (action == DefinitionEnd)
 	    {
 		context->state = Module;
-		sdl_declare_compl(context);
+		sdl_declare_compl(context, srcLineNo);
 	    }
 	    else
 		retVal = 0;
@@ -283,7 +285,7 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    {
 		case DefinitionEnd:
 		    context->state = context->constantPrevState;
-		    sdl_constant_compl(context);
+		    sdl_constant_compl(context, srcLineNo);
 		    break;
 
 		default:
@@ -296,7 +298,7 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action)
 	    if (action == DefinitionEnd)
 	    {
 		context->state = Module;
-		sdl_item_compl(context);
+		sdl_item_compl(context, srcLineNo);
 	    }
 	    else
 		retVal = 0;
@@ -1268,7 +1270,10 @@ void sdl_trim_str(char *str, int type)
  *	A value indicating the type of block to be allocated.
  *  parent:
  *	A pointer to the parent block for this block.  If this is NULL, then
- *	there is no particular parent we need to concern ourselves.
+ *	there is no particular parent with which we need to concern ourselves.
+ *  srcLineNo:
+ *	A value representing the source file line number that parsing caused
+ *	this block to be allocated.
  *
  * Output Parameters:
  *  None.
@@ -1278,7 +1283,10 @@ void sdl_trim_str(char *str, int type)
  *		failed.
  *  !NULL:	Normal successful completion.
  */
-void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
+void *sdl_allocate_block(
+		SDL_BLOCK_ID blockID,
+		SDL_HEADER *parent,
+		int srcLineNo)
 {
     void	*retVal = NULL;
 
@@ -1295,6 +1303,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		local->header.parent = parent;
 		local->header.blockID = blockID;
+		local->header.top = false;
+		local->srcLineNo = srcLineNo;
 	    }
 	    break;
 
@@ -1306,6 +1316,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		literal->header.parent = parent;
 		literal->header.blockID = blockID;
+		literal->header.top = false;
+		literal->srcLineNo = srcLineNo;
 	    }
 	    break;
 
@@ -1317,6 +1329,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		constBlk->header.parent = parent;
 		constBlk->header.blockID = blockID;
+		constBlk->header.top = false;
+		constBlk->srcLineNo = srcLineNo;
 	    }
 	    break;
 
@@ -1328,6 +1342,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		member->header.parent = parent;
 		member->header.blockID = blockID;
+		member->header.top = false;
+		member->srcLineNo = srcLineNo;
 	    }
 	    break;
 
@@ -1339,6 +1355,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		myEnum->header.parent = parent;
 		myEnum->header.blockID = blockID;
+		myEnum->header.top = false;
+		myEnum->srcLineNo = srcLineNo;
 		SDL_Q_INIT(&myEnum->members);
 	    }
 	    break;
@@ -1351,6 +1369,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		decl->header.parent = parent;
 		decl->header.blockID = blockID;
+		decl->header.top = false;
+		decl->srcLineNo = srcLineNo;
 	    }
 	    break;
 
@@ -1362,6 +1382,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		item->header.parent = parent;
 		item->header.blockID = blockID;
+		item->header.top = false;
+		item->srcLineNo = srcLineNo;
 	    }
 	    break;
 
@@ -1373,6 +1395,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		member->header.parent = parent;
 		member->header.blockID = blockID;
+		member->header.top = false;
+		member->srcLineNo = srcLineNo;
 	    }
 	    break;
 
@@ -1384,6 +1408,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		aggr->header.parent = parent;
 		aggr->header.blockID = blockID;
+		aggr->header.top = false;
+		aggr->srcLineNo = srcLineNo;
 		SDL_Q_INIT(&aggr->members);
 	    }
 	    break;
@@ -1396,6 +1422,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		param->header.parent = parent;
 		param->header.blockID = blockID;
+		param->header.top = false;
+		param->srcLineNo = srcLineNo;
 	    }
 	    break;
 
@@ -1407,6 +1435,8 @@ void *sdl_allocate_block(SDL_BLOCK_ID blockID, SDL_HEADER *parent)
 
 		entry->header.parent = parent;
 		entry->header.blockID = blockID;
+		entry->header.top = false;
+		entry->srcLineNo = srcLineNo;
 		SDL_Q_INIT(&entry->parameters);
 	    }
 	    break;

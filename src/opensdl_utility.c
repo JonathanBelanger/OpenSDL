@@ -824,6 +824,7 @@ int sdl_str2int(char *strVal, __int64_t *val)
  */
 int sdl_offset(SDL_CONTEXT *context, int offsetType)
 {
+    SDL_AGGREGATE	*myAgg = NULL;
     int			retVal = 0;
 
     /*
@@ -831,6 +832,91 @@ int sdl_offset(SDL_CONTEXT *context, int offsetType)
      */
     if (trace == true)
 	printf("%s:%d:sdl_offset\n", __FILE__, __LINE__);
+
+    if (context->aggregates.nextID > SDL_K_AGGREGATE_MIN)
+	myAgg = sdl_get_aggregate(
+			&context->aggregates,
+			context->aggregates.nextID - 1);
+
+    /*
+     * Get the current offset, based on the type of offset we are looking to
+     * get.
+     */
+    switch(offsetType)
+    {
+	case SDL_K_OFF_BYTE_REL:
+	case SDL_K_OFF_BYTE_BEG:
+
+	    /*
+	     * The last member, in the current aggregate is contains the byte
+	     * offset from the beginning of the AGGREGATE.
+	     */
+	    if (myAgg != NULL)
+	    {
+		SDL_MEMBERS	*member = NULL;
+		bool		done = false;
+
+		if (SDL_Q_EMPTY(&myAgg->members) == false)
+		    member = (SDL_MEMBERS *) myAgg->members.blink;
+		else
+		    done = true;
+		while (done == false)
+		{
+		    if ((sdl_isItem(member) == false) &&
+		        (SDL_Q_EMPTY(&member->subaggr.members) == false))
+			member = (SDL_MEMBERS *) member->subaggr.members.blink;
+		    else
+			done = true;
+		}
+		if (member != NULL)
+		{
+		    int dimension = 1;
+
+		    if (sdl_isItem(member))
+		    {
+			if (member->item.dimension == true)
+			    dimension = member->item.hbound +
+					member->item.lbound + 1;
+			retVal = member->offset +
+				 (member->item.size * dimension);
+		    }
+		    else
+		    {
+			if (member->subaggr.dimension == true)
+			    dimension = member->subaggr.hbound +
+					member->subaggr.lbound + 1;
+			retVal = member->offset +
+				 (member->subaggr.size * dimension);
+		    }
+		}
+	    }
+	    break;
+
+	case SDL_K_OFF_BIT:
+
+	    /*
+	     * If the last member, in the current AGGREGATE or subaggregate is
+	     * a BITFIELD, then get the bit offset out of it.  Otherwise, we
+	     * will return a zero.
+	     */
+	    if (myAgg != NULL)
+	    {
+		SDL_MEMBERS	*member = NULL;
+
+		if (SDL_Q_EMPTY(&myAgg->members) == false)
+		    member = (SDL_MEMBERS *) myAgg->members.blink;
+		while ((member != NULL) && (sdl_isItem(member) == false))
+		{
+		    if (SDL_Q_EMPTY(&member->subaggr.members) == false)
+			member = (SDL_MEMBERS *) member->subaggr.members.blink;
+		    else
+			member = NULL;
+		}
+		if ((member != NULL) && (member->type == SDL_K_TYPE_BITFLD))
+		    retVal = member->item.bitOffset + member->item.length;
+	    }
+	    break;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -919,6 +1005,8 @@ int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
  *  	A 64-bit integer value when the option is an integer.
  *  string:
  *  	A pointer to a string when the option is a string.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -931,7 +1019,8 @@ int sdl_add_option(
 		SDL_CONTEXT *context,
 		SDL_OPTION_TYPE option,
 		__int64_t value,
-		char *string)
+		char *string,
+		int srcLineNo)
 {
     int		retVal = 1;
 
@@ -973,6 +1062,7 @@ int sdl_add_option(
      */
     if (retVal == 1)
     {
+	context->options[context->optionsIdx].srcLineNo = srcLineNo;
 	switch (option)
 	{
 
@@ -1868,6 +1958,92 @@ int64_t sdl_sizeof(SDL_CONTEXT *context, int item)
 
     /*
      * Return the results of this call back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_isUnsigned
+ *  This function is called to determine if a particular data type is unsigned
+ *  (signed is the default).
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  datatype:
+ *	A pointer to the value indicating the datatype we are looking up.
+ *
+ * Output Parameters:
+ *  datatype:
+ *	A pointer to the value to receive the updated datatype value (always
+ *	a positive value).
+ *
+ * Return Values:
+ *  true:	The data type is for an unsigned value.
+ *  false:	The data type is for a signed value or not relevant to the
+ *  		data type.
+ */
+bool sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype)
+{
+    bool	retVal = false;
+    int64_t	myDatatype = *datatype;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_isUnsigned\n", __FILE__, __LINE__);
+
+    /*
+     * If the data type is less than zero, then it is signed.  Otherwise, it
+     * may or may not be unsigned.
+     */
+    if (myDatatype <= 0)
+	*datatype = -myDatatype;
+    else if ((myDatatype >= SDL_K_TYPE_BYTE) &&
+	     (myDatatype <= SDL_K_TYPE_OCTA))
+	retVal = true;
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_isItem
+ *  This function is called to determine if an AGGREGATE or subaggregate member
+ *  is an ITEM or a subaggregate.
+ *
+ * Input Parameters:
+ *  member:
+ *	A pointer to the member to check out.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  true:	The member is an ITEM.
+ *  false:	The member is a subaggregate.
+ */
+bool sdl_isItem(SDL_MEMBERS *member)
+{
+    bool	retVal = false;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_isItem\n", __FILE__, __LINE__);
+
+    if ((member->type != SDL_K_TYPE_STRUCT) &&
+	(member->type != SDL_K_TYPE_UNION) &&
+	(member->type != SDL_K_TYPE_IMPLICIT))
+	retVal = true;
+
+    /*
+     * Return the results back to the caller.
      */
     return(retVal);
 }

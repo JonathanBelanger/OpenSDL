@@ -310,7 +310,6 @@ typedef struct
     char		*prefix;
     char		*tag;
     int64_t		size;
-    int64_t		memSize;	/* Actual space used in memory	*/
     int			typeID;
     int			alignment;
     int			srcLineNo;
@@ -359,11 +358,12 @@ typedef struct
     int64_t		lbound;
     int64_t		length;		/* for BITFIELDs only */
     int64_t		subType;	/* For BITFILEDs and ADDRESSes only */
-    int64_t		memSize;	/* Actual space used in memory	*/
+    int64_t		offset;
     int64_t		precision;
     int64_t		scale;
     int64_t		size;
     int			alignment;
+    int			bitOffset;	/* for BITFIELDs only */
     int			srcLineNo;
     int			type;		/* data or user type	*/
     int			typeID;
@@ -372,6 +372,7 @@ typedef struct
     bool		fill;
     bool		globalDef;
     bool		mask;		/* For BITFIELDs only*/
+    bool		parentAlignment;
     bool		typeDef;
     bool		_signed;	/* For BITFIELDs only */
     bool		_unsigned;
@@ -446,7 +447,7 @@ typedef struct
     int64_t		currentOffset;
     int64_t		hbound;
     int64_t		lbound;
-    int64_t		memSize;	/* Actual space used in memory	*/
+    int64_t		offset;
     int64_t		size;
     int			alignment;
     int			currentBitOffset;
@@ -455,6 +456,7 @@ typedef struct
     int			typeID;
     bool		dimension;
     bool		fill;
+    bool		parentAlignment;
     bool		typeDef;
     bool		_unsigned;
 } SDL_SUBAGGR;
@@ -493,7 +495,6 @@ typedef struct
     int64_t		currentOffset;
     int64_t		hbound;
     int64_t		lbound;
-    int64_t		memSize;	/* Actual space used in memory	*/
     int64_t		size;
     int			aggType;
     int			alignment;
@@ -501,11 +502,11 @@ typedef struct
     int			srcLineNo;
     int			type;
     int			typeID;
+    bool		alignmentPresent;
     bool		commonDef;
     bool		dimension;
     bool		fill;
     bool		globalDef;
-    bool		originPresent;
     bool		typeDef;
     bool		_unsigned;
 } SDL_AGGREGATE;
@@ -587,6 +588,7 @@ typedef struct
 	int64_t	value;
 	char	*string;
     };
+    int			srcLineNo;
 } SDL_OPTION;
 
 /*
@@ -632,7 +634,6 @@ typedef struct
 	int64_t value;
 	char	*valueStr;
     };
-    int			size;
     bool		string;
     int			srcLineNo;
 } SDL_CONSTANT_DEF;
@@ -667,10 +668,13 @@ typedef struct
     int64_t		precision;
     int64_t		scale;
     int			aggregateDepth;
+    int			fillerCount;
     int			optionsIdx;
     int			optionsSize;
     int			parameterIdx;
     int			parameterSize;
+    int			modEndSrcLineNo;
+    int			modSrcLineNo;
     int			wordSize;	/* 32 or 64 */
     bool		memberAlign;
     bool		commentsOff;

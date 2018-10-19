@@ -656,7 +656,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	 * Next, if there is an alignment need, then we add an attribute
 	 * statement.
 	 */
-	if (retVal == 1)
+	if ((retVal == 1) && (item->parentAlignment == false))
 	    retVal = _sdl_c_output_alignment(fp, item->alignment, context);
 
 	/*
@@ -700,10 +700,10 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
  */
 int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 {
-    char 	*prefix = (constant->prefix ? constant->prefix : "");
+    char 	*prefix = constant->prefix;
     char	*name = _sdl_c_generate_name(constant->id, prefix, constant->tag);
     int		retVal = 1;
-    int		size = constant->size;
+    int		size = constant->size * 8;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -891,11 +891,11 @@ int sdl_c_aggregate(
 
 		    if (fprintf(fp, "%s", which) < 0)
 			retVal = 0;
-			if (retVal == 1)
-			    retVal = _sdl_c_output_alignment(
-							fp,
-							my.aggr->alignment,
-							context);
+		    if ((retVal == 1) && (my.aggr->alignmentPresent == true))
+			retVal = _sdl_c_output_alignment(
+						fp,
+						my.aggr->alignment,
+						context);
 		    if ((retVal == 1) &&
 			(fprintf(fp, " %s%s\n%s{\n", td, name, spaces) < 0))
 			retVal = 0;
@@ -935,7 +935,7 @@ int sdl_c_aggregate(
 
 		if (fprintf(fp, "%s ", which) < 0)
 		    retVal = 0;
-		if (retVal == 1)
+		if ((retVal == 1) && (my.subaggr->parentAlignment == false))
 		    retVal = _sdl_c_output_alignment(
 						fp,
 						my.subaggr->alignment,
@@ -1299,23 +1299,27 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
     }
 
     /*
-     * First, if we have a prefix, let's get it's length.
+     * First, if we have a prefix, let's get it's length.  Also, the presents
+     * of the prefix indicates that we'll also add the tag.  If the prefix is
+     * not present, then the tag will not be added either.
      */
     if (prefix != NULL)
+    {
 	len += strlen(prefix);
 
-    /*
-     * Next look at the tag.  If is it null or zero length, then it is not
-     * concatenated to the current string.  Otherwise, it is (with an
-     * underscore between the prefix/tag and the name.
-     */
-    if (tag != NULL)
-    {
-	tagLen = strlen(tag);
+	/*
+	 * Next look at the tag.  If is it null or zero length, then it is not
+	 * concatenated to the current string.  Otherwise, it is (with an
+	 * underscore between the prefix/tag and the name.
+	 */
+	if (tag != NULL)
+	{
+	    tagLen = strlen(tag);
 
-	len += tagLen;
-	if (tagLen > 0)
-	    len++;
+	    len += tagLen;
+	    if (tagLen > 0)
+		len++;
+	}
     }
 
     /*
@@ -1329,12 +1333,12 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
     {
 	strcpy(&retVal[len], prefix);
 	len += strlen(prefix);
-    }
-    if ((tag != NULL) && (tagLen > 0))
-    {
-	strcpy(&retVal[len], tag);
-	len += tagLen;
-	retVal[len++] = '_';
+	if ((tag != NULL) && (tagLen > 0))
+	{
+	    strcpy(&retVal[len], tag);
+	    len += tagLen;
+	    retVal[len++] = '_';
+	}
     }
     strcpy(&retVal[len], name);
 

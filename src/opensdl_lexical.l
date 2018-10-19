@@ -48,7 +48,6 @@
 %option case-insensitive
 %option 8bit
 %option debug
-%option perf-report
 
 Names			[$_[:alpha:]][$_[:alnum:]]*
 Local_comment	("{").*

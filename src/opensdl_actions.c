@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 #include <complex.h>
 #include "opensdl_defs.h"
 #include "opensdl_lang.h"
@@ -177,8 +178,16 @@ static int _sdl_iterate_members(
 		int (*callback)(),
 		int depth,
 		int count);
-static bool _sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);
-bool _sdl_isItem(SDL_MEMBERS *member);
+static void _sdl_determine_offsets(
+		SDL_CONTEXT *context,
+		SDL_MEMBERS *member,
+		SDL_QUEUE *memberList);
+static void _sdl_fill_bitfield(
+			SDL_QUEUE *memberList,
+			SDL_MEMBERS *member,
+			int bits,
+			int number,
+			int srcLineNo);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -194,6 +203,8 @@ bool _sdl_isItem(SDL_MEMBERS *member);
  *	the current parsing.
  *  comment:
  *  	A pointer to the comment string to be output.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -202,7 +213,7 @@ bool _sdl_isItem(SDL_MEMBERS *member);
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_comment_line(SDL_CONTEXT *context, char *comment)
+int sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
 {
     int	retVal = 1;
     int ii;
@@ -251,6 +262,8 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment)
  *	the current parsing.
  *  comment:
  *  	A pointer to the comment string to be output.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -259,7 +272,7 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_comment_block(SDL_CONTEXT *context, char *comment)
+int sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
 {
     char	*ptr, *nl;
     int		retVal = 1;
@@ -447,6 +460,8 @@ int sdl_set_local(
  *  	A pointer to the MODULE module-name string to be output.
  *  identString:
  *  	A pointer to the IDENT "ident-string" string to be output.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -455,7 +470,11 @@ int sdl_set_local(
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName)
+int sdl_module(
+	SDL_CONTEXT *context,
+	char *moduleName,
+	char *identName,
+	int srcLineNo)
 {
     int	retVal = 1;
     int ii;
@@ -467,9 +486,10 @@ int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName)
 	printf("%s:%d:sdl_module\n", __FILE__, __LINE__);
 
     /*
-     * Save the MODULE's module-name
+     * Save the MODULE's module-name (and the source line number for it).
      */
     context->module = moduleName;
+    context->modSrcLineNo = srcLineNo;
 
     /*
      * Save the IDENT's indent-name.
@@ -503,6 +523,8 @@ int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName)
  *	the current parsing.
  *  moduleName:
  *  	A pointer to the MODULE module-name string.
+ *  srcLineNo:
+ *	A value representing the source file line number.
  *
  * Output Parameters:
  *  None.
@@ -511,7 +533,7 @@ int sdl_module(SDL_CONTEXT *context, char *moduleName, char *identName)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
+int sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
 {
     int			retVal = 1;
     int			ii;
@@ -521,6 +543,11 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
      */
     if (trace == true)
 	printf("%s:%d:sdl_module_end\n", __FILE__, __LINE__);
+
+    /*
+     * Save the source line number for the END_MODULE.
+     */
+    context->modEndSrcLineNo = srcLineNo;
 
     /*
      * OK, time to write out the OpenSDL Parser's MODULE footer.
@@ -700,7 +727,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	    printf(
 	        "\t%2d: name: %s\n\t    prefix: %s\n\t    tag: %s\n"
 		"\t    typeID: %d\n\t    alignment: %d\n\t    type: %d\n"
-		"\t    size: %ld\n\t    memSize: %ld\n\t    commonDef: %s\n"
+		"\t    size: %ld\n\t    commonDef: %s\n"
 		"\t    globalDef: %s\n\t    typeDef: %s\n",
 	        ii++,
 	        item->id,
@@ -710,7 +737,6 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	        item->alignment,
 	        item->type,
 	        item->size,
-	        item->memSize,
 	        (item->commonDef == true ? "True" : "False"),
 	        (item->globalDef == true ? "True" : "False"),
 	        (item->typeDef == true ? "True" : "False"));
@@ -738,32 +764,31 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName)
 	    if (ii == 1)
 		printf("    AGGREGATEs:\n");
 	    printf(
-	        "\t%2d: name: %s\n\t    structUnion: %s\n\t    prefix: %s\n"
+		"\t%2d: name: %s\n\t    structUnion: %s\n\t    prefix: %s\n"
 		"\t    marker: %s\n\t    tag: %s\n\t    origin: %s\n"
 		"\t    typeID: %d\n\t    alignment: %d\n\t    type: %d\n"
 		"\t    bitOffset: %d\n\t    byteOffset: %ld\n\t    size: %ld\n"
-		"\t    memSize: %ld\n\t    commonDef: %s\n"
+		"\t    commonDef: %s\n"
 		"\t    globalDef: %s\n\t    typeDef: %s\n\t    fill: %s\n"
 		"\t    _unsigned: %s\n",
-	        ii++,
-	        aggregate->id,
-	        (aggregate->aggType == SDL_K_TYPE_STRUCT ? "STRUCTURE" : "UNION"),
-	        (aggregate->prefix != NULL ? aggregate->prefix : ""),
-	        (aggregate->marker != NULL ? aggregate->marker : ""),
-	        (aggregate->tag != NULL ? aggregate->tag : ""),
-	        (aggregate->origin.id != NULL ? aggregate->origin.id : ""),
-	        aggregate->typeID,
-	        aggregate->alignment,
-	        aggregate->type,
-	        aggregate->currentBitOffset,
-	        aggregate->currentOffset,
-	        aggregate->size,
-	        aggregate->memSize,
-	        (aggregate->commonDef == true ? "True" : "False"),
-	        (aggregate->globalDef == true ? "True" : "False"),
-	        (aggregate->typeDef == true ? "True" : "False"),
-	        (aggregate->fill == true ? "True" : "False"),
-	        (aggregate->_unsigned == true ? "True" : "False"));
+		ii++,
+		aggregate->id,
+		(aggregate->aggType == SDL_K_TYPE_STRUCT ? "STRUCTURE" : "UNION"),
+		(aggregate->prefix != NULL ? aggregate->prefix : ""),
+		(aggregate->marker != NULL ? aggregate->marker : ""),
+		(aggregate->tag != NULL ? aggregate->tag : ""),
+		(aggregate->origin.id != NULL ? aggregate->origin.id : ""),
+		aggregate->typeID,
+		aggregate->alignment,
+		aggregate->type,
+		aggregate->currentBitOffset,
+		aggregate->currentOffset,
+		aggregate->size,
+		(aggregate->commonDef == true ? "True" : "False"),
+		(aggregate->globalDef == true ? "True" : "False"),
+		(aggregate->typeDef == true ? "True" : "False"),
+		(aggregate->fill == true ? "True" : "False"),
+		(aggregate->_unsigned == true ? "True" : "False"));
 	    if (aggregate->dimension == true)
 		printf(
 		    "\t    dimension: [%ld:%ld]\n",
@@ -1031,7 +1056,7 @@ int sdl_declare(
 	{
 	    myDeclare->id = name;
 	    myDeclare->typeID = context->declares.nextID++;
-	    myDeclare->_unsigned = _sdl_isUnsigned(context, &sizeType);
+	    myDeclare->_unsigned = sdl_isUnsigned(context, &sizeType);
 	    if (sizeType >= SDL_K_SIZEOF_MIN)
 	    {
 		myDeclare->size = sizeType / SDL_K_SIZEOF_MIN;
@@ -1158,9 +1183,12 @@ int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype, int srcLineNo)
 	printf("%s:%d:sdl_item\n", __FILE__, __LINE__);
 
     /*
-     * We only complete, never create.
-     * TODO: Need to check to make sure we are not defining yet another ITEM
-     * TODO: with the same name (NOTE: It has to be completely the same).
+     * If we did not find a item that had already been created, then go and
+     * create one now.
+     *
+     * TODO: The original SDL allowed for ITEMs to be created multiple times,
+     * TODO: but only if they were identical (an additional item would not be
+     * TODO: created).
      */
     if (myItem == NULL)
     {
@@ -1169,7 +1197,7 @@ int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype, int srcLineNo)
 	{
 	    myItem->id = name;
 	    myItem->typeID = context->items.nextID++;
-	    myItem->_unsigned = _sdl_isUnsigned(context, &datatype);
+	    myItem->_unsigned = sdl_isUnsigned(context, &datatype);
 	    myItem->type = datatype;
 	    if (datatype == SDL_K_TYPE_DECIMAL)
 	    {
@@ -1344,10 +1372,6 @@ int sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
  *  valueStr:
  *	A pointer to a string to be associated with the constant.  If this is
  *	NULL, then value is used.  Otherwise, this is used.
- *  size:
- *	A value to indicate the number of bytes to be output when writing out
- *	the constant value.  This is used for masks and is the size of the
- *	largest potential mask value.
  *  srcLineNo:
  *	A value representing the source file line number.
  *
@@ -1363,7 +1387,6 @@ int sdl_constant(
 		char *id,
 		int64_t value,
 		char *valueStr,
-		int size,
 		int srcLineNo)
 {
     int		retVal = 1;
@@ -1388,7 +1411,6 @@ int sdl_constant(
     {
 	context->constDef.value = value;
 	context->constDef.string = false;
-	context->constDef.size = size;
     }
 
     /*
@@ -1439,7 +1461,7 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
     int64_t		increment = 0;
     int64_t		radix = SDL_K_RADIX_DEF;
     int			datatype = SDL_K_TYPE_CONST;
-    int			size = context->constDef.size;
+    int			size = context->wordSize;
     bool		incrementPresent = false;
     bool		localCreated = false;
     bool		typeDef = false;
@@ -1798,7 +1820,7 @@ int sdl_aggregate(
     {
 	myAggr->id = name;
 	myAggr->typeID = context->aggregates.nextID++;
-	myAggr->_unsigned = _sdl_isUnsigned(context, &datatype);
+	myAggr->_unsigned = sdl_isUnsigned(context, &datatype);
 	myAggr->type = datatype;
 	if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
 	    myAggr->aggType = SDL_K_TYPE_IMPLICIT;
@@ -1906,7 +1928,7 @@ int sdl_aggregate_member(
 	 * If the current member is not a STRUCTURE or [IMPLICIT] UNION, then
 	 * it is the current aggregate, of which we already have the address.
 	 */
-	if ((myMember != NULL) && (_sdl_isItem(myMember) == true))
+	if ((myMember != NULL) && (sdl_isItem(myMember) == true))
 	    myMember = NULL;
 
 	/*
@@ -1920,12 +1942,23 @@ int sdl_aggregate_member(
 		 * Present only options.
 		 */
 		case Align:
-		    if (myMember != NULL)
+		    if ((myMember != NULL) &&
+			(myMember->item.alignment != SDL_K_ALIGN))
+		    {
 			myMember->item.alignment = SDL_K_ALIGN;
-		    else if (mySubAggr != NULL)
+			myMember->item.parentAlignment = false;
+		    }
+		    else if ((mySubAggr != NULL) &&
+			     (mySubAggr->alignment != SDL_K_ALIGN))
+		    {
 			mySubAggr->alignment = SDL_K_ALIGN;
+			mySubAggr->parentAlignment = false;
+		    }
 		    else
+		    {
 			myAggr->alignment = SDL_K_ALIGN;
+			myAggr->alignmentPresent = true;
+		    }
 		    break;
 
 		case Common:
@@ -1952,12 +1985,23 @@ int sdl_aggregate_member(
 		    break;
 
 		case NoAlign:
-		    if (myMember != NULL)
+		    if ((myMember != NULL) &&
+			(myMember->item.alignment != SDL_K_NOALIGN))
+		    {
 			myMember->item.alignment = SDL_K_NOALIGN;
-		    else if (mySubAggr != NULL)
+			myMember->item.parentAlignment = false;
+		    }
+		    else if ((mySubAggr != NULL) &&
+			     (mySubAggr->alignment != SDL_K_NOALIGN))
+		    {
 			mySubAggr->alignment = SDL_K_NOALIGN;
+			mySubAggr->parentAlignment = false;
+		    }
 		    else
+		    {
 			myAggr->alignment = SDL_K_NOALIGN;
+			myAggr->alignmentPresent = true;
+		    }
 		    break;
 
 		case Typedef:
@@ -1986,18 +2030,25 @@ int sdl_aggregate_member(
 
 		case Marker:
 		    if ((mySubAggr != NULL) && (myMember == NULL))
+		    {
+			if (mySubAggr->marker != NULL)
+			    free(mySubAggr->marker);
 			mySubAggr->marker = context->options[ii].string;
+		    }
 		    else if (myMember == NULL)
+		    {
+			if (myAggr->marker != NULL)
+			    free(myAggr->marker);
 			myAggr->marker = context->options[ii].string;
+		    }
+		    else
+			free(context->options[ii].string);
 		    context->options[ii].string = NULL;
 		    break;
 
 		case Origin:
 		    if ((myAggr != NULL) && (myMember == NULL))
-		    {
 			myAggr->origin.id = context->options[ii].string;
-			myAggr->originPresent = true;
-		    }
 		    else
 			free(context->options[ii].string);
 		    context->options[ii].string = NULL;
@@ -2005,11 +2056,23 @@ int sdl_aggregate_member(
 
 		case Prefix:
 		    if (myMember != NULL)
+		    {
+			if (myMember->item.prefix != NULL)
+			    free(myMember->item.prefix);
 			myMember->item.prefix = context->options[ii].string;
+		    }
 		    else if (mySubAggr != NULL)
+		    {
+			if (mySubAggr->prefix != NULL)
+			    free(mySubAggr->prefix);
 			mySubAggr->prefix = context->options[ii].string;
+		    }
 		    else
+		    {
+			if (myAggr->prefix != NULL)
+			    free(myAggr->prefix);
 			myAggr->prefix = context->options[ii].string;
+		    }
 		    context->options[ii].string = NULL;
 		    break;
 
@@ -2039,12 +2102,23 @@ int sdl_aggregate_member(
 		 * Numeric options.
 		 */
 		case BaseAlign:
-		    if (myMember != NULL)
+		    if ((myMember != NULL) &&
+			(myMember->item.alignment != context->options[ii].value))
+		    {
 			myMember->item.alignment = context->options[ii].value;
-		    else if (mySubAggr != NULL)
+			myMember->item.parentAlignment = false;
+		    }
+		    else if ((mySubAggr != NULL) &&
+			     (mySubAggr->alignment != context->options[ii].value))
+		    {
 			mySubAggr->alignment = context->options[ii].value;
+			mySubAggr->parentAlignment = false;
+		    }
 		    else
+		    {
 			myAggr->alignment = context->options[ii].value;
+			myAggr->alignmentPresent = true;
+		    }
 		    break;
 
 		case Dimension:
@@ -2105,32 +2179,67 @@ int sdl_aggregate_member(
 				srcLineNo);
     if (myMember != NULL)
     {
+
+	/*
+	 * If we are at the AGGREGATE level, then we need to indicate so for
+	 * this member.
+	 */
 	if (myAggr != NULL)
 	    myMember->header.top = true;
 
 	/*
-	 * Determine the type of member we are being asked to create.
+	 * Determine if the member we are creating is a structure or union,
+	 * and if a datatype was supplied, then we have an implicit union.
 	 */
-	if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
-	    myMember->type = SDL_K_TYPE_IMPLICIT;
+	if ((aggType == SDL_K_TYPE_STRUCT) || (aggType == SDL_K_TYPE_UNION))
+	{
+	    if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
+		myMember->type = SDL_K_TYPE_IMPLICIT;
+	    else
+		myMember->type = aggType;
+	}
 	else
-	    myMember->type = aggType;
+	    myMember->type = datatype;
+
+	/*
+	 * Process the information based on the type of member we are creating.
+	 */
 	switch (aggType)
 	{
 	    case SDL_K_TYPE_STRUCT:
 	    case SDL_K_TYPE_UNION:
+	    case SDL_K_TYPE_IMPLICIT:
 		myMember->subaggr.id = name;
 		myMember->subaggr.aggType = aggType;
-		myMember->subaggr._unsigned = _sdl_isUnsigned(
+		myMember->subaggr._unsigned = sdl_isUnsigned(
 							context,
 							&datatype);
 		myMember->subaggr.type = datatype;
 		myMember->subaggr.parent = context->currentAggr;
+		if (myAggr != NULL)
+		{
+		    if (myAggr->prefix != NULL)
+			myMember->subaggr.prefix = strdup(myAggr->prefix);
+		    if (myAggr->marker != NULL)
+			myMember->subaggr.marker = strdup(myAggr->marker);
+		}
+		else
+		{
+		    if (mySubAggr->prefix != NULL)
+			myMember->subaggr.prefix = strdup(mySubAggr->prefix);
+		    if (mySubAggr->marker != NULL)
+			myMember->subaggr.marker = strdup(mySubAggr->marker);
+		}
 		myMember->subaggr.tag = _sdl_get_tag(
 						context,
 						NULL,
 						aggType,
 						_sdl_all_lower(name));
+		if (myAggr != NULL)
+		    myMember->subaggr.alignment = myAggr->alignment;
+		else
+		    myMember->subaggr.alignment = mySubAggr->alignment;
+		myMember->subaggr.parentAlignment = true;
 		SDL_Q_INIT(&myMember->subaggr.members);
 		context->aggregateDepth++;
 		context->currentAggr = &myMember->subaggr;
@@ -2138,7 +2247,7 @@ int sdl_aggregate_member(
 
 	    default:
 		myMember->item.id = name;
-		myMember->item._unsigned = _sdl_isUnsigned(context, &datatype);
+		myMember->item._unsigned = sdl_isUnsigned(context, &datatype);
 		myMember->item.type = datatype;
 		myMember->item.srcLineNo = myMember->srcLineNo;
 		switch (datatype)
@@ -2148,10 +2257,6 @@ int sdl_aggregate_member(
 			myMember->item.scale = context->scale;
 			break;
 
-		    /*
-		     * TODO: When mask is set, we need to define a constant
-		     * TODO: with the correct bit(s) set.
-		     */
 		    case SDL_K_TYPE_BITFLD:
 			myMember->item.length = (length == 0 ? 1 : length);
 			myMember->item.mask = mask;
@@ -2171,20 +2276,31 @@ int sdl_aggregate_member(
 			myMember->item.subType = subType;
 			break;
 		}
+		if ((myAggr != NULL) && (myAggr->prefix != NULL))
+		    myMember->item.prefix = strdup(myAggr->prefix);
+		else if ((mySubAggr != NULL) && (mySubAggr->prefix != NULL))
+		    myMember->item.prefix = strdup(mySubAggr->prefix);
 		myMember->item.tag = _sdl_get_tag(
 						context,
 						NULL,
 						datatype,
 						_sdl_all_lower(name));
 		myMember->item.size = sdl_sizeof(context, datatype);
+		if (myAggr != NULL)
+		    myMember->item.alignment = myAggr->alignment;
+		else
+		    myMember->item.alignment = mySubAggr->alignment;
+		myMember->item.parentAlignment = true;
 		break;
 	}
 	if (mySubAggr != NULL)
 	{
+	    _sdl_determine_offsets(context, myMember, &mySubAggr->members);
 	    SDL_INSQUE(&mySubAggr->members, &myMember->header.queue);
 	}
 	else
 	{
+	    _sdl_determine_offsets(context, myMember, &myAggr->members);
 	    SDL_INSQUE(&myAggr->members, &myMember->header.queue);
 	}
     }
@@ -2257,7 +2373,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	    if (SDL_Q_EMPTY(&mySubAggr->members) == false)
 		myMember = mySubAggr->members.blink;
 	}
-	if ((myMember != NULL) && (_sdl_isItem(myMember) == true))
+	if ((myMember != NULL) && (sdl_isItem(myMember) == true))
 	    myMember = NULL;
 	for (ii = 0; ii < context->optionsIdx; ii++)
 	    switch (context->options[ii].option)
@@ -2408,11 +2524,40 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
     }
 
     /*
-     * We just closed a subaggregate.  Make the previous subaggregate the
-     * current one.
+     * We just closed a subaggregate.  Determine the size of the subaggregate
+     * and make the previous AGGREGATE or subaggregate the current one.
      */
     else
+    {
+	SDL_MEMBERS *member = (SDL_MEMBERS *) mySubAggr->members.blink;
+
+	if (SDL_Q_EMPTY(&mySubAggr->members) == false)
+	{
+	    int64_t	offset = member->offset;
+	    int64_t	size;
+	    int		dimension = 1;
+
+	    if (sdl_isItem(member) == true)
+	    {
+		if (member->item.dimension == true)
+		{
+		    dimension = member->item.hbound - member->item.lbound + 1;
+		    size = member->item.size;
+		}
+	    }
+	    else
+	    {
+		if (member->subaggr.dimension == true)
+		{
+		    dimension = member->subaggr.hbound -
+				member->subaggr.lbound + 1;
+		    size = member->subaggr.size;
+		}
+	    }
+	    mySubAggr->size = offset - mySubAggr->offset + (size * dimension);
+	}
 	context->currentAggr = mySubAggr->parent;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -2482,7 +2627,7 @@ int sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
 
 		case ReturnsType:
 		    myEntry->returns.type = context->options[ii].value;
-		    myEntry->returns._unsigned = _sdl_isUnsigned(
+		    myEntry->returns._unsigned = sdl_isUnsigned(
 							context,
 							&myEntry->returns.type);
 		    break;
@@ -2590,7 +2735,7 @@ int sdl_add_parameter(
 					NULL,
 					srcLineNo);
 
-	param->_unsigned = _sdl_isUnsigned(context, &datatype);
+	param->_unsigned = sdl_isUnsigned(context, &datatype);
 	param->type = datatype;
 	param->passingMech = passing;
 
@@ -2701,7 +2846,7 @@ static int _sdl_aggregate_callback(
     if (trace == true)
 	printf("%s:%d:_sdl_aggregate_callback\n", __FILE__, __LINE__);
 
-    if (_sdl_isItem(member) == false)
+    if (sdl_isItem(member) == false)
     {
 	param = (void *) &member->subaggr;
 	type = LangSubaggregate;
@@ -3402,7 +3547,7 @@ static int _sdl_iterate_members(
     if (trace == true)
 	printf("%s:%d:_sdl_iterate_members\n", __FILE__, __LINE__);
 
-    if (_sdl_isItem(member) == false)
+    if (sdl_isItem(member) == false)
     {
 	SDL_SUBAGGR *subaggr = &member->subaggr;
 
@@ -3412,7 +3557,7 @@ static int _sdl_iterate_members(
 		"\t%d: SUBAGGREGATE:\n\t    name: %s\n\t    prefix: %s\n"
 		"\t    tag: %s\n\t    marker: %s\n\t    arrgType: %s\n"
 		"\t    typeID: %d\n\t    alignment: %d\n\t    type: %d\n"
-		"\t    _unsigned: %s\n\t    size: %ld\n\t    memSize: %ld\n"
+		"\t    _unsigned: %s\n\t    size: %ld\n\t    offset: %ld\n"
 		"\t    typeDef: %s\n\t    fill: %s\n\t    basedPtrName: %s\n"
 		"\t    currentBitOffset: %d\n",
 		count,
@@ -3426,7 +3571,7 @@ static int _sdl_iterate_members(
 		subaggr->type,
 		(subaggr->_unsigned == true ? "True" : "False"),
 		subaggr->size,
-		subaggr->memSize,
+		subaggr->offset,
 		(subaggr->typeDef == true ? "True" : "False"),
 		(subaggr->fill == true ? "True" : "False"),
 		(subaggr->basedPtrName!= NULL ? subaggr->basedPtrName: ""),
@@ -3465,9 +3610,9 @@ static int _sdl_iterate_members(
 		"\t%d: ITEM:\n\t    name: %s\n\t    prefix: %s\n"
 		"\t    tag: %s\n\t    typeID: %d\n\t    alignment: %d\n"
 		"\t    type: %d\n\t    _unsigned: %s\n\t    size: %ld\n"
-		"\t    memSize: %ld\n\t    typeDef: %s\n\t    fill: %s\n"
+		"\t    typeDef: %s\n\t    fill: %s\n\t    offset: %ld\n"
 		"\t    length: %ld\n\t    mask: %s\n\t    signed: %s\n"
-		"\t    bitfieldType: %ld\n",
+		"\t    bitfieldType: %ld\n\t    bitOffset: %d\n",
 		count,
 	        member->item.id,
 	        (member->item.prefix != NULL ? member->item.prefix : ""),
@@ -3477,13 +3622,14 @@ static int _sdl_iterate_members(
 	        member->item.type,
 	        (member->item._unsigned == true ? "True" : "False"),
 	        member->item.size,
-	        member->item.memSize,
 	        (member->item.typeDef == true ? "True" : "False"),
 	        (member->item.fill == true ? "True" : "False"),
+	        member->item.offset,
 	        member->item.length,
 	        (member->item.mask == true ? "True" : "False"),
 	        (member->item._signed == true ? "True" : "False"),
-	        member->item.subType);
+	        member->item.subType,
+	        member->item.bitOffset);
 	    if (member->item.dimension == true)
 		printf(
 		    "\t    dimension: [%ld:%ld]\n",
@@ -3509,75 +3655,338 @@ static int _sdl_iterate_members(
 }
 
 /*
- * _sdl_isUnsigned
- *  This function is called to determine if a particular data type is unsigned
- *  (signed is the default).
+ * _sdl_determine_offsets
+ *   This function is called to determine the offsets (byte and bit) for the
+ *   specified member.  Byte offsets at this point are relative to the parent
+ *   AGGREGATE.
  *
  * Input Parameters:
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current state of the parsing.
- *  datatype:
- *	A pointer to the value indicating the datatype we are looking up.
- *
- * Output Parameters:
- *  datatype:
- *	A pointer to the value to receive the updated datatype value (always
- *	a positive value).
- *
- * Return Values:
- *  true:	The data type is for an unsigned value.
- *  false:	The data type is for a signed value or not relevant to the
- *  		data type.
- */
-static bool _sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype)
-{
-    bool	retVal = false;
-    int64_t	myDatatype = *datatype;
-
-    /*
-     * If the data type is less than zero, then it is signed.  Otherwise, it
-     * may or may not be unsigned.
-     */
-    if (myDatatype <= 0)
-	*datatype = -myDatatype;
-    else if ((myDatatype >= SDL_K_TYPE_BYTE) &&
-	     (myDatatype <= SDL_K_TYPE_OCTA))
-	retVal = true;
-
-    /*
-     * Return the results back to the caller.
-     */
-    return(retVal);
-}
-
-/*
- * _sdl_isItem
- *  This function is called to determine if an AGGREGATE or subaggregate member
- *  is an ITEM or a subaggregate.
- *
- * Input Parameters:
  *  member:
- *	A pointer to the member to check out.
+ *	A pointer to the member for which we are to determine the offset where
+ *	this field will be stored.
+ *  memberList:
+ *	A pointer to the queue of members where the supplied member will be
+ *	queued as a child.
  *
  * Output Parameters:
  *  None.
  *
  * Return Values:
- *  true:	The member is an ITEM.
- *  false:	The member is a subaggregate.
+ *  None.
  */
-bool _sdl_isItem(SDL_MEMBERS *member)
+static void _sdl_determine_offsets(
+			SDL_CONTEXT *context,
+			SDL_MEMBERS *member,
+			SDL_QUEUE *memberList)
 {
-    bool	retVal = false;
-
-    if ((member->type != SDL_K_TYPE_STRUCT) &&
-	(member->type != SDL_K_TYPE_UNION) &&
-	(member->type != SDL_K_TYPE_IMPLICIT))
-	retVal = true;
+    SDL_MEMBERS		*prevMember = NULL;
+    SDL_CONSTANT	*constDef;
+    int			dimension = 1;
+    bool		memberItem = sdl_isItem(member);
+    bool		prevItem = false;
 
     /*
-     * Return the results back to the caller.
+     * If tracing is turned on, write out this call (calls only, no returns).
      */
-    return(retVal);
+    if (trace == true)
+	printf("%s:%d:_sdl_determine_offsets\n", __FILE__, __LINE__);
+
+    if (SDL_Q_EMPTY(memberList) == false)
+    {
+	prevMember = (SDL_MEMBERS *) memberList->blink;
+	prevItem = sdl_isItem(prevMember);
+    }
+
+    /*
+     * If the new member is a BITFIELD and the previous one is as well, then
+     * we need to do some checking to determine if we need to insert some a
+     * filler bitfield, or are starting a new one, based on the number of bits
+     * previously utilized.  We will also generate the appropriate MASK and
+     * SIZE constants.
+     */
+    if (member->type == SDL_K_TYPE_BITFLD)
+    {
+
+	/*
+	 * If the previous member is not a BITFIELD, then we are starting a new
+	 * potential set of bits, and need to consider the offset for them.  It
+	 * is determined by the offset of the previous member, plus the size of
+	 * the previous member.
+	 */
+	if ((prevMember == NULL) || (prevMember->type != SDL_K_TYPE_BITFLD))
+	{
+	    member->item.bitOffset = 0;
+	    if (prevItem == true)
+	    {
+
+		if (prevMember->item.dimension)
+		    dimension = prevMember->item.hbound -
+				prevMember->item.lbound + 1;
+		member->offset = prevMember->offset +
+				 (prevMember->item.size * dimension);
+	    }
+	    else if (prevMember != NULL)
+	    {
+		int64_t	size = 0;
+
+		if ((prevMember->type != SDL_K_TYPE_UNION) &&
+		    (prevMember->type != SDL_K_TYPE_IMPLICIT))
+		{
+		    if (prevMember->subaggr.dimension == true)
+			dimension = prevMember->subaggr.hbound -
+				    prevMember->subaggr.lbound + 1;
+		    size = prevMember->subaggr.size * dimension;
+		}
+		member->offset = prevMember->offset + size;
+	    }
+	    else if (member->header.top == false)
+	    {
+		SDL_SUBAGGR *subagg = (SDL_SUBAGGR *) member->header.parent;
+
+		member->offset = subagg->offset;
+	    }
+	    else
+		member->offset = 0;
+	}
+	else if (prevMember != NULL)
+	{
+	    int availBits = (prevMember->item.size * 8) - prevMember->item.bitOffset;
+
+	    /*
+	     * The new member and the previous member are both BITFIELDs.
+	     */
+	    if (member->item.size == prevMember->item.size)
+	    {
+
+		/*
+		 * If there is enough room for the number of bits we need to
+		 * add to this BITFIELD, then do so.  The field offset will not
+		 * change.
+		 */
+		if (member->item.length <= availBits)
+		{
+		    member->item.bitOffset = prevMember->item.bitOffset +
+					     prevMember->item.length;
+		    member->offset = prevMember->offset;
+		}
+
+		/*
+		 * There was not enough room for the bits being requests.  This
+		 * will use bit 0 as the initial offset, and the field offset
+		 * will be the offset of the previous member, plus its length.
+		 */
+		else
+		{
+		    member->item.bitOffset = 0;
+		    member->offset = prevMember->offset + prevMember->item.size;
+		    if (availBits > 0)
+			_sdl_fill_bitfield(
+				memberList,
+				prevMember,
+				availBits,
+				context->fillerCount++,
+				member->item.srcLineNo);
+		}
+	    }
+	    else
+	    {
+		member->item.bitOffset = 0;
+		member->offset = prevMember->offset + prevMember->item.size;
+		if (availBits > 0)
+		    _sdl_fill_bitfield(
+				memberList,
+				prevMember,
+				availBits,
+				context->fillerCount++,
+				member->item.srcLineNo);
+	    }
+	}
+	else
+	    member->offset = 0;
+
+	/*
+	 * OK, we have everything we need.  We now need to create a SIZE
+	 * constant and potentially a MASK constant.
+	 */
+	constDef = _sdl_create_constant(
+				member->item.id,
+				(member->item.prefix == NULL ?
+					"" :
+					member->item.prefix),
+				(_sdl_all_lower(member->item.id) ? "s" : "S"),
+				NULL,
+				NULL,
+				SDL_K_RADIX_DEC,
+				member->item.length,
+				NULL,
+				context->wordSize,
+				member->srcLineNo);
+	if (constDef != NULL)
+	    _sdl_queue_constant(context, constDef);
+	if (member->item.mask == true)
+	{
+	    int64_t mask =
+		    (int64_t) pow((double) 2, (double) member->item.length) - 1;
+
+	    mask <<= member->item.bitOffset;
+	    constDef = _sdl_create_constant(
+				member->item.id,
+				(member->item.prefix == NULL ?
+					"" :
+					member->item.prefix),
+				(_sdl_all_lower(member->item.id) ? "m" : "M"),
+				NULL,
+				NULL,
+				SDL_K_RADIX_HEX,
+				mask,
+				NULL,
+				member->item.size,
+				member->srcLineNo);
+	    if (constDef != NULL)
+		_sdl_queue_constant(context, constDef);
+	}
+    }
+
+    /*
+     * We are not inserting a BITFIELD.
+     */
+    else
+    {
+	int	size;
+
+	/*
+	 * We may be inserting after a BITFIELD.
+	 */
+	if ((prevMember != NULL) && (prevMember->type == SDL_K_TYPE_BITFLD))
+	{
+	    int availBits = (prevMember->item.size * 8) - prevMember->item.bitOffset;
+	    if (availBits > 0)
+		_sdl_fill_bitfield(
+				memberList,
+				prevMember,
+				availBits,
+				context->fillerCount++,
+				member->item.srcLineNo);
+	}
+
+	/*
+	 * We need to determine the raw offset from the previous member.
+	 */
+	if (prevMember != NULL)
+	{
+	    if (prevItem == true)
+	    {
+		size = prevMember->item.size;
+		if (prevMember->item.dimension == true)
+		    dimension = prevMember->item.hbound -
+				prevMember->item.lbound + 1;
+	    }
+	    else if (prevMember != NULL)
+	    {
+		size = prevMember->subaggr.size;
+		if (prevMember->subaggr.dimension == true)
+		    dimension = prevMember->subaggr.hbound -
+				prevMember->subaggr.lbound + 1;
+	    }
+	    member->offset = prevMember->offset + (size * dimension);
+	}
+	else
+	    member->offset = 0;
+    }
+
+    /*
+     * Before we can get out of here, we need to potentially align the new
+     * member, based on its data type, but only for ITEMs.
+     */
+    if (memberItem == true)
+    {
+	int	adjustment;
+
+	switch (member->item.alignment)
+	{
+	    case SDL_K_NOALIGN:
+		adjustment = 0;
+		break;
+
+	    case SDL_K_ALIGN:
+		adjustment = member->offset % member->item.size;
+		break;
+
+	    default:
+		adjustment = member->offset % member->item.alignment;
+		break;
+	}
+	member->offset += adjustment;
+	member->item.offset = member->offset;
+    }
+    else
+	member->subaggr.offset = member->offset;
+
+    /*
+     * Return back to the caller.
+     */
+    return;
+}
+
+/*
+ * _sdl_fill_bitfield
+ *  This function is called to create an AGGREGATE or subaggregate BITFIELD
+ *  member to fill out the remaining bits in a bitfield.
+ *
+ * Input Parameters:
+ *  memberList:
+ *	A pointer to the queue where the new member will be added.
+ *  member:
+ *	A pointer to the member that will precede the one we are creating.
+ *  bits:
+ *	A value indicating the number of bits to be associated with this field.
+ *  srcLineNo:
+ *	A value indicating the line number from the source file that is causing
+ *	this field to be created.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  None.
+ */
+static void _sdl_fill_bitfield(
+			SDL_QUEUE *memberList,
+			SDL_MEMBERS *member,
+			int bits,
+			int number,
+			int srcLineNo)
+{
+    SDL_MEMBERS *filler = sdl_allocate_block(
+				AggrMemberBlock,
+				member->header.parent,
+				0);
+    char	idBuf[32];
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_fill_bitfield\n", __FILE__, __LINE__);
+
+    memcpy(filler, member, sizeof(SDL_MEMBERS));
+    filler->item.comment = NULL;
+    sprintf(idBuf, "filler_%03d", number);
+    filler->item.id = strdup(idBuf);
+    if (member->item.prefix != NULL)
+	filler->item.prefix = strdup(member->item.prefix);
+    filler->item.tag = strdup(member->item.tag);
+    filler->item.length = bits;
+    filler->item.mask = false;
+    filler->item.bitOffset = member->item.bitOffset + 1;
+    filler->item.srcLineNo = member->item.srcLineNo;
+    SDL_INSQUE(memberList, &filler->header.queue);
+
+    /*
+     * Return back to the caller.
+     */
+    return;
 }

@@ -46,7 +46,8 @@ int sdl_add_option(
 		SDL_CONTEXT *context,
 		SDL_OPTION_TYPE option,
 		__int64_t value,
-		char *string);
+		char *string,
+		int srcLineNo);
 int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
@@ -65,5 +66,7 @@ void *sdl_allocate_block(
 		int srcLineNo);
 void sdl_deallocate_block(SDL_HEADER *block);
 int64_t sdl_sizeof(SDL_CONTEXT *context, int item);
+bool sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);
+bool sdl_isItem(SDL_MEMBERS *member);
 
 #endif	/* _OPENSDL_UTILITY_H_ */

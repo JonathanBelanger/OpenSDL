@@ -188,6 +188,11 @@ static void _sdl_fill_bitfield(
 			int bits,
 			int number,
 			int srcLineNo);
+static int64_t _sdl_aggregate_size(
+			SDL_CONTEXT *context,
+			SDL_AGGREGATE *aggr,
+			SDL_SUBAGGR *subAggr);
+static void _sdl_checkAndSetOrigin(SDL_CONTEXT *context, SDL_MEMBERS *member);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -1925,10 +1930,10 @@ int sdl_aggregate_member(
 	}
 
 	/*
-	 * If the current member is not a STRUCTURE or [IMPLICIT] UNION, then
-	 * it is the current aggregate, of which we already have the address.
+	 * If the current member is a STRUCTURE or [IMPLICIT] UNION, then it is
+	 * the current aggregate, of which we already have the address.
 	 */
-	if ((myMember != NULL) && (sdl_isItem(myMember) == true))
+	if ((myMember != NULL) && (sdl_isItem(myMember) == false))
 	    myMember = NULL;
 
 	/*
@@ -2168,144 +2173,184 @@ int sdl_aggregate_member(
     }
 
     /*
-     * OK, we took care of adding the options to our predecessor, so now we
-     * need to start a new member.
+     * If the name is NULL, then we were just called to process the options
+     * data.  Otherwise, we need to allocate another member for the current
+     * aggregate.
      */
-    myMember = sdl_allocate_block(
-			AggrMemberBlock,
-			(myAggr != NULL ?
-				&myAggr->header :
-				&mySubAggr->parent->header),
-				srcLineNo);
-    if (myMember != NULL)
+    if (name != NULL)
     {
-
 	/*
-	 * If we are at the AGGREGATE level, then we need to indicate so for
-	 * this member.
+	 * OK, we took care of adding the options to our predecessor, so now we
+	 * need to start a new member.
 	 */
-	if (myAggr != NULL)
-	    myMember->header.top = true;
-
-	/*
-	 * Determine if the member we are creating is a structure or union,
-	 * and if a datatype was supplied, then we have an implicit union.
-	 */
-	if ((aggType == SDL_K_TYPE_STRUCT) || (aggType == SDL_K_TYPE_UNION))
+	myMember = sdl_allocate_block(
+			    AggrMemberBlock,
+			    (myAggr != NULL ?
+				    &myAggr->header :
+				    &mySubAggr->parent->header),
+				    srcLineNo);
+	if (myMember != NULL)
 	{
-	    if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
-		myMember->type = SDL_K_TYPE_IMPLICIT;
+
+	    /*
+	     * If we are at the AGGREGATE level, then we need to indicate so
+	     * for this member.
+	     */
+	    if (myAggr != NULL)
+		myMember->header.top = true;
+
+	    /*
+	     * Determine if the member we are creating is a structure or union,
+	     * and if a datatype was supplied, then we have an implicit union.
+	     */
+	    if ((aggType == SDL_K_TYPE_STRUCT) || (aggType == SDL_K_TYPE_UNION))
+	    {
+		if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
+		    myMember->type = SDL_K_TYPE_IMPLICIT;
+		else
+		    myMember->type = aggType;
+	    }
 	    else
-		myMember->type = aggType;
-	}
-	else
-	    myMember->type = datatype;
+		myMember->type = abs(datatype);
 
-	/*
-	 * Process the information based on the type of member we are creating.
-	 */
-	switch (aggType)
-	{
-	    case SDL_K_TYPE_STRUCT:
-	    case SDL_K_TYPE_UNION:
-	    case SDL_K_TYPE_IMPLICIT:
-		myMember->subaggr.id = name;
-		myMember->subaggr.aggType = aggType;
-		myMember->subaggr._unsigned = sdl_isUnsigned(
+	    /*
+	     * Process the information based on the type of member we are
+	     * creating.
+	     */
+	    switch (aggType)
+	    {
+		case SDL_K_TYPE_STRUCT:
+		case SDL_K_TYPE_UNION:
+		case SDL_K_TYPE_IMPLICIT:
+		    myMember->subaggr.id = name;
+		    myMember->subaggr.aggType = aggType;
+		    myMember->subaggr._unsigned = sdl_isUnsigned(
+							    context,
+							    &datatype);
+		    myMember->subaggr.type = datatype;
+		    myMember->subaggr.parent = context->currentAggr;
+		    if (myAggr != NULL)
+		    {
+			if (myAggr->prefix != NULL)
+			    myMember->subaggr.prefix = strdup(myAggr->prefix);
+			if (myAggr->marker != NULL)
+			    myMember->subaggr.marker = strdup(myAggr->marker);
+		    }
+		    else
+		    {
+			if (mySubAggr->prefix != NULL)
+			    myMember->subaggr.prefix =\
+				strdup(mySubAggr->prefix);
+			if (mySubAggr->marker != NULL)
+			    myMember->subaggr.marker =
+				strdup(mySubAggr->marker);
+		    }
+		    myMember->subaggr.tag = _sdl_get_tag(
+						    context,
+						    NULL,
+						    aggType,
+						    _sdl_all_lower(name));
+		    if (myAggr != NULL)
+			myMember->subaggr.alignment = myAggr->alignment;
+		    else
+			myMember->subaggr.alignment = mySubAggr->alignment;
+		    myMember->subaggr.parentAlignment = true;
+		    SDL_Q_INIT(&myMember->subaggr.members);
+		    context->aggregateDepth++;
+		    context->currentAggr = &myMember->subaggr;
+		    break;
+
+		default:
+		    myMember->item.id = name;
+		    myMember->item._unsigned = sdl_isUnsigned(
 							context,
 							&datatype);
-		myMember->subaggr.type = datatype;
-		myMember->subaggr.parent = context->currentAggr;
-		if (myAggr != NULL)
-		{
-		    if (myAggr->prefix != NULL)
-			myMember->subaggr.prefix = strdup(myAggr->prefix);
-		    if (myAggr->marker != NULL)
-			myMember->subaggr.marker = strdup(myAggr->marker);
-		}
-		else
-		{
-		    if (mySubAggr->prefix != NULL)
-			myMember->subaggr.prefix = strdup(mySubAggr->prefix);
-		    if (mySubAggr->marker != NULL)
-			myMember->subaggr.marker = strdup(mySubAggr->marker);
-		}
-		myMember->subaggr.tag = _sdl_get_tag(
-						context,
-						NULL,
-						aggType,
-						_sdl_all_lower(name));
-		if (myAggr != NULL)
-		    myMember->subaggr.alignment = myAggr->alignment;
-		else
-		    myMember->subaggr.alignment = mySubAggr->alignment;
-		myMember->subaggr.parentAlignment = true;
-		SDL_Q_INIT(&myMember->subaggr.members);
-		context->aggregateDepth++;
-		context->currentAggr = &myMember->subaggr;
-		break;
+		    myMember->item.type = datatype;
+		    myMember->item.srcLineNo = myMember->srcLineNo;
+		    switch (datatype)
+		    {
+			case SDL_K_TYPE_DECIMAL:
+			    myMember->item. precision = context->precision;
+			    myMember->item.scale = context->scale;
+			    break;
 
-	    default:
-		myMember->item.id = name;
-		myMember->item._unsigned = sdl_isUnsigned(context, &datatype);
-		myMember->item.type = datatype;
-		myMember->item.srcLineNo = myMember->srcLineNo;
-		switch (datatype)
-		{
-		    case SDL_K_TYPE_DECIMAL:
-			myMember->item. precision = context->precision;
-			myMember->item.scale = context->scale;
-			break;
+			case SDL_K_TYPE_BITFLD:	/* only value parser provides */
+			    myMember->item.length = (length == 0 ? 1 : length);
+			    myMember->item.mask = mask;
+			    myMember->item._signed = _signed;
+			    myMember->item.subType = subType;
+			    switch (subType)
+			    {
+				case SDL_K_TYPE_BYTE:
+				    myMember->item.type = SDL_K_TYPE_BITFLD_B;
+				    break;
 
-		    case SDL_K_TYPE_BITFLD:
-			myMember->item.length = (length == 0 ? 1 : length);
-			myMember->item.mask = mask;
-			myMember->item._signed = _signed;
-			myMember->item.subType = subType;
-			break;
+				case SDL_K_TYPE_WORD:
+				    myMember->item.type = SDL_K_TYPE_BITFLD_W;
+				    break;
 
-		    case SDL_K_TYPE_ADDR:
-		    case SDL_K_TYPE_ADDR_L:
-		    case SDL_K_TYPE_ADDR_Q:
-		    case SDL_K_TYPE_ADDR_HW:
-		    case SDL_K_TYPE_HW_ADDR:
-		    case SDL_K_TYPE_PTR:
-		    case SDL_K_TYPE_PTR_L:
-		    case SDL_K_TYPE_PTR_Q:
-		    case SDL_K_TYPE_PTR_HW:
-			myMember->item.subType = subType;
-			break;
-		}
-		if ((myAggr != NULL) && (myAggr->prefix != NULL))
-		    myMember->item.prefix = strdup(myAggr->prefix);
-		else if ((mySubAggr != NULL) && (mySubAggr->prefix != NULL))
-		    myMember->item.prefix = strdup(mySubAggr->prefix);
-		myMember->item.tag = _sdl_get_tag(
-						context,
-						NULL,
-						datatype,
-						_sdl_all_lower(name));
-		myMember->item.size = sdl_sizeof(context, datatype);
-		if (myAggr != NULL)
-		    myMember->item.alignment = myAggr->alignment;
-		else
-		    myMember->item.alignment = mySubAggr->alignment;
-		myMember->item.parentAlignment = true;
-		break;
-	}
-	if (mySubAggr != NULL)
-	{
-	    _sdl_determine_offsets(context, myMember, &mySubAggr->members);
-	    SDL_INSQUE(&mySubAggr->members, &myMember->header.queue);
+				case SDL_K_TYPE_LONG:
+				    myMember->item.type = SDL_K_TYPE_BITFLD_L;
+				    break;
+
+				case SDL_K_TYPE_QUAD:
+				    myMember->item.type = SDL_K_TYPE_BITFLD_Q;
+				    break;
+
+				case SDL_K_TYPE_OCTA:
+				    myMember->item.type = SDL_K_TYPE_BITFLD_O;
+				    break;
+
+				default:
+				    break;
+			    }
+			    break;
+
+			case SDL_K_TYPE_ADDR:
+			case SDL_K_TYPE_ADDR_L:
+			case SDL_K_TYPE_ADDR_Q:
+			case SDL_K_TYPE_ADDR_HW:
+			case SDL_K_TYPE_HW_ADDR:
+			case SDL_K_TYPE_PTR:
+			case SDL_K_TYPE_PTR_L:
+			case SDL_K_TYPE_PTR_Q:
+			case SDL_K_TYPE_PTR_HW:
+			    myMember->item.subType = subType;
+			    break;
+		    }
+		    if ((myAggr != NULL) && (myAggr->prefix != NULL))
+			myMember->item.prefix = strdup(myAggr->prefix);
+		    else if ((mySubAggr != NULL) &&
+			     (mySubAggr->prefix != NULL))
+			myMember->item.prefix = strdup(mySubAggr->prefix);
+		    myMember->item.tag = _sdl_get_tag(
+						    context,
+						    NULL,
+						    datatype,
+						    _sdl_all_lower(name));
+		    myMember->item.size = sdl_sizeof(context, datatype);
+		    if (myAggr != NULL)
+			myMember->item.alignment = myAggr->alignment;
+		    else
+			myMember->item.alignment = mySubAggr->alignment;
+		    myMember->item.parentAlignment = true;
+		    break;
+	    }
+	    _sdl_checkAndSetOrigin(context, myMember);
+	    if (mySubAggr != NULL)
+	    {
+		_sdl_determine_offsets(context, myMember, &mySubAggr->members);
+		SDL_INSQUE(&mySubAggr->members, &myMember->header.queue);
+	    }
+	    else
+	    {
+		_sdl_determine_offsets(context, myMember, &myAggr->members);
+		SDL_INSQUE(&myAggr->members, &myMember->header.queue);
+	    }
 	}
 	else
-	{
-	    _sdl_determine_offsets(context, myMember, &myAggr->members);
-	    SDL_INSQUE(&myAggr->members, &myMember->header.queue);
-	}
+	    retVal = 0;
     }
-    else
-	retVal = 0;
 
    /*
     * Return the results of this call back to the caller.
@@ -2484,7 +2529,12 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 			    (SDL_AGGREGATE *) context->aggregates.header.blink;
 	int ii;
 
+	/*
+	 * We no longer have a current aggregate.  Also, determine the actual
+	 * size of the aggregate.
+	 */
 	context->currentAggr = NULL;
+	myAggr->size = _sdl_aggregate_size(context, myAggr, NULL);
 
 	/*
 	 * Loop through all the possible languages and call the appropriate
@@ -2529,34 +2579,8 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
      */
     else
     {
-	SDL_MEMBERS *member = (SDL_MEMBERS *) mySubAggr->members.blink;
-
-	if (SDL_Q_EMPTY(&mySubAggr->members) == false)
-	{
-	    int64_t	offset = member->offset;
-	    int64_t	size;
-	    int		dimension = 1;
-
-	    if (sdl_isItem(member) == true)
-	    {
-		if (member->item.dimension == true)
-		{
-		    dimension = member->item.hbound - member->item.lbound + 1;
-		    size = member->item.size;
-		}
-	    }
-	    else
-	    {
-		if (member->subaggr.dimension == true)
-		{
-		    dimension = member->subaggr.hbound -
-				member->subaggr.lbound + 1;
-		    size = member->subaggr.size;
-		}
-	    }
-	    mySubAggr->size = offset - mySubAggr->offset + (size * dimension);
-	}
 	context->currentAggr = mySubAggr->parent;
+	mySubAggr->size = _sdl_aggregate_size(context, NULL, mySubAggr);
     }
 
     /*
@@ -3707,7 +3731,7 @@ static void _sdl_determine_offsets(
      * previously utilized.  We will also generate the appropriate MASK and
      * SIZE constants.
      */
-    if (member->type == SDL_K_TYPE_BITFLD)
+    if (sdl_isBitfield(member) == true)
     {
 
 	/*
@@ -3716,7 +3740,7 @@ static void _sdl_determine_offsets(
 	 * is determined by the offset of the previous member, plus the size of
 	 * the previous member.
 	 */
-	if ((prevMember == NULL) || (prevMember->type != SDL_K_TYPE_BITFLD))
+	if ((prevMember == NULL) || (sdl_isBitfield(prevMember) == false))
 	{
 	    member->item.bitOffset = 0;
 	    if (prevItem == true)
@@ -3860,9 +3884,10 @@ static void _sdl_determine_offsets(
 	/*
 	 * We may be inserting after a BITFIELD.
 	 */
-	if ((prevMember != NULL) && (prevMember->type == SDL_K_TYPE_BITFLD))
+	if ((prevMember != NULL) && (sdl_isBitfield(prevMember) == true))
 	{
-	    int availBits = (prevMember->item.size * 8) - prevMember->item.bitOffset;
+	    int availBits = (prevMember->item.size * 8) -
+				prevMember->item.bitOffset;
 	    if (availBits > 0)
 		_sdl_fill_bitfield(
 				memberList,
@@ -3984,6 +4009,155 @@ static void _sdl_fill_bitfield(
     filler->item.bitOffset = member->item.bitOffset + 1;
     filler->item.srcLineNo = member->item.srcLineNo;
     SDL_INSQUE(memberList, &filler->header.queue);
+
+    /*
+     * Return back to the caller.
+     */
+    return;
+}
+
+/*
+ * _sdl_aggregate_size
+ *  This function is called to determine an AGGREGATE's or subaggregate's
+ *  actual size.  NOTE: aggr and subAggr parameters cannot be supplied or NULL
+ *  at the same time.
+ *
+ * Input Parameters:
+ *  aggr:
+ *	A pointer to an SDL_AGGREGATE block that needs to have its size
+ *	calculated, or NULL.
+ *  subAggr:
+ *	A pointer to an SDL_SUBAGGR block that needs to have its size
+ *	calculated, or NULL.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  A value representing the size of the AGGREGATE or subaggregate.
+ */
+static int64_t _sdl_aggregate_size(
+			SDL_CONTEXT *context,
+			SDL_AGGREGATE *aggr,
+			SDL_SUBAGGR *subAggr)
+{
+    SDL_MEMBERS	*member = NULL;
+    SDL_QUEUE	*memberList = NULL;
+    int64_t	retVal = 0;
+    int64_t	size = 0;
+    int		dimension = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_aggregate_size\n", __FILE__, __LINE__);
+
+    /*
+     * Get the last member for either the AGGREGATE or subaggregate.  If we
+     * have a subaggregate, then we also need to determine the current offset
+     * (AGGREGATES always have an offset of 0).
+     */
+    if (aggr != NULL)
+    {
+	if (SDL_Q_EMPTY(&aggr->members) == false)
+	{
+	    member = (SDL_MEMBERS *) aggr->members.blink;
+	    memberList = &aggr->members;
+	}
+    }
+    else if (subAggr != NULL)
+    {
+	if (SDL_Q_EMPTY(&subAggr->members) == false)
+	{
+	    member = (SDL_MEMBERS *) subAggr->members.blink;
+	    memberList = &subAggr->members;
+	}
+    }
+
+    /*
+     * Before we can try and figure out the AGGREGATE or subaggregate size, we
+     * may have just ended a BITFIELD, but without all the bits used.
+     */
+    if ((member != NULL) && (sdl_isBitfield(member) == true))
+    {
+	    int availBits = (member->item.size * 8) - member->item.bitOffset;
+	    if (availBits > 0)
+		_sdl_fill_bitfield(
+				memberList,
+				member,
+				availBits,
+				context->fillerCount++,
+				member->item.srcLineNo);
+    }
+
+    /*
+     * OK, we should have am
+     */
+    if (member != NULL)
+    {
+	retVal = member->offset;
+	if (sdl_isItem(member) == true)
+	{
+	    size = member->item.size;
+	    if (member->item.dimension == true)
+		dimension = member->item.hbound - member->item.lbound + 1;
+	}
+	else
+	{
+	    size += member->subaggr.size;
+	    if (member->subaggr.dimension == true)
+		dimension = member->subaggr.hbound - member->subaggr.lbound + 1;
+	}
+	retVal += (size * dimension);
+    }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * _sdl_checkAndSetOrigin
+ *  This function is called to check the current top AGGREGATE for an ORIGIN
+ *  reference.  If it was defined, and the supplied member's name matches the
+ *  ORIGIN name, and the ORIGIN has not already been set, then set it now.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  member:
+ *	A pointer to the member for which we are to determine the offset where
+ *	this field will be stored.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  None.
+ */
+static void _sdl_checkAndSetOrigin(SDL_CONTEXT *context, SDL_MEMBERS *member)
+{
+    SDL_AGGREGATE	*aggr = (SDL_AGGREGATE *) context->aggregates.header.blink;
+    char		*id = (sdl_isItem(member) == true ?
+					member->item.id :
+					member->subaggr.id);
+
+    /*
+     * If any aggregates have been defined, then check the member.id against
+     * the ORIGIN id, and if they match, and we have not already saved a
+     * member, then save a pointer to the member in the ORIGIN of the
+     * AGGREGATE.
+     */
+    if (context->aggregates.nextID > SDL_K_AGGREGATE_MIN)
+    {
+	if ((aggr->origin.origin == NULL) &&
+	    (aggr->origin.id != NULL) &&
+	    (strcmp(aggr->origin.id, id) == 0))
+	    aggr->origin.origin = member;
+    }
 
     /*
      * Return back to the caller.

@@ -38,9 +38,9 @@ SDL_ENUMERATE *sdl_get_enum(SDL_ENUM_LIST *enums, int typeID);
 int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value);
 int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype);
 int sdl_aggrtype_idx(SDL_CONTEXT *context, char *aggregateName);
-__int64_t sdl_bin2int(char *binStr);
-int sdl_str2int(char *strVal, __int64_t *val);
-int sdl_offset(SDL_CONTEXT *context, int offsetType);
+int64_t sdl_bin2int(char *binStr);
+int sdl_str2int(char *strVal, int64_t *val);
+int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo);
 int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound);
 int sdl_add_option(
 		SDL_CONTEXT *context,
@@ -48,7 +48,7 @@ int sdl_add_option(
 		__int64_t value,
 		char *string,
 		int srcLineNo);
-int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale);
+int sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
 #define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */
@@ -58,7 +58,7 @@ int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale);
 #define SDL_M_KEEP_NL	0x00000020	/* keep new-lines, if present */
 #define SDL_M_TRIM	(SDL_M_LEAD | SDL_M_TRAIL)
 void sdl_trim_str(char *str, int type);
-__int64_t *sdl_increment(__int64_t value);
+int64_t *sdl_increment(int64_t value);
 
 void *sdl_allocate_block(
 		SDL_BLOCK_ID blockID,
@@ -68,5 +68,6 @@ void sdl_deallocate_block(SDL_HEADER *block);
 int64_t sdl_sizeof(SDL_CONTEXT *context, int item);
 bool sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);
 bool sdl_isItem(SDL_MEMBERS *member);
+bool sdl_isBitfield(SDL_MEMBERS *member);
 
 #endif	/* _OPENSDL_UTILITY_H_ */

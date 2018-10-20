@@ -813,8 +813,12 @@ int sdl_str2int(char *strVal, __int64_t *val)
  *	following values:
  *	    SDL_K_OFF_BYTE_REL	- Relative from the beginning or ORIGIN.
  *	    SDL_K_OFF_BYTE_BEG	- Relative from the beginning.
- *	    SDL_K_OFF_BIT		- bit offset from the beginning or most recent
- *							  element.
+ *	    SDL_K_OFF_BIT	- bit offset from the beginning or most recent
+ *				  element.
+ *  srcLineNo:
+ *  	A value indicating the line number in the source file that caused this
+ *  	function to be called.
+ *
  * Output Parameters:
  *	None.
  *
@@ -822,16 +826,30 @@ int sdl_str2int(char *strVal, __int64_t *val)
  *  0:		if we did not find anything.
  *  >=0:	if we did find something to return.
  */
-int sdl_offset(SDL_CONTEXT *context, int offsetType)
+int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
 {
     SDL_AGGREGATE	*myAgg = NULL;
-    int			retVal = 0;
+    int64_t		origin = 0;
+    int64_t		retVal = 0;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
 	printf("%s:%d:sdl_offset\n", __FILE__, __LINE__);
+
+    /*
+     * Before we can do anything, if there are options still to be process, we
+     * need to call the sdl_aggregate_member to process just these options and
+     * not do anything else.
+     */
+    if (context->optionsIdx > 0)
+	(void) sdl_aggregate_member(
+			context,
+			NULL,
+			SDL_K_TYPE_NONE,
+			SDL_K_TYPE_NONE,
+			srcLineNo);
 
     if (context->aggregates.nextID > SDL_K_AGGREGATE_MIN)
 	myAgg = sdl_get_aggregate(
@@ -845,6 +863,9 @@ int sdl_offset(SDL_CONTEXT *context, int offsetType)
     switch(offsetType)
     {
 	case SDL_K_OFF_BYTE_REL:
+	    if ((myAgg != NULL) && (myAgg->origin.origin != NULL))
+		origin = myAgg->origin.origin->offset;
+	    /* no break */
 	case SDL_K_OFF_BYTE_BEG:
 
 	    /*
@@ -863,29 +884,30 @@ int sdl_offset(SDL_CONTEXT *context, int offsetType)
 		while (done == false)
 		{
 		    if ((sdl_isItem(member) == false) &&
-		        (SDL_Q_EMPTY(&member->subaggr.members) == false))
+		        (SDL_Q_EMPTY(&member->subaggr.members) == false) &&
+		        (member->subaggr.size == 0))
 			member = (SDL_MEMBERS *) member->subaggr.members.blink;
 		    else
 			done = true;
 		}
 		if (member != NULL)
 		{
-		    int dimension = 1;
+		    int64_t dimension = 1;
 
 		    if (sdl_isItem(member))
 		    {
 			if (member->item.dimension == true)
-			    dimension = member->item.hbound +
+			    dimension = member->item.hbound -
 					member->item.lbound + 1;
-			retVal = member->offset +
+			retVal = member->offset - origin +
 				 (member->item.size * dimension);
 		    }
 		    else
 		    {
 			if (member->subaggr.dimension == true)
-			    dimension = member->subaggr.hbound +
+			    dimension = member->subaggr.hbound -
 					member->subaggr.lbound + 1;
-			retVal = member->offset +
+			retVal = member->offset - origin +
 				 (member->subaggr.size * dimension);
 		    }
 		}
@@ -912,7 +934,7 @@ int sdl_offset(SDL_CONTEXT *context, int offsetType)
 		    else
 			member = NULL;
 		}
-		if ((member != NULL) && (member->type == SDL_K_TYPE_BITFLD))
+		if ((member != NULL) && (sdl_isBitfield(member)== true))
 		    retVal = member->item.bitOffset + member->item.length;
 	    }
 	    break;
@@ -959,7 +981,12 @@ int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_dimension\n", __FILE__, __LINE__);
+	printf(
+	    "%s:%d:sdl_dimension(%ld:%ld)\n",
+	    __FILE__,
+	    __LINE__,
+	    lbound,
+	    hbound);
 
     /*
      * Loop through all the dimension array entries looking for an available
@@ -2040,6 +2067,45 @@ bool sdl_isItem(SDL_MEMBERS *member)
     if ((member->type != SDL_K_TYPE_STRUCT) &&
 	(member->type != SDL_K_TYPE_UNION) &&
 	(member->type != SDL_K_TYPE_IMPLICIT))
+	retVal = true;
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_isBitfield
+ *   This function is called to determine if a MEMBER is a BITFIELD or not.
+ *
+ * Input Parameters:
+ *   member:
+ *   	A pointer to the MEMBER to check.
+ *
+ * Output Parameters:
+ *  None
+ *
+ * Return Values:
+ *  true:	The member is a BITFIELD ITEM.
+ *  false:	The member is not a BITFIELD ITEM.
+ */
+bool sdl_isBitfield(SDL_MEMBERS *member)
+{
+    bool	retVal = false;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_isBitfield\n", __FILE__, __LINE__);
+
+    if ((member->type == SDL_K_TYPE_BITFLD) ||
+	(member->type == SDL_K_TYPE_BITFLD_B) ||
+	(member->type == SDL_K_TYPE_BITFLD_W) ||
+	(member->type == SDL_K_TYPE_BITFLD_L) ||
+	(member->type == SDL_K_TYPE_BITFLD_Q) ||
+	(member->type == SDL_K_TYPE_BITFLD_O))
 	retVal = true;
 
     /*

@@ -418,11 +418,21 @@ _v_number
 	| t_ascii
 	    { $$ = (__int64_t) $1[0]; free($1); }
 	| SDL_K_DOT
-	    { $$ = sdl_offset(&context, SDL_K_OFF_BYTE_REL); }
+	    {
+		$$ = sdl_offset(
+			&context,
+			SDL_K_OFF_BYTE_REL,
+			yyloc.first_line);
+	    }
 	| SDL_K_FULL
-	    { $$ = sdl_offset(&context, SDL_K_OFF_BYTE_BEG); }
+	    {
+		$$ = sdl_offset(
+			&context,
+			SDL_K_OFF_BYTE_BEG,
+			yyloc.first_line);
+	    }
 	| SDL_K_CARAT
-	    { $$ = sdl_offset(&context, SDL_K_OFF_BIT); }
+	    { $$ = sdl_offset(&context, SDL_K_OFF_BIT, yyloc.first_line); }
 	;
 
 varset

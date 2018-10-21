@@ -374,7 +374,6 @@ typedef struct
     bool		mask;		/* For BITFIELDs only*/
     bool		parentAlignment;
     bool		typeDef;
-    bool		_signed;	/* For BITFIELDs only */
     bool		_unsigned;
 } SDL_ITEM;
 

@@ -2187,7 +2187,7 @@ int sdl_aggregate_member(
 			    AggrMemberBlock,
 			    (myAggr != NULL ?
 				    &myAggr->header :
-				    &mySubAggr->parent->header),
+				    (SDL_HEADER *) mySubAggr),
 				    srcLineNo);
 	if (myMember != NULL)
 	{
@@ -2277,28 +2277,33 @@ int sdl_aggregate_member(
 			case SDL_K_TYPE_BITFLD:	/* only value parser provides */
 			    myMember->item.length = (length == 0 ? 1 : length);
 			    myMember->item.mask = mask;
-			    myMember->item._signed = _signed;
+			    myMember->item._unsigned = _signed == false;
 			    myMember->item.subType = subType;
 			    switch (subType)
 			    {
 				case SDL_K_TYPE_BYTE:
 				    myMember->item.type = SDL_K_TYPE_BITFLD_B;
+				    datatype = SDL_K_TYPE_BITFLD_B;
 				    break;
 
 				case SDL_K_TYPE_WORD:
 				    myMember->item.type = SDL_K_TYPE_BITFLD_W;
+				    datatype = SDL_K_TYPE_BITFLD_W;
 				    break;
 
 				case SDL_K_TYPE_LONG:
 				    myMember->item.type = SDL_K_TYPE_BITFLD_L;
+				    datatype = SDL_K_TYPE_BITFLD_L;
 				    break;
 
 				case SDL_K_TYPE_QUAD:
 				    myMember->item.type = SDL_K_TYPE_BITFLD_Q;
+				    datatype = SDL_K_TYPE_BITFLD_Q;
 				    break;
 
 				case SDL_K_TYPE_OCTA:
 				    myMember->item.type = SDL_K_TYPE_BITFLD_O;
+				    datatype = SDL_K_TYPE_BITFLD_O;
 				    break;
 
 				default:
@@ -2449,7 +2454,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 
 		case Signed:
 		    if (myMember != NULL)
-			myMember->item._signed = true;
+			myMember->item._unsigned = false;
 		    break;
 
 		case Typedef:
@@ -3581,7 +3586,7 @@ static int _sdl_iterate_members(
 		"\t%d: SUBAGGREGATE:\n\t    name: %s\n\t    prefix: %s\n"
 		"\t    tag: %s\n\t    marker: %s\n\t    arrgType: %s\n"
 		"\t    typeID: %d\n\t    alignment: %d\n\t    type: %d\n"
-		"\t    _unsigned: %s\n\t    size: %ld\n\t    offset: %ld\n"
+		"\t    _unsigned: %s\n\t    size: %ld\n\t    offset: %ld (%ld)\n"
 		"\t    typeDef: %s\n\t    fill: %s\n\t    basedPtrName: %s\n"
 		"\t    currentBitOffset: %d\n",
 		count,
@@ -3595,7 +3600,7 @@ static int _sdl_iterate_members(
 		subaggr->type,
 		(subaggr->_unsigned == true ? "True" : "False"),
 		subaggr->size,
-		subaggr->offset,
+		subaggr->offset, member->offset,
 		(subaggr->typeDef == true ? "True" : "False"),
 		(subaggr->fill == true ? "True" : "False"),
 		(subaggr->basedPtrName!= NULL ? subaggr->basedPtrName: ""),
@@ -3634,8 +3639,8 @@ static int _sdl_iterate_members(
 		"\t%d: ITEM:\n\t    name: %s\n\t    prefix: %s\n"
 		"\t    tag: %s\n\t    typeID: %d\n\t    alignment: %d\n"
 		"\t    type: %d\n\t    _unsigned: %s\n\t    size: %ld\n"
-		"\t    typeDef: %s\n\t    fill: %s\n\t    offset: %ld\n"
-		"\t    length: %ld\n\t    mask: %s\n\t    signed: %s\n"
+		"\t    typeDef: %s\n\t    fill: %s\n\t    offset: %ld (%ld)\n"
+		"\t    length: %ld\n\t    mask: %s\n"
 		"\t    bitfieldType: %ld\n\t    bitOffset: %d\n",
 		count,
 	        member->item.id,
@@ -3648,10 +3653,9 @@ static int _sdl_iterate_members(
 	        member->item.size,
 	        (member->item.typeDef == true ? "True" : "False"),
 	        (member->item.fill == true ? "True" : "False"),
-	        member->item.offset,
+	        member->item.offset, member->offset,
 	        member->item.length,
 	        (member->item.mask == true ? "True" : "False"),
-	        (member->item._signed == true ? "True" : "False"),
 	        member->item.subType,
 	        member->item.bitOffset);
 	    if (member->item.dimension == true)
@@ -3777,7 +3781,9 @@ static void _sdl_determine_offsets(
 	}
 	else if (prevMember != NULL)
 	{
-	    int availBits = (prevMember->item.size * 8) - prevMember->item.bitOffset;
+	    int availBits = (prevMember->item.size * 8) -
+			    prevMember->item.bitOffset -
+			    prevMember->item.length;
 
 	    /*
 	     * The new member and the previous member are both BITFIELDs.
@@ -3887,7 +3893,8 @@ static void _sdl_determine_offsets(
 	if ((prevMember != NULL) && (sdl_isBitfield(prevMember) == true))
 	{
 	    int availBits = (prevMember->item.size * 8) -
-				prevMember->item.bitOffset;
+				prevMember->item.bitOffset -
+				prevMember->item.length;
 	    if (availBits > 0)
 		_sdl_fill_bitfield(
 				memberList,
@@ -3909,7 +3916,7 @@ static void _sdl_determine_offsets(
 		    dimension = prevMember->item.hbound -
 				prevMember->item.lbound + 1;
 	    }
-	    else if (prevMember != NULL)
+	    else
 	    {
 		size = prevMember->subaggr.size;
 		if (prevMember->subaggr.dimension == true)
@@ -3938,10 +3945,14 @@ static void _sdl_determine_offsets(
 
 	    case SDL_K_ALIGN:
 		adjustment = member->offset % member->item.size;
+		if (adjustment != 0)
+		    adjustment = member->item.size - adjustment;
 		break;
 
 	    default:
 		adjustment = member->offset % member->item.alignment;
+		if (adjustment != 0)
+		    adjustment = member->item.alignment - adjustment;
 		break;
 	}
 	member->offset += adjustment;
@@ -4072,6 +4083,7 @@ static int64_t _sdl_aggregate_size(
 	{
 	    member = (SDL_MEMBERS *) subAggr->members.blink;
 	    memberList = &subAggr->members;
+	    retVal = subAggr->offset;
 	}
     }
 
@@ -4081,7 +4093,8 @@ static int64_t _sdl_aggregate_size(
      */
     if ((member != NULL) && (sdl_isBitfield(member) == true))
     {
-	    int availBits = (member->item.size * 8) - member->item.bitOffset;
+	    int availBits = (member->item.size * 8) -
+			    member->item.bitOffset - member->item.length;
 	    if (availBits > 0)
 		_sdl_fill_bitfield(
 				memberList,
@@ -4092,11 +4105,14 @@ static int64_t _sdl_aggregate_size(
     }
 
     /*
-     * OK, we should have am
+     * OK, we should have what we need to determine the size for this
+     * AGGREGATE or subaggregate.  The size is the last member offset, minus
+     * its own offset, plus the total size of the last member (which is its
+     * individual size times its dimension).
      */
     if (member != NULL)
     {
-	retVal = member->offset;
+	retVal = member->offset - retVal;;
 	if (sdl_isItem(member) == true)
 	{
 	    size = member->item.size;

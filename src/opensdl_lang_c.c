@@ -38,62 +38,221 @@
 extern char *sdl_months[];
 extern _Bool trace;
 
-static char *_types[SDL_K_BASE_TYPE_MAX][2] =
+static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 {
 	/* 32-bit	64-bit	*/
+    {
 	{"void",	"void"},	/* NONE */
+	{"void",	"void"}		/* NONE */
+    },
+    {
 	{"int8_t",	"int8_t"},	/* BYTE */
+	{"uint8_t",	"uint8_t"}	/* BYTE */
+    },
+    {
 	{"int8_t",	"int8_t"},	/* INTEGER_BYTE */
+	{"uint8_t",	"uint8_t"}	/* INTEGER_BYTE */
+    },
+    {
 	{"int16_t",	"int16_t"},	/* WORD */
+	{"uint16_t",	"uint16_t"}	/* WORD */
+    },
+    {
 	{"int16_t",	"int16_t"},	/* INTEGER_WORD */
+	{"uint16_t",	"uint16_t"}	/* INTEGER_WORD */
+    },
+    {
 	{"int32_t",	"int32_t"},	/* LONGWORD */
+	{"uint32_t",	"uint32_t"}	/* LONGWORD */
+    },
+    {
 	{"int32_t",	"int32_t"},	/* INTEGER_LONG */
+	{"uint32_t",	"uint32_t"}	/* INTEGER_LONG */
+    },
+    {
 	{"int",		"int"},		/* INTEGER */
+	{"unsigned int","unsigned int"}	/* INTEGER */
+    },
+    {
 	{"int32_t",	"int64_t"},	/* INTEGER_HW */
+	{"uint32_t",	"uint64_t"}	/* INTEGER_HW */
+    },
+    {
 	{"int32_t",	"int64_t"},	/* HARDWARE_INTEGER */
+	{"uint32_t",	"uint64_t"}	/* HARDWARE_INTEGER */
+    },
+    {
 	{"int64_t",	"int64_t"},	/* QUADWORD */
+	{"uint64_t",	"uint64_t"}	/* QUADWORD */
+    },
+    {
 	{"int64_t",	"int64_t"},	/* INTEGER_QUAD */
+	{"uint64_t",	"uint64_t"}	/* INTEGER_QUAD */
+    },
+    {
 	{"__int128_t",	"__int128_t"},	/* OCTAWORD */
+	{"__uint128_t",	"__uint128_t"}	/* OCTAWORD */
+    },
+    {
 	{"float",	"float"},	/* T_FLOATING */
+	{"float",	"float"}	/* T_FLOATING */
+    },
+    {
 	{"float complex","float complex"},/* T_FLOATING COMPLEX */
+	{"float complex","float complex"} /* T_FLOATING COMPLEX */
+    },
+    {
 	{"double",	"double"},	/* S_FLOATING */
+	{"double",	"double"}	/* S_FLOATING */
+    },
+    {
 	{"double complex","double complex"},/* S_FLOATING COMPLEX */
-	{"long double","long double"},/* X_FLOATING */
+	{"double complex","double complex"} /* S_FLOATING COMPLEX */
+    },
+    {
+	{"long double","long double"},	/* X_FLOATING */
+	{"long double","long double"}	/* X_FLOATING */
+    },
+    {
 	{"long double complex","long double complex"},/* X_FLOATING COMPLEX */
+	{"long double complex","long double complex"} /* X_FLOATING COMPLEX */
+    },
+    {
 	{"float",	"float"},	/* F_FLOATING */
+	{"float",	"float"}	/* F_FLOATING */
+    },
+    {
 	{"float",	"float"},	/* F_FLOATING COMPLEX */
+	{"float",	"float"}	/* F_FLOATING COMPLEX */
+    },
+    {
 	{"double",	"double"},	/* D_FLOATING */
+	{"double",	"double"}	/* D_FLOATING */
+    },
+    {
 	{"double",	"double"},	/* D_FLOATING COMPLEX */
+	{"double",	"double"}	/* D_FLOATING COMPLEX */
+    },
+    {
 	{"double",	"double"},	/* G_FLOATING */
+	{"double",	"double"}	/* G_FLOATING */
+    },
+    {
 	{"double",	"double"},	/* G_FLOATING COMPLEX */
-	{"long double","long double"},/* H_FLOATING */
+	{"double",	"double"}	/* G_FLOATING COMPLEX */
+    },
+    {
+	{"long double","long double"},	/* H_FLOATING */
+	{"long double","long double"}	/* H_FLOATING */
+    },
+    {
 	{"long double complex","long double complex"},/* H_FLOATING COMPLEX */
+	{"long double complex","long double complex"} /* H_FLOATING COMPLEX */
+    },
+    {
 	{"char",	"char"},	/* DECIMAL */
+	{"char",	"char"}		/* DECIMAL */
+    },
+    {
 	{"int",		"int"},		/* BITFIELD */
+	{"unsigned int","unsigned int"}	/* BITFIELD */
+    },
+    {
 	{"int8_t",	"int8_t"},	/* BITFIELD BYTE */
+	{"uint8_t",	"uint8_t"}	/* BITFIELD BYTE */
+    },
+    {
 	{"int16_t",	"int16_t"},	/* BITFIELD WORD */
+	{"uint16_t",	"uint16_t"}	/* BITFIELD WORD */
+    },
+    {
 	{"int32_t",	"int32_t"},	/* BITFIELD LONGWORD */
+	{"uint32_t",	"uint32_t"}	/* BITFIELD LONGWORD */
+    },
+    {
 	{"int64_t",	"int64_t"},	/* BITFIELD QUADWORD */
+	{"uint64_t",	"uint64_t"}	/* BITFIELD QUADWORD */
+    },
+    {
 	{"__int128_t",	"__int128_t"},	/* BITFIELD OCTAWORD */
+	{"__uint128_t",	"__uint128_t"}	/* BITFIELD OCTAWORD */
+    },
+    {
 	{"char",	"char"},	/* CHAR */
+	{"char",	"char"}		/* CHAR */
+    },
+    {
 	{NULL,		NULL},		/* CHAR VARYING */
+	{NULL,		NULL},		/* CHAR VARYING */
+    },
+    {
 	{"char",	"char"},	/* CHAR LENGTH(*) */
+	{"char",	"char"}		/* CHAR LENGTH(*) */
+    },
+    {
 	{NULL,		NULL},		/* ADDRESS */
-	{"int32_t",	"int32_t"},	/* ADDRESS_LONG */
-	{"int64_t",	"int64_t"},	/* ADDRESS_QUAD */
-	{"int32_t",	"int64_t"},	/* ADDRESS_HW */
-	{"int32_t",	"int64_t"},	/* HARDWARE_ADDRESS*/
+	{NULL,		NULL}		/* ADDRESS */
+    },
+    {
+	{"uint32_t",	"uint32_t"},	/* ADDRESS_LONG */
+	{"uint32_t",	"uint32_t"}	/* ADDRESS_LONG */
+    },
+    {
+	{"uint64_t",	"uint64_t"},	/* ADDRESS_QUAD */
+	{"uint64_t",	"uint64_t"}	/* ADDRESS_QUAD */
+    },
+    {
+	{"uint32_t",	"uint64_t"},	/* ADDRESS_HW */
+	{"uint32_t",	"uint64_t"}	/* ADDRESS_HW */
+    },
+    {
+	{"uint32_t",	"uint64_t"},	/* HARDWARE_ADDRESS*/
+	{"uint32_t",	"uint64_t"}	/* HARDWARE_ADDRESS*/
+    },
+    {
 	{NULL,		NULL},		/* POINTER */
-	{"int32_t",	"int32_t"},	/* POINTER_LONG */
-	{"int64_t",	"int64_t"},	/* POINTER_QUAD */
-	{"int32_t",	"int64_t"},	/* POINTER_HW */
+	{NULL,		NULL}		/* POINTER */
+    },
+    {
+	{"uint32_t",	"uint32_t"},	/* POINTER_LONG */
+	{"uint32_t",	"uint32_t"}	/* POINTER_LONG */
+    },
+    {
+	{"uint64_t",	"uint64_t"},	/* POINTER_QUAD */
+	{"uint64_t",	"uint64_t"}	/* POINTER_QUAD */
+    },
+    {
+	{"uint32_t",	"uint64_t"},	/* POINTER_HW */
+	{"uint32_t",	"uint64_t"}	/* POINTER_HW */
+    },
+    {
 	{"void",	"void"},	/* ANY */
+	{"void",	"void"}		/* ANY */
+    },
+    {
 	{"void",	"void"},	/* VOID */
+	{"void",	"void"}		/* VOID */
+    },
+    {
 	{"bool",	"bool"},	/* BOOLEAN */
+	{"bool",	"bool"}		/* BOOLEAN */
+    },
+    {
 	{"struct",	"struct"},	/* STRUCTURE */
+	{"struct",	"struct"}	/* STRUCTURE */
+    },
+    {
 	{"union",	"union"},	/* UNION */
+	{"union",	"union"}	/* UNION */
+    },
+    {
 	{"enum",	"enum"},	/* ENUM */
+	{"enum",	"enum"}		/* ENUM */
+    },
+    {
+	{NULL,		NULL},		/* ENTRY */
 	{NULL,		NULL}		/* ENTRY */
+    }
 };
 
 /*
@@ -107,6 +266,7 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag);
 static char *_sdl_c_typeidStr(
 			int typeID,
 			int subType,
+			bool _unsigned,
 			SDL_CONTEXT *context,
 			bool *freeMe);
 static char *_sdl_c_leading_spaces(int depth);
@@ -584,7 +744,12 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
      */
     if ((fp != NULL) && (name != NULL))
     {
-	type = _sdl_c_typeidStr(item->type, item->subType, context, &freeMe);
+	type = _sdl_c_typeidStr(
+			item->type,
+			item->subType,
+			item->_unsigned,
+			context,
+			&freeMe);
 
 	/*
 	 * If typedef is indicated, then let's start with that.
@@ -885,7 +1050,8 @@ int sdl_c_aggregate(
 		}
 		if (retVal == 1)
 		{
-		    char *which = _types[my.aggr->aggType][bits];
+		    char *which =
+			    _types[my.aggr->aggType][bits][my.aggr->_unsigned];
 		    char *td = (my.aggr->typeDef == true ? "_" : "");
 
 		    if (fprintf(fp, "%s", which) < 0)
@@ -930,7 +1096,8 @@ int sdl_c_aggregate(
 	     */
 	    if ((ending == false) && (retVal == 1) && (name != NULL))
 	    {
-		char *which = _types[my.subaggr->aggType][bits];
+		char *which =
+			_types[my.subaggr->aggType][bits][my.subaggr->_unsigned];
 
 		if (fprintf(fp, "%s ", which) < 0)
 		    retVal = 0;
@@ -1019,7 +1186,12 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     }
     else
     {
-	type = _sdl_c_typeidStr(entry->returns.type, 0, context, &freeMe);
+	type = _sdl_c_typeidStr(
+			entry->returns.type,
+			0,
+			entry->returns._unsigned,
+			context,
+			&freeMe);
 	if (entry->returns._unsigned == true)
 	    outLen += sprintf(&outBuf[outLen], "unsigend ");
 	outLen += sprintf(&outBuf[outLen], "%s ", type);
@@ -1041,7 +1213,12 @@ int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     outLen = 0;
     while ((retVal == 1) && (param != (SDL_PARAMETER *) &entry->parameters))
     {
-	type = _sdl_c_typeidStr(param->type, 0, context, &freeMe);
+	type = _sdl_c_typeidStr(
+			param->type,
+			0,
+			param->_unsigned,
+			context,
+			&freeMe);
 	if (param->_unsigned == true)
 	    outLen += sprintf(&outBuf[outLen], "unsigned ");
 	outLen += sprintf(&outBuf[outLen], "%s", type);
@@ -1358,6 +1535,9 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
  *  subType:
  *	A value indicating the subType to be converted, when the type is
  *	ADDRESS or POINTER.
+ *  _unsigned:
+ *	A boolean value indicating whether we should get the signed or unsigned
+ *	version of the datatype (only really valid for INTEGERs).
  *  context:
  *	A pointer to the context block to be used for converting a type into
  *	a string.
@@ -1375,6 +1555,7 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
 static char *_sdl_c_typeidStr(
 			int typeID,
 			int subType,
+			bool _unsigned,
 			SDL_CONTEXT *context,
 			bool *freeMe)
 {
@@ -1389,13 +1570,13 @@ static char *_sdl_c_typeidStr(
 
     *freeMe = false;
     if (typeID == SDL_K_TYPE_NONE)
-	retVal = _types[SDL_K_TYPE_VOID][bits];
+	retVal = _types[SDL_K_TYPE_VOID][bits][_unsigned];
     else if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
     {
 	if ((typeID == SDL_K_TYPE_ADDR) || (typeID == SDL_K_TYPE_PTR))
-	    retVal = _sdl_c_typeidStr(subType, 0, context, freeMe);
+	    retVal = _sdl_c_typeidStr(subType, 0, _unsigned, context, freeMe);
 	else
-	    retVal = _types[typeID][bits];
+	    retVal = _types[typeID][bits][_unsigned];
     }
     else if ((typeID >= SDL_K_DECLARE_MIN) && (typeID <= SDL_K_DECLARE_MAX))
     {
@@ -1414,7 +1595,12 @@ static char *_sdl_c_typeidStr(
 	SDL_ITEM *myItem = sdl_get_item(&context->items, typeID);
 
 	if (myItem != NULL)
-	    retVal = _sdl_c_typeidStr(myItem->type, subType, context, freeMe);
+	    retVal = _sdl_c_typeidStr(
+				myItem->type,
+				subType,
+				_unsigned,
+				context,
+				freeMe);
     }
     else if ((typeID >= SDL_K_AGGREGATE_MIN) && (typeID <= SDL_K_AGGREGATE_MAX))
     {
@@ -1425,6 +1611,7 @@ static char *_sdl_c_typeidStr(
 	    retVal = _sdl_c_typeidStr(
 				myAggregate->type,
 				subType,
+				_unsigned,
 				context,
 				freeMe);
     }

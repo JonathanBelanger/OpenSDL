@@ -2726,6 +2726,7 @@ int sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
  *
  * Output Parameters:
  *  None.
+ *
  * Return Values:
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
@@ -2824,6 +2825,186 @@ int sdl_add_parameter(
     }
     else
 	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * sdl_conditional
+ *  This function is called when one of the conditional statements has been
+ *  parsed and needs to be processed.  The IFSYMBOL turns off and on processing
+ *  of the file.  This will actually prevent the processing of anything coming
+ *  from the parser.  IFLANGUAGE will turn off and on the outputting of
+ *  definitions for a particular language.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  conditional:
+ *	An integer indicating the type of conditional.
+ *  expr:
+ *	A pointer to the actual conditions for the conditional.  For
+ *	IFLANGUAGE, this will be a pointer to a structure that contains the
+ *	list of languages specified.  For IFSYMBOL, this will be the singular
+ *	string for the conditional.
+ *  srcLineNo:
+ *	A value representing the source file line number.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_conditional(
+		SDL_CONTEXT *context,
+		int conditional,
+		void *expr,
+		int srcLineNo)
+{
+    char		*symbol = (char *) expr;
+    SDL_LANGUAGE_LIST	*langs = (SDL_LANGUAGE_LIST *) expr;
+    int			retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_conditional\n", __FILE__, __LINE__);
+
+    /*
+     * Perform the processing based on the conditional provided.
+     * TODO: We need to be able to compare the languages and symbols to the
+     * TODO: ones specified on the command line.
+     */
+    switch(conditional)
+    {
+	case SDL_K_COND_SYMB:
+	    free(symbol);
+	    break;
+
+	case SDL_K_COND_LANG:
+	    langs->listUsed = 0;
+	    break;
+
+	case SDL_K_COND_ELSEIF:
+	    free(symbol);
+	    break;
+
+	case SDL_K_COND_ELSE:
+	    break;
+
+	case SDL_K_COND_END_SYMB:
+	    break;
+
+	case SDL_K_COND_END_LANG:
+	    if (langs != NULL)
+		langs->listUsed = 0;
+	    break;
+
+	default:
+	    break;
+    }
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    return (retVal);
+}
+
+/*
+ * sdl_add_language
+ *  This function is called to add a language to the list of languages
+ *  specified on an IFLANGUAGE or END_IFLANGUAGE statements.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  langStr:
+ *	A pointer to a string containing the language specifier to be added to
+ *	the list of language specifiers currently in process.
+ *  srcLineNo:
+ *	A value representing the source file line number.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+int sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
+{
+    int		retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_add_language\n", __FILE__, __LINE__);
+
+    if (langStr != NULL)
+    {
+	if (context->langCondList.listUsed == context->langCondList.listSize)
+	{
+	    context->langCondList.lang = realloc(
+					    context->langCondList.lang,
+					    ++context->langCondList.listSize);
+	}
+	if (context->langCondList.lang != NULL)
+	    strcpy(
+		context->langCondList.lang[context->langCondList.listUsed++],
+		langStr);
+	else
+	    retVal = 0;
+    }
+    else
+	retVal = 0;
+
+    /*
+     * Return the results of this call back to the caller.
+     */
+    free(langStr);
+    return (retVal);
+}
+
+/*
+ * sdl_get_language
+ *  This function is called to get all the languages specified on an IFLANGUAGE
+ *  or END_IFLANGUAGE statements.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  srcLineNo:
+ *	A value representing the source file line number.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  !NULL:	Normal Successful Completion.
+ *  NULL:	No languages specified.
+ */
+void *sdl_get_language(SDL_CONTEXT *context, int srcLineNo)
+{
+    void	*retVal = NULL;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_get_language\n", __FILE__, __LINE__);
+
+    if (context->langCondList.listUsed > 0)
+	retVal = &context->langCondList;
 
     /*
      * Return the results of this call back to the caller.

@@ -215,6 +215,17 @@
 #define	SDL_K_OFF_BIT		3	/* bit offset from previous */
 
 /*
+ * Conditionals
+ */
+#define SDL_K_COND_NONE		0
+#define SDL_K_COND_SYMB		1
+#define SDL_K_COND_LANG		2
+#define SDL_K_COND_ELSEIF	3
+#define SDL_K_COND_ELSE		4
+#define SDL_K_COND_END_SYMB	5
+#define SDL_K_COND_END_LANG	6
+
+/*
  * The following definitions are going to be used for the allocation,
  * processing, and deallocation of the various OpenSDL blocks.
  */
@@ -611,7 +622,9 @@ typedef enum
     Declare,
     Entry,
     IfLanguage,
+    ElseLanguage,
     IfSymbol,
+    ElseSymbol,
     Item,
     Literal,
     Local,
@@ -638,6 +651,34 @@ typedef struct
 } SDL_CONSTANT_DEF;
 
 /*
+ * This structure is used to manage one or more language specifiers on a
+ * conditional expression.
+ */
+typedef char	SDL_LANG_STR[16];
+typedef struct
+{
+    SDL_LANG_STR	*lang;
+    int			listUsed;
+    int			listSize;
+} SDL_LANGUAGE_LIST;
+
+/*
+ * This structure is used to manage zero or more symbol specific conditional
+ * expressions.
+ */
+typedef struct
+{
+    char	*symbol;
+    int		value;
+} SDL_SYMBOL;
+typedef struct
+{
+    SDL_SYMBOL		*symbols;
+    int			listUsed;
+    int			listSize;
+} SDL_SYMBOL_LIST;
+
+/*
  * This is the context data structure.  It maintains everything about what has
  * been parsed and is being parsed.  It is initialized when a MODULE has been
  * parsed and is cleared when an END_MODULE has been parsed.
@@ -646,6 +687,7 @@ typedef struct
 {
     char 		*ident;
     char 		*module;
+    char		*inputFile;
     char		*outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
     void		*currentAggr;
@@ -664,9 +706,12 @@ typedef struct
     SDL_QUEUE		constants;
     SDL_QUEUE		entries;
     SDL_CONSTANT_DEF	constDef;
+    SDL_LANGUAGE_LIST	langCondList;
+    SDL_SYMBOL_LIST	symbCondList;
     int64_t		precision;
     int64_t		scale;
     int			aggregateDepth;
+    int			alignment;
     int			fillerCount;
     int			optionsIdx;
     int			optionsSize;
@@ -675,8 +720,14 @@ typedef struct
     int			modEndSrcLineNo;
     int			modSrcLineNo;
     int			wordSize;	/* 32 or 64 */
-    bool		memberAlign;
+    bool		checkAlignment;
     bool		commentsOff;
+    bool		copyright;
+    bool		header;
+    bool		memberAlign;
+    bool		processingEnabled;
+    bool		suppressPrefix;
+    bool		suppressTag;
 } SDL_CONTEXT;
 
 /*

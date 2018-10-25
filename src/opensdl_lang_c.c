@@ -767,9 +767,6 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 
 	/*
 	 * Now we need to output the type and name.
-	 * TODO: We need to change the way unsigned is written (u for intxx_t,
-	 * TODO: and __uint128_t for OCTAWORDs, and "unsigned " in front of
-	 * TODO: others.
 	 */
 	if (retVal == 1)
 	{
@@ -1032,7 +1029,7 @@ int sdl_c_aggregate(
 	case LangAggregate:
 	    name = _sdl_c_generate_name(
 				my.aggr->id,
-				my.aggr->prefix,
+				my.aggr->marker,
 				my.aggr->tag);
 
 	    /*

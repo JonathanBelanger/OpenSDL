@@ -22,6 +22,43 @@
  *
  * USAGE:
  *	$ ./opensdl <input_SDL_file>
+ *		-align:<value>	The assumed alignment.  An integer greater than
+ *				zero. (No alignment is the default)
+ *		-32|64		The number of bits that represent a longword.
+ *				(64 is the default)
+ *		-[no]check	Diagnostic messages are generated for items
+ *				the do not fall on their natural alignment.
+ *				(nocheck is the default)
+ *		-[no]comments	Controls whether output comments are
+ *				included in the output file(s). (Comments is
+ *				the default)
+ *		-[no]copy	Controls whether the copyright header is
+ *				included in the output file (see copyright.sdl
+ *				for what is included). (nocopy is the default)
+ *		-[no]header	Controls whether a header containing
+ *				the date and the source filename is included at
+ *				the beginning of the output file(s). (header is
+ *				the default)
+ *		-help		display the usage information.
+ *		-lang:<lang[=filespec]>	Specifies one of the language options.
+ *				At least one needs to be specified on the
+ *				command line.
+ *		-[no]list	This has not yet been implemented. (nolist is
+ *				the default)
+ *		-[no]member	Indicates that every item in an
+ *				aggregate should be aligned. (nomember is the
+ *				default)
+ *		-[no]module	This has not yet been implemented.
+ *				(module is the default)
+ *		-[no]parse	This has not yet been implemented. (parse is
+ *				the default)
+ *		-[no]supress:prefix|tag
+ *				Suppress outputting symbols with a prefix, tag,
+ *				or both. (nosupress is the default).
+ *		-symbol:<symbol=value>	Used in conditional compilation where
+ *				IFSYMBOL is specified in the input file.  A
+ *				value of zero turns off the symbol and a
+ *				non-zero value turns it on.
  *
  * Revision History:
  *
@@ -75,6 +112,18 @@ static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
     }
 };
 
+typedef struct
+{
+    char	*langStr;
+    int		langVal;
+} SDL_LANGUAGES;
+
+static SDL_LANGUAGES _languages[] =
+{
+     {.langStr = "cc", .langVal = SDL_K_LANG_C},
+     {.langStr = NULL, .langVal = -1}
+};
+
 static char *_extensions[] =
 {
     "h",						/* C */
@@ -99,6 +148,415 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg)
     return;
 }
 
+/*
+ * usage
+ *  This function is called to display the usage information to the user and
+ *  returns back to the caller.
+ */
+void usage(void)
+{
+    printf("-align:<value>\tThe assumed alignment.  An integer greater than\n");
+    printf("\t\tzero. (No alignment is the default)\n");
+    printf("-32|64\t\tThe number of bits that represent a longword.\n");
+    printf("\t\t(64 is the default)\n");
+    printf("-[no]check\tDiagnostic messages are generated for items\n");
+    printf("\t\tthe do not fall on their natural alignment.\n");
+    printf("\t\t(nocheck is the default)\n");
+    printf("-[no]comments\tControls whether output comments are\n");
+    printf("\t\tincluded in the output file(s). (Comments is\n");
+    printf("\t\tthe default)\n");
+    printf("-[no]copy\tControls whether the copyright header is\n");
+    printf("\t\tincluded in the output file (see copyright.sdl\n");
+    printf("\t\tfor what is included). (nocopy is the default)\n");
+    printf("-[no]header\tControls whether a header containing\n");
+    printf("\t\tthe date and the source filename is included at\n");
+    printf("\t\tthe beginning of the output file(s). (header is\n");
+    printf("\t\tthe default)\n");
+    printf("-help\tControls whether a header containing\n");
+    printf("-lang:<lang[=filespec]>\tSpecifies one of the language options.\n");
+    printf("\t\tAt least one needs to be specified on the\n");
+    printf("\t\tcommand line.\n");
+    printf("-[no]list\tThis has not yet been implemented. (nolist is\n");
+    printf("\t\tthe default)\n");
+    printf("-[no]member\tIndicates that every item in an\n");
+    printf("\t\taggregate should be aligned. (nomember is the\n");
+    printf("\t\tdefault)\n");
+    printf("-[no]module\tThis has not yet been implemented.\n");
+    printf("\t\t(module is the default)\n");
+    printf("-[no]parse\tThis has not yet been implemented. (parse is\n");
+    printf("\t\tthe default)\n");
+    printf("-[no]supress:prefix|tag\n");
+    printf("\t\tSuppress outputting symbols with a prefix, tag,\n");
+    printf("\t\tor both. (nosupress is the default).\n");
+    printf("-symbol:<symbol:value>\tUsed in conditional compilation where\n");
+    printf("\t\tIFSYMBOL is specified in the input file.  A\n");
+    printf("\t\tvalue of zero turns off the symbol and a\n");
+    printf("\t\tnon-zero value turns it on.\n");
+
+    /*
+     * Return back to the caller.
+     */
+    return;
+}
+
+/*
+ * _sdl_parse_args
+ *  This function is called to parse the command line arguments and update the
+ *  context variable accordingly.
+ *
+ * Input Parameters:
+ *  argc:
+ *	A value indicating the number of arguments specified in the 'argv'
+ *	parameter.
+ *  argv:
+ *	A pointer to an array of strings containing the arguments provided on
+ *	the command line.  The first argument is always the executable
+ *	filename.
+ *
+ * Output Parameters:
+ *  context:
+ *	A pointer to the context variable to be initialized from the command
+ *	line arguments.
+ *
+ * Return Values:
+ *  1:	Normal successful completion.
+ *  0:	An error occurred.
+ */
+static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
+{
+    char	*ptr;
+    int		ii = 1;
+    int		retVal = 1;
+
+    /*
+     * Initialize all the defaults.
+     */
+    context->inputFile = NULL;
+    context->symbCondList.symbols = NULL;
+    context->symbCondList.listSize = 0;
+    context->symbCondList.listUsed = 0;
+    context->alignment = 0;		/* default to no align */
+    context->wordSize = 64;		/* default to 64-bits */
+    context->checkAlignment = false;	/* default to no-check */
+    context->commentsOff = false;	/* default to comments on */
+    context->copyright = false;		/* default to no-copyright */
+    context->memberAlign = true;	/* default to member alignment */
+    context->suppressPrefix = false;	/* default to displaying prefix */
+    context->suppressTag = false;	/* default to displaying tag */
+
+    /*
+     * Loop through each of the arguments extracting the relevant information
+     * and storing it into the context block.
+     */
+    while ((ii < argc) && (retVal == 1))
+    {
+	if (argv[ii][0] == '-')
+	{
+	    switch (argv[ii][1])
+	    {
+		/*
+		 * 32-bit length for longwords.
+		 */
+		case '3':
+		    if ((argv[ii][2] == '2') && (argv[ii][3] == '\0'))
+			context->wordSize = 32;
+		    break;
+
+		/*
+		 * 64-bit length for longwords.
+		 */
+		case '6':
+		    if ((argv[ii][2] == '4') && (argv[ii][3] == '\0'))
+			context->wordSize = 64;
+		    break;
+
+		/*
+		 * align:<value>, value must be greater than zero.
+		 */
+		case 'a':
+		    if (strncmp(argv[ii], "align", 5) == 0)
+		    {
+			if (argv[ii][5] == ':')
+			{
+			    context->alignment = strtol(
+						    &argv[ii][6],
+						    NULL,
+						    10);
+			    if (context->alignment <= 0)
+				retVal = 0;
+			}
+			else
+			    retVal = 0;
+		    }
+		    else
+			retVal = 0;
+		    break;
+
+		/*
+		 * check for member alignment on natural boundaries.
+		 * comments, include comments in output file(s).
+		 * copy, include copyright comment at start of output file(s).
+		 */
+		case 'c':
+		    if (strcmp(argv[ii], "check") == 0)
+			context->checkAlignment = true;
+		    else if (strcmp(argv[ii], "comments") == 0)
+			context->commentsOff = false;
+		    else if (strcmp(argv[ii], "copy") == 0)
+			context->copyright = true;
+		    else
+			retVal = 0;
+		    break;
+
+		/*
+		 * header, output OpenSDL header information.
+		 * help, display usage information.
+		 */
+		case 'h':
+		    if (strcmp(argv[ii], "header"))
+			context->header = true;
+		    else if (strcmp(argv[ii], "help"))
+			usage();
+		    else
+			retVal = 0;
+		    break;
+
+		/*
+		 * lang:<lang>[=<filespec>], specify output language and file.
+		 * list[:<filespec>], generate a listing file.
+		 */
+		case 'l':
+		    if (strncmp(argv[ii], "lang", 4) == 0)
+		    {
+			if (argv[ii][4] == ':')
+			{
+			    int		jj = 0;
+			    bool	langSet = false;
+
+			    while ((_languages[jj].langStr != NULL) &&
+				   (_languages[jj].langVal != -1))
+			    {
+				ptr = strchr(argv[ii], '=');
+				if (ptr == NULL)
+				    ptr = &argv[ii][strlen(argv[ii])];
+				if (strncasecmp(
+					&argv[ii][5],
+					_languages[jj].langStr,
+					(ptr - &argv[ii][5])) == 0)
+				{
+				    int	lang = _languages[jj].langVal;
+
+				    if (context->langEna[lang] == false)
+				    {
+					context->langEna[lang] = true;
+					if (*ptr == '=')
+					    context->outFileName[lang] =
+						strdup(&ptr[1]);
+					langSet = true;
+				    }
+				    else
+					retVal = 0;
+				}
+			    }
+			    if (langSet == false)
+				retVal = 0;
+			}
+		    }
+		    else if (strncmp(argv[ii], "list", 4) == 0)
+		    {
+			/* ignore for now */
+		    }
+		    else
+			retVal = 0;
+		    break;
+
+		/*
+		 * member, force member alignment
+		 * module, ?
+		 */
+		case 'm':
+		    if (strncasecmp(argv[ii], "member", 6) == 0)
+			context->memberAlign = true;
+		    else if (strncasecmp(argv[ii], "module", 7) != 0)
+			retVal = 0;
+		    break;
+
+		/*
+		 * nocheck, don't check member alignment.
+		 * nocomments, don't include comments.
+		 * nocopy, don't include copyright information.
+		 * noheader, don't include OpenSDL header.
+		 * nolist, don't generate a listing file.
+		 * nomember, don't force member alignment.
+		 * nomodule, ?
+		 * noparse, don't generate an intermediate file.
+		 * nosuppress, don't suppress prefix or tag.
+		 */
+		case 'n':
+		    if (strcmp(argv[ii], "nocheck") == 0)
+			context->checkAlignment = false;
+		    else if (strcmp(argv[ii], "nocomments") == 0)
+			context->commentsOff = true;
+		    else if (strcmp(argv[ii], "nocopy") == 0)
+			context->copyright = false;
+		    else if (strcmp(argv[ii], "noheader") == 0)
+			context->commentsOff = false;
+		    else if (strcmp(argv[ii], "nomember") == 0)
+			context->commentsOff = false;
+		    else if (strcmp(argv[ii], "nosuppress") == 0)
+			context->commentsOff = true;
+		    else if ((strcmp(argv[ii], "nolist") != 0) &&
+			     (strcmp(argv[ii], "nomodule") != 0) &&
+		    	     (strcmp(argv[ii], "noparse") != 0))
+			retVal = 0;
+		    break;
+
+		/*
+		 * parse, generate an intermediate file.
+		 */
+		case 'p':
+		    break;
+
+		/*
+		 * suppress:[prefix][,tag], suppress usage or prefix and/or tag
+		 * symbol:<symbol>=<value>, symbol used in conditionals
+		 */
+		case 's':
+		    if (strncmp(argv[ii], "suppress", 8) == 0)
+		    {
+			ptr = strchr(argv[ii], ':');
+			if (ptr != NULL)
+			{
+			    ptr++;
+			    if (strncasecmp(ptr, "prefix", 6) == 0)
+				context->suppressPrefix = true;
+			    else if (strncasecmp(ptr, "tag", 3) == 0)
+				context->suppressTag= true;
+			    else
+				retVal = 0;
+			    if (retVal != 0)
+			    {
+				ptr = strchr(argv[ii], ',');
+				if (ptr != NULL)
+				{
+				    ptr++;
+				    if (strncasecmp(ptr, "prefix", 6) == 0)
+					context->suppressPrefix = true;
+				    else if (strncasecmp(ptr, "tag", 3) == 0)
+					context->suppressTag= true;
+				    else
+					retVal = 0;
+				}
+			    }
+			}
+			else
+			    retVal = 0;
+		    }
+		    else if (strncmp(argv[ii], "symbol", 6) == 0)
+		    {
+			SDL_SYMBOL_LIST	*list = &context->symbCondList;
+
+			ptr = strchr(argv[ii], ':');
+			if (ptr != NULL)
+			{
+			    char	*ptr2 = strchr(argv[ii], '=');
+			    char	*symbol;
+			    int		value;
+			    bool	noValue = false;
+
+			    ptr++;
+			    if (ptr2 == NULL)
+			    {
+				ptr2 = &argv[ii][strlen(argv[ii])];
+				noValue = true;
+			    }
+			    symbol = strndup(ptr, (ptr2 - ptr));
+			    if (noValue == false)
+			    {
+				ptr2++;
+				value = strtol(ptr2, NULL, 10);
+			    }
+			    if (symbol != NULL)
+			    {
+				int	jj;
+				bool	found = false;
+
+				for (jj = 0;
+				     ((jj < list->listUsed) &&
+				      (found == false));
+				     jj++)
+				{
+				    if (strcmp(
+					    list->symbols[jj].symbol,
+					    symbol) == 0)
+					found = true;
+				}
+				if (found == false)
+				{
+				    if (list->listUsed >= list->listSize)
+				    {
+					list->listSize++;
+					list->symbols = realloc(
+						    list->symbols,
+						    (sizeof(SDL_SYMBOL) *
+						     list->listSize));
+				    }
+				    list->symbols[list->listUsed].symbol =
+					symbol;
+				    list->symbols[list->listUsed++].value =
+					value;
+				}
+				else
+				    retVal = 0;
+			    }
+			    else
+				retVal = 0;
+			}
+			else
+			    retVal = 0;
+		    }
+		    else
+			retVal = 0;
+		    break;
+
+		default:
+		    break;
+	    }
+	}
+	else if (context->inputFile == NULL)
+	    context->inputFile = strdup(argv[ii++]);
+	else
+	    retVal = 0;
+	if (retVal == 0)
+	    usage();
+	ii++;
+    }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * main
+ *  This is the main function called by the image activator.  It initializes
+ *  the context, other data, and parses the command line arguments into the
+ *  context.
+ *
+ * Input Parameters:
+ *  argc:
+ *	A value indicating the number of arguments specified in argv.
+ *  argv:
+ *	A pointer to an array or strings containing the command line arguments.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  0: for success.
+ *  1: for failure.
+ */
 int main(int argc, char *argv[])
 {
     FILE	*fp;
@@ -126,22 +584,6 @@ int main(int argc, char *argv[])
     localTime = time(NULL);
     timeInfo = localtime(&localTime);
 
-    if (argc < 2)
-    {
-	fprintf(stderr, "No input specified");
-	return(-1);
-    }
-
-    if ((fp = fopen(argv[1], "r")) == NULL)
-    {
-	fprintf(
-	    stderr,
-	    "Cannot open input file '%s', errno = %d",
-	    argv[1],
-	    errno);
-	return(-1);
-    }
-
     /*
      * Initialize the parsing context.
      */
@@ -149,11 +591,10 @@ int main(int argc, char *argv[])
     {
 	context.langSpec[ii] = false;
 	context.langEna[ii] = true;
+	context.outFileName[ii] = NULL;
     }
     context.langSpec[SDL_K_LANG_C] = true; /* C/C++ only supported languages */
-    context.wordSize = 64;		/* default to 64-bits */
-    context.memberAlign = true;		/* default to member alignment */
-    context.commentsOff = false;	/* default to comments off */
+    context.processingEnabled = true;
 
     /*
      * Initialize the dimension array and the options index.
@@ -162,7 +603,7 @@ int main(int argc, char *argv[])
 	context.dimensions[ii].inUse = false;
 
     /*
-     * Set the options and parameters workspace.
+     * Set the options, parameters and languages workspace.
      */
     context.options = NULL;
     context.optionsSize = 0;
@@ -170,6 +611,9 @@ int main(int argc, char *argv[])
     context.parameters = NULL;
     context.parameterSize = 0;
     context.parameterIdx = 0;
+    context.langCondList.lang = NULL;
+    context.langCondList.listSize = 0;
+    context.langCondList.listUsed = 0;
 
     /*
      * Initialize the parsing state.
@@ -192,6 +636,28 @@ int main(int argc, char *argv[])
     SDL_Q_INIT(&context.entries);
 
     /*
+     * Parse out the command line arguments.
+     */
+    if (_sdl_parse_args(argc, argv, &context) != 1)
+	return(-1);
+
+    if (context.inputFile == NULL)
+    {
+	fprintf(stderr, "No input specified");
+	return(-1);
+    }
+
+    if ((fp = fopen(context.inputFile, "r")) == NULL)
+    {
+	fprintf(
+	    stderr,
+	    "Cannot open input file '%s', errno = %d",
+	    argv[1],
+	    errno);
+	return(-1);
+    }
+
+    /*
      * Loop through each of the supported languages.
      */
     for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
@@ -209,7 +675,7 @@ int main(int argc, char *argv[])
 	     * line.  NOTE: We may need to truncate the name to fit the field
 	     * we have for it (32 characters lone).
 	     */
-	    context.outFileName[ii] = strdup(argv[1]);
+	    context.outFileName[ii] = strdup(context.inputFile);
 
 	    /*
 	     * Go find the last '.' in the file name, this will be where the
@@ -369,6 +835,21 @@ int main(int argc, char *argv[])
     /*
      * Return the results back to the caller.
      */
-    fprintf(stderr, "'%s' has been processed", argv[1]);
+    fprintf(stderr, "'%s' has been processed", context.inputFile);
+
+    /*
+     * Clean-up memory.
+     */
+    for (ii =0; ii < context.langCondList.listUsed; ii++)
+	free(context.langCondList.lang);
+    for (ii = 0; ii < context.symbCondList.listUsed; ii++)
+	free(context.symbCondList.symbols->symbol);
+    if (context.symbCondList.symbols != NULL)
+	free(context.symbCondList.symbols);
+    free(context.inputFile);
+
+    /*
+     * Return back to the caller.
+     */
     return(0);
 }

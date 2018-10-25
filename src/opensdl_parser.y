@@ -29,11 +29,15 @@
  *  This file has been updated quite often.  Most of the changes have been made
  *  to allow for parsing additional grammar constructs.  Also, there have been
  *  some changes coordinated with the flex file's use of start states.
+ *
+ *  V01.002	22-OCT-2018	Jonathan D. Belanger
+ *	Added IF_LANGUAGE and IF_SYMBOL parsing.  Unlike the original SDL, we will
+ *	allow conditionals to be properly nested.
  */
 %verbose
 %define parse.lac	full
 %define parse.error verbose
-%define api.pure true
+%define api.pure	true
 
 %locations
 %token-table
@@ -236,6 +240,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
 %type <ival> _v_boolean
 %type <ival> _v_sizeof
 %type <ival> _v_datatypes
+%type <ival> _v_char_opt
 %type <ival> _v_usertypes
 %type <ival> _v_basetypes
 %type <ival> _v_integer
@@ -340,6 +345,7 @@ module_body
 	| origin
 	| entry
 	| definition_end
+	| conditionals
 	;
 
 definition_end
@@ -583,12 +589,10 @@ _v_basetypes
 	   { $$ = $1; }
 	| SDL_K_CHAR
 	    { $$ = SDL_K_TYPE_CHAR; }
-	| SDL_K_CHAR SDL_K_LENGTH _v_expression
-	    { $$ = SDL_K_TYPE_CHAR; }
-	| SDL_K_CHAR SDL_K_LENGTH _v_expression SDL_K_VARY
+	| SDL_K_CHAR SDL_K_LENGTH _v_expression _v_char_opt
 	    {
 		sdl_add_option(&context, Length, $3, NULL, yyloc.first_line);
-		$$ = SDL_K_TYPE_CHAR_VARY;
+		$$ = $4;
 	    }
 	| SDL_K_CHAR SDL_K_LENGTH SDL_K_MULT
 	    { $$ = SDL_K_TYPE_CHAR_STAR; }
@@ -598,6 +602,13 @@ _v_basetypes
 	    { $$ = SDL_K_TYPE_ANY; }
 	| SDL_K_BOOL
 	    { $$ = SDL_K_TYPE_BOOL; }
+	;
+
+_v_char_opt
+	: %empty
+	    { $$ = SDL_K_TYPE_CHAR; }
+	| SDL_K_VARY
+	    { $$ = SDL_K_TYPE_CHAR_VARY; }
 	;
 
 _v_integer
@@ -1044,6 +1055,51 @@ _a_returns_options
 _a_named
 	: SDL_K_NAMED _t_id
 	    { $$ = $2; }
+	;
+
+conditionals
+	: SDL_K_IFLANG language_list
+		{
+			sdl_conditional(
+					&context,
+					SDL_K_COND_LANG,
+					sdl_get_language(&context, yyloc.first_line),
+					yyloc.first_line);
+		}
+	| SDL_K_ELSE
+		{
+			sdl_conditional(
+					&context,
+					SDL_K_COND_ELSE,
+					NULL,
+					yyloc.first_line);
+		}
+	| SDL_K_END_IFLANG language_list
+		{
+			sdl_conditional(
+					&context,
+					SDL_K_COND_END_LANG,
+					sdl_get_language(&context, yyloc.first_line),
+					yyloc.first_line);
+		}
+	| SDL_K_IFSYMB _t_id
+		{ sdl_conditional(&context, SDL_K_COND_SYMB, $2, yyloc.first_line); }
+	| SDL_K_ELSE_IFSYMB _t_id
+		{ sdl_conditional(&context, SDL_K_COND_ELSEIF, $2, yyloc.first_line); }
+	| SDL_K_END_IFSYMB
+		{
+			sdl_conditional(
+					&context,
+					SDL_K_COND_END_SYMB,
+					NULL,
+					yyloc.first_line);
+		}
+	;
+
+language_list
+	: %empty
+	| language_list _t_id
+		{ sdl_add_language(&context, $2, yyloc.first_line); }
 	;
 
 %%	/* End Grammar rules */

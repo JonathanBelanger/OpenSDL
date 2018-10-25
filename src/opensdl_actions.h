@@ -74,6 +74,13 @@ int sdl_add_parameter(
 		int64_t datatype,
 		int passing,
 		int srcLineNo);
+int sdl_conditional(
+		SDL_CONTEXT *context,
+		int conditional,
+		void *expr,
+		int srcLineNo);
+int sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo);
+void *sdl_get_language(SDL_CONTEXT *context, int srcLineNo);
 
 /*
  * These are used to specify the constant information being saved.

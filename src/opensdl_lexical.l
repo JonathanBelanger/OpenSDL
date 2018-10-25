@@ -585,7 +585,7 @@ VOID					{ return(SDL_K_VOID); }
 <*>UNSIGNED				{ return(SDL_K_UNSIGNED); }
 <*>COMPLEX				{ return(SDL_K_COMPLEX); }
 <*>LENGTH				{ return(SDL_K_LENGTH); }
-VARYING					{ return(SDL_K_VARY); }
+<*>VARYING					{ return(SDL_K_VARY); }
 <*>PRECISION			{ return(SDL_K_PRECISION); }
 
 <*>"("					{ return(SDL_K_OPENP); }

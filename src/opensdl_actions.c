@@ -1190,10 +1190,6 @@ int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype, int srcLineNo)
     /*
      * If we did not find a item that had already been created, then go and
      * create one now.
-     *
-     * TODO: The original SDL allowed for ITEMs to be created multiple times,
-     * TODO: but only if they were identical (an additional item would not be
-     * TODO: created).
      */
     if (myItem == NULL)
     {
@@ -2840,6 +2836,27 @@ int sdl_add_parameter(
  *  from the parser.  IFLANGUAGE will turn off and on the outputting of
  *  definitions for a particular language.
  *
+ *  There are only certain valid conditional state transitions.  They are as
+ *  follows:
+ *
+ *	CondNone	--> CondIfLang		IFLANGUAGE
+ *	CondNone	--> CondIfSymb		IFSYMBOL
+ *	CondIfLang	--> CondIfSymb		IFSYMBOL after IFLANGUAGE
+ *	CondIfLang	--> CondIfLang		IFLANGUAGE after IFLANGUAGE
+ *	CondIfLang	--> CondElse		ELSE after IFLANGUAGE
+ *	CondIfLang	--> CondNone		END_IFLANGUAGE after IFLANGUAGE
+ *	CondIfSymb	--> CondIfLang		IFLANGUAGE after IFSYMBOL
+ *	CondIfSymb	--> CondElseIf		ELSE_IFSYMBOL after IFSYMBOL
+ *	CondIfSymb	--> CondElse		ELSE after IFSYMBOL
+ *	CondIfSymb	--> CondNone		END_IFSYMBOL after IFSYMBOL
+ *	CondElseIf	--> CondElse		ELSE after ELSE_IFSYMBOL
+ *	CondElseIf	--> CondIfLang		IFLANGUAGE after ELSE_IFSYMBOL
+ *	CondElseIf	--> CondNone		END_IFSYMBOL after ELSE_IFSYMBOL
+ *	CondElse	--> CondIfLang		IFLANUGAGE after ELSE
+ *	CondElse	--> CondIfSymb		IFSYMBOL after ELSE
+ *	CondElse	--> CondNone		END_IFLANGUAGE or END_IFSYMBOL
+ *
+ *
  * Input Parameters:
  *  context:
  *	A pointer to the context structure where we maintain information about
@@ -2870,6 +2887,8 @@ int sdl_conditional(
     char		*symbol = (char *) expr;
     SDL_LANGUAGE_LIST	*langs = (SDL_LANGUAGE_LIST *) expr;
     int			retVal = 1;
+    int			ii, jj;
+    bool		done = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -2879,41 +2898,248 @@ int sdl_conditional(
 
     /*
      * Perform the processing based on the conditional provided.
-     * TODO: We need to be able to compare the languages and symbols to the
-     * TODO: ones specified on the command line.
      */
     switch(conditional)
     {
+
+	/*
+	 * Process an IFSYMBOL <symbol> statement.
+	 */
 	case SDL_K_COND_SYMB:
-	    free(symbol);
+
+	    /*
+	     * This state transition is only valid when we are in one of the
+	     * following conditional states:
+	     *
+	     *		CondNone
+	     *		CondIfLang
+	     *		CondElse
+	     */
+	    if ((SDL_CUR_COND_STATE(context) == CondNone) ||
+		(SDL_CUR_COND_STATE(context) == CondIfLang) ||
+		(SDL_CUR_COND_STATE(context) == CondElse))
+	    {
+		SDL_PUSH_COND_STATE(context, CondIfSymb);
+
+		/*
+		 * Now we need to determine if the supplied symbol is turning
+		 * on or off the continued processing of the parsed file.
+		 */
+		for (ii = 0;
+		     ((ii < context->symbCondList.listUsed) &&
+		      (done == false));
+		     ii++)
+		{
+		    if (strcmp(
+			    symbol,
+			    context->symbCondList.symbols[ii].symbol) == 0)
+		    {
+			if (context->symbCondList.symbols[ii].value == 0)
+			{
+			    if (context->processingEnabled == true)
+				context->processingEnabled = false;
+			}
+			else
+			{
+			    if (context->processingEnabled == false)
+				context->processingEnabled = true;
+			}
+			done = true;
+		    }
+		}
+	    }
+	    else
+		retVal = 0;
 	    break;
 
+	/*
+	 * Process an IFLANGUAGE <language>[, <language>] statement.
+	 */
 	case SDL_K_COND_LANG:
+
+	    /*
+	     * This state transition is only valid when we are in one of the
+	     * following conditional states:
+	     *
+	     *		CondNone
+	     *		CondIfLang
+	     *		CondIfSymb
+	     *		ElseIf
+	     *		Else
+	     */
+	    if ((SDL_CUR_COND_STATE(context) == CondNone) ||
+		(SDL_CUR_COND_STATE(context) == CondIfLang) ||
+		(SDL_CUR_COND_STATE(context) == CondIfSymb) ||
+		(SDL_CUR_COND_STATE(context) == CondElseIf) ||
+		(SDL_CUR_COND_STATE(context) == CondElse))
+	    {
+		SDL_PUSH_COND_STATE(context, CondIfLang);
+
+		/*
+		 * Now we need to determine if we are turning on or off any
+		 * particular languages.  The first thing we need to do is turn
+		 * all languages off and if one is specified in the langs list,
+		 * then we'll turn it back on.
+		 */
+		for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+		    context->langEna[ii] = false;
+		for (ii = 0; ii < langs->listUsed; ii++)
+		{
+		    for (jj = 0; jj < SDL_K_LANG_ENTRIES; jj++)
+		    {
+			if (strcasecmp(
+				langs->lang[ii],
+				context->languages[jj].langStr) == 0)
+			    context->langEna[context->languages[jj].langVal] =
+				true;
+		    }
+		}
+	    }
+	    else
+		retVal = 0;
 	    langs->listUsed = 0;
 	    break;
 
+	/*
+	 * Process an ELSE_IFSYMBOL <symbol> statement.
+	 */
 	case SDL_K_COND_ELSEIF:
-	    free(symbol);
+
+	    /*
+	     * This state transition is only valid when we are in one of the
+	     * following conditional states:
+	     *
+	     *		CondIfSymb
+	     */
+	    if ((SDL_CUR_COND_STATE(context) == CondIfSymb))
+	    {
+		SDL_POP_COND_STATE(context);
+		SDL_PUSH_COND_STATE(context, CondElseIf);
+
+		/*
+		 * Now we need to determine if the supplied symbol is turning
+		 * on or off the continued processing of the parsed file.
+		 */
+		for (ii = 0;
+		     ((ii < context->symbCondList.listUsed) &&
+		      (done == false));
+		     ii++)
+		{
+		    if (strcmp(
+			    symbol,
+			    context->symbCondList.symbols[ii].symbol) == 0)
+		    {
+			if (context->symbCondList.symbols[ii].value == 0)
+			{
+			    if (context->processingEnabled == true)
+				context->processingEnabled = false;
+			}
+			else
+			{
+			    if (context->processingEnabled == false)
+				context->processingEnabled = true;
+			}
+			done = true;
+		    }
+		}
+	    }
+	    else
+		retVal = 0;
 	    break;
 
+	/*
+	 * Process an ELSE statement.
+	 */
 	case SDL_K_COND_ELSE:
+
+	    /*
+	     * This state transition is only valid when we are in one of the
+	     * following conditional states:
+	     *
+	     *		CondIfLang
+	     *		CondIfSymb
+	     *		CondElseIf
+	     */
+	    if (SDL_CUR_COND_STATE(context) == CondIfLang)
+	    {
+		SDL_POP_COND_STATE(context);
+		SDL_PUSH_COND_STATE(context, CondElse);
+
+		for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+		    if (context->langEna[ii] == true)
+			context->langEna[ii] = false;
+		    else
+			context->langEna[ii] = true;
+	    }
+	    else if ((SDL_CUR_COND_STATE(context) == CondIfSymb) ||
+		     (SDL_CUR_COND_STATE(context) == CondElseIf))
+	    {
+		SDL_POP_COND_STATE(context);
+		SDL_PUSH_COND_STATE(context, CondElse);
+		context->processingEnabled = ~context->processingEnabled;
+	    }
+	    else
+		retVal = 0;
 	    break;
 
+	/*
+	 * Process an END_IFSYMBOL statement.
+	 */
 	case SDL_K_COND_END_SYMB:
+
+	    /*
+	     * This state transition is only valid when we are in one of the
+	     * following conditional states:
+	     *
+	     *		CondIfSymb
+	     *		CondElseIf
+	     *		CondElse
+	     */
+	    if ((SDL_CUR_COND_STATE(context) == CondIfSymb) ||
+		(SDL_CUR_COND_STATE(context) == CondElseIf) ||
+		(SDL_CUR_COND_STATE(context) == CondElse))
+	    {
+		SDL_POP_COND_STATE(context);
+		context->processingEnabled = true;
+	    }
+	    else
+		retVal = 0;
 	    break;
 
+	/*
+	 * Process an END_IFSYMBOL statement.
+	 */
 	case SDL_K_COND_END_LANG:
+
+	    /*
+	     * This state transition is only valid when we are in one of the
+	     * following conditional states:
+	     *
+	     *		CondIfLang
+	     *		CondElse
+	     */
+	    if ((SDL_CUR_COND_STATE(context) == CondIfLang) ||
+		(SDL_CUR_COND_STATE(context) == CondElse))
+	    {
+		SDL_POP_COND_STATE(context);
+		for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+		    context->langEna[ii] = context->langSpec[ii];
+	    }
+	    else
+		retVal = 0;
 	    if (langs != NULL)
 		langs->listUsed = 0;
 	    break;
 
 	default:
+	    retVal = 0;
 	    break;
     }
 
     /*
      * Return the results of this call back to the caller.
      */
+    free(expr);
     return (retVal);
 }
 

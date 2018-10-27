@@ -417,10 +417,10 @@ int sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
 int sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
 {
     char	str[SDL_K_COMMENT_LEN];
-    char	newFilename[SDL_K_COMMENT_LEN];
     char	*sourceFmt = "/* Source: %02d-%s-%04d %02d:%02d:%02d ";
+    char	*ptr;
     int		retVal = 1;
-    int		newLen, len, ii, jj, kk = 0;
+    int		len, remLen, fileLen = strlen(fullFilePath);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -428,6 +428,18 @@ int sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
     if (trace == true)
 	printf("%s:%d:sdl_c_fileInfo\n", __FILE__, __LINE__);
 
+    /*
+     * Set the output string to all spaces and the closing comment.  This will
+     * help later on.
+     */
+    memset(str, ' ', SDL_K_COMMENT_LEN);
+    str[SDL_K_COMMENT_LEN - 3] = '*';
+    str[SDL_K_COMMENT_LEN - 2] = '/';
+    str[SDL_K_COMMENT_LEN - 1] = '\0';
+
+    /*
+     * Generate the file time information string.
+     */
     len = sprintf(
 		str,
 		sourceFmt,
@@ -437,21 +449,31 @@ int sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
 		timeInfo->tm_hour,
 		timeInfo->tm_min,
 		timeInfo->tm_sec);
-    strncpy(newFilename, fullFilePath, SDL_K_COMMENT_LEN - 1);
-    newFilename[SDL_K_COMMENT_LEN - 1] = '\0';
-    newLen = strlen(newFilename);
-    jj = SDL_K_COMMENT_LEN - 1;
-    str[jj--] = '\0';
-    str[jj--] = '/';
-    str[jj--] = '*';
-    str[jj] = ' ';
-    for (ii = len; ii < jj; ii++)
-	str[ii] = ' ';
-    if (newLen > (jj - len))
-	for (ii = (newLen - jj + len); ii < newLen; ii++)
-	    newFilename[kk++] = newFilename[ii];
-    sprintf(&str[len], "%s", newFilename);
-    str[len + newLen] = ' ';
+
+    /*
+     * New determine how much of the full file path will fit into the remaining
+     * length of the file portion of the comment string.
+     */
+    remLen = SDL_K_COMMENT_LEN - len - 4;
+    if (remLen < fileLen)
+    {
+	str[len++] = '.';
+	str[len++] = '.';
+	str[len++] = '.';
+	ptr = &fullFilePath[fileLen - remLen + 3];
+    }
+    else
+	ptr = fullFilePath;
+
+    /*
+     * Now copy the filename information that will fit into the comment string.
+     * This will be the last part of the filename.
+     */
+    while (*ptr != '\0')
+    {
+	str[len++] = *ptr;
+	ptr++;
+    }
 
     /*
      * Write out the string to the output file.

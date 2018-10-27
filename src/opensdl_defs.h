@@ -606,6 +606,7 @@ typedef struct
  */
 #define SDL_K_LANG_C		0
 #define SDL_K_LANG_MAX		1
+#define SDL_K_LANG_ENTRIES	2
 #define SDL_TIMESTR_LEN		20 + 1	/* dd-MMM-yyyy hh:mm:ss		*/
 #define SDL_K_SUBAGG_MAX	8 + 1
 
@@ -621,10 +622,6 @@ typedef enum
     Constant,
     Declare,
     Entry,
-    IfLanguage,
-    ElseLanguage,
-    IfSymbol,
-    ElseSymbol,
     Item,
     Literal,
     Local,
@@ -634,16 +631,54 @@ typedef enum
 } SDL_STATE;
 
 /*
+ * Conditional states.  Unlike the real SDL, we can have nested conditionals,
+ * but they need to be nested properly.  They cannot be interleaved.
+ */
+typedef enum
+{
+    CondNone,
+    CondIfLang,
+    CondIfSymb,
+    CondElseIf,
+    CondElse
+} SDL_COND_STATES;
+#define SDL_K_COND_STATE_SIZE	8
+typedef struct
+{
+    SDL_COND_STATES	*state;
+    int			top;
+    int			bottom;
+} SDL_COND_STATE;
+#define SDL_CUR_COND_STATE(ctx)						\
+    (ctx)->condState.state[(ctx)->condState.top]
+#define SDL_POP_COND_STATE(context)					\
+    if ((context)->condState.top > 0)					\
+	(context)->condState.top--
+#define SDL_PUSH_COND_STATE(ctx, myS)					\
+    if ((ctx)->condState.top >= (ctx)->condState.bottom)		\
+    {									\
+	(ctx)->condState.bottom += SDL_K_COND_STATE_SIZE; 		\
+	(ctx)->condState.state = realloc(				\
+				    (ctx)->condState.state,		\
+				    (ctx)->condState.bottom);		\
+    }									\
+    if ((ctx)->condState.state != NULL)					\
+    {									\
+	(ctx)->condState.top++;						\
+	(ctx)->condState.state[(ctx)->condState.top] = (myS);		\
+    }
+
+/*
  * This is used to save information about a CONSTANT that is being defined as
  * the parsing progresses.  This information will eventually be used to define
  * one or more actual CONSTANT values.
  */
 typedef struct
 {
-    char		*id;
+    char			*id;
     union
     {
-	int64_t value;
+	int64_t	value;
 	char	*valueStr;
     };
     bool		string;
@@ -661,6 +696,11 @@ typedef struct
     int			listUsed;
     int			listSize;
 } SDL_LANGUAGE_LIST;
+typedef struct
+{
+    char	*langStr;
+    int		langVal;
+} SDL_LANGUAGES;
 
 /*
  * This structure is used to manage zero or more symbol specific conditional
@@ -693,6 +733,7 @@ typedef struct
     void		*currentAggr;
     bool		langEna[SDL_K_LANG_MAX];
     bool		langSpec[SDL_K_LANG_MAX];
+    SDL_LANGUAGES	languages[SDL_K_LANG_ENTRIES];
     SDL_DIMENSION	dimensions[SDL_K_MAX_DIMENSIONS];
     SDL_OPTION		*options;
     SDL_PARAMETER	**parameters;
@@ -702,6 +743,7 @@ typedef struct
     SDL_ENUM_LIST	enums;
     SDL_STATE		state;
     SDL_STATE		constantPrevState;
+    SDL_COND_STATE	condState;
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;
     SDL_QUEUE		entries;

@@ -31,8 +31,8 @@
  *  some changes coordinated with the flex file's use of start states.
  *
  *  V01.002	22-OCT-2018	Jonathan D. Belanger
- *	Added IF_LANGUAGE and IF_SYMBOL parsing.  Unlike the original SDL, we will
- *	allow conditionals to be properly nested.
+ *  Added IF_LANGUAGE and IF_SYMBOL parsing.  Unlike the original SDL, we will
+ *  allow conditionals to be properly nested.
  */
 %verbose
 %define parse.lac	full
@@ -1059,47 +1059,59 @@ _a_named
 
 conditionals
 	: SDL_K_IFLANG language_list
-		{
-			sdl_conditional(
-					&context,
-					SDL_K_COND_LANG,
-					sdl_get_language(&context, yyloc.first_line),
-					yyloc.first_line);
-		}
+	    {
+		sdl_conditional(
+			&context,
+			SDL_K_COND_LANG,
+			sdl_get_language(&context, yyloc.first_line),
+			yyloc.first_line);
+	    }
 	| SDL_K_ELSE
-		{
-			sdl_conditional(
-					&context,
-					SDL_K_COND_ELSE,
-					NULL,
-					yyloc.first_line);
-		}
+	    {
+		sdl_conditional(
+			&context,
+			SDL_K_COND_ELSE,
+			NULL,
+			yyloc.first_line);
+	    }
 	| SDL_K_END_IFLANG language_list
-		{
-			sdl_conditional(
-					&context,
-					SDL_K_COND_END_LANG,
-					sdl_get_language(&context, yyloc.first_line),
-					yyloc.first_line);
-		}
+	    {
+		sdl_conditional(
+			&context,
+			SDL_K_COND_END_LANG,
+			sdl_get_language(&context, yyloc.first_line),
+			yyloc.first_line);
+	    }
 	| SDL_K_IFSYMB _t_id
-		{ sdl_conditional(&context, SDL_K_COND_SYMB, $2, yyloc.first_line); }
+	    {
+		sdl_conditional(
+			&context,
+			SDL_K_COND_SYMB,
+			$2,
+			yyloc.first_line);
+	    }
 	| SDL_K_ELSE_IFSYMB _t_id
-		{ sdl_conditional(&context, SDL_K_COND_ELSEIF, $2, yyloc.first_line); }
+	    {
+		sdl_conditional(
+			&context,
+			SDL_K_COND_ELSEIF,
+			$2,
+			yyloc.first_line);
+	    }
 	| SDL_K_END_IFSYMB
-		{
-			sdl_conditional(
-					&context,
-					SDL_K_COND_END_SYMB,
-					NULL,
-					yyloc.first_line);
-		}
+	    {
+		sdl_conditional(
+			&context,
+			SDL_K_COND_END_SYMB,
+			NULL,
+			yyloc.first_line);
+	    }
 	;
 
 language_list
 	: %empty
 	| language_list _t_id
-		{ sdl_add_language(&context, $2, yyloc.first_line); }
+	    { sdl_add_language(&context, $2, yyloc.first_line); }
 	;
 
 %%	/* End Grammar rules */

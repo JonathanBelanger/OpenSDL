@@ -377,22 +377,6 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLineNo)
 	    }
 	    break;
 
-	case IfLanguage:
-	    retVal = 0;
-	    break;
-
-	case ElseLanguage:
-	    retVal = 0;
-	    break;
-
-	case IfSymbol:
-	    retVal = 0;
-	    break;
-
-	case ElseSymbol:
-	    retVal = 0;
-	    break;
-
 	case DefinitionEnd:
 	    retVal = 0;
 	    break;

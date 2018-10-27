@@ -144,27 +144,33 @@
 
 typedef union
 {
-    unsigned int		msgCode;
+    uint32_t		msgCode;
     typedef struct
     {
-	unsigned short int	severity : 3;
-	unsigned short int	message : 13;
-	unsigned short int	facility : 12;
-	unsigned short int	control : 4;
+	uint32_t	severity : 3;
+	uint32_t	message : 13;
+	uint32_t	facility : 12;
+	uint32_t	control : 4;
     };
 } SDL_MESSAGE;
 
 typedef struct
 {
     char		*msgText;
-    unsigned int	faoStr;
-    unsigned int	faoInt;
+    uint32_t		faoStr;
+    uint32_t		faoInt;
 } SDL_MSG_ARRAY;
 
 typedef struct
 {
     SDL_MESSAGE		msgCode;
-    unsigned int	faoCount;
+    uint32_t		faoCount;
 } SDL_MSG_VECTOR;
+
+typedef struct
+{
+    uint16_t		length;
+    char		string[2];
+} SDL_MSG_STRING;
 
 #endif	/* _OPENSDL_MESSAGES_H_ */

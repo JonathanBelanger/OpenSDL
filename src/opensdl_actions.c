@@ -129,7 +129,6 @@ static char *_defaultTag[] =
     "B",	/* BOOLEAN */
     "R",	/* STRUCTURE */
     "R",	/* UNION */
-    "R",	/* IMPLICIT UNION */
     "N",	/* ENUM */
     "E",	/* ENTRY */
 };
@@ -193,6 +192,13 @@ static int64_t _sdl_aggregate_size(
 			SDL_AGGREGATE *aggr,
 			SDL_SUBAGGR *subAggr);
 static void _sdl_checkAndSetOrigin(SDL_CONTEXT *context, SDL_MEMBERS *member);
+static void _sdl_check_bitfieldSizes(
+			SDL_CONTEXT *context,
+			SDL_QUEUE *memberList,
+			SDL_MEMBERS *member,
+			int64_t length,
+			SDL_MEMBERS *newMember,
+			bool *updated);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -1824,7 +1830,7 @@ int sdl_aggregate(
 	myAggr->_unsigned = sdl_isUnsigned(context, &datatype);
 	myAggr->type = datatype;
 	if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
-	    myAggr->aggType = SDL_K_TYPE_IMPLICIT;
+	    myAggr->aggType = SDL_K_TYPE_UNION;	/* implicit union */
 	else
 	    myAggr->aggType = aggType;
 	myAggr->tag = _sdl_get_tag(
@@ -1890,6 +1896,7 @@ int sdl_aggregate_member(
     int64_t		subType = SDL_K_TYPE_BYTE;
     int64_t		length = 0;
     int			retVal = 1;
+    bool		bitfieldSized = false;
     bool		mask = false;
     bool		_signed = false;
 
@@ -2155,6 +2162,7 @@ int sdl_aggregate_member(
 
 		case SubType:
 		    subType = context->options[ii].value;
+		    bitfieldSized = true;
 		    break;
 
 		default:
@@ -2180,11 +2188,11 @@ int sdl_aggregate_member(
 	 * need to start a new member.
 	 */
 	myMember = sdl_allocate_block(
-			    AggrMemberBlock,
-			    (myAggr != NULL ?
-				    &myAggr->header :
-				    (SDL_HEADER *) mySubAggr),
-				    srcLineNo);
+				AggrMemberBlock,
+				(myAggr != NULL ?
+					&myAggr->header :
+					(SDL_HEADER *) mySubAggr),
+				srcLineNo);
 	if (myMember != NULL)
 	{
 
@@ -2201,8 +2209,9 @@ int sdl_aggregate_member(
 	     */
 	    if ((aggType == SDL_K_TYPE_STRUCT) || (aggType == SDL_K_TYPE_UNION))
 	    {
-		if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
-		    myMember->type = SDL_K_TYPE_IMPLICIT;
+		if ((datatype >= SDL_K_TYPE_BYTE) &&
+		    (datatype <= SDL_K_TYPE_OCTA))
+		    myMember->type = SDL_K_TYPE_UNION;	/* implicit union */
 		else
 		    myMember->type = aggType;
 	    }
@@ -2217,7 +2226,6 @@ int sdl_aggregate_member(
 	    {
 		case SDL_K_TYPE_STRUCT:
 		case SDL_K_TYPE_UNION:
-		case SDL_K_TYPE_IMPLICIT:
 		    myMember->subaggr.id = name;
 		    myMember->subaggr.aggType = aggType;
 		    myMember->subaggr._unsigned = sdl_isUnsigned(
@@ -2275,6 +2283,7 @@ int sdl_aggregate_member(
 			    myMember->item.mask = mask;
 			    myMember->item._unsigned = _signed == false;
 			    myMember->item.subType = subType;
+			    myMember->item.sizedBitfield = bitfieldSized;
 			    switch (subType)
 			    {
 				case SDL_K_TYPE_BYTE:
@@ -4140,7 +4149,10 @@ static void _sdl_determine_offsets(
      * we need to do some checking to determine if we need to insert some a
      * filler bitfield, or are starting a new one, based on the number of bits
      * previously utilized.  We will also generate the appropriate MASK and
-     * SIZE constants.
+     * SIZE constants.  If the number of bits has been defaulted, then we can
+     * resize it up to the next usable size.  Bitfields are defaulted to
+     * UNSIGNED BYTE fields, but can be defined as ab UNSIGNED QUADWORD field,
+     * if so desired.
      */
     if (sdl_isBitfield(member) == true)
     {
@@ -4156,7 +4168,6 @@ static void _sdl_determine_offsets(
 	    member->item.bitOffset = 0;
 	    if (prevItem == true)
 	    {
-
 		if (prevMember->item.dimension)
 		    dimension = prevMember->item.hbound -
 				prevMember->item.lbound + 1;
@@ -4167,8 +4178,7 @@ static void _sdl_determine_offsets(
 	    {
 		int64_t	size = 0;
 
-		if ((prevMember->type != SDL_K_TYPE_UNION) &&
-		    (prevMember->type != SDL_K_TYPE_IMPLICIT))
+		if (prevMember->type != SDL_K_TYPE_UNION)
 		{
 		    if (prevMember->subaggr.dimension == true)
 			dimension = prevMember->subaggr.hbound -
@@ -4185,12 +4195,71 @@ static void _sdl_determine_offsets(
 	    }
 	    else
 		member->offset = 0;
+
+	    /*
+	     * If the bitfield was not specifically sized and the number of
+	     * bits for this field is larger than the defaulted size, then we
+	     * need to resize the bitfield to account for this.
+	     */
+	    if (member->item.sizedBitfield == true)
+	    {
+
+		/*
+		 * If the length is greater than 8 and the bitfield is only a
+		 * byte, then change the type to a bitfield of word size.
+		 */
+		if ((member->item.type == SDL_K_TYPE_BITFLD_B) &&
+		    (member->item.length > 8))
+		    member->item.type = SDL_K_TYPE_BITFLD_W;
+
+		/*
+		 * If the length is greater than 16 and the bitfield is only a
+		 * word, then change the type to a bitfield of longword size.
+		 */
+		if ((member->item.type == SDL_K_TYPE_BITFLD_W) &&
+		    (member->item.length > 16))
+		    member->item.type = SDL_K_TYPE_BITFLD_L;
+
+		/*
+		 * If the length is greater than 32 and the bitfield is only a
+		 * longword, then change the type to a bitfield of quadword
+		 * size.
+		 */
+		if ((member->item.type == SDL_K_TYPE_BITFLD_L) &&
+		    (member->item.length > 32))
+		    member->item.type = SDL_K_TYPE_BITFLD_Q;
+
+		/*
+		 * If the length is greater than 64 and the bitfield is only a
+		 * quadword, then change the type to a bitfield of octaword
+		 * size.
+		 */
+		if ((member->item.type == SDL_K_TYPE_BITFLD_L) &&
+		    (member->item.length > 32))
+		    member->item.type = SDL_K_TYPE_BITFLD_Q;
+		member->item.size = sdl_sizeof(context, member->item.type);
+	    }
 	}
 	else if (prevMember != NULL)
 	{
-	    int availBits = (prevMember->item.size * 8) -
-			    prevMember->item.bitOffset -
-			    prevMember->item.length;
+	    int availBits;
+
+	    /*
+	     * Before we go too far, see if the bitfields need to have their
+	     * sizes adjusted, but only if we are allowed to do so.
+	     */
+	    if (member->item.sizedBitfield == false)
+		_sdl_check_bitfieldSizes(
+				context,
+				memberList,
+				NULL,
+				member->item.length,
+				member,
+				NULL);
+
+	    availBits = (prevMember->item.size * 8) -
+			prevMember->item.bitOffset -
+			prevMember->item.length;
 
 	    /*
 	     * The new member and the previous member are both BITFIELDs.
@@ -4300,8 +4369,8 @@ static void _sdl_determine_offsets(
 	if ((prevMember != NULL) && (sdl_isBitfield(prevMember) == true))
 	{
 	    int availBits = (prevMember->item.size * 8) -
-				prevMember->item.bitOffset -
-				prevMember->item.length;
+			    prevMember->item.bitOffset -
+			    prevMember->item.length;
 	    if (availBits > 0)
 		_sdl_fill_bitfield(
 				memberList,
@@ -4469,7 +4538,7 @@ static int64_t _sdl_aggregate_size(
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:_aggregate_size\n", __FILE__, __LINE__);
+	printf("%s:%d:_sdl_aggregate_size\n", __FILE__, __LINE__);
 
     /*
      * Get the last member for either the AGGREGATE or subaggregate.  If we
@@ -4569,6 +4638,12 @@ static void _sdl_checkAndSetOrigin(SDL_CONTEXT *context, SDL_MEMBERS *member)
 					member->subaggr.id);
 
     /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_checkAndSetOrigin\n", __FILE__, __LINE__);
+
+    /*
      * If any aggregates have been defined, then check the member.id against
      * the ORIGIN id, and if they match, and we have not already saved a
      * member, then save a pointer to the member in the ORIGIN of the
@@ -4580,6 +4655,156 @@ static void _sdl_checkAndSetOrigin(SDL_CONTEXT *context, SDL_MEMBERS *member)
 	    (aggr->origin.id != NULL) &&
 	    (strcmp(aggr->origin.id, id) == 0))
 	    aggr->origin.origin = member;
+    }
+
+    /*
+     * Return back to the caller.
+     */
+    return;
+}
+
+/*
+ * _sdl_check_bitfieldSizes
+ *  This function is called to scan backwards in a member list and determine if
+ *  all the contiguous items in the list are BITFIELDs that can potentially be
+ *  resized because the number of bits is getting larger than the defaulted
+ *  size and should be resized.  This function is recursive.  NOTE: We only
+ *  look at bitfields that can be resized (where the user did not specify a
+ *  particular size).
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  memberList:
+ *	A pointer to the member list header.  This is used to determine when we
+ *	have recursed back to the beginning of the list.
+ *  member:
+ *	A pointer to the member we are to be looking at in this call.  The
+ *	first time we are called, this parameter is NULL.
+ *  length:
+ *	A value indicating the number of bits in use.
+ *  newMember:
+ *	A pointer to the member we are looking to add that may have cause the
+ *	bitfield to overflow.
+ *  updated:
+ *	A pointer to a boolean value indicating that the BITFIELD type has been
+ *	updated.  This is NULL on the first call.
+ *
+ * Output Parameters:
+ *  None, but the members that are BITFIELDs may have all been updated.
+ *
+ * Return Values:
+ *  None.
+ */
+static void _sdl_check_bitfieldSizes(
+			SDL_CONTEXT *context,
+			SDL_QUEUE *memberList,
+			SDL_MEMBERS *member,
+			int64_t length,
+			SDL_MEMBERS *newMember,
+			bool *updated)
+{
+    SDL_MEMBERS	*prevMember;
+    bool	myUpdated = false;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_check_bitfieldSizes\n", __FILE__, __LINE__);
+
+    /*
+     * If the member parameter has not been passed, then the previous member is
+     * off the blink field of the member list.  Otherwise it is off the blink
+     * field of the member itself.
+     */
+    if (member == NULL)
+	prevMember = (SDL_MEMBERS *) memberList->blink;
+    else
+	prevMember = (SDL_MEMBERS *) member->header.queue.blink;
+
+    /*
+     * If the previous member is not actually the address of the member list,
+     * then check to see if it is an item, and one of the BITFIELD types, and
+     * one that was not specifically sized by the user.  If so, then call
+     * ourselves again with an updated number of bits.  If not, this previous
+     * member will not help us, so return to deal with the next member.
+     */
+    if (prevMember != (SDL_MEMBERS *) &memberList->flink)
+    {
+	if ((sdl_isItem(prevMember) == true) &&
+	    ((prevMember->item.type == SDL_K_TYPE_BITFLD_B) ||
+	     (prevMember->item.type == SDL_K_TYPE_BITFLD_W) ||
+	     (prevMember->item.type == SDL_K_TYPE_BITFLD_L) ||
+	     (prevMember->item.type == SDL_K_TYPE_BITFLD_Q) ||
+	     (prevMember->item.type == SDL_K_TYPE_BITFLD_O)) &&
+	     (prevMember->item.sizedBitfield == false))
+	{
+	    length += prevMember->item.length;
+	    _sdl_check_bitfieldSizes(
+				context,
+				memberList,
+				prevMember,
+				length,
+				NULL,
+				&myUpdated);
+	}
+	else
+	    return;
+    }
+
+    /*
+     * If member is not NULL, then we have one or more previous bitfields.  We
+     * get here with the total length of bits required for this bitfield.
+     */
+    if (member != NULL)
+    {
+	if (myUpdated == false)
+	{
+
+	    /*
+	     * If the length is greater than 8 and the bitfield is only a
+	     * byte, then change the type to a bitfield of word size.
+	     */
+	    if ((member->item.type == SDL_K_TYPE_BITFLD_B) && (length > 8))
+		member->item.type = SDL_K_TYPE_BITFLD_W;
+
+	    /*
+	     * If the length is greater than 16 and the bitfield is only a
+	     * word, then change the type to a bitfield of longword size.
+	     */
+	    if ((member->item.type == SDL_K_TYPE_BITFLD_W) && (length > 16))
+		member->item.type = SDL_K_TYPE_BITFLD_L;
+
+	    /*
+	     * If the length is greater than 32 and the bitfield is only a
+	     * longword, then change the type to a bitfield of quadword
+	     * size.
+	     */
+	    if ((member->item.type == SDL_K_TYPE_BITFLD_L) && (length > 32))
+		member->item.type = SDL_K_TYPE_BITFLD_Q;
+
+	    /*
+	     * If the length is greater than 64 and the bitfield is only a
+	     * quadword, then change the type to a bitfield of octaword
+	     * size.
+	     */
+	    if ((member->item.type == SDL_K_TYPE_BITFLD_L) && (length > 64))
+		member->item.type = SDL_K_TYPE_BITFLD_Q;
+	    member->item.size = sdl_sizeof(context, member->item.type);
+	    *updated = true;
+	}
+	else
+	{
+	    member->item.type = prevMember->item.type;
+	    member->item.size = prevMember->item.size;
+	}
+    }
+    else
+    {
+	newMember->item.type = prevMember->item.type;
+	newMember->item.size = prevMember->item.size;
     }
 
     /*

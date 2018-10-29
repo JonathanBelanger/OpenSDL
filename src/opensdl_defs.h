@@ -102,9 +102,8 @@
 #define	SDL_K_TYPE_BOOL		48
 #define	SDL_K_TYPE_STRUCT	49
 #define	SDL_K_TYPE_UNION	50
-#define SDL_K_TYPE_IMPLICIT	51
-#define SDL_K_TYPE_ENUM		52
-#define SDL_K_TYPE_ENTRY	53	/* Always the last Base type */
+#define SDL_K_TYPE_ENUM		51
+#define SDL_K_TYPE_ENTRY	52	/* Always the last Base type */
 #define SDL_K_BASE_TYPE_MIN	1
 #define SDL_K_BASE_TYPE_MAX	SDL_K_TYPE_ENTRY + 1
 #define SDL_K_DECLARE_MIN	64
@@ -367,14 +366,14 @@ typedef struct
     char		*tag;
     int64_t		hbound;
     int64_t		lbound;
-    int64_t		length;		/* for BITFIELDs only */
+    int64_t		length;		/* for BITFIELDs only	*/
     int64_t		subType;	/* For BITFILEDs and ADDRESSes only */
     int64_t		offset;
     int64_t		precision;
     int64_t		scale;
     int64_t		size;
     int			alignment;
-    int			bitOffset;	/* for BITFIELDs only */
+    int			bitOffset;	/* for BITFIELDs only	*/
     int			srcLineNo;
     int			type;		/* data or user type	*/
     int			typeID;
@@ -382,8 +381,9 @@ typedef struct
     bool		dimension;
     bool		fill;
     bool		globalDef;
-    bool		mask;		/* For BITFIELDs only*/
+    bool		mask;		/* For BITFIELDs only	*/
     bool		parentAlignment;
+    bool		sizedBitfield;	/* For BITFIELDs only	*/
     bool		typeDef;
     bool		_unsigned;
 } SDL_ITEM;

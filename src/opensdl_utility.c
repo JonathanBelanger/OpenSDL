@@ -2057,8 +2057,7 @@ bool sdl_isItem(SDL_MEMBERS *member)
 	printf("%s:%d:sdl_isItem\n", __FILE__, __LINE__);
 
     if ((member->type != SDL_K_TYPE_STRUCT) &&
-	(member->type != SDL_K_TYPE_UNION) &&
-	(member->type != SDL_K_TYPE_IMPLICIT))
+	(member->type != SDL_K_TYPE_UNION))
 	retVal = true;
 
     /*

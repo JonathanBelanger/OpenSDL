@@ -41,215 +41,215 @@ extern _Bool trace;
 static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 {
 	/* 32-bit	64-bit	*/
-    {
+    {					/*  0 */
 	{"void",	"void"},	/* NONE */
 	{"void",	"void"}		/* NONE */
     },
-    {
+    {					/*  1 */
 	{"int8_t",	"int8_t"},	/* BYTE */
 	{"uint8_t",	"uint8_t"}	/* BYTE */
     },
-    {
+    {					/*  2 */
 	{"int8_t",	"int8_t"},	/* INTEGER_BYTE */
 	{"uint8_t",	"uint8_t"}	/* INTEGER_BYTE */
     },
-    {
+    {					/*  3 */
 	{"int16_t",	"int16_t"},	/* WORD */
 	{"uint16_t",	"uint16_t"}	/* WORD */
     },
-    {
+    {					/*  4 */
 	{"int16_t",	"int16_t"},	/* INTEGER_WORD */
 	{"uint16_t",	"uint16_t"}	/* INTEGER_WORD */
     },
-    {
+    {					/*  5 */
 	{"int32_t",	"int32_t"},	/* LONGWORD */
 	{"uint32_t",	"uint32_t"}	/* LONGWORD */
     },
-    {
+    {					/*  6 */
 	{"int32_t",	"int32_t"},	/* INTEGER_LONG */
 	{"uint32_t",	"uint32_t"}	/* INTEGER_LONG */
     },
-    {
+    {					/*  7 */
 	{"int",		"int"},		/* INTEGER */
 	{"unsigned int","unsigned int"}	/* INTEGER */
     },
-    {
+    {					/*  8 */
 	{"int32_t",	"int64_t"},	/* INTEGER_HW */
 	{"uint32_t",	"uint64_t"}	/* INTEGER_HW */
     },
-    {
+    {					/*  9 */
 	{"int32_t",	"int64_t"},	/* HARDWARE_INTEGER */
 	{"uint32_t",	"uint64_t"}	/* HARDWARE_INTEGER */
     },
-    {
+    {					/* 10 */
 	{"int64_t",	"int64_t"},	/* QUADWORD */
 	{"uint64_t",	"uint64_t"}	/* QUADWORD */
     },
-    {
+    {					/* 11 */
 	{"int64_t",	"int64_t"},	/* INTEGER_QUAD */
 	{"uint64_t",	"uint64_t"}	/* INTEGER_QUAD */
     },
-    {
+    {					/* 12 */
 	{"__int128_t",	"__int128_t"},	/* OCTAWORD */
 	{"__uint128_t",	"__uint128_t"}	/* OCTAWORD */
     },
-    {
+    {					/* 13 */
 	{"float",	"float"},	/* T_FLOATING */
 	{"float",	"float"}	/* T_FLOATING */
     },
-    {
+    {					/* 14 */
 	{"float complex","float complex"},/* T_FLOATING COMPLEX */
 	{"float complex","float complex"} /* T_FLOATING COMPLEX */
     },
-    {
+    {					/* 15 */
 	{"double",	"double"},	/* S_FLOATING */
 	{"double",	"double"}	/* S_FLOATING */
     },
-    {
+    {					/* 16 */
 	{"double complex","double complex"},/* S_FLOATING COMPLEX */
 	{"double complex","double complex"} /* S_FLOATING COMPLEX */
     },
-    {
+    {					/* 17 */
 	{"long double","long double"},	/* X_FLOATING */
 	{"long double","long double"}	/* X_FLOATING */
     },
-    {
+    {					/* 18 */
 	{"long double complex","long double complex"},/* X_FLOATING COMPLEX */
 	{"long double complex","long double complex"} /* X_FLOATING COMPLEX */
     },
-    {
+    {					/* 19 */
 	{"float",	"float"},	/* F_FLOATING */
 	{"float",	"float"}	/* F_FLOATING */
     },
-    {
+    {					/* 20 */
 	{"float",	"float"},	/* F_FLOATING COMPLEX */
 	{"float",	"float"}	/* F_FLOATING COMPLEX */
     },
-    {
+    {					/* 21 */
 	{"double",	"double"},	/* D_FLOATING */
 	{"double",	"double"}	/* D_FLOATING */
     },
-    {
+    {					/* 22 */
 	{"double",	"double"},	/* D_FLOATING COMPLEX */
 	{"double",	"double"}	/* D_FLOATING COMPLEX */
     },
-    {
+    {					/* 23 */
 	{"double",	"double"},	/* G_FLOATING */
 	{"double",	"double"}	/* G_FLOATING */
     },
-    {
+    {					/* 24 */
 	{"double",	"double"},	/* G_FLOATING COMPLEX */
 	{"double",	"double"}	/* G_FLOATING COMPLEX */
     },
-    {
+    {					/* 25 */
 	{"long double","long double"},	/* H_FLOATING */
 	{"long double","long double"}	/* H_FLOATING */
     },
-    {
+    {					/* 26 */
 	{"long double complex","long double complex"},/* H_FLOATING COMPLEX */
 	{"long double complex","long double complex"} /* H_FLOATING COMPLEX */
     },
-    {
+    {					/* 27 */
 	{"char",	"char"},	/* DECIMAL */
 	{"char",	"char"}		/* DECIMAL */
     },
-    {
+    {					/* 28 */
 	{"int",		"int"},		/* BITFIELD */
 	{"unsigned int","unsigned int"}	/* BITFIELD */
     },
-    {
+    {					/* 29 */
 	{"int8_t",	"int8_t"},	/* BITFIELD BYTE */
 	{"uint8_t",	"uint8_t"}	/* BITFIELD BYTE */
     },
-    {
+    {					/* 30 */
 	{"int16_t",	"int16_t"},	/* BITFIELD WORD */
 	{"uint16_t",	"uint16_t"}	/* BITFIELD WORD */
     },
-    {
+    {					/* 31 */
 	{"int32_t",	"int32_t"},	/* BITFIELD LONGWORD */
 	{"uint32_t",	"uint32_t"}	/* BITFIELD LONGWORD */
     },
-    {
+    {					/* 32 */
 	{"int64_t",	"int64_t"},	/* BITFIELD QUADWORD */
 	{"uint64_t",	"uint64_t"}	/* BITFIELD QUADWORD */
     },
-    {
+    {					/* 33 */
 	{"__int128_t",	"__int128_t"},	/* BITFIELD OCTAWORD */
 	{"__uint128_t",	"__uint128_t"}	/* BITFIELD OCTAWORD */
     },
-    {
+    {					/* 34 */
 	{"char",	"char"},	/* CHAR */
 	{"char",	"char"}		/* CHAR */
     },
-    {
+    {					/* 35 */
 	{NULL,		NULL},		/* CHAR VARYING */
 	{NULL,		NULL},		/* CHAR VARYING */
     },
-    {
+    {					/* 36 */
 	{"char",	"char"},	/* CHAR LENGTH(*) */
 	{"char",	"char"}		/* CHAR LENGTH(*) */
     },
-    {
+    {					/* 37 */
 	{NULL,		NULL},		/* ADDRESS */
 	{NULL,		NULL}		/* ADDRESS */
     },
-    {
+    {					/* 38 */
 	{"uint32_t",	"uint32_t"},	/* ADDRESS_LONG */
 	{"uint32_t",	"uint32_t"}	/* ADDRESS_LONG */
     },
-    {
+    {					/* 39 */
 	{"uint64_t",	"uint64_t"},	/* ADDRESS_QUAD */
 	{"uint64_t",	"uint64_t"}	/* ADDRESS_QUAD */
     },
-    {
+    {					/* 40 */
 	{"uint32_t",	"uint64_t"},	/* ADDRESS_HW */
 	{"uint32_t",	"uint64_t"}	/* ADDRESS_HW */
     },
-    {
+    {					/* 41 */
 	{"uint32_t",	"uint64_t"},	/* HARDWARE_ADDRESS*/
 	{"uint32_t",	"uint64_t"}	/* HARDWARE_ADDRESS*/
     },
-    {
+    {					/* 42 */
 	{NULL,		NULL},		/* POINTER */
 	{NULL,		NULL}		/* POINTER */
     },
-    {
+    {					/* 43 */
 	{"uint32_t",	"uint32_t"},	/* POINTER_LONG */
 	{"uint32_t",	"uint32_t"}	/* POINTER_LONG */
     },
-    {
+    {					/* 44 */
 	{"uint64_t",	"uint64_t"},	/* POINTER_QUAD */
 	{"uint64_t",	"uint64_t"}	/* POINTER_QUAD */
     },
-    {
+    {					/* 45 */
 	{"uint32_t",	"uint64_t"},	/* POINTER_HW */
 	{"uint32_t",	"uint64_t"}	/* POINTER_HW */
     },
-    {
+    {					/* 46 */
 	{"void",	"void"},	/* ANY */
 	{"void",	"void"}		/* ANY */
     },
-    {
+    {					/* 47 */
 	{"void",	"void"},	/* VOID */
 	{"void",	"void"}		/* VOID */
     },
-    {
+    {					/* 48 */
 	{"bool",	"bool"},	/* BOOLEAN */
 	{"bool",	"bool"}		/* BOOLEAN */
     },
-    {
+    {					/* 49 */
 	{"struct",	"struct"},	/* STRUCTURE */
 	{"struct",	"struct"}	/* STRUCTURE */
     },
-    {
+    {					/* 50 */
 	{"union",	"union"},	/* UNION */
 	{"union",	"union"}	/* UNION */
     },
-    {
+    {					/* 51 */
 	{"enum",	"enum"},	/* ENUM */
 	{"enum",	"enum"}		/* ENUM */
     },
-    {
+    {					/* 52 */
 	{NULL,		NULL},		/* ENTRY */
 	{NULL,		NULL}		/* ENTRY */
     }
@@ -749,7 +749,6 @@ int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
 int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
     SDL_MEMBERS	dummy = { .type = item->type };
-    char	*sign = (item->_unsigned == true ? "unsigned " : "");
     char	*type;
     char	*name = _sdl_c_generate_name(item->id, item->prefix, item->tag);
     int		retVal = 1;
@@ -806,7 +805,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	    {
 		char *addr = ((item->type == SDL_K_TYPE_ADDR) ||
 			      (item->type == SDL_K_TYPE_PTR)) ? "*" : "";
-		if (fprintf(fp, "%s%s %s%s", sign, type, addr, name) < 0)
+		if (fprintf(fp, "%s %s%s", type, addr, name) < 0)
 		    retVal = 0;
 	    }
 	}

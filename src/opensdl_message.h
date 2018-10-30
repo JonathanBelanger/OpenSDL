@@ -145,7 +145,7 @@
 typedef union
 {
     uint32_t		msgCode;
-    typedef struct
+    struct
     {
 	uint32_t	severity : 3;
 	uint32_t	message : 13;

@@ -452,7 +452,7 @@ varset
 literal
 	: SDL_K_LITERAL
 	| t_literal_string
-	    { sdl_literal(&literal, $1, yyloc.first_line); }
+	    { sdl_literal(&context, &literal, $1, yyloc.first_line); }
 	| SDL_K_END_LITERAL
 	    { sdl_literal_end(&context, &literal, yyloc.first_line); }
 	;

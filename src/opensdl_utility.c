@@ -60,38 +60,46 @@ int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
     int			retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_get_local: ", __FILE__, __LINE__);
-
-    /*
-     * We should have already found the local variable definition
-     */
-    if ((local != NULL) && (value != NULL))
-	*value = local->value;
-    else
+    if (context->processingEnabled == true)
     {
-	if (value != NULL)
-	    value = 0;
-	retVal = 0;
-    }
 
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-    {
-	if (retVal == 1)
-	    printf(
-		"%s, %ld (%016lx - %4.4s)",
-		name,
-		*value,
-		*value,
-		(char *) value);
+	/*
+	 * If tracing is turned on, write out this call.
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_get_local: ", __FILE__, __LINE__);
+
+	/*
+	 * We should have already found the local variable definition
+	 */
+	if ((local != NULL) && (value != NULL))
+	    *value = local->value;
 	else
-	    printf("%s not found", name);
-	printf("\n");
+	{
+	    if (value != NULL)
+		value = 0;
+	    retVal = 0;
+	}
+
+	/*
+	 * If tracing is turned on, write out this call's return information.
+	 */
+	if (trace == true)
+	{
+	    if (retVal == 1)
+		printf(
+		    "%s, %ld (%016lx - %4.4s)",
+		    name,
+		    *value,
+		    *value,
+		    (char *) value);
+	    else
+		printf("%s not found", name);
+	    printf("\n");
+	}
     }
 
     /*
@@ -180,206 +188,216 @@ int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLineNo)
     int		retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf(
-	    "%s:%d:sdl_state_transition(state: %d, action: %d)\n",
-	    __FILE__,
-	    __LINE__,
-	    context->state,
-	    action);
-
-    /*
-     * Anything that will not cause a state transition is not included below.
-     */
-    switch (context->state)
+    if (context->processingEnabled == true)
     {
-	case Initial:
 
-	    /*
-	     * The only thing allowed in the initial state is the MODULE
-	     * statement.	     */
-	    switch (action)
-	    {
-		case Module:
-		    context->state = Module;
-		    break;
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf(
+		"%s:%d:sdl_state_transition(state: %d, action: %d)\n",
+		__FILE__,
+		__LINE__,
+		context->state,
+		action);
 
-		default:
-		    retVal = 0;
-		    break;
-	    }
-	    break;
+	/*
+	 * Anything that will not cause a state transition is not included
+	 * below.
+	 */
+	switch (context->state)
+	{
+	    case Initial:
 
-	case Module:
+		/*
+		 * The only thing allowed in the initial state is the MODULE
+		 * statement.	     */
+		switch (action)
+		{
+		    case Module:
+			context->state = Module;
+			break;
 
-	    /*
-	     * Most things are defined within a MODULE, so there will be many
-	     * potential state transitions.
-	     */
-	    switch (action)
-	    {
-		case Declare:
-		    context->state = Declare;
-		    break;
+		    default:
+			retVal = 0;
+			break;
+		}
+		break;
 
-		case Constant:
-		    context->state = Constant;
-		    context->constantPrevState = Module;
-		    break;
+	    case Module:
 
-		case Item:
-		    context->state = Item;
-		    break;
+		/*
+		 * Most things are defined within a MODULE, so there will be
+		 * many potential state transitions.
+		 */
+		switch (action)
+		{
+		    case Declare:
+			context->state = Declare;
+			break;
 
-		case Aggregate:
-		    context->state = Aggregate;
-		    break;
+		    case Constant:
+			context->state = Constant;
+			context->constantPrevState = Module;
+			break;
 
-		case Entry:
-		    context->state = Entry;
-		    break;
+		    case Item:
+			context->state = Item;
+			break;
 
-		case Local:
-		    context->state = Local;
-		    break;
+		    case Aggregate:
+			context->state = Aggregate;
+			break;
 
-		case DefinitionEnd:
-		    context->state = Initial;
-		    break;
+		    case Entry:
+			context->state = Entry;
+			break;
 
-		default:
-		    retVal = 0;
-		    break;
-	    }
-	    break;
+		    case Local:
+			context->state = Local;
+			break;
 
-	case Comment:
-	    retVal = 0;
-	    break;
+		    case DefinitionEnd:
+			context->state = Initial;
+			break;
 
-	case Literal:
-	    retVal = 0;
-	    break;
+		    default:
+			retVal = 0;
+			break;
+		}
+		break;
 
-	case Local:
-	    if (action == DefinitionEnd)
-		context->state = Module;
-	    else
+	    case Comment:
 		retVal = 0;
-	    break;
+		break;
 
-	case Declare:
-	    if (action == DefinitionEnd)
-	    {
-		context->state = Module;
-		sdl_declare_compl(context, srcLineNo);
-	    }
-	    else
+	    case Literal:
 		retVal = 0;
-	    break;
+		break;
 
-	case Constant:
-	    switch (action)
-	    {
-		case DefinitionEnd:
-		    context->state = context->constantPrevState;
-		    sdl_constant_compl(context, srcLineNo);
-		    break;
-
-		default:
+	    case Local:
+		if (action == DefinitionEnd)
+		    context->state = Module;
+		else
 		    retVal = 0;
-		    break;
-	    }
-	    break;
+		break;
 
-	case Item:
-	    if (action == DefinitionEnd)
-	    {
-		context->state = Module;
-		sdl_item_compl(context, srcLineNo);
-	    }
-	    else
+	    case Declare:
+		if (action == DefinitionEnd)
+		{
+		    context->state = Module;
+		    sdl_declare_compl(context, srcLineNo);
+		}
+		else
+		    retVal = 0;
+		break;
+
+	    case Constant:
+		switch (action)
+		{
+		    case DefinitionEnd:
+			context->state = context->constantPrevState;
+			sdl_constant_compl(context, srcLineNo);
+			break;
+
+		    default:
+			retVal = 0;
+			break;
+		}
+		break;
+
+	    case Item:
+		if (action == DefinitionEnd)
+		{
+		    context->state = Module;
+		    sdl_item_compl(context, srcLineNo);
+		}
+		else
+		    retVal = 0;
+		break;
+
+	    case Aggregate:
+		switch (action)
+		{
+		    case DefinitionEnd:
+			context->state = Module;
+			break;
+
+		    case Subaggregate:
+			context->state = Subaggregate;
+			break;
+
+		    case Constant:
+			context->state = Constant;
+			context->constantPrevState = Aggregate;
+			break;
+
+		    default:
+			retVal = 0;
+			break;
+		}
+		break;
+
+	    case Subaggregate:
+		switch (action)
+		{
+		    case DefinitionEnd:
+			switch (context->aggregateDepth)
+			{
+			    case 1:
+				context->state = Module;
+				break;
+
+			    case 2:
+				context->state = Aggregate;
+				break;
+
+			    default:
+				break;
+			}
+			break;
+
+		    case Subaggregate:
+			break;
+
+		    case Constant:
+			context->state = Constant;
+			context->constantPrevState = Subaggregate;
+			break;
+
+		    default:
+			retVal = 0;
+			break;
+		}
+		break;
+
+	    case Entry:
+		switch (action)
+		{
+		    case DefinitionEnd:
+			context->state = Module;
+			break;
+
+		    case Constant:
+			context->state = Constant;
+			context->constantPrevState = Entry;
+			break;
+
+		    default:
+			retVal = 0;
+			break;
+		}
+		break;
+
+	    case DefinitionEnd:
 		retVal = 0;
-	    break;
-
-	case Aggregate:
-	    switch (action)
-	    {
-		case DefinitionEnd:
-		    context->state = Module;
-		    break;
-
-		case Subaggregate:
-		    context->state = Subaggregate;
-		    break;
-
-		case Constant:
-		    context->state = Constant;
-		    context->constantPrevState = Aggregate;
-		    break;
-
-		default:
-		    retVal = 0;
-		    break;
-	    }
-	    break;
-
-	case Subaggregate:
-	    switch (action)
-	    {
-		case DefinitionEnd:
-		    switch (context->aggregateDepth)
-		    {
-			case 1:
-			    context->state = Module;
-			    break;
-
-			case 2:
-			    context->state = Aggregate;
-			    break;
-
-			default:
-			    break;
-		    }
-		    break;
-
-		case Subaggregate:
-		    break;
-
-		case Constant:
-		    context->state = Constant;
-		    context->constantPrevState = Subaggregate;
-		    break;
-
-		default:
-		    retVal = 0;
-		    break;
-	    }
-	    break;
-
-	case Entry:
-	    switch (action)
-	    {
-		case DefinitionEnd:
-		    context->state = Module;
-		    break;
-
-		case Constant:
-		    context->state = Constant;
-		    context->constantPrevState = Entry;
-		    break;
-
-		default:
-		    retVal = 0;
-		    break;
-	    }
-	    break;
-
-	case DefinitionEnd:
-	    retVal = 0;
-	    break;
+		break;
+	}
     }
 
     /*
@@ -619,19 +637,28 @@ int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype)
     SDL_DECLARE *myDeclare = (SDL_DECLARE *) context->declares.header.flink;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_usertype_idx\n", __FILE__, __LINE__);
+    if (context->processingEnabled == true)
+    {
 
-    while (myDeclare != (SDL_DECLARE *) &context->declares.header)
-	if (strcmp(myDeclare->id, usertype) == 0)
-	{
-	    retVal = myDeclare->typeID;
-	    break;
-	}
-	else
-	    myDeclare = (SDL_DECLARE *) myDeclare->header.queue.flink;
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_usertype_idx\n", __FILE__, __LINE__);
+
+	while (myDeclare != (SDL_DECLARE *) &context->declares.header)
+	    if (strcmp(myDeclare->id, usertype) == 0)
+	    {
+		retVal = myDeclare->typeID;
+		break;
+	    }
+	    else
+		myDeclare = (SDL_DECLARE *) myDeclare->header.queue.flink;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -666,19 +693,28 @@ int sdl_aggrtype_idx(SDL_CONTEXT *context, char *aggregateName)
 			    (SDL_AGGREGATE *) context->aggregates.header.flink;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_aggrtype_idx\n", __FILE__, __LINE__);
+    if (context->processingEnabled == true)
+    {
 
-    while (myAggregate != (SDL_AGGREGATE *) &context->aggregates.header)
-	if (strcmp(myAggregate->id, aggregateName) == 0)
-	{
-	    retVal = myAggregate->typeID;
-	    break;
-	}
-	else
-	    myAggregate = (SDL_AGGREGATE *) myAggregate->header.queue.flink;
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_aggrtype_idx\n", __FILE__, __LINE__);
+
+	while (myAggregate != (SDL_AGGREGATE *) &context->aggregates.header)
+	    if (strcmp(myAggregate->id, aggregateName) == 0)
+	    {
+		retVal = myAggregate->typeID;
+		break;
+	    }
+	    else
+		myAggregate = (SDL_AGGREGATE *) myAggregate->header.queue.flink;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -708,7 +744,8 @@ __int64_t sdl_bin2int(char *binStr)
     int		ii;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If tracing is turned on, write out this call (calls only, no
+     * returns).
      */
     if (trace == true)
 	printf("%s:%d:sdl_bin2int\n", __FILE__, __LINE__);
@@ -751,15 +788,16 @@ int sdl_str2int(char *strVal, __int64_t *val)
     size_t	len = strlen(strVal);
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If tracing is turned on, write out this call (calls only, no
+     * returns).
      */
     if (trace == true)
 	printf("%s:%d:sdl_str2int\n", __FILE__, __LINE__);
 
     /*
-     * If the input string is less than or equal to the maximum size of a long
-     * word (64-bit word) and we have a place to store the results, then we can
-     * proceed.  Otherwise, we have an error.
+     * If the input string is less than or equal to the maximum size of a
+     * long word (64-bit word) and we have a place to store the results,
+     * then we can proceed.  Otherwise, we have an error.
      */
     if ((val != NULL) && (len <= sizeof(__int64_t)))
     {
@@ -767,16 +805,16 @@ int sdl_str2int(char *strVal, __int64_t *val)
 	int		ii;
 
 	/*
-	 * Set the resulting value to zero.  This will set each of the bytes in
-	 * the value to be returned to all zeros.
+	 * Set the resulting value to zero.  This will set each of the
+	 * bytes in the value to be returned to all zeros.
 	 */
 	*val = 0;
 
 	/*
 	 * Loop through each byte in the put string and store it in the
-	 * corresponding byte of the returned value.  This goes from the lowest
-	 * to the highest bytes.  NOTE: We can simply cast this because we have
-	 * no idea of how long the input string may be.
+	 * corresponding byte of the returned value.  This goes from the
+	 * lowest to the highest bytes.  NOTE: We can simply cast this
+	 * because we have no idea of how long the input string may be.
 	 */
 	for (ii = 0; ii < len; ii++)
 	    ptr[ii] = strVal[ii];
@@ -825,111 +863,121 @@ int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
     int64_t		retVal = 0;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_offset\n", __FILE__, __LINE__);
-
-    /*
-     * Before we can do anything, if there are options still to be process, we
-     * need to call the sdl_aggregate_member to process just these options and
-     * not do anything else.
-     */
-    if (context->optionsIdx > 0)
-	(void) sdl_aggregate_member(
-			context,
-			NULL,
-			SDL_K_TYPE_NONE,
-			SDL_K_TYPE_NONE,
-			srcLineNo);
-
-    if (context->aggregates.nextID > SDL_K_AGGREGATE_MIN)
-	myAgg = sdl_get_aggregate(
-			&context->aggregates,
-			context->aggregates.nextID - 1);
-
-    /*
-     * Get the current offset, based on the type of offset we are looking to
-     * get.
-     */
-    switch(offsetType)
+    if (context->processingEnabled == true)
     {
-	case SDL_K_OFF_BYTE_REL:
-	    if ((myAgg != NULL) && (myAgg->origin.origin != NULL))
-		origin = myAgg->origin.origin->offset;
-	    /* no break */
-	case SDL_K_OFF_BYTE_BEG:
 
-	    /*
-	     * The last member, in the current aggregate is contains the byte
-	     * offset from the beginning of the AGGREGATE.
-	     */
-	    if (myAgg != NULL)
-	    {
-		SDL_MEMBERS	*member = NULL;
-		bool		done = false;
+	/*
+	 * If tracing is turned on, write out this call (calls only, no returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_offset\n", __FILE__, __LINE__);
 
-		if (SDL_Q_EMPTY(&myAgg->members) == false)
-		    member = (SDL_MEMBERS *) myAgg->members.blink;
-		else
-		    done = true;
-		while (done == false)
+	/*
+	 * Before we can do anything, if there are options still to be process,
+	 * we need to call the sdl_aggregate_member to process just these
+	 * options and not do anything else.
+	 */
+	if (context->optionsIdx > 0)
+	    (void) sdl_aggregate_member(
+			    context,
+			    NULL,
+			    SDL_K_TYPE_NONE,
+			    SDL_K_TYPE_NONE,
+			    srcLineNo);
+
+	if (context->aggregates.nextID > SDL_K_AGGREGATE_MIN)
+	    myAgg = sdl_get_aggregate(
+			    &context->aggregates,
+			    context->aggregates.nextID - 1);
+
+	/*
+	 * Get the current offset, based on the type of offset we are looking
+	 * to get.
+	 */
+	switch(offsetType)
+	{
+	    case SDL_K_OFF_BYTE_REL:
+		if ((myAgg != NULL) && (myAgg->origin.origin != NULL))
+		    origin = myAgg->origin.origin->offset;
+		/* no break */
+	    case SDL_K_OFF_BYTE_BEG:
+
+		/*
+		 * The last member, in the current aggregate is contains the
+		 * byte offset from the beginning of the AGGREGATE.
+		 */
+		if (myAgg != NULL)
 		{
-		    if ((sdl_isItem(member) == false) &&
-		        (SDL_Q_EMPTY(&member->subaggr.members) == false) &&
-		        (member->subaggr.size == 0))
-			member = (SDL_MEMBERS *) member->subaggr.members.blink;
+		    SDL_MEMBERS	*member = NULL;
+		    bool		done = false;
+
+		    if (SDL_Q_EMPTY(&myAgg->members) == false)
+			member = (SDL_MEMBERS *) myAgg->members.blink;
 		    else
 			done = true;
-		}
-		if (member != NULL)
-		{
-		    int64_t dimension = 1;
-
-		    if (sdl_isItem(member))
+		    while (done == false)
 		    {
-			if (member->item.dimension == true)
-			    dimension = member->item.hbound -
-					member->item.lbound + 1;
-			retVal = member->offset - origin +
-				 (member->item.size * dimension);
+			if ((sdl_isItem(member) == false) &&
+			    (SDL_Q_EMPTY(&member->subaggr.members) == false) &&
+			    (member->subaggr.size == 0))
+			    member =
+				(SDL_MEMBERS *) member->subaggr.members.blink;
+			else
+			    done = true;
 		    }
-		    else
+		    if (member != NULL)
 		    {
-			if (member->subaggr.dimension == true)
-			    dimension = member->subaggr.hbound -
-					member->subaggr.lbound + 1;
-			retVal = member->offset - origin +
-				 (member->subaggr.size * dimension);
+			int64_t dimension = 1;
+
+			if (sdl_isItem(member))
+			{
+			    if (member->item.dimension == true)
+				dimension = member->item.hbound -
+					    member->item.lbound + 1;
+			    retVal = member->offset - origin +
+				     (member->item.size * dimension);
+			}
+			else
+			{
+			    if (member->subaggr.dimension == true)
+				dimension = member->subaggr.hbound -
+					    member->subaggr.lbound + 1;
+			    retVal = member->offset - origin +
+				     (member->subaggr.size * dimension);
+			}
 		    }
 		}
-	    }
-	    break;
+		break;
 
-	case SDL_K_OFF_BIT:
+	    case SDL_K_OFF_BIT:
 
-	    /*
-	     * If the last member, in the current AGGREGATE or subaggregate is
-	     * a BITFIELD, then get the bit offset out of it.  Otherwise, we
-	     * will return a zero.
-	     */
-	    if (myAgg != NULL)
-	    {
-		SDL_MEMBERS	*member = NULL;
-
-		if (SDL_Q_EMPTY(&myAgg->members) == false)
-		    member = (SDL_MEMBERS *) myAgg->members.blink;
-		while ((member != NULL) && (sdl_isItem(member) == false))
+		/*
+		 * If the last member, in the current AGGREGATE or subaggregate
+		 * is a BITFIELD, then get the bit offset out of it.
+		 * Otherwise, we will return a zero.
+		 */
+		if (myAgg != NULL)
 		{
-		    if (SDL_Q_EMPTY(&member->subaggr.members) == false)
-			member = (SDL_MEMBERS *) member->subaggr.members.blink;
-		    else
-			member = NULL;
+		    SDL_MEMBERS	*member = NULL;
+
+		    if (SDL_Q_EMPTY(&myAgg->members) == false)
+			member = (SDL_MEMBERS *) myAgg->members.blink;
+		    while ((member != NULL) && (sdl_isItem(member) == false))
+		    {
+			if (SDL_Q_EMPTY(&member->subaggr.members) == false)
+			    member =
+				(SDL_MEMBERS *) member->subaggr.members.blink;
+			else
+			    member = NULL;
+		    }
+		    if ((member != NULL) && (sdl_isBitfield(member)== true))
+			retVal = member->item.bitOffset + member->item.length;
 		}
-		if ((member != NULL) && (sdl_isBitfield(member)== true))
-		    retVal = member->item.bitOffset + member->item.length;
-	    }
-	    break;
+		break;
+	}
     }
 
     /*
@@ -970,37 +1018,46 @@ int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
     int		retVal = 0;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf(
-	    "%s:%d:sdl_dimension(%ld:%ld)\n",
-	    __FILE__,
-	    __LINE__,
-	    lbound,
-	    hbound);
-
-    /*
-     * Loop through all the dimension array entries looking for an available
-     * slot.
-     */
-    while ((retVal < SDL_K_MAX_DIMENSIONS) &&
-	   (context->dimensions[retVal].inUse == true))
-	retVal++;
-
-    /*
-     * If we found one, then save the dimension information and set the inUse
-     * flag.  Otherwise, we'tt return a value outside the array dimensions to
-     * indicate that we ran out of space.
-     */
-    if (retVal < SDL_K_MAX_DIMENSIONS)
+    if (context->processingEnabled == true)
     {
-	context->dimensions[retVal].lbound = lbound;
-	context->dimensions[retVal].hbound = hbound;
-	context->dimensions[retVal].inUse = true;
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf(
+		"%s:%d:sdl_dimension(%ld:%ld)\n",
+		__FILE__,
+		__LINE__,
+		lbound,
+		hbound);
+
+	/*
+	 * Loop through all the dimension array entries looking for an
+	 * available slot.
+	 */
+	while ((retVal < SDL_K_MAX_DIMENSIONS) &&
+	       (context->dimensions[retVal].inUse == true))
+	    retVal++;
+
+	/*
+	 * If we found one, then save the dimension information and set the
+	 * inUse flag.  Otherwise, we'tt return a value outside the array
+	 * dimensions to indicate that we ran out of space.
+	 */
+	if (retVal < SDL_K_MAX_DIMENSIONS)
+	{
+	    context->dimensions[retVal].lbound = lbound;
+	    context->dimensions[retVal].hbound = hbound;
+	    context->dimensions[retVal].inUse = true;
+	}
+	else
+	    retVal = 0;
     }
-    else
-	retVal = 0;
 
     /*
      * Return the dimension array location utilized back to the caller.
@@ -1044,114 +1101,123 @@ int sdl_add_option(
     int		retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
+    if (context->processingEnabled == true)
     {
-	printf(
-	    "%s:%d:sdl_add_option(%d, ",
-	    __FILE__,
-	    __LINE__,
-	    option);
-	if (string == NULL)
-	    printf("%ld)", value);
-	else
-	    printf("%s)", string);
-	printf(" at index %d\n", context->optionsIdx);
-    }
 
-    /*
-     * The options list is dynamically sized, and is never reduced.  So, if
-     * there is not enough room for another option, then reallocate the options
-     * list to the next increment
-     */
-    if (context->optionsIdx >= context->optionsSize)
-    {
-	size_t	size;
-
-	context->optionsSize += SDL_K_OPTIONS_INCR;
-	size = context->optionsSize * sizeof(SDL_OPTION);
-	context->options = realloc(context->options, size);
-	if (context->options == NULL)
-	    retVal = 0;
-    }
-
-    /*
-     * Add another option, then do so now.
-     */
-    if (retVal == 1)
-    {
-	context->options[context->optionsIdx].srcLineNo = srcLineNo;
-	switch (option)
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
 	{
+	    printf(
+		"%s:%d:sdl_add_option(%d, ",
+		__FILE__,
+		__LINE__,
+		option);
+	    if (string == NULL)
+		printf("%ld)", value);
+	    else
+		printf("%s)", string);
+	    printf(" at index %d\n", context->optionsIdx);
+	}
 
-	    /*
-	     * We should never get this one.
-	     */
-	    case None:
+	/*
+	 * The options list is dynamically sized, and is never reduced.  So, if
+	 * there is not enough room for another option, then reallocate the
+	 * options list to the next increment
+	 */
+	if (context->optionsIdx >= context->optionsSize)
+	{
+	    size_t	size;
+
+	    context->optionsSize += SDL_K_OPTIONS_INCR;
+	    size = context->optionsSize * sizeof(SDL_OPTION);
+	    context->options = realloc(context->options, size);
+	    if (context->options == NULL)
 		retVal = 0;
-		break;
+	}
 
-	    /*
-	     * The following are just indicated as being present.
-	     */
-	    case Align:
-	    case Common:
-	    case Fill:
-	    case Enumerate:
-	    case Global:
-	    case In:
-	    case List:
-	    case Mask:
-	    case NoAlign:
-	    case Out:
-	    case Optional:
-	    case Reference:
-	    case Signed:
-	    case Typedef:
-	    case Value:
-	    case Variable:
-		context->options[context->optionsIdx++].option = option;
-		break;
+	/*
+	 * Add another option, then do so now.
+	 */
+	if (retVal == 1)
+	{
+	    context->options[context->optionsIdx].srcLineNo = srcLineNo;
+	    switch (option)
+	    {
 
-	    /*
-	     * The following are all 64-bit integer values.
-	     */
-	    case BaseAlign:
-	    case Default:
-	    case Dimension:
-	    case Increment:
-	    case Length:
-	    case Radix:
-	    case ReturnsType:
-	    case SubType:
-		context->options[context->optionsIdx].option = option;
-		context->options[context->optionsIdx++].value = value;
-		break;
+		/*
+		 * We should never get this one.
+		 */
+		case None:
+		    retVal = 0;
+		    break;
 
-	    /*
-	     * The following are all string values.
-	     */
-	    case Alias:
-	    case Based:
-	    case Counter:
-	    case Linkage:
-	    case Marker:
-	    case Named:
-	    case Origin:
-	    case Prefix:
-	    case ReturnsNamed:
-	    case Tag:
-	    case TypeName:
-		context->options[context->optionsIdx].option = option;
-		context->options[context->optionsIdx++].string = string;
-		break;
+		/*
+		 * The following are just indicated as being present.
+		 */
+		case Align:
+		case Common:
+		case Fill:
+		case Enumerate:
+		case Global:
+		case In:
+		case List:
+		case Mask:
+		case NoAlign:
+		case Out:
+		case Optional:
+		case Reference:
+		case Signed:
+		case Typedef:
+		case Value:
+		case Variable:
+		    context->options[context->optionsIdx++].option = option;
+		    break;
 
-	    /*
-	     * The following are yet to be determined.
-	     */
-	    case Parameter:
-		break;
+		/*
+		 * The following are all 64-bit integer values.
+		 */
+		case BaseAlign:
+		case Default:
+		case Dimension:
+		case Increment:
+		case Length:
+		case Radix:
+		case ReturnsType:
+		case SubType:
+		    context->options[context->optionsIdx].option = option;
+		    context->options[context->optionsIdx++].value = value;
+		    break;
+
+		/*
+		 * The following are all string values.
+		 */
+		case Alias:
+		case Based:
+		case Counter:
+		case Linkage:
+		case Marker:
+		case Named:
+		case Origin:
+		case Prefix:
+		case ReturnsNamed:
+		case Tag:
+		case TypeName:
+		    context->options[context->optionsIdx].option = option;
+		    context->options[context->optionsIdx++].string = string;
+		    break;
+
+		/*
+		 * The following are yet to be determined.
+		 */
+		case Parameter:
+		    break;
+	    }
 	}
     }
 
@@ -1186,8 +1252,27 @@ int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale)
 {
     int		retVal = 1;
 
-    context->precision = precision;
-    context->scale = scale;
+    /*
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
+     */
+    if (context->processingEnabled == true)
+    {
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf(
+		"%s:%d:sdl_precision(%ld, %ld)\n",
+		__FILE__,
+		__LINE__,
+		precision,
+		scale);
+	context->precision = precision;
+	context->scale = scale;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -1814,166 +1899,176 @@ int64_t sdl_sizeof(SDL_CONTEXT *context, int item)
     int64_t	retVal = 0;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_sizeof\n", __FILE__, __LINE__);
+    if (context->processingEnabled == true)
+    {
 
-    if ((item >= SDL_K_BASE_TYPE_MIN) && (item <= SDL_K_BASE_TYPE_MAX))
-	switch (item)
-	{
-	    case SDL_K_TYPE_NONE:
-		retVal = 0;
-		break;
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_sizeof\n", __FILE__, __LINE__);
 
-	    case SDL_K_TYPE_BYTE:
-	    case SDL_K_TYPE_INT_B:
-	    case SDL_K_TYPE_BITFLD_B:
-		retVal = sizeof(int8_t);
-		break;
+	if ((item >= SDL_K_BASE_TYPE_MIN) && (item <= SDL_K_BASE_TYPE_MAX))
+	    switch (item)
+	    {
+		case SDL_K_TYPE_NONE:
+		    retVal = 0;
+		    break;
 
-	    case SDL_K_TYPE_CHAR:
-		retVal = sizeof(char);
-		break;
+		case SDL_K_TYPE_BYTE:
+		case SDL_K_TYPE_INT_B:
+		case SDL_K_TYPE_BITFLD_B:
+		    retVal = sizeof(int8_t);
+		    break;
 
-	    case SDL_K_TYPE_WORD:
-	    case SDL_K_TYPE_INT_W:
-	    case SDL_K_TYPE_BITFLD_W:
-		retVal = sizeof(int16_t);
-		break;
+		case SDL_K_TYPE_CHAR:
+		    retVal = sizeof(char);
+		    break;
 
-	    case SDL_K_TYPE_LONG:
-	    case SDL_K_TYPE_INT_L:
-	    case SDL_K_TYPE_BITFLD_L:
-	    case SDL_K_TYPE_ADDR_L:
-	    case SDL_K_TYPE_PTR_L:
-		retVal = sizeof(int32_t);
-		break;
+		case SDL_K_TYPE_WORD:
+		case SDL_K_TYPE_INT_W:
+		case SDL_K_TYPE_BITFLD_W:
+		    retVal = sizeof(int16_t);
+		    break;
 
-	    case SDL_K_TYPE_INT:
-	    case SDL_K_TYPE_BITFLD:
-		retVal = sizeof(int);
-		break;
-
-	    case SDL_K_TYPE_INT_HW:
-	    case SDL_K_TYPE_HW_INT:
-		if (context->wordSize == 32)
+		case SDL_K_TYPE_LONG:
+		case SDL_K_TYPE_INT_L:
+		case SDL_K_TYPE_BITFLD_L:
+		case SDL_K_TYPE_ADDR_L:
+		case SDL_K_TYPE_PTR_L:
 		    retVal = sizeof(int32_t);
-		else
+		    break;
+
+		case SDL_K_TYPE_INT:
+		case SDL_K_TYPE_BITFLD:
+		    retVal = sizeof(int);
+		    break;
+
+		case SDL_K_TYPE_INT_HW:
+		case SDL_K_TYPE_HW_INT:
+		    if (context->wordSize == 32)
+			retVal = sizeof(int32_t);
+		    else
+			retVal = sizeof(int64_t);
+		    break;
+
+		case SDL_K_TYPE_QUAD:
+		case SDL_K_TYPE_INT_Q:
+		case SDL_K_TYPE_BITFLD_Q:
+		case SDL_K_TYPE_ADDR_Q:
+		case SDL_K_TYPE_PTR_Q:
 		    retVal = sizeof(int64_t);
-		break;
+		    break;
 
-	    case SDL_K_TYPE_QUAD:
-	    case SDL_K_TYPE_INT_Q:
-	    case SDL_K_TYPE_BITFLD_Q:
-	    case SDL_K_TYPE_ADDR_Q:
-	    case SDL_K_TYPE_PTR_Q:
-		retVal = sizeof(int64_t);
-		break;
+		case SDL_K_TYPE_OCTA:
+		case SDL_K_TYPE_BITFLD_O:
+		    retVal = sizeof(__int128_t);
+		    break;
 
-	    case SDL_K_TYPE_OCTA:
-	    case SDL_K_TYPE_BITFLD_O:
-		retVal = sizeof(__int128_t);
-		break;
+		case SDL_K_TYPE_HFLT:
+		case SDL_K_TYPE_XFLT:
+		    retVal = sizeof(long double);
+		    break;
 
-	    case SDL_K_TYPE_HFLT:
-	    case SDL_K_TYPE_XFLT:
-		retVal = sizeof(long double);
-		break;
+		case SDL_K_TYPE_HFLT_C:
+		case SDL_K_TYPE_XFLT_C:
+		    retVal = sizeof(long double _Complex);
+		    break;
 
-	    case SDL_K_TYPE_HFLT_C:
-	    case SDL_K_TYPE_XFLT_C:
-		retVal = sizeof(long double _Complex);
-		break;
+		case SDL_K_TYPE_TFLT:
+		case SDL_K_TYPE_FFLT:
+		    retVal = sizeof(float);
+		    break;
 
-	    case SDL_K_TYPE_TFLT:
-	    case SDL_K_TYPE_FFLT:
-		retVal = sizeof(float);
-		break;
+		case SDL_K_TYPE_TFLT_C:
+		case SDL_K_TYPE_FFLT_C:
+		    retVal = sizeof(float _Complex);
+		    break;
 
-	    case SDL_K_TYPE_TFLT_C:
-	    case SDL_K_TYPE_FFLT_C:
-		retVal = sizeof(float _Complex);
-		break;
+		case SDL_K_TYPE_SFLT:
+		case SDL_K_TYPE_DFLT:
+		case SDL_K_TYPE_GFLT:
+		    retVal = sizeof(double);
+		    break;
 
-	    case SDL_K_TYPE_SFLT:
-	    case SDL_K_TYPE_DFLT:
-	    case SDL_K_TYPE_GFLT:
-		retVal = sizeof(double);
-		break;
+		case SDL_K_TYPE_SFLT_C:
+		case SDL_K_TYPE_DFLT_C:
+		case SDL_K_TYPE_GFLT_C:
+		    retVal = sizeof(double _Complex);
+		    break;
 
-	    case SDL_K_TYPE_SFLT_C:
-	    case SDL_K_TYPE_DFLT_C:
-	    case SDL_K_TYPE_GFLT_C:
-		retVal = sizeof(double _Complex);
-		break;
+		case SDL_K_TYPE_DECIMAL:
+		    retVal = 2;		/* (2 * precision) + 1 */
+		    break;
 
-	    case SDL_K_TYPE_DECIMAL:
-		retVal = 2;		/* (2 * precision) + 1 */
-		break;
+		case SDL_K_TYPE_CHAR_VARY:
+		    retVal = sizeof(char); /* length + 2 bytes for len */
+		    break;
 
-	    case SDL_K_TYPE_CHAR_VARY:
-		retVal = sizeof(char);	/* length + 2 bytes for stored length */
-		break;
+		case SDL_K_TYPE_CHAR_STAR:
+		    retVal = sizeof(char);
+		    break;
 
-	    case SDL_K_TYPE_CHAR_STAR:
-		retVal = sizeof(char);
-		break;
+		case SDL_K_TYPE_ADDR:
+		case SDL_K_TYPE_PTR:
+		case SDL_K_TYPE_ENTRY:
+		    retVal = context->wordSize / 8;
+		    break;
 
-	    case SDL_K_TYPE_ADDR:
-	    case SDL_K_TYPE_PTR:
-	    case SDL_K_TYPE_ENTRY:
-		retVal = context->wordSize / 8;
-		break;
+		case SDL_K_TYPE_ADDR_HW:
+		case SDL_K_TYPE_HW_ADDR:
+		case SDL_K_TYPE_PTR_HW:
+		    retVal = context->wordSize / 8;
+		    break;
 
-	    case SDL_K_TYPE_ADDR_HW:
-	    case SDL_K_TYPE_HW_ADDR:
-	    case SDL_K_TYPE_PTR_HW:
-		retVal = context->wordSize / 8;
-		break;
+		case SDL_K_TYPE_ANY:
+		case SDL_K_TYPE_VOID:
+		case SDL_K_TYPE_STRUCT:
+		case SDL_K_TYPE_UNION:
+		    retVal = 0;
+		    break;
 
-	    case SDL_K_TYPE_ANY:
-	    case SDL_K_TYPE_VOID:
-	    case SDL_K_TYPE_STRUCT:
-	    case SDL_K_TYPE_UNION:
-		retVal = 0;
-		break;
+		case SDL_K_TYPE_BOOL:
+		    retVal = sizeof(bool);
+		    break;
 
-	    case SDL_K_TYPE_BOOL:
-		retVal = sizeof(bool);
-		break;
+		case SDL_K_TYPE_ENUM:
+		    retVal = sizeof(int);
+		    break;
 
-	    case SDL_K_TYPE_ENUM:
-		retVal = sizeof(int);
-		break;
+		default:
+		    break;
+	    }
+	else if ((item >= SDL_K_DECLARE_MIN) && (item <= SDL_K_DECLARE_MAX))
+	{
+	    SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, item);
 
-	    default:
-		break;
+	    if (myDeclare != NULL)
+		retVal = myDeclare->size;
 	}
-    else if ((item >= SDL_K_DECLARE_MIN) && (item <= SDL_K_DECLARE_MAX))
-    {
-	SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, item);
+	else if ((item >= SDL_K_ITEM_MIN) && (item <= SDL_K_ITEM_MAX))
+	{
+	    SDL_ITEM *myItem = sdl_get_item(&context->items, item);
 
-	if (myDeclare != NULL)
-	    retVal = myDeclare->size;
-    }
-    else if ((item >= SDL_K_ITEM_MIN) && (item <= SDL_K_ITEM_MAX))
-    {
-	SDL_ITEM *myItem = sdl_get_item(&context->items, item);
+	    if (myItem != NULL)
+		retVal = myItem->size;
+	}
+	else if ((item >= SDL_K_AGGREGATE_MIN) &&
+		 (item <= SDL_K_AGGREGATE_MAX))
+	{
+	    SDL_AGGREGATE *myAggregate =
+		sdl_get_aggregate(&context->aggregates, item);
 
-	if (myItem != NULL)
-	    retVal = myItem->size;
+	    if (myAggregate != NULL)
+		retVal = myAggregate->size;
+	}
+	else if ((item >= SDL_K_ENUM_MIN) && (item <= SDL_K_ENUM_MAX))
+	    retVal = sizeof(int);
     }
-    else if ((item >= SDL_K_AGGREGATE_MIN) && (item <= SDL_K_AGGREGATE_MAX))
-    {
-	SDL_AGGREGATE *myAggregate =
-	    sdl_get_aggregate(&context->aggregates, item);
-
-	if (myAggregate != NULL)
-	    retVal = myAggregate->size;
-    }
-    else if ((item >= SDL_K_ENUM_MIN) && (item <= SDL_K_ENUM_MAX))
-	retVal = sizeof(int);
 
     /*
      * Return the results of this call back to the caller.

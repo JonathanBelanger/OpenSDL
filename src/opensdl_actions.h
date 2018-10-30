@@ -33,7 +33,11 @@
 /*
  * Parsing functions.
  */
-int sdl_set_local(SDL_CONTEXT *context, char *name, int64_t value, int srcLineNo);
+int sdl_set_local(
+	SDL_CONTEXT *context,
+	char *name,
+	int64_t value,
+	int srcLineNo);
 int sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo);
 int sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo);
 int sdl_module(
@@ -42,7 +46,11 @@ int sdl_module(
 	char *identName,
 	int srcLineNo);
 int sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo);
-int sdl_literal(SDL_QUEUE *literals, char *line, int srcLineNo);
+int sdl_literal(
+	SDL_CONTEXT *context,
+	SDL_QUEUE *literals,
+	char *line,
+	int srcLineNo);
 int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals, int srcLineNo);
 int sdl_declare(SDL_CONTEXT *context, char *name, int64_t size, int srcLineNo);
 int sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo);

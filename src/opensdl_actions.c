@@ -230,31 +230,39 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
     int ii;
 
     /*
-     * Trim all trailing space characters.
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    sdl_trim_str(comment, SDL_M_TRAIL);
+    if (context->processingEnabled == true)
+    {
 
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:sdl_comment_line\n", __FILE__, __LINE__);
+	/*
+	 * Trim all trailing space characters.
+	 */
+	sdl_trim_str(comment, SDL_M_TRAIL);
 
-    /*
-     * Loop through all the possible languages and call the appropriate output
-     * function for each of the enabled languages.
-     */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	if ((context->langSpec[ii] == true) &&
-	    (context->langEna[ii] == true) &&
-	    (context->commentsOff == false))
-	    retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
-				context->outFP[ii],
-				&comment[2],	/* Skip past comment token */
-				true,
-				false,
-				false,
-				false);
+	/*
+	 * If tracing is turned on, write out this call (calls only, no returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_comment_line\n", __FILE__, __LINE__);
+
+	/*
+	 * Loop through all the possible languages and call the appropriate output
+	 * function for each of the enabled languages.
+	 */
+	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    if ((context->langSpec[ii] == true) &&
+		(context->langEna[ii] == true) &&
+		(context->commentsOff == false))
+		retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
+				    context->outFP[ii],
+				    &comment[2],	/* Skip past comment token */
+				    true,
+				    false,
+				    false,
+				    false);
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -293,83 +301,91 @@ int sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
     bool	end_comment;
 
     /*
-     * Trim all trailing space characters.
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    sdl_trim_str(comment, SDL_M_TRAIL);
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:sdl_comment_block\n", __FILE__, __LINE__);
-
-    /*
-     * Loop through each line of the comment until we reach the end of the
-     * comment string.
-     */
-    ptr = comment;
-    while (*ptr != '\0')
+    if (context->processingEnabled == true)
     {
-	start_comment = false;
-	middle_comment = false;
-	end_comment = false;
-	nl = strchr(ptr, '\n');
-	if (nl != NULL)
+
+	/*
+	 * Trim all trailing space characters.
+	 */
+	sdl_trim_str(comment, SDL_M_TRAIL);
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_comment_block\n", __FILE__, __LINE__);
+
+	/*
+	 * Loop through each line of the comment until we reach the end of the
+	 * comment string.
+	 */
+	ptr = comment;
+	while (*ptr != '\0')
 	{
-	    *nl = '\0';
-	    nl--;
-	    if (*nl == '\r')
+	    start_comment = false;
+	    middle_comment = false;
+	    end_comment = false;
+	    nl = strchr(ptr, '\n');
+	    if (nl != NULL)
+	    {
 		*nl = '\0';
-	    nl += 2;
-	}
-	else
-	    nl = &ptr[strlen(ptr)];
-	if (ptr[0] == '/')
-	{
-	    if ((ptr[1] == '+') && (start_done == false))
-	    {
-		ptr += 2;
-		start_comment = true;
-		start_done = true;
+		nl--;
+		if (*nl == '\r')
+		    *nl = '\0';
+		nl += 2;
 	    }
-	    else if (ptr[1] == '/')
+	    else
+		nl = &ptr[strlen(ptr)];
+	    if (ptr[0] == '/')
 	    {
-		ptr += 2;
-		middle_comment = true;
+		if ((ptr[1] == '+') && (start_done == false))
+		{
+		    ptr += 2;
+		    start_comment = true;
+		    start_done = true;
+		}
+		else if (ptr[1] == '/')
+		{
+		    ptr += 2;
+		    middle_comment = true;
+		}
+		else if (ptr[1] == '-')
+		{
+		    ptr += 2;
+		    end_comment = true;
+		}
 	    }
-	    else if (ptr[1] == '-')
+	    if (strstr(ptr, "/-") != NULL)
 	    {
-		ptr += 2;
-		end_comment = true;
+		size_t	len = strlen(ptr);
+
+		end_comment = ((ptr[len - 2] == '/') && (ptr[len - 1] == '-'));
+		if (end_comment == true)
+		    ptr[len - 2] = '\0';
 	    }
+
+	    /*
+	     * Loop through all the possible languages and call the appropriate
+	     * output function for each of the enabled languages.
+	     */
+	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
+		    retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
+					    context->outFP[ii],
+					    ptr,
+					    false,
+					    start_comment,
+					    middle_comment,
+					    end_comment);
+
+	    /*
+	     * Move to the next line.
+	     */
+	    ptr = nl;
 	}
-	if (strstr(ptr, "/-") != NULL)
-	{
-	    size_t	len = strlen(ptr);
-
-	    end_comment = ((ptr[len - 2] == '/') && (ptr[len - 1] == '-'));
-	    if (end_comment == true)
-		ptr[len - 2] = '\0';
-	}
-
-	/*
-	 * Loop through all the possible languages and call the appropriate
-	 * output function for each of the enabled languages.
-	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	    if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
-		retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
-					context->outFP[ii],
-					ptr,
-					false,
-					start_comment,
-					middle_comment,
-					end_comment);
-
-	/*
-	 * Move to the next line.
-	 */
-	ptr = nl;
     }
 
     /*
@@ -410,47 +426,56 @@ int sdl_set_local(
 		int64_t value,
 		int srcLineNo)
 {
-    SDL_LOCAL_VARIABLE	*local = sdl_find_local(context, name);
     int			retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
+    if (context->processingEnabled == true)
     {
-	printf("%s:%d:sdl_set_local(", __FILE__, __LINE__);
-	printf(
-	    "%s, %ld (%016lx - %4.4s)\n",
-	    name,
-	    value,
-	    value,
-	    (char *) &value);
-    }
+	SDL_LOCAL_VARIABLE	*local = sdl_find_local(context, name);
 
-    /*
-     * OK, if we did not find a local variable with the same name, then we need
-     * to go get one.
-     */
-    if (local == NULL)
-    {
-	local = sdl_allocate_block(LocalBlock, NULL, srcLineNo);
-	if (local != NULL)
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
 	{
-	    local->id = name;
-	    SDL_INSQUE(&context->locals, &local->header.queue);
-	    retVal = -1;
+	    printf("%s:%d:sdl_set_local(", __FILE__, __LINE__);
+	    printf(
+		"%s, %ld (%016lx - %4.4s)\n",
+		name,
+		value,
+		value,
+		(char *) &value);
 	}
-	else
-	{
-	    free(name);
-	    retVal = 0;
-	}
-    }
 
-    /*
-     * If we still have a success, then set the value.
-     */
-    local->value = value;
+	/*
+	 * OK, if we did not find a local variable with the same name, then we\
+	 * need to go get one.
+	 */
+	if (local == NULL)
+	{
+	    local = sdl_allocate_block(LocalBlock, NULL, srcLineNo);
+	    if (local != NULL)
+	    {
+		local->id = name;
+		SDL_INSQUE(&context->locals, &local->header.queue);
+		retVal = -1;
+	    }
+	    else
+	    {
+		free(name);
+		retVal = 0;
+	    }
+	}
+
+	/*
+	 * If we still have a success, then set the value.
+	 */
+	local->value = value;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -903,6 +928,9 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
  *  dumped out to the file as necessary.
  *
  * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current parsing.
  *  literals:
  *	A pointer to the queue containing the current set of literal lines.
  *  line:
@@ -917,38 +945,58 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
  *  1:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_literal(SDL_QUEUE *literals, char *line, int srcLineNo)
+int sdl_literal(
+	SDL_CONTEXT *context,
+	SDL_QUEUE *literals,
+	char *line,
+	int srcLineNo)
 {
     SDL_LITERAL	*literalLine;
     int		retVal = 1;
     size_t	len = strlen(line);
 
     /*
-     * Before we go too far, strip ending control characters.
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    while (((line[len-1] == '\n') ||
-	    (line[len-1] == '\f') ||
-	    (line[len-1] == '\r')) &&
-	   (len > 0))
-	line[--len] = '\0';
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:sdl_literal(%.*s)\n", __FILE__, __LINE__, (int) len, line);
-
-    literalLine = sdl_allocate_block(LiteralBlock, NULL, srcLineNo);
-    if (literalLine != NULL)
+    if (context->processingEnabled == true)
     {
-	literalLine->line = line;
-	SDL_INSQUE(literals, &literalLine->header.queue);
+
+	/*
+	 * Before we go too far, strip ending control characters.
+	 */
+	while (((line[len-1] == '\n') ||
+		(line[len-1] == '\f') ||
+		(line[len-1] == '\r')) &&
+	       (len > 0))
+	    line[--len] = '\0';
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf(
+		"%s:%d:sdl_literal(%.*s)\n",
+		__FILE__,
+		__LINE__,
+		(int) len,
+		line);
+
+	literalLine = sdl_allocate_block(LiteralBlock, NULL, srcLineNo);
+	if (literalLine != NULL)
+	{
+	    literalLine->line = line;
+	    SDL_INSQUE(literals, &literalLine->header.queue);
+	}
+	else
+	{
+	    retVal = 0;
+	    free(line);
+	}
     }
     else
-    {
-	retVal = 0;
 	free(line);
-    }
 
     /*
      * Return the results of this call back to the caller.
@@ -984,33 +1032,46 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals, int srcLineNo)
     int		ii;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_literal_end\n", __FILE__, __LINE__);
-
-    /*
-     * Keep pulling off literal lines until there are no more.
-     */
-    while ((SDL_Q_EMPTY(literals) == false) && (retVal == 1))
+    if (context->processingEnabled == true)
     {
-	SDL_REMQUE(literals, literalLine);
 
 	/*
-	 * Loop through each of the supported languages and if we are
-	 * generating a file for the language, write out the line to it.
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
 	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	    if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
-	    {
-		if (fprintf(context->outFP[ii], "%s\n", literalLine->line) < 0)
-		    retVal = 0;
-	    }
+	if (trace == true)
+	    printf("%s:%d:sdl_literal_end\n", __FILE__, __LINE__);
 
 	/*
-	 * Free up all the memory we allocated for this literal line.
+	 * Keep pulling off literal lines until there are no more.
 	 */
-	sdl_deallocate_block(&literalLine->header);
+	while ((SDL_Q_EMPTY(literals) == false) && (retVal == 1))
+	{
+	    SDL_REMQUE(literals, literalLine);
+
+	    /*
+	     * Loop through each of the supported languages and if we are
+	     * generating a file for the language, write out the line to it.
+	     */
+	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		if ((context->langSpec[ii] == true) &&
+		    (context->langEna[ii] == true))
+		{
+		    if (fprintf(
+			    context->outFP[ii],
+			    "%s\n",
+			    literalLine->line) < 0)
+			retVal = 0;
+		}
+
+	    /*
+	     * Free up all the memory we allocated for this literal line.
+	     */
+	    sdl_deallocate_block(&literalLine->header);
+	}
     }
 
     /*
@@ -1048,44 +1109,57 @@ int sdl_declare(
 	int64_t sizeType,
 	int srcLineNo)
 {
-    SDL_DECLARE	*myDeclare = _sdl_get_declare(&context->declares, name);
     int		retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_declare\n", __FILE__, __LINE__);
-
-    /*
-     * We only create, never update.
-     */
-    if (myDeclare == NULL)
+    if (context->processingEnabled == true)
     {
-	myDeclare = sdl_allocate_block(DeclareBlock, NULL, srcLineNo);
-	if (myDeclare != NULL)
+	SDL_DECLARE	*myDeclare = _sdl_get_declare(&context->declares, name);
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_declare\n", __FILE__, __LINE__);
+
+	/*
+	 * We only create, never update.
+	 */
+	if (myDeclare == NULL)
 	{
-	    myDeclare->id = name;
-	    myDeclare->typeID = context->declares.nextID++;
-	    myDeclare->_unsigned = sdl_isUnsigned(context, &sizeType);
-	    if (sizeType >= SDL_K_SIZEOF_MIN)
+	    myDeclare = sdl_allocate_block(DeclareBlock, NULL, srcLineNo);
+	    if (myDeclare != NULL)
 	    {
-		myDeclare->size = sizeType / SDL_K_SIZEOF_MIN;
-		myDeclare->type = SDL_K_TYPE_CHAR;
+		myDeclare->id = name;
+		myDeclare->typeID = context->declares.nextID++;
+		myDeclare->_unsigned = sdl_isUnsigned(context, &sizeType);
+		if (sizeType >= SDL_K_SIZEOF_MIN)
+		{
+		    myDeclare->size = sizeType / SDL_K_SIZEOF_MIN;
+		    myDeclare->type = SDL_K_TYPE_CHAR;
+		}
+		else
+		{
+		    myDeclare->size = sdl_sizeof(context, sizeType);
+		    myDeclare->type = sizeType;
+		}
+		SDL_INSQUE(
+			&context->declares.header,
+			&myDeclare->header.queue);
 	    }
 	    else
 	    {
-		myDeclare->size = sdl_sizeof(context, sizeType);
-		myDeclare->type = sizeType;
+		retVal = 0;
+		free(name);
 	    }
-	    SDL_INSQUE(&context->declares.header, &myDeclare->header.queue);
-	}
-	else
-	{
-	    retVal = 0;
-	    free(name);
 	}
     }
+    else
+	free(name);
 
     /*
      * Return the results of this call back to the caller.
@@ -1119,37 +1193,46 @@ int sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
     int		ii, retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_declare_compl\n", __FILE__, __LINE__);
-
-    /*
-     * Go find our options
-     */
-    for (ii = 0; ii < context->optionsIdx; ii++)
-	if (context->options[ii].option == Prefix)
-	{
-	    prefix = context->options[ii].string;
-	    context->options[ii].string = NULL;
-	}
-	else if (context->options[ii].option == Tag)
-	{
-	    tag = context->options[ii].string;
-	    context->options[ii].string = NULL;
-	}
-
-    /*
-     * We only finish creating, never starting new.
-     */
-    if (myDeclare != NULL)
+    if (context->processingEnabled == true)
     {
-	myDeclare->prefix = prefix;
-	myDeclare->tag = _sdl_get_tag(
-		    context,
-		    tag,
-		    myDeclare->type,
-		    _sdl_all_lower(myDeclare->id));
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_declare_compl\n", __FILE__, __LINE__);
+
+	/*
+	 * Go find our options
+	 */
+	for (ii = 0; ii < context->optionsIdx; ii++)
+	    if (context->options[ii].option == Prefix)
+	    {
+		prefix = context->options[ii].string;
+		context->options[ii].string = NULL;
+	    }
+	    else if (context->options[ii].option == Tag)
+	    {
+		tag = context->options[ii].string;
+		context->options[ii].string = NULL;
+	    }
+
+	/*
+	 * We only finish creating, never starting new.
+	 */
+	if (myDeclare != NULL)
+	{
+	    myDeclare->prefix = prefix;
+	    myDeclare->tag = _sdl_get_tag(
+			context,
+			tag,
+			myDeclare->type,
+			_sdl_all_lower(myDeclare->id));
+	}
     }
 
     /*
@@ -1184,42 +1267,53 @@ int sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
  */
 int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype, int srcLineNo)
 {
-    SDL_ITEM	*myItem = _sdl_get_item(&context->items, name);
     int		retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_item\n", __FILE__, __LINE__);
-
-    /*
-     * If we did not find a item that had already been created, then go and
-     * create one now.
-     */
-    if (myItem == NULL)
+    if (context->processingEnabled == true)
     {
-	myItem = sdl_allocate_block(ItemBlock, NULL, srcLineNo);
-	if (myItem != NULL)
+	SDL_ITEM	*myItem = _sdl_get_item(&context->items, name);
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_item\n", __FILE__, __LINE__);
+
+	/*
+	 * If we did not find a item that had already been created, then go and
+	 * create one now.
+	 */
+	if (myItem == NULL)
 	{
-	    myItem->id = name;
-	    myItem->typeID = context->items.nextID++;
-	    myItem->_unsigned = sdl_isUnsigned(context, &datatype);
-	    myItem->type = datatype;
-	    if (datatype == SDL_K_TYPE_DECIMAL)
+	    myItem = sdl_allocate_block(ItemBlock, NULL, srcLineNo);
+	    if (myItem != NULL)
 	    {
-		myItem->precision = context->precision;
-		myItem->scale = context->scale;
+		myItem->id = name;
+		myItem->typeID = context->items.nextID++;
+		myItem->_unsigned = sdl_isUnsigned(context, &datatype);
+		myItem->type = datatype;
+		if (datatype == SDL_K_TYPE_DECIMAL)
+		{
+		    myItem->precision = context->precision;
+		    myItem->scale = context->scale;
+		}
+		myItem->size = sdl_sizeof(context, datatype);
+		SDL_INSQUE(&context->items.header, &myItem->header.queue);
 	    }
-	    myItem->size = sdl_sizeof(context, datatype);
-	    SDL_INSQUE(&context->items.header, &myItem->header.queue);
+	}
+	else
+	{
+	    retVal = 0;
+	    free(name);
 	}
     }
     else
-    {
-	retVal = 0;
 	free(name);
-    }
 
     /*
      * Return the results of this call back to the caller.
@@ -1258,102 +1352,112 @@ int sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
     int		dimension;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_item_compl\n", __FILE__, __LINE__);
-
-    /*
-     * Go find our options
-     */
-    for (ii = 0; ii < context->optionsIdx; ii++)
-	switch(context->options[ii].option)
-	{
-	    case Prefix:
-		prefix = context->options[ii].string;
-		context->options[ii].string = NULL;
-		break;
-
-	    case Tag:
-		tag = context->options[ii].string;
-		context->options[ii].string = NULL;
-		break;
-
-	    case BaseAlign:
-		basealign= context->options[ii].value;
-		break;
-
-	    case Dimension:
-		dimension = context->options[ii].value;
-		myItem->dimension = true;
-		break;
-
-	    case Common:
-		storage |= SDL_M_STOR_COMM;
-		break;
-
-	    case Global:
-		storage |= SDL_M_STOR_GLOB;
-		break;
-
-	    case Typedef:
-		storage |= SDL_M_STOR_TYPED;
-		break;
-
-	    case SubType:
-		addrType= context->options[ii].value;
-		break;
-
-	    default:
-		break;
-	}
-
-    /*
-     * We only update, never create.
-     */
-    if (myItem != NULL)
+    if (context->processingEnabled == true)
     {
-	myItem->commonDef = (storage & SDL_M_STOR_COMM) == SDL_M_STOR_COMM;
-	myItem->globalDef = (storage & SDL_M_STOR_GLOB) == SDL_M_STOR_GLOB;
-	myItem->typeDef = (storage & SDL_M_STOR_TYPED) == SDL_M_STOR_TYPED;
-	myItem->alignment = basealign;
-	if (myItem->dimension == true)
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_item_compl\n", __FILE__, __LINE__);
+
+	/*
+	 * Go find our options
+	 */
+	for (ii = 0; ii < context->optionsIdx; ii++)
+	    switch(context->options[ii].option)
+	    {
+		case Prefix:
+		    prefix = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Tag:
+		    tag = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case BaseAlign:
+		    basealign= context->options[ii].value;
+		    break;
+
+		case Dimension:
+		    dimension = context->options[ii].value;
+		    myItem->dimension = true;
+		    break;
+
+		case Common:
+		    storage |= SDL_M_STOR_COMM;
+		    break;
+
+		case Global:
+		    storage |= SDL_M_STOR_GLOB;
+		    break;
+
+		case Typedef:
+		    storage |= SDL_M_STOR_TYPED;
+		    break;
+
+		case SubType:
+		    addrType= context->options[ii].value;
+		    break;
+
+		default:
+		    break;
+	    }
+
+	/*
+	 * We only update, never create.
+	 */
+	if (myItem != NULL)
 	{
-	    myItem->lbound = context->dimensions[dimension].lbound;
-	    myItem->hbound = context->dimensions[dimension].hbound;
-	    context->dimensions[dimension].inUse = false;
+	    myItem->commonDef = (storage & SDL_M_STOR_COMM) == SDL_M_STOR_COMM;
+	    myItem->globalDef = (storage & SDL_M_STOR_GLOB) == SDL_M_STOR_GLOB;
+	    myItem->typeDef = (storage & SDL_M_STOR_TYPED) == SDL_M_STOR_TYPED;
+	    myItem->alignment = basealign;
+	    if (myItem->dimension == true)
+	    {
+		myItem->lbound = context->dimensions[dimension].lbound;
+		myItem->hbound = context->dimensions[dimension].hbound;
+		context->dimensions[dimension].inUse = false;
+	    }
+	    myItem->prefix = prefix;
+	    myItem->tag = _sdl_get_tag(
+			context,
+			tag,
+			myItem->type,
+			_sdl_all_lower(myItem->id));
+
+	    /*
+	     * Addresses can have sub-types.
+	     */
+	    if ((myItem->type == SDL_K_TYPE_ADDR) ||
+		(myItem->type == SDL_K_TYPE_ADDR_L) ||
+		(myItem->type == SDL_K_TYPE_ADDR_Q) ||
+		(myItem->type == SDL_K_TYPE_ADDR_HW) ||
+		(myItem->type == SDL_K_TYPE_HW_ADDR) ||
+		(myItem->type == SDL_K_TYPE_PTR) ||
+		(myItem->type == SDL_K_TYPE_PTR_L) ||
+		(myItem->type == SDL_K_TYPE_PTR_Q) ||
+		(myItem->type == SDL_K_TYPE_PTR_HW))
+		myItem->subType = addrType;
+
+	    /*
+	     * Loop through all the possible languages and call the appropriate
+	     * output function for each of the enabled languages.
+	     */
+	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		if ((context->langSpec[ii] == true) &&
+		    (context->langEna[ii] == true))
+		    retVal = (*_outputFuncs[ii][SDL_K_ITEM_CB])(
+					    context->outFP[ii],
+					    myItem,
+					    context);
 	}
-	myItem->prefix = prefix;
-	myItem->tag = _sdl_get_tag(
-		    context,
-		    tag,
-		    myItem->type,
-		    _sdl_all_lower(myItem->id));
-
-	/*
-	 * Addresses can have sub-types.
-	 */
-	if ((myItem->type == SDL_K_TYPE_ADDR) ||
-	    (myItem->type == SDL_K_TYPE_ADDR_L) ||
-	    (myItem->type == SDL_K_TYPE_ADDR_Q) ||
-	    (myItem->type == SDL_K_TYPE_ADDR_HW) ||
-	    (myItem->type == SDL_K_TYPE_HW_ADDR) ||
-	    (myItem->type == SDL_K_TYPE_PTR) ||
-	    (myItem->type == SDL_K_TYPE_PTR_L) ||
-	    (myItem->type == SDL_K_TYPE_PTR_Q) ||
-	    (myItem->type == SDL_K_TYPE_PTR_HW))
-	    myItem->subType = addrType;
-
-	/*
-	 * Loop through all the possible languages and call the appropriate
-	 * output function for each of the enabled languages.
-	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	    if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
-		retVal = (*_outputFuncs[ii][SDL_K_ITEM_CB])(
-					context->outFP[ii],
-					myItem,
-					context);
     }
 
     /*
@@ -1399,26 +1503,36 @@ int sdl_constant(
     int		retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_constant\n", __FILE__, __LINE__);
+    if (context->processingEnabled == true)
+    {
 
-    /*
-     * Set up the information needed when we get around to completing the
-     * constant definition(s).
-     */
-    context->constDef.id = id;
-    if (valueStr != NULL)
-    {
-	context->constDef.valueStr = valueStr;
-	context->constDef.string = true;
+	/*
+	 * If tracing is turned on, write out this call (calls only, no returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_constant\n", __FILE__, __LINE__);
+
+	/*
+	 * Set up the information needed when we get around to completing the
+	 * constant definition(s).
+	 */
+	context->constDef.id = id;
+	if (valueStr != NULL)
+	{
+	    context->constDef.valueStr = valueStr;
+	    context->constDef.string = true;
+	}
+	else
+	{
+	    context->constDef.value = value;
+	    context->constDef.string = false;
+	}
     }
-    else
-    {
-	context->constDef.value = value;
-	context->constDef.string = false;
-    }
+    else if (valueStr != NULL)
+	free(valueStr);
 
     /*
      * Return the results of this call back to the caller.
@@ -1474,284 +1588,292 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
     bool		typeDef = false;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_constant_compl\n", __FILE__, __LINE__);
-
-    /*
-     * Go find our options
-     */
-    for (ii = 0; ii < context->optionsIdx; ii++)
-    {
-	switch(context->options[ii].option)
-	{
-	    case Prefix:
-		prefix = context->options[ii].string;
-		context->options[ii].string = NULL;
-		break;
-
-	    case Tag:
-		tag = context->options[ii].string;
-		context->options[ii].string = NULL;
-		break;
-
-	    case Counter:
-		counter = context->options[ii].string;
-		context->options[ii].string = NULL;
-		localCreated = sdl_set_local(
-					context,
-					counter,
-					value,
-					srcLineNo) < 0;
-		break;
-
-	    case TypeName:
-		typeName = context->options[ii].string;
-		context->options[ii].string = NULL;
-		break;
-
-	    case Increment:
-		increment = context->options[ii].value;
-		incrementPresent = true;
-		break;
-
-	    case Radix:
-		radix = context->options[ii].value;
-		break;
-
-	    case Enumerate:
-		enumName = context->options[ii].string;
-		context->options[ii].string = NULL;
-		break;
-
-	    case Typedef:
-		typeDef = true;
-		break;
-
-	    default:
-		break;
-	}
-    }
-
-    /*
-     * Before we go too far, we need to determine what kind of definition
-     * we have.  First let's see if there is one or multiple names needing
-     * to be created.
-     */
-    if (comma == NULL)	/* single CONSTANT or ENUM */
+    if (context->processingEnabled == true)
     {
 
 	/*
-	 * If we are not declaring a string constant and an enum name was
-	 * specified, then we are not creating a CONSTANT, but an ENUM.  Adjust
-	 * the data-type accordingly.
+	 * If tracing is turned on, write out this call (calls only, no returns).
 	 */
-	if ((valueStr == NULL) && (enumName != NULL))
-	    datatype = SDL_K_TYPE_ENUM;
-	if (tag == NULL)
-	    tag = _sdl_get_tag(
-			context,
-			NULL,
-			datatype,
-			_sdl_all_lower(id));
+	if (trace == true)
+	    printf("%s:%d:sdl_constant_compl\n", __FILE__, __LINE__);
 
 	/*
-	 * OK, we have the tag we need, so if we are really creating a
-	 * CONSTANT, then do so now.
+	 * Go find our options
 	 */
-	if ((valueStr != NULL) || (enumName == NULL))
+	for (ii = 0; ii < context->optionsIdx; ii++)
 	{
-	    myConst = _sdl_create_constant(
-				id,
-				prefix,
-				tag,
-				NULL,
-				typeName,
-				radix,
-				value,
-				valueStr,
-				size,
-				srcLineNo);
-	    if (myConst != NULL)
-		retVal = _sdl_queue_constant(context, myConst);
-	    else
-		retVal = 0;
-	}
-
-	/*
-	 * Otherwise, we are creating an enumeration (just one).
-	 */
-	else
-	{
-	    myEnum = _sdl_create_enum(
-				context,
-				enumName,
-				prefix,
-				tag,
-				typeDef,
-				srcLineNo);
-	    if (myEnum != NULL)
+	    switch(context->options[ii].option)
 	    {
-		SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
-						EnumMemberBlock,
-						&myEnum->header,
-						srcLineNo);
+		case Prefix:
+		    prefix = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
 
-		if (myMem != NULL)
-		{
+		case Tag:
+		    tag = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
 
-		    /*
-		     * Initialize the lone enumeration member and queue it up.
-		     */
-		    myMem->id = id;
-		    myMem->value = value;
-		    myMem->valueSet = value != 0;
-		    SDL_INSQUE(&myEnum->members, &myMem->header.queue);
-		}
-		else
-		{
-		    free(myEnum);
-		    myEnum = NULL;
-		    retVal = 0;
-		}
-	    }
-	    else
-		retVal = 0;
-	}
-    }
-    else	/* list of CONSTANTs or ENUMs */
-    {
-	char 		*ptr = id;
-	char		*nl;
-	int64_t	prevValue = value;
-	bool		freeTag = tag == NULL;
-	bool		done = false;
-
-	/*
-	 * If an enum name was specified, then we are not creating a CONSTANT,
-	 * but an ENUM.  Adjust the data-type accordingly.  Also, allocate and
-	 * initialize the ENUM parent.
-	 */
-	if (enumName != NULL)
-	{
-	    datatype = SDL_K_TYPE_ENUM;
-	    myEnum = _sdl_create_enum(
-				context,
-				enumName,
-				prefix,
-				tag,
-				typeDef,
-				srcLineNo);
-	    if (myEnum == NULL)
-		retVal = 0;
-	}
-
-	sdl_trim_str(ptr, SDL_M_LEAD);
-	while ((done == false) && (retVal == 1))
-	{
-	    char	*name = ptr;
-	    char	*comment;
-
-	    ii = 0;
-	    while (commentList[ii] != NULL)
-	    {
-		comment = strstr(name, commentList[ii]);
-		if ((comment != NULL) || (ii == _SDL_COMMA_))
-		{
-		    if ((comment != NULL) && (*comment != ','))
-		    {
-			comment += strlen(commentList[ii]);
-			nl = strchr(comment, '\n');
-			if (nl != NULL)
-			{
-			    ptr = nl + 1;
-			    if (ii == _SDL_OUTPUT_COMMENT)
-				*nl = '\0';	/* Null-terminate comment */
-			    else
-				comment = NULL; /* Local comment, ignore */
-			}
-			else
-			    ptr = strchr(comment, '\0');
-		    }
-		    else
-			comment = NULL;
-		    nl = name;
-		    while (isalnum(*nl) || (*nl == '_') || (*nl == '$'))
-			nl++;
-		    if (ii == _SDL_COMMA_)
-			ptr = (*nl == '\0') ? nl : (nl + 1);
-		    *nl = '\0';		/* Null-terminate name */
-		    ii = _SDL_COMMENT_LIST_NULL;
-		}
-		else
-		    ii++;
-	    }
-	    if (strlen(name) > 0)
-	    {
-		if (myEnum == NULL)
-		{
-		    if (freeTag == true)
-			tag = _sdl_get_tag(
-				    context,
-				    NULL,
-				    datatype,
-				    _sdl_all_lower(id));
-		    myConst = _sdl_create_constant(
-					    name,
-					    prefix,
-					    tag,
-					    comment,
-					    typeName,
-					    radix,
+		case Counter:
+		    counter = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    localCreated = sdl_set_local(
+					    context,
+					    counter,
 					    value,
-					    NULL,
-					    size,
-					    srcLineNo);
-		    if (myConst != NULL)
-			retVal = _sdl_queue_constant(context, myConst);
-		    else
-			retVal = 0;
-		    if (freeTag == true)
-		    {
-			free(tag);
-			tag = NULL;
-		    }
-		}
+					    srcLineNo) < 0;
+		    break;
+
+		case TypeName:
+		    typeName = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Increment:
+		    increment = context->options[ii].value;
+		    incrementPresent = true;
+		    break;
+
+		case Radix:
+		    radix = context->options[ii].value;
+		    break;
+
+		case Enumerate:
+		    enumName = context->options[ii].string;
+		    context->options[ii].string = NULL;
+		    break;
+
+		case Typedef:
+		    typeDef = true;
+		    break;
+
+		default:
+		    break;
+	    }
+	}
+
+	/*
+	 * Before we go too far, we need to determine what kind of definition
+	 * we have.  First let's see if there is one or multiple names needing
+	 * to be created.
+	 */
+	if (comma == NULL)	/* single CONSTANT or ENUM */
+	{
+
+	    /*
+	     * If we are not declaring a string constant and an enum name was
+	     * specified, then we are not creating a CONSTANT, but an ENUM.  Adjust
+	     * the data-type accordingly.
+	     */
+	    if ((valueStr == NULL) && (enumName != NULL))
+		datatype = SDL_K_TYPE_ENUM;
+	    if (tag == NULL)
+		tag = _sdl_get_tag(
+			    context,
+			    NULL,
+			    datatype,
+			    _sdl_all_lower(id));
+
+	    /*
+	     * OK, we have the tag we need, so if we are really creating a
+	     * CONSTANT, then do so now.
+	     */
+	    if ((valueStr != NULL) || (enumName == NULL))
+	    {
+		myConst = _sdl_create_constant(
+				    id,
+				    prefix,
+				    tag,
+				    NULL,
+				    typeName,
+				    radix,
+				    value,
+				    valueStr,
+				    size,
+				    srcLineNo);
+		if (myConst != NULL)
+		    retVal = _sdl_queue_constant(context, myConst);
 		else
+		    retVal = 0;
+	    }
+
+	    /*
+	     * Otherwise, we are creating an enumeration (just one).
+	     */
+	    else
+	    {
+		myEnum = _sdl_create_enum(
+				    context,
+				    enumName,
+				    prefix,
+				    tag,
+				    typeDef,
+				    srcLineNo);
+		if (myEnum != NULL)
 		{
 		    SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
-							EnumMemberBlock,
-							&myEnum->header,
-							srcLineNo);
+						    EnumMemberBlock,
+						    &myEnum->header,
+						    srcLineNo);
 
 		    if (myMem != NULL)
 		    {
+
+			/*
+			 * Initialize the lone enumeration member and queue it up.
+			 */
 			myMem->id = id;
 			myMem->value = value;
-			myMem->valueSet = (value - prevValue) != 1;
+			myMem->valueSet = value != 0;
 			SDL_INSQUE(&myEnum->members, &myMem->header.queue);
 		    }
+		    else
+		    {
+			free(myEnum);
+			myEnum = NULL;
+			retVal = 0;
+		    }
 		}
+		else
+		    retVal = 0;
 	    }
-	    if ((retVal == 1) && (counter != NULL) && (prevValue != value))
-	    {
-		retVal = sdl_set_local(context, counter, value, srcLineNo);
-		prevValue = value;
-	    }
-	    if (incrementPresent == true)
-		value += increment;
-	    sdl_trim_str(ptr, SDL_M_LEAD);
-	    done = *ptr == '\0';
 	}
-    }
+	else	/* list of CONSTANTs or ENUMs */
+	{
+	    char 		*ptr = id;
+	    char		*nl;
+	    int64_t	prevValue = value;
+	    bool		freeTag = tag == NULL;
+	    bool		done = false;
 
-    /*
-     * If we created an enumeration, then go complete it (this will output it
-     * to the language output files).
-     */
-    if ((retVal == 1) && (myEnum != NULL))
-	retVal = _sdl_enum_compl(context, myEnum);
+	    /*
+	     * If an enum name was specified, then we are not creating a CONSTANT,
+	     * but an ENUM.  Adjust the data-type accordingly.  Also, allocate and
+	     * initialize the ENUM parent.
+	     */
+	    if (enumName != NULL)
+	    {
+		datatype = SDL_K_TYPE_ENUM;
+		myEnum = _sdl_create_enum(
+				    context,
+				    enumName,
+				    prefix,
+				    tag,
+				    typeDef,
+				    srcLineNo);
+		if (myEnum == NULL)
+		    retVal = 0;
+	    }
+
+	    sdl_trim_str(ptr, SDL_M_LEAD);
+	    while ((done == false) && (retVal == 1))
+	    {
+		char	*name = ptr;
+		char	*comment;
+
+		ii = 0;
+		while (commentList[ii] != NULL)
+		{
+		    comment = strstr(name, commentList[ii]);
+		    if ((comment != NULL) || (ii == _SDL_COMMA_))
+		    {
+			if ((comment != NULL) && (*comment != ','))
+			{
+			    comment += strlen(commentList[ii]);
+			    nl = strchr(comment, '\n');
+			    if (nl != NULL)
+			    {
+				ptr = nl + 1;
+				if (ii == _SDL_OUTPUT_COMMENT)
+				    *nl = '\0';	/* Null-terminate comment */
+				else
+				    comment = NULL; /* Local comment, ignore */
+			    }
+			    else
+				ptr = strchr(comment, '\0');
+			}
+			else
+			    comment = NULL;
+			nl = name;
+			while (isalnum(*nl) || (*nl == '_') || (*nl == '$'))
+			    nl++;
+			if (ii == _SDL_COMMA_)
+			    ptr = (*nl == '\0') ? nl : (nl + 1);
+			*nl = '\0';		/* Null-terminate name */
+			ii = _SDL_COMMENT_LIST_NULL;
+		    }
+		    else
+			ii++;
+		}
+		if (strlen(name) > 0)
+		{
+		    if (myEnum == NULL)
+		    {
+			if (freeTag == true)
+			    tag = _sdl_get_tag(
+					context,
+					NULL,
+					datatype,
+					_sdl_all_lower(id));
+			myConst = _sdl_create_constant(
+						name,
+						prefix,
+						tag,
+						comment,
+						typeName,
+						radix,
+						value,
+						NULL,
+						size,
+						srcLineNo);
+			if (myConst != NULL)
+			    retVal = _sdl_queue_constant(context, myConst);
+			else
+			    retVal = 0;
+			if (freeTag == true)
+			{
+			    free(tag);
+			    tag = NULL;
+			}
+		    }
+		    else
+		    {
+			SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
+							    EnumMemberBlock,
+							    &myEnum->header,
+							    srcLineNo);
+
+			if (myMem != NULL)
+			{
+			    myMem->id = id;
+			    myMem->value = value;
+			    myMem->valueSet = (value - prevValue) != 1;
+			    SDL_INSQUE(&myEnum->members, &myMem->header.queue);
+			}
+		    }
+		}
+		if ((retVal == 1) && (counter != NULL) && (prevValue != value))
+		{
+		    retVal = sdl_set_local(context, counter, value, srcLineNo);
+		    prevValue = value;
+		}
+		if (incrementPresent == true)
+		    value += increment;
+		sdl_trim_str(ptr, SDL_M_LEAD);
+		done = *ptr == '\0';
+	    }
+	}
+
+	/*
+	 * If we created an enumeration, then go complete it (this will output it
+	 * to the language output files).
+	 */
+	if ((retVal == 1) && (myEnum != NULL))
+	    retVal = _sdl_enum_compl(context, myEnum);
+    }
 
     /*
      * Deallocate all the memory.
@@ -1811,40 +1933,49 @@ int sdl_aggregate(
 	int aggType,
 	int srcLineNo)
 {
-    SDL_AGGREGATE	*myAggr = sdl_allocate_block(
-					AggregateBlock,
-					NULL,
-					srcLineNo);
     int			retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_aggregate\n", __FILE__, __LINE__);
-
-    if (myAggr != NULL)
+    if (context->processingEnabled == true)
     {
-	myAggr->id = name;
-	myAggr->typeID = context->aggregates.nextID++;
-	myAggr->_unsigned = sdl_isUnsigned(context, &datatype);
-	myAggr->type = datatype;
-	if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
-	    myAggr->aggType = SDL_K_TYPE_UNION;	/* implicit union */
+	SDL_AGGREGATE	*myAggr = sdl_allocate_block(
+						AggregateBlock,
+						NULL,
+						srcLineNo);
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_aggregate\n", __FILE__, __LINE__);
+
+	if (myAggr != NULL)
+	{
+	    myAggr->id = name;
+	    myAggr->typeID = context->aggregates.nextID++;
+	    myAggr->_unsigned = sdl_isUnsigned(context, &datatype);
+	    myAggr->type = datatype;
+	    if ((datatype >= SDL_K_TYPE_BYTE) && (datatype <= SDL_K_TYPE_OCTA))
+		myAggr->aggType = SDL_K_TYPE_UNION;	/* implicit union */
+	    else
+		myAggr->aggType = aggType;
+	    myAggr->tag = _sdl_get_tag(
+				    context,
+				    NULL,
+				    aggType,
+				    _sdl_all_lower(name));
+	    SDL_Q_INIT(&myAggr->members);
+	    SDL_INSQUE(&context->aggregates.header, &myAggr->header.queue);
+	    context->currentAggr = myAggr;
+	    context->aggregateDepth++;
+	}
 	else
-	    myAggr->aggType = aggType;
-	myAggr->tag = _sdl_get_tag(
-				context,
-				NULL,
-				aggType,
-				_sdl_all_lower(name));
-	SDL_Q_INIT(&myAggr->members);
-	SDL_INSQUE(&context->aggregates.header, &myAggr->header.queue);
-	context->currentAggr = myAggr;
-	context->aggregateDepth++;
+	    retVal = 0;
     }
-    else
-	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.
@@ -1901,470 +2032,497 @@ int sdl_aggregate_member(
     bool		_signed = false;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_aggregate_member(%d)\n", __FILE__, __LINE__, aggType);
-
-    /*
-     * Before we go too far, there may have been one or more options defined to
-     * the previous member/aggregate/subaggregate.
-     */
-    if (context->optionsIdx > 0)
+    if (context->processingEnabled == true)
     {
-	int64_t	dimension;
-	int		ii;
 
 	/*
-	 * Determine if the previous item we worked on was an ITEM, an
-	 * AGGREGATE, or a subaggregate.  If ITEM, that is the one that needs
-	 * to be updated with any saved options.  Otherwise, we already have
-	 * the thing that needs to have these options applied to it.
+	 * If tracing is turned on, write out this call (calls only, no returns).
 	 */
-	if (mySubAggr != NULL)
+	if (trace == true)
+	    printf(
+		"%s:%d:sdl_aggregate_member(%d)\n",
+		__FILE__,
+		__LINE__,
+		aggType);
+
+	/*
+	 * Before we go too far, there may have been one or more options
+	 * defined to the previous member/aggregate/subaggregate.
+	 */
+	if (context->optionsIdx > 0)
 	{
-	    if (SDL_Q_EMPTY(&mySubAggr->members) == false)
-		myMember = (SDL_MEMBERS *) mySubAggr->members.blink;
-	}
-	else
-	{
-	    if (SDL_Q_EMPTY(&myAggr->members) == false)
-		myMember = (SDL_MEMBERS *) myAggr->members.blink;
-	}
-
-	/*
-	 * If the current member is a STRUCTURE or [IMPLICIT] UNION, then it is
-	 * the current aggregate, of which we already have the address.
-	 */
-	if ((myMember != NULL) && (sdl_isItem(myMember) == false))
-	    myMember = NULL;
-
-	/*
-	 * Go find our options
-	 */
-	for (ii = 0; ii < context->optionsIdx; ii++)
-	    switch (context->options[ii].option)
-	    {
-
-		/*
-		 * Present only options.
-		 */
-		case Align:
-		    if ((myMember != NULL) &&
-			(myMember->item.alignment != SDL_K_ALIGN))
-		    {
-			myMember->item.alignment = SDL_K_ALIGN;
-			myMember->item.parentAlignment = false;
-		    }
-		    else if ((mySubAggr != NULL) &&
-			     (mySubAggr->alignment != SDL_K_ALIGN))
-		    {
-			mySubAggr->alignment = SDL_K_ALIGN;
-			mySubAggr->parentAlignment = false;
-		    }
-		    else
-		    {
-			myAggr->alignment = SDL_K_ALIGN;
-			myAggr->alignmentPresent = true;
-		    }
-		    break;
-
-		case Common:
-		    if ((myAggr != NULL) && (myMember == NULL))
-			myAggr->commonDef = true;
-		    break;
-
-		case Fill:
-		    if (myMember != NULL)
-			myMember->item.fill = true;
-		    else if (mySubAggr != NULL)
-			mySubAggr->fill = true;
-		    else
-			myAggr->fill = true;
-		    break;
-
-		case Global:
-		    if ((myAggr != NULL) && (myMember == NULL))
-			myAggr->globalDef = true;
-		    break;
-
-		case Mask:
-			mask = true;
-		    break;
-
-		case NoAlign:
-		    if ((myMember != NULL) &&
-			(myMember->item.alignment != SDL_K_NOALIGN))
-		    {
-			myMember->item.alignment = SDL_K_NOALIGN;
-			myMember->item.parentAlignment = false;
-		    }
-		    else if ((mySubAggr != NULL) &&
-			     (mySubAggr->alignment != SDL_K_NOALIGN))
-		    {
-			mySubAggr->alignment = SDL_K_NOALIGN;
-			mySubAggr->parentAlignment = false;
-		    }
-		    else
-		    {
-			myAggr->alignment = SDL_K_NOALIGN;
-			myAggr->alignmentPresent = true;
-		    }
-		    break;
-
-		case Typedef:
-		    if (myMember != NULL)
-			myMember->item.typeDef = true;
-		    else if (mySubAggr != NULL)
-			mySubAggr->typeDef = true;
-		    else
-			myAggr->typeDef = true;
-		    break;
-
-		case Signed:
-			_signed = true;
-		    break;
-
-		/*
-		 * String options.
-		 */
-		case Based:
-		    if ((myAggr != NULL) && (myMember == NULL))
-			myAggr->basedPtrName = context->options[ii].string;
-		    else
-			free(context->options[ii].string);
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Marker:
-		    if ((mySubAggr != NULL) && (myMember == NULL))
-		    {
-			if (mySubAggr->marker != NULL)
-			    free(mySubAggr->marker);
-			mySubAggr->marker = context->options[ii].string;
-		    }
-		    else if (myMember == NULL)
-		    {
-			if (myAggr->marker != NULL)
-			    free(myAggr->marker);
-			myAggr->marker = context->options[ii].string;
-		    }
-		    else
-			free(context->options[ii].string);
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Origin:
-		    if ((myAggr != NULL) && (myMember == NULL))
-			myAggr->origin.id = context->options[ii].string;
-		    else
-			free(context->options[ii].string);
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Prefix:
-		    if (myMember != NULL)
-		    {
-			if (myMember->item.prefix != NULL)
-			    free(myMember->item.prefix);
-			myMember->item.prefix = context->options[ii].string;
-		    }
-		    else if (mySubAggr != NULL)
-		    {
-			if (mySubAggr->prefix != NULL)
-			    free(mySubAggr->prefix);
-			mySubAggr->prefix = context->options[ii].string;
-		    }
-		    else
-		    {
-			if (myAggr->prefix != NULL)
-			    free(myAggr->prefix);
-			myAggr->prefix = context->options[ii].string;
-		    }
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Tag:
-		    if (myMember != NULL)
-		    {
-			if (myMember->item.tag != NULL)
-			    free(myMember->item.tag);
-			myMember->item.tag = context->options[ii].string;
-		    }
-		    else if (mySubAggr != NULL)
-		    {
-			if (mySubAggr->tag != NULL)
-			    free(mySubAggr->tag);
-			mySubAggr->tag = context->options[ii].string;
-		    }
-		    else
-		    {
-			if (myAggr->tag != NULL)
-			    free(myAggr->tag);
-			myAggr->tag = context->options[ii].string;
-		    }
-		    context->options[ii].string = NULL;
-		    break;
-
-		/*
-		 * Numeric options.
-		 */
-		case BaseAlign:
-		    if ((myMember != NULL) &&
-			(myMember->item.alignment != context->options[ii].value))
-		    {
-			myMember->item.alignment = context->options[ii].value;
-			myMember->item.parentAlignment = false;
-		    }
-		    else if ((mySubAggr != NULL) &&
-			     (mySubAggr->alignment != context->options[ii].value))
-		    {
-			mySubAggr->alignment = context->options[ii].value;
-			mySubAggr->parentAlignment = false;
-		    }
-		    else
-		    {
-			myAggr->alignment = context->options[ii].value;
-			myAggr->alignmentPresent = true;
-		    }
-		    break;
-
-		case Dimension:
-		    dimension = context->options[ii].value;
-		    if (myMember != NULL)
-		    {
-			myMember->item.lbound =
-				context->dimensions[dimension].lbound;
-			myMember->item.hbound =
-				context->dimensions[dimension].hbound;
-			myMember->item.dimension = true;
-		    }
-		    else if (mySubAggr != NULL)
-		    {
-			mySubAggr->lbound =
-				context->dimensions[dimension].lbound;
-			mySubAggr->hbound =
-				context->dimensions[dimension].hbound;
-			mySubAggr->dimension = true;
-		    }
-		    else
-		    {
-			myAggr->lbound = context->dimensions[dimension].lbound;
-			myAggr->hbound = context->dimensions[dimension].hbound;
-			myAggr->dimension = true;
-		    }
-		    context->dimensions[dimension].inUse = false;
-		    break;
-
-		case Length:
-		    length = context->options[ii].value;
-		    break;
-
-		case SubType:
-		    subType = context->options[ii].value;
-		    bitfieldSized = true;
-		    break;
-
-		default:
-		    break;
-	    }
-
-	/*
-	 * We have what we want, reset the options list for the member we are
-	 * about to start.
-	 */
-	_sdl_reset_options(context);
-    }
-
-    /*
-     * If the name is NULL, then we were just called to process the options
-     * data.  Otherwise, we need to allocate another member for the current
-     * aggregate.
-     */
-    if (name != NULL)
-    {
-	/*
-	 * OK, we took care of adding the options to our predecessor, so now we
-	 * need to start a new member.
-	 */
-	myMember = sdl_allocate_block(
-				AggrMemberBlock,
-				(myAggr != NULL ?
-					&myAggr->header :
-					(SDL_HEADER *) mySubAggr),
-				srcLineNo);
-	if (myMember != NULL)
-	{
+	    int64_t	dimension;
+	    int		ii;
 
 	    /*
-	     * If we are at the AGGREGATE level, then we need to indicate so
-	     * for this member.
+	     * Determine if the previous item we worked on was an ITEM, an
+	     * AGGREGATE, or a subaggregate.  If ITEM, that is the one that
+	     * needs to be updated with any saved options.  Otherwise, we
+	     * already have the thing that needs to have these options applied
+	     * to it.
 	     */
-	    if (myAggr != NULL)
-		myMember->header.top = true;
-
-	    /*
-	     * Determine if the member we are creating is a structure or union,
-	     * and if a datatype was supplied, then we have an implicit union.
-	     */
-	    if ((aggType == SDL_K_TYPE_STRUCT) || (aggType == SDL_K_TYPE_UNION))
-	    {
-		if ((datatype >= SDL_K_TYPE_BYTE) &&
-		    (datatype <= SDL_K_TYPE_OCTA))
-		    myMember->type = SDL_K_TYPE_UNION;	/* implicit union */
-		else
-		    myMember->type = aggType;
-	    }
-	    else
-		myMember->type = abs(datatype);
-
-	    /*
-	     * Process the information based on the type of member we are
-	     * creating.
-	     */
-	    switch (aggType)
-	    {
-		case SDL_K_TYPE_STRUCT:
-		case SDL_K_TYPE_UNION:
-		    myMember->subaggr.id = name;
-		    myMember->subaggr.aggType = aggType;
-		    myMember->subaggr._unsigned = sdl_isUnsigned(
-							    context,
-							    &datatype);
-		    myMember->subaggr.type = datatype;
-		    myMember->subaggr.parent = context->currentAggr;
-		    if (myAggr != NULL)
-		    {
-			if (myAggr->prefix != NULL)
-			    myMember->subaggr.prefix = strdup(myAggr->prefix);
-			if (myAggr->marker != NULL)
-			    myMember->subaggr.marker = strdup(myAggr->marker);
-		    }
-		    else
-		    {
-			if (mySubAggr->prefix != NULL)
-			    myMember->subaggr.prefix =\
-				strdup(mySubAggr->prefix);
-			if (mySubAggr->marker != NULL)
-			    myMember->subaggr.marker =
-				strdup(mySubAggr->marker);
-		    }
-		    myMember->subaggr.tag = _sdl_get_tag(
-						    context,
-						    NULL,
-						    aggType,
-						    _sdl_all_lower(name));
-		    if (myAggr != NULL)
-			myMember->subaggr.alignment = myAggr->alignment;
-		    else
-			myMember->subaggr.alignment = mySubAggr->alignment;
-		    myMember->subaggr.parentAlignment = true;
-		    SDL_Q_INIT(&myMember->subaggr.members);
-		    context->aggregateDepth++;
-		    context->currentAggr = &myMember->subaggr;
-		    break;
-
-		default:
-		    myMember->item.id = name;
-		    myMember->item._unsigned = sdl_isUnsigned(
-							context,
-							&datatype);
-		    myMember->item.type = datatype;
-		    myMember->item.srcLineNo = myMember->srcLineNo;
-		    switch (datatype)
-		    {
-			case SDL_K_TYPE_DECIMAL:
-			    myMember->item. precision = context->precision;
-			    myMember->item.scale = context->scale;
-			    break;
-
-			case SDL_K_TYPE_BITFLD:	/* only value parser provides */
-			    myMember->item.length = (length == 0 ? 1 : length);
-			    myMember->item.mask = mask;
-			    myMember->item._unsigned = _signed == false;
-			    myMember->item.subType = subType;
-			    myMember->item.sizedBitfield = bitfieldSized;
-			    switch (subType)
-			    {
-				case SDL_K_TYPE_BYTE:
-				    myMember->item.type = SDL_K_TYPE_BITFLD_B;
-				    datatype = SDL_K_TYPE_BITFLD_B;
-				    break;
-
-				case SDL_K_TYPE_WORD:
-				    myMember->item.type = SDL_K_TYPE_BITFLD_W;
-				    datatype = SDL_K_TYPE_BITFLD_W;
-				    break;
-
-				case SDL_K_TYPE_LONG:
-				    myMember->item.type = SDL_K_TYPE_BITFLD_L;
-				    datatype = SDL_K_TYPE_BITFLD_L;
-				    break;
-
-				case SDL_K_TYPE_QUAD:
-				    myMember->item.type = SDL_K_TYPE_BITFLD_Q;
-				    datatype = SDL_K_TYPE_BITFLD_Q;
-				    break;
-
-				case SDL_K_TYPE_OCTA:
-				    myMember->item.type = SDL_K_TYPE_BITFLD_O;
-				    datatype = SDL_K_TYPE_BITFLD_O;
-				    break;
-
-				default:
-				    break;
-			    }
-			    break;
-
-			case SDL_K_TYPE_ADDR:
-			case SDL_K_TYPE_ADDR_L:
-			case SDL_K_TYPE_ADDR_Q:
-			case SDL_K_TYPE_ADDR_HW:
-			case SDL_K_TYPE_HW_ADDR:
-			case SDL_K_TYPE_PTR:
-			case SDL_K_TYPE_PTR_L:
-			case SDL_K_TYPE_PTR_Q:
-			case SDL_K_TYPE_PTR_HW:
-			    myMember->item.subType = subType;
-			    break;
-		    }
-		    if ((myAggr != NULL) && (myAggr->prefix != NULL))
-			myMember->item.prefix = strdup(myAggr->prefix);
-		    else if ((mySubAggr != NULL) &&
-			     (mySubAggr->prefix != NULL))
-			myMember->item.prefix = strdup(mySubAggr->prefix);
-		    myMember->item.tag = _sdl_get_tag(
-						    context,
-						    NULL,
-						    datatype,
-						    _sdl_all_lower(name));
-		    myMember->item.size = sdl_sizeof(context, datatype);
-		    if (myAggr != NULL)
-			myMember->item.alignment = myAggr->alignment;
-		    else
-			myMember->item.alignment = mySubAggr->alignment;
-		    myMember->item.parentAlignment = true;
-		    break;
-	    }
-	    _sdl_checkAndSetOrigin(context, myMember);
 	    if (mySubAggr != NULL)
 	    {
-		_sdl_determine_offsets(context, myMember, &mySubAggr->members);
-		SDL_INSQUE(&mySubAggr->members, &myMember->header.queue);
+		if (SDL_Q_EMPTY(&mySubAggr->members) == false)
+		    myMember = (SDL_MEMBERS *) mySubAggr->members.blink;
 	    }
 	    else
 	    {
-		_sdl_determine_offsets(context, myMember, &myAggr->members);
-		SDL_INSQUE(&myAggr->members, &myMember->header.queue);
+		if (SDL_Q_EMPTY(&myAggr->members) == false)
+		    myMember = (SDL_MEMBERS *) myAggr->members.blink;
 	    }
+
+	    /*
+	     * If the current member is a STRUCTURE or [IMPLICIT] UNION, then
+	     * it is the current aggregate, of which we already have the
+	     * address.
+	     */
+	    if ((myMember != NULL) && (sdl_isItem(myMember) == false))
+		myMember = NULL;
+
+	    /*
+	     * Go find our options
+	     */
+	    for (ii = 0; ii < context->optionsIdx; ii++)
+		switch (context->options[ii].option)
+		{
+
+		    /*
+		     * Present only options.
+		     */
+		    case Align:
+			if ((myMember != NULL) &&
+			    (myMember->item.alignment != SDL_K_ALIGN))
+			{
+			    myMember->item.alignment = SDL_K_ALIGN;
+			    myMember->item.parentAlignment = false;
+			}
+			else if ((mySubAggr != NULL) &&
+				 (mySubAggr->alignment != SDL_K_ALIGN))
+			{
+			    mySubAggr->alignment = SDL_K_ALIGN;
+			    mySubAggr->parentAlignment = false;
+			}
+			else
+			{
+			    myAggr->alignment = SDL_K_ALIGN;
+			    myAggr->alignmentPresent = true;
+			}
+			break;
+
+		    case Common:
+			if ((myAggr != NULL) && (myMember == NULL))
+			    myAggr->commonDef = true;
+			break;
+
+		    case Fill:
+			if (myMember != NULL)
+			    myMember->item.fill = true;
+			else if (mySubAggr != NULL)
+			    mySubAggr->fill = true;
+			else
+			    myAggr->fill = true;
+			break;
+
+		    case Global:
+			if ((myAggr != NULL) && (myMember == NULL))
+			    myAggr->globalDef = true;
+			break;
+
+		    case Mask:
+			    mask = true;
+			break;
+
+		    case NoAlign:
+			if ((myMember != NULL) &&
+			    (myMember->item.alignment != SDL_K_NOALIGN))
+			{
+			    myMember->item.alignment = SDL_K_NOALIGN;
+			    myMember->item.parentAlignment = false;
+			}
+			else if ((mySubAggr != NULL) &&
+				 (mySubAggr->alignment != SDL_K_NOALIGN))
+			{
+			    mySubAggr->alignment = SDL_K_NOALIGN;
+			    mySubAggr->parentAlignment = false;
+			}
+			else
+			{
+			    myAggr->alignment = SDL_K_NOALIGN;
+			    myAggr->alignmentPresent = true;
+			}
+			break;
+
+		    case Typedef:
+			if (myMember != NULL)
+			    myMember->item.typeDef = true;
+			else if (mySubAggr != NULL)
+			    mySubAggr->typeDef = true;
+			else
+			    myAggr->typeDef = true;
+			break;
+
+		    case Signed:
+			    _signed = true;
+			break;
+
+		    /*
+		     * String options.
+		     */
+		    case Based:
+			if ((myAggr != NULL) && (myMember == NULL))
+			    myAggr->basedPtrName = context->options[ii].string;
+			else
+			    free(context->options[ii].string);
+			context->options[ii].string = NULL;
+			break;
+
+		    case Marker:
+			if ((mySubAggr != NULL) && (myMember == NULL))
+			{
+			    if (mySubAggr->marker != NULL)
+				free(mySubAggr->marker);
+			    mySubAggr->marker = context->options[ii].string;
+			}
+			else if (myMember == NULL)
+			{
+			    if (myAggr->marker != NULL)
+				free(myAggr->marker);
+			    myAggr->marker = context->options[ii].string;
+			}
+			else
+			    free(context->options[ii].string);
+			context->options[ii].string = NULL;
+			break;
+
+		    case Origin:
+			if ((myAggr != NULL) && (myMember == NULL))
+			    myAggr->origin.id = context->options[ii].string;
+			else
+			    free(context->options[ii].string);
+			context->options[ii].string = NULL;
+			break;
+
+		    case Prefix:
+			if (myMember != NULL)
+			{
+			    if (myMember->item.prefix != NULL)
+				free(myMember->item.prefix);
+			    myMember->item.prefix = context->options[ii].string;
+			}
+			else if (mySubAggr != NULL)
+			{
+			    if (mySubAggr->prefix != NULL)
+				free(mySubAggr->prefix);
+			    mySubAggr->prefix = context->options[ii].string;
+			}
+			else
+			{
+			    if (myAggr->prefix != NULL)
+				free(myAggr->prefix);
+			    myAggr->prefix = context->options[ii].string;
+			}
+			context->options[ii].string = NULL;
+			break;
+
+		    case Tag:
+			if (myMember != NULL)
+			{
+			    if (myMember->item.tag != NULL)
+				free(myMember->item.tag);
+			    myMember->item.tag = context->options[ii].string;
+			}
+			else if (mySubAggr != NULL)
+			{
+			    if (mySubAggr->tag != NULL)
+				free(mySubAggr->tag);
+			    mySubAggr->tag = context->options[ii].string;
+			}
+			else
+			{
+			    if (myAggr->tag != NULL)
+				free(myAggr->tag);
+			    myAggr->tag = context->options[ii].string;
+			}
+			context->options[ii].string = NULL;
+			break;
+
+		    /*
+		     * Numeric options.
+		     */
+		    case BaseAlign:
+			if ((myMember != NULL) &&
+			    (myMember->item.alignment !=
+				context->options[ii].value))
+			{
+			    myMember->item.alignment =
+				context->options[ii].value;
+			    myMember->item.parentAlignment = false;
+			}
+			else if ((mySubAggr != NULL) &&
+				 (mySubAggr->alignment !=
+				  context->options[ii].value))
+			{
+			    mySubAggr->alignment = context->options[ii].value;
+			    mySubAggr->parentAlignment = false;
+			}
+			else
+			{
+			    myAggr->alignment = context->options[ii].value;
+			    myAggr->alignmentPresent = true;
+			}
+			break;
+
+		    case Dimension:
+			dimension = context->options[ii].value;
+			if (myMember != NULL)
+			{
+			    myMember->item.lbound =
+				    context->dimensions[dimension].lbound;
+			    myMember->item.hbound =
+				    context->dimensions[dimension].hbound;
+			    myMember->item.dimension = true;
+			}
+			else if (mySubAggr != NULL)
+			{
+			    mySubAggr->lbound =
+				    context->dimensions[dimension].lbound;
+			    mySubAggr->hbound =
+				    context->dimensions[dimension].hbound;
+			    mySubAggr->dimension = true;
+			}
+			else
+			{
+			    myAggr->lbound =
+					context->dimensions[dimension].lbound;
+			    myAggr->hbound =
+					context->dimensions[dimension].hbound;
+			    myAggr->dimension = true;
+			}
+			context->dimensions[dimension].inUse = false;
+			break;
+
+		    case Length:
+			length = context->options[ii].value;
+			break;
+
+		    case SubType:
+			subType = context->options[ii].value;
+			bitfieldSized = true;
+			break;
+
+		    default:
+			break;
+		}
 	}
-	else
-	    retVal = 0;
+
+	/*
+	 * If the name is NULL, then we were just called to process the options
+	 * data.  Otherwise, we need to allocate another member for the current
+	 * aggregate.
+	 */
+	if (name != NULL)
+	{
+	    /*
+	     * OK, we took care of adding the options to our predecessor, so
+	     * now we need to start a new member.
+	     */
+	    myMember = sdl_allocate_block(
+				    AggrMemberBlock,
+				    (myAggr != NULL ?
+					    &myAggr->header :
+					    (SDL_HEADER *) mySubAggr),
+				    srcLineNo);
+	    if (myMember != NULL)
+	    {
+
+		/*
+		 * If we are at the AGGREGATE level, then we need to indicate
+		 * so for this member.
+		 */
+		if (myAggr != NULL)
+		    myMember->header.top = true;
+
+		/*
+		 * Determine if the member we are creating is a structure or
+		 * union, and if a datatype was supplied, then we have an
+		 * implicit union.
+		 */
+		if ((aggType == SDL_K_TYPE_STRUCT) ||
+		    (aggType == SDL_K_TYPE_UNION))
+		{
+		    if ((datatype >= SDL_K_TYPE_BYTE) &&
+			(datatype <= SDL_K_TYPE_OCTA))
+			myMember->type = SDL_K_TYPE_UNION; /* implicit union */
+		    else
+			myMember->type = aggType;
+		}
+		else
+		    myMember->type = abs(datatype);
+
+		/*
+		 * Process the information based on the type of member we are
+		 * creating.
+		 */
+		switch (aggType)
+		{
+		    case SDL_K_TYPE_STRUCT:
+		    case SDL_K_TYPE_UNION:
+			myMember->subaggr.id = name;
+			myMember->subaggr.aggType = aggType;
+			myMember->subaggr._unsigned = sdl_isUnsigned(
+								context,
+								&datatype);
+			myMember->subaggr.type = datatype;
+			myMember->subaggr.parent = context->currentAggr;
+			if (myAggr != NULL)
+			{
+			    if (myAggr->prefix != NULL)
+				myMember->subaggr.prefix =
+					strdup(myAggr->prefix);
+			    if (myAggr->marker != NULL)
+				myMember->subaggr.marker =
+					strdup(myAggr->marker);
+			}
+			else
+			{
+			    if (mySubAggr->prefix != NULL)
+				myMember->subaggr.prefix =\
+				    strdup(mySubAggr->prefix);
+			    if (mySubAggr->marker != NULL)
+				myMember->subaggr.marker =
+				    strdup(mySubAggr->marker);
+			}
+			myMember->subaggr.tag = _sdl_get_tag(
+							context,
+							NULL,
+							aggType,
+							_sdl_all_lower(name));
+			if (myAggr != NULL)
+			    myMember->subaggr.alignment = myAggr->alignment;
+			else
+			    myMember->subaggr.alignment = mySubAggr->alignment;
+			myMember->subaggr.parentAlignment = true;
+			SDL_Q_INIT(&myMember->subaggr.members);
+			context->aggregateDepth++;
+			context->currentAggr = &myMember->subaggr;
+			break;
+
+		    default:
+			myMember->item.id = name;
+			myMember->item._unsigned = sdl_isUnsigned(
+							    context,
+							    &datatype);
+			myMember->item.type = datatype;
+			myMember->item.srcLineNo = myMember->srcLineNo;
+			switch (datatype)
+			{
+			    case SDL_K_TYPE_DECIMAL:
+				myMember->item. precision = context->precision;
+				myMember->item.scale = context->scale;
+				break;
+
+			    case SDL_K_TYPE_BITFLD: /* only value from parser */
+				myMember->item.length =
+					(length == 0 ? 1 : length);
+				myMember->item.mask = mask;
+				myMember->item._unsigned = _signed == false;
+				myMember->item.subType = subType;
+				myMember->item.sizedBitfield = bitfieldSized;
+				switch (subType)
+				{
+				    case SDL_K_TYPE_BYTE:
+					myMember->item.type =
+						SDL_K_TYPE_BITFLD_B;
+					datatype = SDL_K_TYPE_BITFLD_B;
+					break;
+
+				    case SDL_K_TYPE_WORD:
+					myMember->item.type =
+						SDL_K_TYPE_BITFLD_W;
+					datatype = SDL_K_TYPE_BITFLD_W;
+					break;
+
+				    case SDL_K_TYPE_LONG:
+					myMember->item.type =
+						SDL_K_TYPE_BITFLD_L;
+					datatype = SDL_K_TYPE_BITFLD_L;
+					break;
+
+				    case SDL_K_TYPE_QUAD:
+					myMember->item.type =
+						SDL_K_TYPE_BITFLD_Q;
+					datatype = SDL_K_TYPE_BITFLD_Q;
+					break;
+
+				    case SDL_K_TYPE_OCTA:
+					myMember->item.type =
+						SDL_K_TYPE_BITFLD_O;
+					datatype = SDL_K_TYPE_BITFLD_O;
+					break;
+
+				    default:
+					break;
+				}
+				break;
+
+			    case SDL_K_TYPE_ADDR:
+			    case SDL_K_TYPE_ADDR_L:
+			    case SDL_K_TYPE_ADDR_Q:
+			    case SDL_K_TYPE_ADDR_HW:
+			    case SDL_K_TYPE_HW_ADDR:
+			    case SDL_K_TYPE_PTR:
+			    case SDL_K_TYPE_PTR_L:
+			    case SDL_K_TYPE_PTR_Q:
+			    case SDL_K_TYPE_PTR_HW:
+				myMember->item.subType = subType;
+				break;
+			}
+			if ((myAggr != NULL) && (myAggr->prefix != NULL))
+			    myMember->item.prefix = strdup(myAggr->prefix);
+			else if ((mySubAggr != NULL) &&
+				 (mySubAggr->prefix != NULL))
+			    myMember->item.prefix = strdup(mySubAggr->prefix);
+			myMember->item.tag = _sdl_get_tag(
+							context,
+							NULL,
+							datatype,
+							_sdl_all_lower(name));
+			myMember->item.size = sdl_sizeof(context, datatype);
+			if (myAggr != NULL)
+			    myMember->item.alignment = myAggr->alignment;
+			else
+			    myMember->item.alignment = mySubAggr->alignment;
+			myMember->item.parentAlignment = true;
+			break;
+		}
+		_sdl_checkAndSetOrigin(context, myMember);
+		if (mySubAggr != NULL)
+		{
+		    _sdl_determine_offsets(
+				context,
+				myMember,
+				&mySubAggr->members);
+		    SDL_INSQUE(&mySubAggr->members, &myMember->header.queue);
+		}
+		else
+		{
+		    _sdl_determine_offsets(context, myMember, &myAggr->members);
+		    SDL_INSQUE(&myAggr->members, &myMember->header.queue);
+		}
+	    }
+	    else
+		retVal = 0;
+	}
     }
 
    /*
     * Return the results of this call back to the caller.
     */
+    _sdl_reset_options(context);
    return (retVal);
 }
 
@@ -2397,205 +2555,214 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
     int			retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_aggregate_compl\n", __FILE__, __LINE__);
-
-    /*
-     * If we have any options that had been processed, they are for the most
-     * recent ITEM member.
-     */
-    if (context->optionsIdx > 0)
+    if (context->processingEnabled == true)
     {
-	SDL_MEMBERS	*myMember = NULL;
-	int64_t		dimension;
-	int		ii;
 
 	/*
-	 * OK, the issue is where is the most recent ITEM member.  It is in the
-	 * current aggregate.  Don't assume that the queues actually contain
-	 * anything, and make sure that the member is actually not a
-	 * subaggregate.
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
 	 */
-	if (context->aggregateDepth == 1)
+	if (trace == true)
+	    printf("%s:%d:sdl_aggregate_compl\n", __FILE__, __LINE__);
+
+	/*
+	 * If we have any options that had been processed, they are for the
+	 * most recent ITEM member.
+	 */
+	if (context->optionsIdx > 0)
 	{
-	    if (SDL_Q_EMPTY(&myAggr->members) == false)
-		myMember = myAggr->members.blink;
+	    SDL_MEMBERS	*myMember = NULL;
+	    int64_t		dimension;
+	    int		ii;
+
+	    /*
+	     * OK, the issue is where is the most recent ITEM member.  It is in
+	     * the current aggregate.  Don't assume that the queues actually
+	     * contain anything, and make sure that the member is actually not
+	     * a subaggregate.
+	     */
+	    if (context->aggregateDepth == 1)
+	    {
+		if (SDL_Q_EMPTY(&myAggr->members) == false)
+		    myMember = myAggr->members.blink;
+	    }
+	    else
+	    {
+		if (SDL_Q_EMPTY(&mySubAggr->members) == false)
+		    myMember = mySubAggr->members.blink;
+	    }
+	    if ((myMember != NULL) && (sdl_isItem(myMember) == true))
+		myMember = NULL;
+	    for (ii = 0; ii < context->optionsIdx; ii++)
+		switch (context->options[ii].option)
+		{
+
+		    /*
+		     * Present only options.
+		     */
+		    case Align:
+			if (myMember != NULL)
+			    myMember->item.alignment = SDL_K_ALIGN;
+			break;
+
+		    case Fill:
+			if (myMember != NULL)
+			    myMember->item.fill = true;
+			break;
+
+		    case Mask:
+			if (myMember != NULL)
+			    myMember->item.mask = true;
+			break;
+
+		    case NoAlign:
+			if (myMember != NULL)
+			    myMember->item.alignment = SDL_K_NOALIGN;
+			break;
+
+		    case Signed:
+			if (myMember != NULL)
+			    myMember->item._unsigned = false;
+			break;
+
+		    case Typedef:
+			if (myMember != NULL)
+			    myMember->item.typeDef = true;
+			break;
+
+		    /*
+		     * String options.
+		     */
+		    case Prefix:
+			if (myMember != NULL)
+			    myMember->item.prefix =
+				    context->options[ii].string;
+			else
+			    free(context->options[ii].string);
+			context->options[ii].string = NULL;
+			break;
+
+		    case Tag:
+			if (myMember != NULL)
+			    myMember->item.tag = context->options[ii].string;
+			else
+			    free(context->options[ii].string);
+			context->options[ii].string = NULL;
+			break;
+
+		    /*
+		     * Numeric options.
+		     */
+		    case BaseAlign:
+			if (myMember != NULL)
+			    myMember->item.alignment =
+				    context->options[ii].value;
+			break;
+
+		    case Dimension:
+			dimension = context->options[ii].value;
+			if (myMember != NULL)
+			{
+			    myMember->item.lbound =
+				    context->dimensions[dimension].lbound;
+			    myMember->item.hbound =
+				    context->dimensions[dimension].hbound;
+			    myMember->item.dimension = true;
+			}
+			context->dimensions[dimension].inUse = false;
+			break;
+
+		    case Length:
+			if (myMember != NULL)
+			    myMember->item.length = context->options[ii].value;
+			break;
+
+		    default:
+			break;
+		}
 	}
+
+	/*
+	 * We are completing either a subaggregate or an AGGREGATE.  Decrement
+	 * the depth.
+	 */
+	context->aggregateDepth--;
+
+	/*
+	 * If we are at zero, then we have completed the entire AGGREGATE
+	 * definition and can now write out the results.
+	 */
+	if (context->aggregateDepth == 0)
+	{
+	    SDL_AGGREGATE *myAggr =
+			(SDL_AGGREGATE *) context->aggregates.header.blink;
+	    int ii;
+
+	    /*
+	     * We no longer have a current aggregate.  Also, determine the
+	     * actual size of the aggregate.
+	     */
+	    context->currentAggr = NULL;
+	    myAggr->size = _sdl_aggregate_size(context, myAggr, NULL);
+
+	    /*
+	     * Loop through all the possible languages and call the appropriate
+	     * output function for each of the enabled languages.
+	     */
+	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		if ((context->langSpec[ii] == true) &&
+		    (context->langEna[ii] == true))
+		    retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
+					    context->outFP[ii],
+					    myAggr,
+					    LangAggregate,
+					    false,
+					    0,
+					    context);
+	    if (SDL_Q_EMPTY(&myAggr->members) == false)
+		retVal = _sdl_iterate_members(
+			    context,
+			    myAggr->members.flink,
+			    &myAggr->members,
+			    (int (*)()) &_sdl_aggregate_callback,
+			    1,
+			    1);
+
+	    /*
+	     * Loop through all the possible languages and call the appropriate
+	     * output function for each of the enabled languages.
+	     */
+	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		if ((context->langSpec[ii] == true) &&
+		    (context->langEna[ii] == true))
+		    retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
+					    context->outFP[ii],
+					    myAggr,
+					    LangAggregate,
+					    true,
+					    0,
+					    context);
+	}
+
+	/*
+	 * We just closed a subaggregate.  Determine the size of the
+	 * subaggregate and make the previous AGGREGATE or subaggregate the
+	 * current one.
+	 */
 	else
 	{
-	    if (SDL_Q_EMPTY(&mySubAggr->members) == false)
-		myMember = mySubAggr->members.blink;
+	    context->currentAggr = mySubAggr->parent;
+	    mySubAggr->size = _sdl_aggregate_size(context, NULL, mySubAggr);
 	}
-	if ((myMember != NULL) && (sdl_isItem(myMember) == true))
-	    myMember = NULL;
-	for (ii = 0; ii < context->optionsIdx; ii++)
-	    switch (context->options[ii].option)
-	    {
-
-		/*
-		 * Present only options.
-		 */
-		case Align:
-		    if (myMember != NULL)
-			myMember->item.alignment = SDL_K_ALIGN;
-		    break;
-
-		case Fill:
-		    if (myMember != NULL)
-			myMember->item.fill = true;
-		    break;
-
-		case Mask:
-		    if (myMember != NULL)
-			myMember->item.mask = true;
-		    break;
-
-		case NoAlign:
-		    if (myMember != NULL)
-			myMember->item.alignment = SDL_K_NOALIGN;
-		    break;
-
-		case Signed:
-		    if (myMember != NULL)
-			myMember->item._unsigned = false;
-		    break;
-
-		case Typedef:
-		    if (myMember != NULL)
-			myMember->item.typeDef = true;
-		    break;
-
-		/*
-		 * String options.
-		 */
-		case Prefix:
-		    if (myMember != NULL)
-			myMember->item.prefix = context->options[ii].string;
-		    else
-			free(context->options[ii].string);
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Tag:
-		    if (myMember != NULL)
-			myMember->item.tag = context->options[ii].string;
-		    else
-			free(context->options[ii].string);
-		    context->options[ii].string = NULL;
-		    break;
-
-		/*
-		 * Numeric options.
-		 */
-		case BaseAlign:
-		    if (myMember != NULL)
-			myMember->item.alignment = context->options[ii].value;
-		    break;
-
-		case Dimension:
-		    dimension = context->options[ii].value;
-		    if (myMember != NULL)
-		    {
-			myMember->item.lbound =
-				context->dimensions[dimension].lbound;
-			myMember->item.hbound =
-				context->dimensions[dimension].hbound;
-			myMember->item.dimension = true;
-		    }
-		    context->dimensions[dimension].inUse = false;
-		    break;
-
-		case Length:
-		    if (myMember != NULL)
-			myMember->item.length = context->options[ii].value;
-		    break;
-
-		default:
-		    break;
-	    }
-
-	/*
-	 * We have what we want, reset the options list for the member we are
-	 * about to start.
-	 */
-	_sdl_reset_options(context);
-    }
-
-    /*
-     * We are completing either a subaggregate or an AGGREGATE.  Decrement the
-     * depth.
-     */
-    context->aggregateDepth--;
-
-    /*
-     * If we are at zero, then we have completed the entire AGGREGATE
-     * definition and can now write out the results.
-     */
-    if (context->aggregateDepth == 0)
-    {
-	SDL_AGGREGATE	*myAggr =
-			    (SDL_AGGREGATE *) context->aggregates.header.blink;
-	int ii;
-
-	/*
-	 * We no longer have a current aggregate.  Also, determine the actual
-	 * size of the aggregate.
-	 */
-	context->currentAggr = NULL;
-	myAggr->size = _sdl_aggregate_size(context, myAggr, NULL);
-
-	/*
-	 * Loop through all the possible languages and call the appropriate
-	 * output function for each of the enabled languages.
-	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	    if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
-		retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
-					context->outFP[ii],
-					myAggr,
-					LangAggregate,
-					false,
-					0,
-					context);
-	if (SDL_Q_EMPTY(&myAggr->members) == false)
-	    retVal = _sdl_iterate_members(
-			context,
-			myAggr->members.flink,
-			&myAggr->members,
-			(int (*)()) &_sdl_aggregate_callback,
-			1,
-			1);
-
-	/*
-	 * Loop through all the possible languages and call the appropriate
-	 * output function for each of the enabled languages.
-	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	    if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
-		retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
-					context->outFP[ii],
-					myAggr,
-					LangAggregate,
-					true,
-					0,
-					context);
-    }
-
-    /*
-     * We just closed a subaggregate.  Determine the size of the subaggregate
-     * and make the previous AGGREGATE or subaggregate the current one.
-     */
-    else
-    {
-	context->currentAggr = mySubAggr->parent;
-	mySubAggr->size = _sdl_aggregate_size(context, NULL, mySubAggr);
     }
 
     /*
      * Return the results of this call back to the caller.
      */
+    _sdl_reset_options(context);
     return (retVal);
 }
 
@@ -2627,79 +2794,88 @@ int sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
     int		ii;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_entry\n", __FILE__, __LINE__);
-
-    if (myEntry != NULL)
+    if (context->processingEnabled == true)
     {
-	myEntry->id = name;
-	SDL_Q_INIT(&myEntry->parameters);
-	for (ii = 0; ii < context->optionsIdx; ii++)
-	{
-	    switch(context->options[ii].option)
-	    {
-		case Alias:
-		    myEntry->alias = context->options[ii].string;
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Linkage:
-		    myEntry->linkage = context->options[ii].string;
-		    context->options[ii].string = NULL;
-		    break;
-
-		case TypeName:
-		    myEntry->typeName = context->options[ii].string;
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Variable:
-		    myEntry->variable = true;
-		    break;
-
-		case ReturnsType:
-		    myEntry->returns.type = context->options[ii].value;
-		    myEntry->returns._unsigned = sdl_isUnsigned(
-							context,
-							&myEntry->returns.type);
-		    break;
-
-		case ReturnsNamed:
-		    myEntry->returns.name = context->options[ii].string;
-		    context->options[ii].string = NULL;
-		    break;
-
-		default:
-		    break;
-	    }
-	}
-	for (ii = 0; ii < context->parameterIdx; ii++)
-	{
-	    SDL_PARAMETER *myParam = context->parameters[ii];
-
-	    context->parameters[ii] = NULL;
-	    myParam->header.parent = &myEntry->header;
-	    SDL_INSQUE(&myEntry->parameters, &myParam->header.queue);
-	}
-	context->parameterIdx = 0;
-	SDL_INSQUE(&context->entries, &myEntry->header.queue);
 
 	/*
-	 * Loop through all the possible languages and call the appropriate
-	 * output function for each of the enabled languages.
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
 	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	    if ((context->langSpec[ii] == true) &&
-		(context->langEna[ii] == true))
-		retVal = (*_outputFuncs[ii][SDL_K_ENTRY_CB])(
-					context->outFP[ii],
-					myEntry,
-					context);
+	if (trace == true)
+	    printf("%s:%d:sdl_entry\n", __FILE__, __LINE__);
+
+	if (myEntry != NULL)
+	{
+	    myEntry->id = name;
+	    SDL_Q_INIT(&myEntry->parameters);
+	    for (ii = 0; ii < context->optionsIdx; ii++)
+	    {
+		switch(context->options[ii].option)
+		{
+		    case Alias:
+			myEntry->alias = context->options[ii].string;
+			context->options[ii].string = NULL;
+			break;
+
+		    case Linkage:
+			myEntry->linkage = context->options[ii].string;
+			context->options[ii].string = NULL;
+			break;
+
+		    case TypeName:
+			myEntry->typeName = context->options[ii].string;
+			context->options[ii].string = NULL;
+			break;
+
+		    case Variable:
+			myEntry->variable = true;
+			break;
+
+		    case ReturnsType:
+			myEntry->returns.type = context->options[ii].value;
+			myEntry->returns._unsigned = sdl_isUnsigned(
+							context,
+							&myEntry->returns.type);
+			break;
+
+		    case ReturnsNamed:
+			myEntry->returns.name = context->options[ii].string;
+			context->options[ii].string = NULL;
+			break;
+
+		    default:
+			break;
+		}
+	    }
+	    for (ii = 0; ii < context->parameterIdx; ii++)
+	    {
+		SDL_PARAMETER *myParam = context->parameters[ii];
+
+		context->parameters[ii] = NULL;
+		myParam->header.parent = &myEntry->header;
+		SDL_INSQUE(&myEntry->parameters, &myParam->header.queue);
+	    }
+	    context->parameterIdx = 0;
+	    SDL_INSQUE(&context->entries, &myEntry->header.queue);
+
+	    /*
+	     * Loop through all the possible languages and call the appropriate
+	     * output function for each of the enabled languages.
+	     */
+	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		if ((context->langSpec[ii] == true) &&
+		    (context->langEna[ii] == true))
+		    retVal = (*_outputFuncs[ii][SDL_K_ENTRY_CB])(
+					    context->outFP[ii],
+					    myEntry,
+					    context);
+	}
+	else
+	    retVal = 0;
     }
-    else
-	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.
@@ -2746,90 +2922,99 @@ int sdl_add_parameter(
     int		ii;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_add_parameter\n", __FILE__, __LINE__);
-
-    /*
-     * If the stack is full, reallocate a larger stack.
-     */
-    if (context->parameterIdx >= context->parameterSize)
+    if (context->processingEnabled == true)
     {
-	size_t	size;
 
-	context->parameterSize += SDL_K_OPTIONS_INCR;
-	size = context->parameterSize * sizeof(SDL_PARAMETER *);
-	context->parameters = realloc(context->parameters, size);
-    }
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_add_parameter\n", __FILE__, __LINE__);
 
-    if (context->parameters != NULL)
-    {
-	SDL_PARAMETER	*param = sdl_allocate_block(
-					ParameterBlock,
-					NULL,
-					srcLineNo);
-
-	param->_unsigned = sdl_isUnsigned(context, &datatype);
-	param->type = datatype;
-	param->passingMech = passing;
-
-	for (ii = 0; ii < context->optionsIdx; ii++)
+	/*
+	 * If the stack is full, reallocate a larger stack.
+	 */
+	if (context->parameterIdx >= context->parameterSize)
 	{
-	    switch (context->options[ii].option)
-	    {
-		case In:
-		    param->in = true;
-		    context->options[ii].option = None;;
-		    break;
+	    size_t	size;
 
-		case Out:
-		    param->out = true;
-		    context->options[ii].option = None;;
-		    break;
-
-		case Named:
-		    param->name = context->options[ii].string;
-		    context->options[ii].option = None;;
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Dimension:
-		    param->bound = context->options[ii].value;
-		    param->dimension = true;
-		    context->options[ii].option = None;;
-		    break;
-
-		case Default:
-		    param->defaultValue = context->options[ii].value;
-		    param->defaultPresent = true;
-		    context->options[ii].option = None;;
-		    break;
-
-		case TypeName:
-		    param->typeName = context->options[ii].string;
-		    context->options[ii].option = None;;
-		    context->options[ii].string = NULL;
-		    break;
-
-		case Optional:
-		    param->optional = true;
-		    context->options[ii].option = None;;
-		    break;
-
-		case List:
-		    param->list = true;
-		    context->options[ii].option = None;;
-		    break;
-
-		default:
-		    break;
-	    }
+	    context->parameterSize += SDL_K_OPTIONS_INCR;
+	    size = context->parameterSize * sizeof(SDL_PARAMETER *);
+	    context->parameters = realloc(context->parameters, size);
 	}
-	context->parameters[context->parameterIdx++] = param;
+
+	if (context->parameters != NULL)
+	{
+	    SDL_PARAMETER	*param = sdl_allocate_block(
+						ParameterBlock,
+						NULL,
+						srcLineNo);
+
+	    param->_unsigned = sdl_isUnsigned(context, &datatype);
+	    param->type = datatype;
+	    param->passingMech = passing;
+
+	    for (ii = 0; ii < context->optionsIdx; ii++)
+	    {
+		switch (context->options[ii].option)
+		{
+		    case In:
+			param->in = true;
+			context->options[ii].option = None;;
+			break;
+
+		    case Out:
+			param->out = true;
+			context->options[ii].option = None;;
+			break;
+
+		    case Named:
+			param->name = context->options[ii].string;
+			context->options[ii].option = None;;
+			context->options[ii].string = NULL;
+			break;
+
+		    case Dimension:
+			param->bound = context->options[ii].value;
+			param->dimension = true;
+			context->options[ii].option = None;;
+			break;
+
+		    case Default:
+			param->defaultValue = context->options[ii].value;
+			param->defaultPresent = true;
+			context->options[ii].option = None;;
+			break;
+
+		    case TypeName:
+			param->typeName = context->options[ii].string;
+			context->options[ii].option = None;;
+			context->options[ii].string = NULL;
+			break;
+
+		    case Optional:
+			param->optional = true;
+			context->options[ii].option = None;;
+			break;
+
+		    case List:
+			param->list = true;
+			context->options[ii].option = None;;
+			break;
+
+		    default:
+			break;
+		}
+	    }
+	    context->parameters[context->parameterIdx++] = param;
+	}
+	else
+	    retVal = 0;
     }
-    else
-	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.
@@ -2967,45 +3152,54 @@ int sdl_conditional(
 	case SDL_K_COND_LANG:
 
 	    /*
-	     * This state transition is only valid when we are in one of the
-	     * following conditional states:
-	     *
-	     *		CondNone
-	     *		CondIfLang
-	     *		CondIfSymb
-	     *		ElseIf
-	     *		Else
+	     * If processing is not turned off because of an IFSYMBOL..
+	     * ELSE_IFSYMBOL..ELSE..END_IFSYMBOL, then go ahead and perform the
+	     * processing.
 	     */
-	    if ((SDL_CUR_COND_STATE(context) == CondNone) ||
-		(SDL_CUR_COND_STATE(context) == CondIfLang) ||
-		(SDL_CUR_COND_STATE(context) == CondIfSymb) ||
-		(SDL_CUR_COND_STATE(context) == CondElseIf) ||
-		(SDL_CUR_COND_STATE(context) == CondElse))
+	    if (context->processingEnabled == true)
 	    {
-		SDL_PUSH_COND_STATE(context, CondIfLang);
 
 		/*
-		 * Now we need to determine if we are turning on or off any
-		 * particular languages.  The first thing we need to do is turn
-		 * all languages off and if one is specified in the langs list,
-		 * then we'll turn it back on.
+		 * This state transition is only valid when we are in one of
+		 * the following conditional states:
+		 *
+		 *		CondNone
+		 *		CondIfLang
+		 *		CondIfSymb
+		 *		ElseIf
+		 *		Else
 		 */
-		for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
-		    context->langEna[ii] = false;
-		for (ii = 0; ii < langs->listUsed; ii++)
+		if ((SDL_CUR_COND_STATE(context) == CondNone) ||
+		    (SDL_CUR_COND_STATE(context) == CondIfLang) ||
+		    (SDL_CUR_COND_STATE(context) == CondIfSymb) ||
+		    (SDL_CUR_COND_STATE(context) == CondElseIf) ||
+		    (SDL_CUR_COND_STATE(context) == CondElse))
 		{
-		    for (jj = 0; jj < SDL_K_LANG_ENTRIES; jj++)
+		    SDL_PUSH_COND_STATE(context, CondIfLang);
+
+		    /*
+		     * Now we need to determine if we are turning on or off any
+		     * particular languages.  The first thing we need to do is
+		     * turn all languages off and if one is specified in the
+		     * langs list, then we'll turn it back on.
+		     */
+		    for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+			context->langEna[ii] = false;
+		    for (ii = 0; ii < langs->listUsed; ii++)
 		    {
-			if (strcasecmp(
-				langs->lang[ii],
-				context->languages[jj].langStr) == 0)
-			    context->langEna[context->languages[jj].langVal] =
-				true;
+			for (jj = 0; jj < SDL_K_LANG_ENTRIES; jj++)
+			{
+			    if (strcasecmp(
+				    langs->lang[ii],
+				    context->languages[jj].langStr) == 0)
+				context->langEna[context->languages[jj].langVal] =
+				    true;
+			}
 		    }
 		}
+		else
+		    retVal = 0;
 	    }
-	    else
-		retVal = 0;
 	    langs->listUsed = 0;
 	    break;
 
@@ -3069,7 +3263,8 @@ int sdl_conditional(
 	     *		CondIfSymb
 	     *		CondElseIf
 	     */
-	    if (SDL_CUR_COND_STATE(context) == CondIfLang)
+	    if ((SDL_CUR_COND_STATE(context) == CondIfLang) &&
+		(context->processingEnabled == true))
 	    {
 		SDL_POP_COND_STATE(context);
 		SDL_PUSH_COND_STATE(context, CondElse);
@@ -3087,7 +3282,7 @@ int sdl_conditional(
 		SDL_PUSH_COND_STATE(context, CondElse);
 		context->processingEnabled = ~context->processingEnabled;
 	    }
-	    else
+	    else if (context->processingEnabled == true)
 		retVal = 0;
 	    break;
 
@@ -3121,21 +3316,30 @@ int sdl_conditional(
 	case SDL_K_COND_END_LANG:
 
 	    /*
-	     * This state transition is only valid when we are in one of the
-	     * following conditional states:
-	     *
-	     *		CondIfLang
-	     *		CondElse
+	     * If processing is not turned off because of an IFSYMBOL..
+	     * ELSE_IFSYMBOL..ELSE..END_IFSYMBOL, then go ahead and perform the
+	     * processing.
 	     */
-	    if ((SDL_CUR_COND_STATE(context) == CondIfLang) ||
-		(SDL_CUR_COND_STATE(context) == CondElse))
+	    if (context->processingEnabled == true)
 	    {
-		SDL_POP_COND_STATE(context);
-		for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
-		    context->langEna[ii] = context->langSpec[ii];
+
+		/*
+		 * This state transition is only valid when we are in one of
+		 * the following conditional states:
+		 *
+		 *		CondIfLang
+		 *		CondElse
+		 */
+		if ((SDL_CUR_COND_STATE(context) == CondIfLang) ||
+		    (SDL_CUR_COND_STATE(context) == CondElse))
+		{
+		    SDL_POP_COND_STATE(context);
+		    for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+			context->langEna[ii] = context->langSpec[ii];
+		}
+		else
+		    retVal = 0;
 	    }
-	    else
-		retVal = 0;
 	    if (langs != NULL)
 		langs->listUsed = 0;
 	    break;
@@ -3179,28 +3383,38 @@ int sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
     int		retVal = 1;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_add_language\n", __FILE__, __LINE__);
-
-    if (langStr != NULL)
+    if (context->processingEnabled == true)
     {
-	if (context->langCondList.listUsed == context->langCondList.listSize)
+
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_add_language\n", __FILE__, __LINE__);
+
+	if (langStr != NULL)
 	{
-	    context->langCondList.lang = realloc(
+	    if (context->langCondList.listUsed ==
+		context->langCondList.listSize)
+	    {
+		context->langCondList.lang = realloc(
 					    context->langCondList.lang,
 					    ++context->langCondList.listSize);
+	    }
+	    if (context->langCondList.lang != NULL)
+		strcpy(
+		    context->langCondList.lang[context->langCondList.listUsed++],
+		    langStr);
+	    else
+		retVal = 0;
 	}
-	if (context->langCondList.lang != NULL)
-	    strcpy(
-		context->langCondList.lang[context->langCondList.listUsed++],
-		langStr);
 	else
 	    retVal = 0;
     }
-    else
-	retVal = 0;
 
     /*
      * Return the results of this call back to the caller.
@@ -3233,13 +3447,22 @@ void *sdl_get_language(SDL_CONTEXT *context, int srcLineNo)
     void	*retVal = NULL;
 
     /*
-     * If tracing is turned on, write out this call (calls only, no returns).
+     * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
+     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
      */
-    if (trace == true)
-	printf("%s:%d:sdl_get_language\n", __FILE__, __LINE__);
+    if (context->processingEnabled == true)
+    {
 
-    if (context->langCondList.listUsed > 0)
-	retVal = &context->langCondList;
+	/*
+	 * If tracing is turned on, write out this call (calls only, no
+	 * returns).
+	 */
+	if (trace == true)
+	    printf("%s:%d:sdl_get_language\n", __FILE__, __LINE__);
+
+	if (context->langCondList.listUsed > 0)
+	    retVal = &context->langCondList;
+    }
 
     /*
      * Return the results of this call back to the caller.

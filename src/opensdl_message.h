@@ -148,9 +148,25 @@ typedef union
     struct
     {
 	uint32_t	severity : 3;
-	uint32_t	message : 13;
-	uint32_t	facility : 12;
-	uint32_t	control : 4;
+	uint32_t	cond_id : 25;
+	uint32_t	inhib_msg: 1;
+	uint32_t	control : 3;
+    };
+    struct
+    {
+	uint32_t	fill_3a : 3;
+	uint32_t	msg_no : 13;
+	uint32_t	fac_no : 12;
+	uint32_t	fill_3b : 4;
+    };
+    struct
+    {
+	uint32_t	fill_4a : 3;
+	uint32_t	code : 12;
+	uint32_t	fac_sp : 1;
+	uint32_t	fill_4 : 11;
+	uint32_t	cust_def : 1;
+	uint32_t	fill_4b : 4;
     };
 } SDL_MESSAGE;
 
@@ -165,12 +181,42 @@ typedef struct
 {
     SDL_MESSAGE		msgCode;
     uint32_t		faoCount;
+    uint32_t		faoInfo;
 } SDL_MSG_VECTOR;
 
 typedef struct
 {
-    uint16_t		length;
-    char		string[2];
-} SDL_MSG_STRING;
+    uint16_t		faoType;
+    uint16_t		faoLength;
+} SDL_MSG_FAO;
+
+#define SDL_MSG_FAO_NUMBER	0
+#define SDL_MSG_FAO_STRING	1
+
+#define SDL_MSG_STRING_PAD(__len) 					\
+    (((__len) % sizeof(uint32_t)) == 0 ? 0 :				\
+	(sizeof(uint32_t) - ((__len) % sizeof(uint32_t))))
+
+#define SDL_MSG_NEXT_FAO(__fao)						\
+    (((__fao)->faoType == SDL_MSG_FAO_NUMBER) ?				\
+	(char *) &((__fao)->faoLenth + sizeof(uint16_t) + sizeof(uint32_t) : \
+	(char *) &((__fao)->faoLength) + sizeof)(uint16_t) +		\
+	    (__fao)->faoLength + SDL_MSG_STRING_PAD((__fao)->faoLength))
+
+#define SDL_MSG_NEXT_MSG(_msg)						\
+    if ((__msg)->faoCount == 0)						\
+	(SDL_MSG_VECTOR *) &(__msg)->faoInfo;				\
+    else								\
+    {									\
+	int __ii;							\
+	SDL_MSG_FAO *__msgFao = (SDL_MSG_FAO *) &((__msg)->faoInfo);	\
+	char *__ptr = (char *) &__msgFao->faoLength + sizeof(uint16_t);	\
+									\
+	for(__ii = 0; ii < (__msg)->faoCount; ii++)			\
+	{								\
+	    __ptr = SDL_MSG_NEXT_FAO(__msgFao);				\
+	}								\
+	(SDL_MSG_VECTOR *) __ptr;					\
+    }
 
 #endif	/* _OPENSDL_MESSAGES_H_ */

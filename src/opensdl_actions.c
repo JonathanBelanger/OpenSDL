@@ -180,7 +180,8 @@ static int _sdl_iterate_members(
 static void _sdl_determine_offsets(
 		SDL_CONTEXT *context,
 		SDL_MEMBERS *member,
-		SDL_QUEUE *memberList);
+		SDL_QUEUE *memberList,
+		bool parentIsUnion);
 static void _sdl_fill_bitfield(
 			SDL_QUEUE *memberList,
 			SDL_MEMBERS *member,
@@ -2234,6 +2235,7 @@ int sdl_aggregate_member(
 			    if (myMember->item.tag != NULL)
 				free(myMember->item.tag);
 			    myMember->item.tag = context->options[ii].string;
+			    myMember->item.tagSet = true;
 			}
 			else if (mySubAggr != NULL)
 			{
@@ -2505,12 +2507,17 @@ int sdl_aggregate_member(
 		    _sdl_determine_offsets(
 				context,
 				myMember,
-				&mySubAggr->members);
+				&mySubAggr->members,
+				(mySubAggr->aggType == SDL_K_TYPE_UNION));
 		    SDL_INSQUE(&mySubAggr->members, &myMember->header.queue);
 		}
 		else
 		{
-		    _sdl_determine_offsets(context, myMember, &myAggr->members);
+		    _sdl_determine_offsets(
+				context,
+				myMember,
+				&myAggr->members,
+				(myAggr->aggType == SDL_K_TYPE_UNION));
 		    SDL_INSQUE(&myAggr->members, &myMember->header.queue);
 		}
 	    }
@@ -4337,6 +4344,9 @@ static int _sdl_iterate_members(
  *  memberList:
  *	A pointer to the queue of members where the supplied member will be
  *	queued as a child.
+ *  parentIsUnion:
+ *	A boolean value that indicates if the parent AGGREGATE or subaggregate
+ *	is a UNION or not.  We do not add padding for UNIONs.
  *
  * Output Parameters:
  *  None.
@@ -4347,7 +4357,8 @@ static int _sdl_iterate_members(
 static void _sdl_determine_offsets(
 			SDL_CONTEXT *context,
 			SDL_MEMBERS *member,
-			SDL_QUEUE *memberList)
+			SDL_QUEUE *memberList,
+			bool parentIsUnion)
 {
     SDL_MEMBERS		*prevMember = NULL;
     SDL_CONSTANT	*constDef;
@@ -4511,7 +4522,7 @@ static void _sdl_determine_offsets(
 		{
 		    member->item.bitOffset = 0;
 		    member->offset = prevMember->offset + prevMember->item.size;
-		    if (availBits > 0)
+		    if ((availBits > 0) && (parentIsUnion == false))
 			_sdl_fill_bitfield(
 				memberList,
 				prevMember,
@@ -4524,7 +4535,7 @@ static void _sdl_determine_offsets(
 	    {
 		member->item.bitOffset = 0;
 		member->offset = prevMember->offset + prevMember->item.size;
-		if (availBits > 0)
+		if ((availBits > 0) && (parentIsUnion == false))
 		    _sdl_fill_bitfield(
 				memberList,
 				prevMember,
@@ -4594,7 +4605,7 @@ static void _sdl_determine_offsets(
 	    int availBits = (prevMember->item.size * 8) -
 			    prevMember->item.bitOffset -
 			    prevMember->item.length;
-	    if (availBits > 0)
+	    if ((availBits > 0) && (parentIsUnion == false))
 		_sdl_fill_bitfield(
 				memberList,
 				prevMember,
@@ -5023,11 +5034,37 @@ static void _sdl_check_bitfieldSizes(
 	    member->item.type = prevMember->item.type;
 	    member->item.size = prevMember->item.size;
 	}
+
+	/*
+	 * If the tag was defaulted, then it may need to be updated.
+	 */
+	if (member->item.tagSet == false)
+	{
+	    free(member->item.tag);
+	    member->item.tag = _sdl_get_tag(
+					context,
+					NULL,
+					member->item.type,
+					_sdl_all_lower(member->item.id));
+	}
     }
     else
     {
 	newMember->item.type = prevMember->item.type;
 	newMember->item.size = prevMember->item.size;
+
+	/*
+	 * If the tag was defaulted, then it may need to be updated.
+	 */
+	if (newMember->item.tagSet == false)
+	{
+	    free(newMember->item.tag);
+	    newMember->item.tag = _sdl_get_tag(
+					context,
+					NULL,
+					newMember->item.type,
+					_sdl_all_lower(newMember->item.id));
+	}
     }
 
     /*

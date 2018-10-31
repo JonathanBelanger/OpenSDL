@@ -384,6 +384,7 @@ typedef struct
     bool		mask;		/* For BITFIELDs only	*/
     bool		parentAlignment;
     bool		sizedBitfield;	/* For BITFIELDs only	*/
+    bool		tagSet;
     bool		typeDef;
     bool		_unsigned;
 } SDL_ITEM;

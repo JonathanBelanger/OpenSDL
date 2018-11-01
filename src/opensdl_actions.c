@@ -38,6 +38,7 @@
 #include <math.h>
 #include <complex.h>
 #include "opensdl_defs.h"
+#include "opensdl_actions.h"
 #include "opensdl_lang.h"
 #include "opensdl_utility.h"
 
@@ -249,20 +250,38 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
 	    printf("%s:%d:sdl_comment_line\n", __FILE__, __LINE__);
 
 	/*
-	 * Loop through all the possible languages and call the appropriate output
-	 * function for each of the enabled languages.
+	 * If this comment is in an AGGREGATE or subaggregate, then store it as
+	 * a member item.  It will be included in the output of the AGGREGATE
+	 * near where it existed in the input file.
 	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-	    if ((context->langSpec[ii] == true) &&
-		(context->langEna[ii] == true) &&
-		(context->commentsOff == false))
-		retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
-				    context->outFP[ii],
-				    &comment[2],	/* Skip past comment token */
-				    true,
-				    false,
-				    false,
-				    false);
+	if ((context->state == Aggregate) || (context->state == Subaggregate))
+	    retVal = sdl_aggregate_member(
+				context,
+				&comment[2],	     /* ignore comment token */
+				SDL_K_TYPE_COMMENT,
+				SDL_K_TYPE_NONE,
+				srcLineNo,
+				true,
+				false,
+				false,
+				false);
+	else
+
+	    /*
+	     * Loop through all the possible languages and call the appropriate
+	     * output function for each of the enabled languages.
+	     */
+	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		if ((context->langSpec[ii] == true) &&
+		    (context->langEna[ii] == true) &&
+		    (context->commentsOff == false))
+		    retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
+					context->outFP[ii],
+					&comment[2], /* ignore comment token */
+					true,
+					false,
+					false,
+					false);
     }
 
     /*
@@ -369,18 +388,39 @@ int sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
 	    }
 
 	    /*
-	     * Loop through all the possible languages and call the appropriate
-	     * output function for each of the enabled languages.
+	     * If this comment is in an AGGREGATE or subaggregate, then store
+	     * it as a member item.  It will be included in the output of the
+	     * AGGREGATE near where it existed in the input file.
 	     */
-	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
-		if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
-		    retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
-					    context->outFP[ii],
-					    ptr,
-					    false,
-					    start_comment,
-					    middle_comment,
-					    end_comment);
+	    if ((context->state == Aggregate) ||
+		(context->state == Subaggregate))
+		retVal = sdl_aggregate_member(
+					context,
+					ptr,
+					SDL_K_TYPE_COMMENT,
+					SDL_K_TYPE_NONE,
+					srcLineNo,
+					false,
+					start_comment,
+					middle_comment,
+					end_comment);
+	    else
+
+		/*
+		 * Loop through all the possible languages and call the
+		 * appropriate output function for each of the enabled
+		 * languages.
+		 */
+		for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		    if ((context->langSpec[ii] == true) &&
+			(context->langEna[ii] == true))
+			retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
+						context->outFP[ii],
+						ptr,
+						false,
+						start_comment,
+						middle_comment,
+						end_comment);
 
 	    /*
 	     * Move to the next line.
@@ -1869,8 +1909,8 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 	}
 
 	/*
-	 * If we created an enumeration, then go complete it (this will output it
-	 * to the language output files).
+	 * If we created an enumeration, then go complete it (this will output
+	 * it to the language output files).
 	 */
 	if ((retVal == 1) && (myEnum != NULL))
 	    retVal = _sdl_enum_compl(context, myEnum);
@@ -2016,7 +2056,11 @@ int sdl_aggregate_member(
 		char *name,
 		int64_t datatype,
 		int aggType,
-		int srcLineNo)
+		int srcLineNo,
+		bool lineComment,
+		bool startComment,
+		bool middleComment,
+		bool endComment)
 {
     SDL_MEMBERS		*myMember = NULL;
     SDL_AGGREGATE	*myAggr = (context->aggregateDepth > 1 ?
@@ -2044,9 +2088,10 @@ int sdl_aggregate_member(
 	 */
 	if (trace == true)
 	    printf(
-		"%s:%d:sdl_aggregate_member(%d)\n",
+		"%s:%d:sdl_aggregate_member(%ld, %d)\n",
 		__FILE__,
 		__LINE__,
+		datatype,
 		aggType);
 
 	/*
@@ -2414,12 +2459,23 @@ int sdl_aggregate_member(
 			break;
 
 		    default:
-			myMember->item.id = name;
-			myMember->item._unsigned = sdl_isUnsigned(
+			if (datatype == SDL_K_TYPE_COMMENT)
+			{
+			    myMember->comment.comment = strdup(name);
+			    myMember->comment.endComment = endComment;
+			    myMember->comment.lineComment = lineComment;
+			    myMember->comment.middleComment = middleComment;
+			    myMember->comment.startComment = startComment;
+			}
+			else
+			{
+			    myMember->item.id = name;
+			    myMember->item._unsigned = sdl_isUnsigned(
 							    context,
 							    &datatype);
-			myMember->item.type = datatype;
-			myMember->item.srcLineNo = myMember->srcLineNo;
+			    myMember->item.type = datatype;
+			    myMember->item.srcLineNo = myMember->srcLineNo;
+			}
 			switch (datatype)
 			{
 			    case SDL_K_TYPE_DECIMAL:
@@ -2471,6 +2527,11 @@ int sdl_aggregate_member(
 				}
 				break;
 
+			    case SDL_K_TYPE_CHAR:
+			    case SDL_K_TYPE_CHAR_VARY:
+				myMember->item.length = length;
+				break;
+
 			    case SDL_K_TYPE_ADDR:
 			    case SDL_K_TYPE_ADDR_L:
 			    case SDL_K_TYPE_ADDR_Q:
@@ -2483,25 +2544,53 @@ int sdl_aggregate_member(
 				myMember->item.subType = subType;
 				break;
 			}
-			if ((myAggr != NULL) && (myAggr->prefix != NULL))
-			    myMember->item.prefix = strdup(myAggr->prefix);
-			else if ((mySubAggr != NULL) &&
-				 (mySubAggr->prefix != NULL))
-			    myMember->item.prefix = strdup(mySubAggr->prefix);
-			myMember->item.tag = _sdl_get_tag(
+			if (sdl_isComment(myMember) == false)
+			{
+			    int		tagDatatype = datatype;
+
+			    if ((myAggr != NULL) && (myAggr->prefix != NULL))
+				myMember->item.prefix = strdup(myAggr->prefix);
+			    else if ((mySubAggr != NULL) &&
+				     (mySubAggr->prefix != NULL))
+				myMember->item.prefix =
+					strdup(mySubAggr->prefix);
+			    switch (datatype)
+			    {
+				case SDL_K_TYPE_BITFLD_B:
+				case SDL_K_TYPE_BITFLD_W:
+				case SDL_K_TYPE_BITFLD_L:
+				case SDL_K_TYPE_BITFLD_Q:
+				case SDL_K_TYPE_BITFLD_O:
+				    if (myMember->item.sizedBitfield == false)
+					tagDatatype = SDL_K_TYPE_BITFLD;
+				    break;
+
+				default:
+				    break;
+			    }
+			    myMember->item.tag = _sdl_get_tag(
 							context,
 							NULL,
-							datatype,
+							tagDatatype,
 							_sdl_all_lower(name));
-			myMember->item.size = sdl_sizeof(context, datatype);
-			if (myAggr != NULL)
-			    myMember->item.alignment = myAggr->alignment;
-			else
-			    myMember->item.alignment = mySubAggr->alignment;
-			myMember->item.parentAlignment = true;
+			    myMember->item.size = sdl_sizeof(context, datatype);
+			    if (myMember->type == SDL_K_TYPE_CHAR)
+				myMember->item.size *= myMember->item.length;
+			    else if (myMember->type == SDL_K_TYPE_CHAR_VARY)
+				myMember->item.size += myMember->item.length;
+			    else if (myMember->type == SDL_K_TYPE_DECIMAL)
+				myMember->item.size = (myMember->item.size *
+						myMember->item.precision) + 1;
+			    if (myAggr != NULL)
+				myMember->item.alignment = myAggr->alignment;
+			    else
+				myMember->item.alignment = mySubAggr->alignment;
+			    myMember->item.parentAlignment = true;
+			}
 			break;
 		}
-		_sdl_checkAndSetOrigin(context, myMember);
+		if (sdl_isComment(myMember) == false)
+		    _sdl_checkAndSetOrigin(context, myMember);
 		if (mySubAggr != NULL)
 		{
 		    _sdl_determine_offsets(
@@ -3526,6 +3615,11 @@ static int _sdl_aggregate_callback(
 	param = (void *) &member->subaggr;
 	type = LangSubaggregate;
     }
+    else if (sdl_isComment(member) == true)
+    {
+	param = (void *) &member->comment;
+	type = LangComment;
+    }
     else
     {
 	param = (void *) &member->item;
@@ -4281,34 +4375,51 @@ static int _sdl_iterate_members(
     {
 	if ((trace == true) && (callback == NULL))
 	{
-	    printf(
-		"\t%d: ITEM:\n\t    name: %s\n\t    prefix: %s\n"
-		"\t    tag: %s\n\t    typeID: %d\n\t    alignment: %d\n"
-		"\t    type: %d\n\t    _unsigned: %s\n\t    size: %ld\n"
-		"\t    typeDef: %s\n\t    fill: %s\n\t    offset: %ld (%ld)\n"
-		"\t    length: %ld\n\t    mask: %s\n"
-		"\t    bitfieldType: %ld\n\t    bitOffset: %d\n",
-		count,
-	        member->item.id,
-	        (member->item.prefix != NULL ? member->item.prefix : ""),
-	        (member->item.tag != NULL ? member->item.tag : ""),
-	        member->item.typeID,
-	        member->item.alignment,
-	        member->item.type,
-	        (member->item._unsigned == true ? "True" : "False"),
-	        member->item.size,
-	        (member->item.typeDef == true ? "True" : "False"),
-	        (member->item.fill == true ? "True" : "False"),
-	        member->item.offset, member->offset,
-	        member->item.length,
-	        (member->item.mask == true ? "True" : "False"),
-	        member->item.subType,
-	        member->item.bitOffset);
-	    if (member->item.dimension == true)
+	    if (sdl_isComment(member) == true)
+	    {
 		printf(
-		    "\t    dimension: [%ld:%ld]\n",
-		    member->item.lbound,
-		    member->item.hbound);
+		    "\t%d: COMMENT:\n\t    comment: %s\n\t    endComment: %s\n"
+		    "\t    lineComment: %s\n\t    middleComment: %s\n"
+		    "\t    startComment: %s\n",
+		    count,
+		    member->comment.comment,
+		    (member->comment.endComment == true ? "True" : "False"),
+		    (member->comment.lineComment == true ? "True" : "False"),
+		    (member->comment.middleComment == true ? "True" : "False"),
+		    (member->comment.startComment == true ? "True" : "False"));
+	    }
+	    else
+	    {
+		printf(
+		    "\t%d: ITEM:\n\t    name: %s\n\t    prefix: %s\n"
+		    "\t    tag: %s\n\t    typeID: %d\n\t    alignment: %d\n"
+		    "\t    type: %d\n\t    _unsigned: %s\n\t    size: %ld\n"
+		    "\t    typeDef: %s\n\t    fill: %s\n"
+		    "\t    offset: %ld (%ld)\n\t    length: %ld\n"
+		    "\t    mask: %s\n\t    bitfieldType: %ld\n"
+		    "\t    bitOffset: %d\n",
+		    count,
+		    member->item.id,
+		    (member->item.prefix != NULL ? member->item.prefix : ""),
+		    (member->item.tag != NULL ? member->item.tag : ""),
+		    member->item.typeID,
+		    member->item.alignment,
+		    member->item.type,
+		    (member->item._unsigned == true ? "True" : "False"),
+		    member->item.size,
+		    (member->item.typeDef == true ? "True" : "False"),
+		    (member->item.fill == true ? "True" : "False"),
+		    member->item.offset, member->offset,
+		    member->item.length,
+		    (member->item.mask == true ? "True" : "False"),
+		    member->item.subType,
+		    member->item.bitOffset);
+		if (member->item.dimension == true)
+		    printf(
+			"\t    dimension: [%ld:%ld]\n",
+			member->item.lbound,
+			member->item.hbound);
+	    }
 	}
 	if (callback != NULL)
 	    (*callback)(context, member, false, depth);
@@ -4360,7 +4471,7 @@ static void _sdl_determine_offsets(
 			SDL_QUEUE *memberList,
 			bool parentIsUnion)
 {
-    SDL_MEMBERS		*prevMember = NULL;
+    SDL_MEMBERS		*prevMember;
     SDL_CONSTANT	*constDef;
     int			dimension = 1;
     bool		memberItem = sdl_isItem(member);
@@ -4372,11 +4483,24 @@ static void _sdl_determine_offsets(
     if (trace == true)
 	printf("%s:%d:_sdl_determine_offsets\n", __FILE__, __LINE__);
 
-    if (SDL_Q_EMPTY(memberList) == false)
-    {
-	prevMember = (SDL_MEMBERS *) memberList->blink;
+    /*
+     * If the member to be inserted is a COMMENT, then there is nothing else we
+     * need to do.
+     */
+    if (sdl_isComment(member) == true)
+	return;
+
+    /*
+     * Get the previous member, if there is one that is not a comment.
+     */
+    prevMember = (SDL_MEMBERS *) memberList->blink;
+    while ((prevMember != (SDL_MEMBERS *) &memberList->flink) &&
+	   (sdl_isComment(prevMember) == true))
+	prevMember = (SDL_MEMBERS *)prevMember->header.queue.blink;
+    if (prevMember != (SDL_MEMBERS *) &memberList->flink)
 	prevItem = sdl_isItem(prevMember);
-    }
+    else
+	prevMember = NULL;
 
     /*
      * If the new member is a BITFIELD and the previous one is as well, then
@@ -4385,7 +4509,7 @@ static void _sdl_determine_offsets(
      * previously utilized.  We will also generate the appropriate MASK and
      * SIZE constants.  If the number of bits has been defaulted, then we can
      * resize it up to the next usable size.  Bitfields are defaulted to
-     * UNSIGNED BYTE fields, but can be defined as ab UNSIGNED QUADWORD field,
+     * UNSIGNED BYTE fields, but can be defined as an UNSIGNED QUADWORD field,
      * if so desired.
      */
     if (sdl_isBitfield(member) == true)
@@ -4619,20 +4743,22 @@ static void _sdl_determine_offsets(
 	 */
 	if (prevMember != NULL)
 	{
-	    if (prevItem == true)
+	    if ((prevItem == true) && (parentIsUnion == false))
 	    {
 		size = prevMember->item.size;
 		if (prevMember->item.dimension == true)
 		    dimension = prevMember->item.hbound -
 				prevMember->item.lbound + 1;
 	    }
-	    else
+	    else if (parentIsUnion == false)
 	    {
 		size = prevMember->subaggr.size;
 		if (prevMember->subaggr.dimension == true)
 		    dimension = prevMember->subaggr.hbound -
 				prevMember->subaggr.lbound + 1;
 	    }
+	    else
+		size = 0;	/* all the offsets are the same in unions */
 	    member->offset = prevMember->offset + (size * dimension);
 	}
 	else
@@ -4654,7 +4780,11 @@ static void _sdl_determine_offsets(
 		break;
 
 	    case SDL_K_ALIGN:
-		adjustment = member->offset % member->item.size;
+		if ((member->item.type == SDL_K_TYPE_CHAR_VARY) ||
+		    (member->item.type == SDL_K_TYPE_DECIMAL))
+		    adjustment = 0;
+		else
+		    adjustment = member->offset % member->item.size;
 		if (adjustment != 0)
 		    adjustment = member->item.size - adjustment;
 		break;
@@ -4719,7 +4849,6 @@ static void _sdl_fill_bitfield(
 	printf("%s:%d:_sdl_fill_bitfield\n", __FILE__, __LINE__);
 
     memcpy(filler, member, sizeof(SDL_MEMBERS));
-    filler->item.comment = NULL;
     sprintf(idBuf, "filler_%03d", number);
     filler->item.id = strdup(idBuf);
     if (member->item.prefix != NULL)
@@ -4767,6 +4896,7 @@ static int64_t _sdl_aggregate_size(
     int64_t	retVal = 0;
     int64_t	size = 0;
     int		dimension = 1;
+    bool	isUnion;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4786,6 +4916,7 @@ static int64_t _sdl_aggregate_size(
 	    member = (SDL_MEMBERS *) aggr->members.blink;
 	    memberList = &aggr->members;
 	}
+	isUnion = aggr->aggType == SDL_K_TYPE_UNION;
     }
     else if (subAggr != NULL)
     {
@@ -4795,13 +4926,16 @@ static int64_t _sdl_aggregate_size(
 	    memberList = &subAggr->members;
 	    retVal = subAggr->offset;
 	}
+	isUnion = subAggr->aggType == SDL_K_TYPE_UNION;
     }
 
     /*
      * Before we can try and figure out the AGGREGATE or subaggregate size, we
      * may have just ended a BITFIELD, but without all the bits used.
      */
-    if ((member != NULL) && (sdl_isBitfield(member) == true))
+    if ((member != NULL) &&
+	(sdl_isBitfield(member) == true) &&
+	(isUnion == false))
     {
 	    int availBits = (member->item.size * 8) -
 			    member->item.bitOffset - member->item.length;
@@ -4822,20 +4956,61 @@ static int64_t _sdl_aggregate_size(
      */
     if (member != NULL)
     {
-	retVal = member->offset - retVal;;
-	if (sdl_isItem(member) == true)
+
+	/*
+	 * The size of a UNION is the size of the largest size.
+	 */
+	if (isUnion == true)
 	{
-	    size = member->item.size;
-	    if (member->item.dimension == true)
-		dimension = member->item.hbound - member->item.lbound + 1;
+	    retVal = 0;
+	    member = memberList->flink;
+	    while (member != (SDL_MEMBERS *) &memberList->flink)
+	    {
+		dimension = 1;
+		if (sdl_isItem(member) == true)
+		{
+		    if (sdl_isComment(member) == true)
+			size = 0;
+		    else
+		    {
+			size = member->item.size;
+			if (member->item.dimension == true)
+			    dimension = member->item.hbound -
+					member->item.lbound + 1;
+			size *= dimension;
+		    }
+		}
+		else
+		{
+		    size = member->subaggr.size;
+		    if (member->subaggr.dimension == true)
+			dimension = member->subaggr.hbound -
+				    member->subaggr.lbound + 1;
+		    size *= dimension;
+		}
+		if (size > retVal)
+		    retVal = size;
+		member = (SDL_MEMBERS *) member->header.queue.flink;
+	    }
 	}
 	else
 	{
-	    size += member->subaggr.size;
-	    if (member->subaggr.dimension == true)
-		dimension = member->subaggr.hbound - member->subaggr.lbound + 1;
+	    retVal = member->offset - retVal;;
+	    if (sdl_isItem(member) == true)
+	    {
+		size = member->item.size;
+		if (member->item.dimension == true)
+		    dimension = member->item.hbound - member->item.lbound + 1;
+	    }
+	    else
+	    {
+		size += member->subaggr.size;
+		if (member->subaggr.dimension == true)
+		    dimension = member->subaggr.hbound -
+				member->subaggr.lbound + 1;
+	    }
+	    retVal += (size * dimension);
 	}
-	retVal += (size * dimension);
     }
 
     /*
@@ -4940,23 +5115,33 @@ static void _sdl_check_bitfieldSizes(
 			bool *updated)
 {
     SDL_MEMBERS	*prevMember;
-    bool	myUpdated = false;
+    static bool	myUpdated;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
 	printf("%s:%d:_sdl_check_bitfieldSizes\n", __FILE__, __LINE__);
-
     /*
      * If the member parameter has not been passed, then the previous member is
      * off the blink field of the member list.  Otherwise it is off the blink
      * field of the member itself.
      */
     if (member == NULL)
+    {
 	prevMember = (SDL_MEMBERS *) memberList->blink;
+	myUpdated = false;
+    }
     else
 	prevMember = (SDL_MEMBERS *) member->header.queue.blink;
+
+    /*
+     * If the previous member is a COMMENT, then loop until we either run out
+     * of member of the member is no longer a comment.
+     */
+    while ((prevMember != (SDL_MEMBERS *) &memberList->flink) &&
+	   (sdl_isComment(prevMember) == true))
+	prevMember = (SDL_MEMBERS *) prevMember->header.queue.blink;
 
     /*
      * If the previous member is not actually the address of the member list,
@@ -5034,37 +5219,11 @@ static void _sdl_check_bitfieldSizes(
 	    member->item.type = prevMember->item.type;
 	    member->item.size = prevMember->item.size;
 	}
-
-	/*
-	 * If the tag was defaulted, then it may need to be updated.
-	 */
-	if (member->item.tagSet == false)
-	{
-	    free(member->item.tag);
-	    member->item.tag = _sdl_get_tag(
-					context,
-					NULL,
-					member->item.type,
-					_sdl_all_lower(member->item.id));
-	}
     }
     else
     {
 	newMember->item.type = prevMember->item.type;
 	newMember->item.size = prevMember->item.size;
-
-	/*
-	 * If the tag was defaulted, then it may need to be updated.
-	 */
-	if (newMember->item.tagSet == false)
-	{
-	    free(newMember->item.tag);
-	    newMember->item.tag = _sdl_get_tag(
-					context,
-					NULL,
-					newMember->item.type,
-					_sdl_all_lower(newMember->item.id));
-	}
     }
 
     /*

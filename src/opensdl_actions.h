@@ -74,7 +74,11 @@ int sdl_aggregate_member(
 		char *name,
 		int64_t datatype,
 		int aggType,
-		int srcLineNo);
+		int srcLineNo,
+		bool lineComment,
+		bool startComment,
+		bool middleComment,
+		bool endComment);
 int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo);
 int sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo);
 int sdl_add_parameter(

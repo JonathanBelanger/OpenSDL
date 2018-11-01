@@ -870,7 +870,11 @@ aggregate_body
 			$1,
 			$2,
 			SDL_K_TYPE_NONE,
-			yyloc.first_line);
+			yyloc.first_line,
+			false,
+			false,
+			false,
+			false);
 	    }
 	| _t_aggr_id _t_aggr_id
 	    {
@@ -879,7 +883,11 @@ aggregate_body
 			$1,
 			sdl_aggrtype_idx(&context, $2),
 			SDL_K_TYPE_NONE,
-			yyloc.first_line);
+			yyloc.first_line,
+			false,
+			false,
+			false,
+			false);
 	    }
 	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
 	    {
@@ -889,7 +897,11 @@ aggregate_body
 			$1,
 			$3,
 			SDL_K_TYPE_STRUCT,
-			yyloc.first_line);
+			yyloc.first_line,
+			false,
+			false,
+			false,
+			false);
 	    }
 	| _t_aggr_id SDL_K_UNION _v_aggtypes
 	    {
@@ -899,7 +911,11 @@ aggregate_body
 			$1,
 			$3,
 			SDL_K_TYPE_UNION,
-			yyloc.first_line);
+			yyloc.first_line,
+			false,
+			false,
+			false,
+			false);
 	    }
 	| _t_aggr_id SDL_K_BITFIELD bitfield_options SDL_K_SEMI
 	    {
@@ -908,7 +924,11 @@ aggregate_body
 			$1,
 			SDL_K_TYPE_BITFLD,
 			SDL_K_TYPE_NONE,
-			yyloc.first_line);
+			yyloc.first_line,
+			false,
+			false,
+			false,
+			false);
 	    }
 	;
 

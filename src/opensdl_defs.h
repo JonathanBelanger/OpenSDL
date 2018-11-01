@@ -115,6 +115,7 @@
 #define SDL_K_ENUM_MIN		1024
 #define SDL_K_ENUM_MAX		1279
 #define SDL_K_SIZEOF_MIN	1280
+#define SDL_K_TYPE_COMMENT	0x7fffffff /* AGGREGATE/subaggregate MEMBERs */
 
 /*
  * Data type modifiers.
@@ -360,7 +361,6 @@ typedef struct
 typedef struct
 {
     SDL_HEADER		header;
-    char		*comment;
     char		*id;
     char		*prefix;
     char		*tag;
@@ -432,7 +432,6 @@ typedef struct
 {
     SDL_HEADER		header;
     char		*alias;
-    char		*comment;
     char		*id;
     char		*linkage;
     char		*typeName;
@@ -448,7 +447,6 @@ typedef struct
 typedef struct
 {
     char		*basedPtrName;
-    char		*comment;
     char		*id;
     char		*marker;
     char		*prefix;
@@ -472,6 +470,15 @@ typedef struct
     bool		_unsigned;
 } SDL_SUBAGGR;
 
+typedef struct
+{
+    char		*comment;
+    bool 		endComment;
+    bool 		lineComment;
+    bool 		middleComment;
+    bool 		startComment;
+} SDL_COMMENT;
+
 typedef struct _sdl_member
 {
     SDL_HEADER		header;
@@ -479,6 +486,7 @@ typedef struct _sdl_member
     {
 	SDL_ITEM    	item;
 	SDL_SUBAGGR	subaggr;
+	SDL_COMMENT	comment;
     };
     int64_t		offset;
     int			srcLineNo;
@@ -495,7 +503,6 @@ typedef struct
 typedef struct
 {
     SDL_HEADER		header;
-    char		*comment;
     char		*basedPtrName;
     char		*id;
     char		*marker;
@@ -813,32 +820,32 @@ typedef struct
  *
  */
 typedef struct sdl_r_node
-{
-    struct sdl_r_node *sdl_a_flink;
-    struct sdl_r_node *sdl_a_blink;
-    struct sdl_r_node *sdl_a_parent;
-    struct sdl_r_node *sdl_a_child;
-    struct sdl_r_node *sdl_a_comment;
+{								/* offset */
+    struct sdl_r_node *sdl_a_flink;				/* 000 */
+    struct sdl_r_node *sdl_a_blink;				/* 008 */
+    struct sdl_r_node *sdl_a_parent;				/* 016 */
+    struct sdl_r_node *sdl_a_child;				/* 024 */
+    struct sdl_r_node *sdl_a_comment;				/* 032 */
     union
     {
 	int sdl_l_typeinfo;
 	void *sdl_a_typeinfo;
-    } sdl_r_info;
+    } sdl_r_info;						/* 040 */
     union
     {
 	int sdl_l_typeinfo2;
 	void *sdl_a_typeinfo2;
 	void *sdl_a_symtab;
-    } sdl_r_info2;
-    char sdl_b_type;
-    char sdl_b_boundary;
-    short sdl_w_datatype;
-    int sdl_l_offset;
+    } sdl_r_info2;						/* 048 */
+    char sdl_b_type;						/* 056 */
+    char sdl_b_boundary;					/* 057 */
+    short sdl_w_datatype;					/* 058 */
+    int sdl_l_offset;						/* 060 */
     union
     {
 	int sdl_l_fldsiz;
 	void *sdl_a_fldsiz;
-    } sdl_r_fldsiz;
+    } sdl_r_fldsiz;						/* 064 */
 
     /*
      * Flags sdl_v_%%dim indicate module SDLACTION.PLI
@@ -851,12 +858,12 @@ typedef struct sdl_r_node
     {
 	int sdl_l_hidim;	/* generally used as integer, but */
 	void *hidim;		/* SDLACTION.PLI caches a pointer. */
-    } mod$r_hidim;
+    } mod$r_hidim;						/* 072 */
     union	/* A single longword used for two purposes */
     {
 	int sdl_l_lodim;	/* generally used as integer, but */
 	void *sdl_a_lodim;	/* SDLACTION.PLI caches a pointer. */
-    } nof$r_lodim;
+    } nof$r_lodim;						/* 080 */
 
     /*
      * Flag sdl_v_initial indicate module SDLACTION.PLI
@@ -869,9 +876,9 @@ typedef struct sdl_r_node
     {
 	int sdl_l_initial; 	/* generally used as integer, but */
 	void *sdl_a_initial;  	/* SDLACTION.PLI caches a pointer. */
-    } sdl_r_initial;
-    int sdl_l_srcline;
-    int sdl_l_nodeid;
+    } sdl_r_initial;						/* 088 */
+    int sdl_l_srcline;						/* 096 */
+    int sdl_l_nodeid;						/* 100 */
     union
     {
 	unsigned int sdl_l_flags;
@@ -911,7 +918,7 @@ typedef struct sdl_r_node
 	    unsigned int sdl_v_forward : 1;
 	    unsigned int sdl_v_align : 1;
 	} sdl_r_flagstruc;
-    } sdl_r_flagunion;
+    } sdl_r_flagunion;						/* 104 */
     union
     {
 	unsigned int sdl_l_flags2;
@@ -927,48 +934,48 @@ typedef struct sdl_r_node
 	    unsigned int sdl_v_base_align : 1;
 	    unsigned int sdl_v_offset_ref : 1;
 	} sdl_r_flags2struc;
-    } sdl_r_flags2union;
+    } sdl_r_flags2union;					/* 108 */
     struct
     {
 	short string_length;
 	char string_text[34];
-    } sdl_t_naked;
+    } sdl_t_naked;						/* 112 */
     struct
     {
 	short string_length;
 	char string_text[34];
-    } sdl_t_name;
+    } sdl_t_name;						/* 148 */
     struct
     {
 	short string_length;
 	char string_text[34];
-    } sdl_t_return_name;
+    } sdl_t_return_name;					/* 184 */
     struct
     {
 	short string_length;
 	char string_text[32];
-    } sdl_t_prefix;
+    } sdl_t_prefix;						/* 220 */
     struct
     {
 	short string_length;
 	char string_text[32];
-    } sdl_t_marker;
+    } sdl_t_marker;						/* 254 */
     struct
     {
 	short string_length;
 	char string_text[32];
-    } sdl_t_tag;
+    } sdl_t_tag;						/* 288 */
     struct
     {
 	short string_length;
 	char string_text[32];
-    } sdl_t_typename;
+    } sdl_t_typename;						/* 322 */
     struct
     {
 	short string_length;
 	char string_text[32];
-    } sdl_t_maskstr;
-} SDL_R_NODE;
+    } sdl_t_maskstr;						/* 356 */
+} SDL_R_NODE;							/* 390 */
 #define sdl_k_nodesize sizeof(SDL_R_NODE)
 
 #endif /* _OPENSDL_DEFS_H_ */

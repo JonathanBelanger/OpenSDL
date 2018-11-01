@@ -796,7 +796,7 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 		if (fprintf(
 			fp,
 			"struct {short string_length; "
-			"char string_text[%ld] %s;",
+			"char string_text[%ld];} %s",
 			item->length,
 			name) < 0)
 		    retVal = 0;
@@ -1139,6 +1139,17 @@ int sdl_c_aggregate(
 	case LangItem:
 	    if (retVal == 1)
 		retVal = sdl_c_item(fp, my.item, context);
+	    break;
+
+	case LangComment:
+	    if (retVal == 1)
+		retVal = sdl_c_comment(
+				fp,
+				my.comment->comment,
+				my.comment->lineComment,
+				my.comment->startComment,
+				my.comment->middleComment,
+				my.comment->endComment);
 	    break;
     }
 
@@ -1483,14 +1494,7 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-    {
 	printf("%s:%d:_sdl_c_generate_name\n", __FILE__, __LINE__);
-	if (prefix != NULL)
-	    printf("\tprefix: %s\n", prefix);
-	if (tag != NULL)
-	    printf("\ttag: %s\n", tag);
-	printf("\tname: %s\n", name);
-    }
 
     /*
      * First, if we have a prefix, let's get it's length.  Also, the presents
@@ -1579,6 +1583,7 @@ static char *_sdl_c_typeidStr(
 {
     char	*retVal = NULL;
     int		bits = (context->wordSize / 32) - 1;	/* 0 = 32, 1 = 64 */
+    int		sign = (_unsigned ? 1 : 0);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1588,13 +1593,13 @@ static char *_sdl_c_typeidStr(
 
     *freeMe = false;
     if (typeID == SDL_K_TYPE_NONE)
-	retVal = _types[SDL_K_TYPE_VOID][bits][_unsigned];
+	retVal = _types[SDL_K_TYPE_VOID][bits][sign];
     else if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
     {
 	if ((typeID == SDL_K_TYPE_ADDR) || (typeID == SDL_K_TYPE_PTR))
 	    retVal = _sdl_c_typeidStr(subType, 0, _unsigned, context, freeMe);
 	else
-	    retVal = _types[typeID][bits][_unsigned];
+	    retVal = _types[typeID][bits][sign];
     }
     else if ((typeID >= SDL_K_DECLARE_MIN) && (typeID <= SDL_K_DECLARE_MAX))
     {

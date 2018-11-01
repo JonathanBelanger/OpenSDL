@@ -51,7 +51,8 @@ typedef enum
 {
     LangAggregate,
     LangSubaggregate,
-    LangItem
+    LangItem,
+    LangComment
 } SDL_LANG_AGGR_TYPE;
 typedef struct
 {
@@ -61,6 +62,7 @@ typedef struct
 	SDL_AGGREGATE	*aggr;
 	SDL_SUBAGGR	*subaggr;
 	SDL_ITEM	*item;
+	SDL_COMMENT	*comment;
     };
 } SDL_LANG_AGGR;
 

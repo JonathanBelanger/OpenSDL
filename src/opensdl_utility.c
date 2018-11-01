@@ -886,7 +886,11 @@ int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
 			    NULL,
 			    SDL_K_TYPE_NONE,
 			    SDL_K_TYPE_NONE,
-			    srcLineNo);
+			    srcLineNo,
+			    false,
+			    false,
+			    false,
+			    false);
 
 	if (context->aggregates.nextID > SDL_K_AGGREGATE_MIN)
 	    myAgg = sdl_get_aggregate(
@@ -1760,8 +1764,6 @@ void sdl_deallocate_block(SDL_HEADER *block)
 	    {
 		SDL_ITEM *item = (SDL_ITEM *) block;
 
-		if (item->comment != NULL)
-		    free(item->comment);
 		if (item->id != NULL)
 		    free(item->id);
 		if (item->prefix != NULL)
@@ -1781,8 +1783,6 @@ void sdl_deallocate_block(SDL_HEADER *block)
 		{
 		    if (member->subaggr.basedPtrName != NULL)
 			free(member->subaggr.basedPtrName);
-		    if (member->subaggr.comment != NULL)
-			free(member->subaggr.comment);
 		    if (member->subaggr.id != NULL)
 			free(member->subaggr.id);
 		    if (member->subaggr.marker != NULL)
@@ -1792,16 +1792,19 @@ void sdl_deallocate_block(SDL_HEADER *block)
 		    if (member->subaggr.tag != NULL)
 			free(member->subaggr.tag);
 		}
-		else
+		else if (sdl_isComment(member) == false)
 		{
-		    if (member->item.comment != NULL)
-			free(member->item.comment);
 		    if (member->item.id != NULL)
 			free(member->item.id);
 		    if (member->item.prefix != NULL)
 			free(member->item.prefix);
 		    if (member->item.tag != NULL)
 			free(member->item.tag);
+		}
+		else
+		{
+		    if (member->comment.comment != NULL)
+			free(member->comment.comment);
 		}
 	    }
 	    break;
@@ -1819,8 +1822,6 @@ void sdl_deallocate_block(SDL_HEADER *block)
 		}
 		if (aggr->basedPtrName != NULL)
 		    free(aggr->basedPtrName);
-		if (aggr->comment != NULL)
-		    free(aggr->comment);
 		if (aggr->id != NULL)
 		    free(aggr->id);
 		if (aggr->marker != NULL)
@@ -2006,7 +2007,7 @@ int64_t sdl_sizeof(SDL_CONTEXT *context, int item)
 		    break;
 
 		case SDL_K_TYPE_CHAR_VARY:
-		    retVal = sizeof(char); /* length + 2 bytes for len */
+		    retVal = 2; /* length + 2 bytes for len */
 		    break;
 
 		case SDL_K_TYPE_CHAR_STAR:
@@ -2153,6 +2154,41 @@ bool sdl_isItem(SDL_MEMBERS *member)
 
     if ((member->type != SDL_K_TYPE_STRUCT) &&
 	(member->type != SDL_K_TYPE_UNION))
+	retVal = true;
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_isComment
+ *  This function is called to determine if an AGGREGATE or subaggregate member
+ *  is a COMMENT.
+ *
+ * Input Parameters:
+ *  member:
+ *	A pointer to the member to check out.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  true:	The member is a COMMENT.
+ *  false:	The member is not a COMMENT.
+ */
+bool sdl_isComment(SDL_MEMBERS *member)
+{
+    bool	retVal = false;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_isComment\n", __FILE__, __LINE__);
+
+    if (member->type == SDL_K_TYPE_COMMENT)
 	retVal = true;
 
     /*

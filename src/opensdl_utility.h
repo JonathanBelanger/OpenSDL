@@ -68,6 +68,7 @@ void sdl_deallocate_block(SDL_HEADER *block);
 int64_t sdl_sizeof(SDL_CONTEXT *context, int item);
 bool sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);
 bool sdl_isItem(SDL_MEMBERS *member);
+bool sdl_isComment(SDL_MEMBERS *member);
 bool sdl_isBitfield(SDL_MEMBERS *member);
 
 #endif	/* _OPENSDL_UTILITY_H_ */

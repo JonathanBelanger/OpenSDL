@@ -859,8 +859,11 @@ int sdl_str2int(char *strVal, __int64_t *val)
 int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
 {
     SDL_AGGREGATE	*myAgg = NULL;
+    SDL_MEMBERS		*member = NULL;
+    SDL_QUEUE		*memberList = NULL;
     int64_t		origin = 0;
     int64_t		retVal = 0;
+    bool		done = false;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -898,37 +901,49 @@ int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
 			    context->aggregates.nextID - 1);
 
 	/*
-	 * Get the current offset, based on the type of offset we are looking
-	 * to get.
+	 * If we found the most recent aggregate member, then we have some
+	 * more looking to do.
 	 */
-	switch(offsetType)
+	if (myAgg != NULL)
 	{
-	    case SDL_K_OFF_BYTE_REL:
-		if ((myAgg != NULL) && (myAgg->origin.origin != NULL))
-		    origin = myAgg->origin.origin->offset;
-		/* no break */
-	    case SDL_K_OFF_BYTE_BEG:
 
-		/*
-		 * The last member, in the current aggregate is contains the
-		 * byte offset from the beginning of the AGGREGATE.
-		 */
-		if (myAgg != NULL)
-		{
-		    SDL_MEMBERS	*member = NULL;
-		    bool		done = false;
+	    /*
+	     * Get the current offset, based on the type of offset we are
+	     * looking to get.
+	     */
+	    switch(offsetType)
+	    {
+		case SDL_K_OFF_BYTE_REL:
+		    if (myAgg->origin.origin != NULL)
+			origin = myAgg->origin.origin->offset;
+		    /* no break */
+		case SDL_K_OFF_BYTE_BEG:
 
+		    /*
+		     * The last member, in the current aggregate is contains the
+		     * byte offset from the beginning of the AGGREGATE.
+		     */
 		    if (SDL_Q_EMPTY(&myAgg->members) == false)
-			member = (SDL_MEMBERS *) myAgg->members.blink;
+		    {
+			memberList = &myAgg->members;
+			member = (SDL_MEMBERS *) memberList->blink;
+		    }
 		    else
 			done = true;
+
+		    /*
+		     * Loop until we find the last member of the last aggregate
+		     * from which we will determine the offset value.
+		     */
 		    while (done == false)
 		    {
 			if ((sdl_isItem(member) == false) &&
 			    (SDL_Q_EMPTY(&member->subaggr.members) == false) &&
 			    (member->subaggr.size == 0))
-			    member =
-				(SDL_MEMBERS *) member->subaggr.members.blink;
+			{
+			    memberList = &member->subaggr.members;
+			    member = (SDL_MEMBERS *) memberList->blink;
+			}
 			else
 			    done = true;
 		    }
@@ -936,51 +951,96 @@ int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
 		    {
 			int64_t dimension = 1;
 
-			if (sdl_isItem(member))
+
+			/*
+			 * While the current member is a COMMENT, then look at
+			 * at the previous entry.
+			 */
+			while ((member != (SDL_MEMBERS *) &memberList->flink) &&
+			       (sdl_isComment(member) == true))
+			    member = (SDL_MEMBERS *) member->header.queue.blink;
+
+			/*
+			 * If everything was a comment, then there is nothing
+			 * else to do.  Otherwise, get the offset, plus size
+			 * times dimension, and return that back to the caller.
+			 */
+			if (member != (SDL_MEMBERS *) &memberList->flink)
 			{
-			    if (member->item.dimension == true)
-				dimension = member->item.hbound -
-					    member->item.lbound + 1;
-			    retVal = member->offset - origin +
-				     (member->item.size * dimension);
-			}
-			else
-			{
-			    if (member->subaggr.dimension == true)
-				dimension = member->subaggr.hbound -
-					    member->subaggr.lbound + 1;
-			    retVal = member->offset - origin +
-				     (member->subaggr.size * dimension);
+			    if (sdl_isItem(member))
+			    {
+				if (member->item.dimension == true)
+				    dimension = member->item.hbound -
+						member->item.lbound + 1;
+				retVal = member->offset - origin +
+					 (member->item.size * dimension);
+			    }
+			    else
+			    {
+				if (member->subaggr.dimension == true)
+				    dimension = member->subaggr.hbound -
+						member->subaggr.lbound + 1;
+				retVal = member->offset - origin +
+					 (member->subaggr.size * dimension);
+			    }
 			}
 		    }
-		}
-		break;
+		    break;
 
-	    case SDL_K_OFF_BIT:
+		case SDL_K_OFF_BIT:
 
-		/*
-		 * If the last member, in the current AGGREGATE or subaggregate
-		 * is a BITFIELD, then get the bit offset out of it.
-		 * Otherwise, we will return a zero.
-		 */
-		if (myAgg != NULL)
-		{
-		    SDL_MEMBERS	*member = NULL;
-
+		    /*
+		     * If the last member, in the current AGGREGATE or
+		     * subaggregate is a BITFIELD, then get the bit offset out
+		     * of it.  Otherwise, we will return a zero.
+		     */
 		    if (SDL_Q_EMPTY(&myAgg->members) == false)
-			member = (SDL_MEMBERS *) myAgg->members.blink;
+		    {
+			memberList = &myAgg->members;
+			member = (SDL_MEMBERS *) memberList->blink;
+		    }
 		    while ((member != NULL) && (sdl_isItem(member) == false))
 		    {
 			if (SDL_Q_EMPTY(&member->subaggr.members) == false)
-			    member =
-				(SDL_MEMBERS *) member->subaggr.members.blink;
+			{
+			    memberList = &member->subaggr.members;
+			    member = (SDL_MEMBERS *) memberList->blink;
+			}
 			else
 			    member = NULL;
 		    }
-		    if ((member != NULL) && (sdl_isBitfield(member)== true))
-			retVal = member->item.bitOffset + member->item.length;
-		}
-		break;
+
+		    /*
+		     * If we found the last ITEM in the current AGGREGATE or
+		     * subaggregate, then we may have to find the most recent
+		     * non-comment member.
+		     */
+		    if (member != NULL)
+		    {
+
+			/*
+			 * While the current member is a COMMENT, then look at
+			 * at the previous entry.
+			 */
+			while ((member != (SDL_MEMBERS *) &memberList->flink) &&
+			       (sdl_isComment(member) == true))
+			    member = (SDL_MEMBERS *) member->header.queue.blink;
+
+			/*
+			 * If we did not exhaust the entries in the member
+			 * list, and this member is a BITFIELD member, then get
+			 * the current bit offset (which is the bit offset of
+			 * the most recent BITFIELD, plus the number of bits in
+			 * that BITFIELD.  If the current member is not a
+			 * BITFIELD, then we reset the offset to zero.
+			 */
+			if ((member != (SDL_MEMBERS *) &memberList->flink) &&
+			    (sdl_isBitfield(member) == true))
+			    retVal = member->item.bitOffset +
+				     member->item.length;
+		    }
+		    break;
+	    }
 	}
     }
 

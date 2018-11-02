@@ -161,4 +161,19 @@ END;
 CONSTANT node_size EQUALS #opsize / 2;			/* 11 = 23 / 2
 CONSTANT inst_size EQUALS #instruction_size;		/* 64
 
+/+
+// Test 8h: AGGREGATE with a DIMENSIONed subaggregate.
+/-
+AGGREGATE array_info STRUCTURE;
+    bound STRUCTURE DIMENSION 8;
+	lower LONGWORD;
+	upper LONGWORD;
+	multiplier LONGWORD;
+	constant_lower BITFIELD LENGTH 1;
+	constant_upper BITFIELD LENGTH 1;
+	constant_multiplier BITFIELD LENGTH 1;
+	reserved BITFIELD LENGTH 13;
+    END bound;
+END array_info;
+
 END_MODULE test_8;

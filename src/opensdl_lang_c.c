@@ -840,6 +840,11 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 		if (fprintf(fp, "[%ld]", len) < 0)
 		    retVal = 0;
 	    }
+	    else if ((item->length > 0) && (item->type == SDL_K_TYPE_CHAR))
+	    {
+		if (fprintf(fp, "[%ld]", item->length) < 0)
+		    retVal = 0;
+	    }
 	}
 
 	/*
@@ -1143,7 +1148,17 @@ int sdl_c_aggregate(
 	    }
 	    else if ((retVal == 1) && (name != NULL))
 	    {
-		if (fprintf(fp, "} %s;\n", name) < 0)
+		if (fprintf(fp, "} %s", name) < 0)
+		    retVal = 0;
+		else if (my.subaggr->dimension == true)
+		{
+		    int64_t dimension = my.subaggr->hbound -
+					my.subaggr->lbound + 1;
+
+		    if (fprintf(fp, "[%ld]", dimension) < 0)
+			retVal = 0;
+		}
+		if ((retVal == 1) && fprintf(fp, ";\n") < 0)
 		    retVal = 0;
 	    }
 	    else if (name == NULL)

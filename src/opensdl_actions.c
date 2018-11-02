@@ -2078,6 +2078,7 @@ int sdl_aggregate_member(
 					NULL);
     int64_t		subType = SDL_K_TYPE_BYTE;
     int64_t		length = 0;
+    int64_t 		tmpDatatype = abs(datatype);
     int			retVal = 1;
     bool		bitfieldSized = false;
     bool		mask = false;
@@ -2408,14 +2409,14 @@ int sdl_aggregate_member(
 		if ((aggType == SDL_K_TYPE_STRUCT) ||
 		    (aggType == SDL_K_TYPE_UNION))
 		{
-		    if ((datatype >= SDL_K_TYPE_BYTE) &&
-			(datatype <= SDL_K_TYPE_OCTA))
+		    if ((tmpDatatype >= SDL_K_TYPE_BYTE) &&
+			(tmpDatatype <= SDL_K_TYPE_OCTA))
 			myMember->type = SDL_K_TYPE_UNION; /* implicit union */
 		    else
 			myMember->type = aggType;
 		}
 		else
-		    myMember->type = abs(datatype);
+		    myMember->type = tmpDatatype;
 
 		/*
 		 * Process the information based on the type of member we are
@@ -2426,7 +2427,7 @@ int sdl_aggregate_member(
 		    case SDL_K_TYPE_STRUCT:
 		    case SDL_K_TYPE_UNION:
 			myMember->subaggr.id = name;
-			myMember->subaggr.aggType = aggType;
+			myMember->subaggr.aggType = myMember->type;
 			myMember->subaggr._unsigned = sdl_isUnsigned(
 								context,
 								&datatype);
@@ -2453,7 +2454,7 @@ int sdl_aggregate_member(
 			myMember->subaggr.tag = _sdl_get_tag(
 							context,
 							NULL,
-							aggType,
+							myMember->type,
 							_sdl_all_lower(name));
 			if (myAggr != NULL)
 			    myMember->subaggr.alignment = myAggr->alignment;
@@ -4861,6 +4862,7 @@ static int64_t _sdl_aggregate_size(
     int64_t	retVal = 0;
     int64_t	size = 0;
     int		dimension = 1;
+    int		unionType;
     bool	isUnion;
 
     /*
@@ -4882,6 +4884,7 @@ static int64_t _sdl_aggregate_size(
 	    memberList = &aggr->members;
 	}
 	isUnion = aggr->aggType == SDL_K_TYPE_UNION;
+	unionType = aggr->type;
     }
     else if (subAggr != NULL)
     {
@@ -4892,6 +4895,7 @@ static int64_t _sdl_aggregate_size(
 	    retVal = subAggr->offset;
 	}
 	isUnion = subAggr->aggType == SDL_K_TYPE_UNION;
+	unionType = subAggr->type;
     }
 
     /*
@@ -4923,10 +4927,15 @@ static int64_t _sdl_aggregate_size(
     {
 
 	/*
-	 * The size of a UNION is the size of the largest size.
+	 * The size of a UNION is the size of the largest size or the size
+	 * indicated on an IMPLICIT UNION definition, which ever is larger.
+	 * If the IMPLICIT UNION is supposed to be larger than the fields
+	 * defined to it, then insert an additional member of the proper size.
 	 */
 	if (isUnion == true)
 	{
+	    int64_t	unionSize = sdl_sizeof(context, unionType);
+
 	    retVal = 0;
 	    member = memberList->flink;
 	    while (member != (SDL_MEMBERS *) &memberList->flink)
@@ -4957,10 +4966,56 @@ static int64_t _sdl_aggregate_size(
 		    retVal = size;
 		member = (SDL_MEMBERS *) member->header.queue.flink;
 	    }
+
+	    /*
+	     * IMPLICIT UNIONs have a datatype that has a default size.  If the
+	     * largest member in the union is not sufficiently large, then we
+	     * need to add a filler to compensate.
+	     */
+	    if (retVal < unionSize)
+	    {
+		SDL_MEMBERS	*filler;
+		void		*parent;
+
+		parent = aggr != NULL ? &aggr->header : (SDL_HEADER *) subAggr;
+		filler = sdl_allocate_block(AggrMemberBlock, parent, 0);
+		if (filler != NULL)
+		{
+		    char	*prefix;
+		    char	idBuf[32];
+		    int		datatype;
+		    int		alignment;
+
+		    prefix = aggr != NULL ? aggr->prefix : subAggr->prefix;
+		    datatype = aggr != NULL ? aggr->type : subAggr->type;
+		    alignment = aggr != NULL ?
+				aggr->alignment :
+				subAggr->alignment;
+		    filler->item.type = datatype;
+		    filler->item._unsigned = false;
+		    filler->item.size = sdl_sizeof(context, datatype);
+		    filler->item.alignment = alignment;
+		    filler->item.parentAlignment = true;
+		    sprintf(idBuf, "filler_%03d", context->fillerCount++);
+		    filler->item.id = strdup(idBuf);
+		    if (prefix != NULL)
+			filler->item.prefix = strdup(prefix);
+		    filler->item.tag = _sdl_get_tag(
+						context,
+						NULL,
+						datatype,
+						_sdl_all_lower(
+							filler->item.id));
+		    filler->item.srcLineNo = filler->srcLineNo;
+		    _sdl_determine_offsets(context, filler, memberList, true);
+		    SDL_INSQUE(memberList, &filler->header.queue);
+		}
+		retVal = unionSize;
+	    }
 	}
 	else
 	{
-	    retVal = member->offset - retVal;;
+	    retVal = member->offset - retVal;
 	    if (sdl_isItem(member) == true)
 	    {
 		size = member->item.size;

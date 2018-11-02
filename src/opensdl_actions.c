@@ -201,6 +201,9 @@ static void _sdl_check_bitfieldSizes(
 			int64_t length,
 			SDL_MEMBERS *newMember,
 			bool *updated);
+static int _sdl_create_bitfield_constants(
+			SDL_CONTEXT *context,
+			SDL_QUEUE *memberList);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -233,9 +236,11 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
-     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
+     * ELSE..END_IFSYMBOL and comments are turned on, then go ahead and perform
+     * the processing.
      */
-    if (context->processingEnabled == true)
+    if ((context->processingEnabled == true) &&
+	(context->commentsOff == false))
     {
 
 	/*
@@ -322,9 +327,11 @@ int sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
-     * ELSE..END_IFSYMBOL, then go ahead and perform the processing.
+     * ELSE..END_IFSYMBOL and comments are turned on, then go ahead and perform
+     * the processing.
      */
-    if (context->processingEnabled == true)
+    if ((context->processingEnabled == true) &&
+	(context->commentsOff == false))
     {
 
 	/*
@@ -4472,7 +4479,6 @@ static void _sdl_determine_offsets(
 			bool parentIsUnion)
 {
     SDL_MEMBERS		*prevMember;
-    SDL_CONSTANT	*constDef;
     int			dimension = 1;
     bool		memberItem = sdl_isItem(member);
     bool		prevItem = false;
@@ -4670,48 +4676,6 @@ static void _sdl_determine_offsets(
 	}
 	else
 	    member->offset = 0;
-
-	/*
-	 * OK, we have everything we need.  We now need to create a SIZE
-	 * constant and potentially a MASK constant.
-	 */
-	constDef = _sdl_create_constant(
-				member->item.id,
-				(member->item.prefix == NULL ?
-					"" :
-					member->item.prefix),
-				(_sdl_all_lower(member->item.id) ? "s" : "S"),
-				NULL,
-				NULL,
-				SDL_K_RADIX_DEC,
-				member->item.length,
-				NULL,
-				context->wordSize,
-				member->srcLineNo);
-	if (constDef != NULL)
-	    _sdl_queue_constant(context, constDef);
-	if (member->item.mask == true)
-	{
-	    int64_t mask =
-		    (int64_t) pow((double) 2, (double) member->item.length) - 1;
-
-	    mask <<= member->item.bitOffset;
-	    constDef = _sdl_create_constant(
-				member->item.id,
-				(member->item.prefix == NULL ?
-					"" :
-					member->item.prefix),
-				(_sdl_all_lower(member->item.id) ? "m" : "M"),
-				NULL,
-				NULL,
-				SDL_K_RADIX_HEX,
-				mask,
-				NULL,
-				member->item.size,
-				member->srcLineNo);
-	    if (constDef != NULL)
-		_sdl_queue_constant(context, constDef);
-	}
     }
 
     /*
@@ -4781,7 +4745,8 @@ static void _sdl_determine_offsets(
 
 	    case SDL_K_ALIGN:
 		if ((member->item.type == SDL_K_TYPE_CHAR_VARY) ||
-		    (member->item.type == SDL_K_TYPE_DECIMAL))
+		    (member->item.type == SDL_K_TYPE_DECIMAL) ||
+		    (member->offset == 0))
 		    adjustment = 0;
 		else
 		    adjustment = member->offset % member->item.size;
@@ -5011,6 +4976,13 @@ static int64_t _sdl_aggregate_size(
 	    }
 	    retVal += (size * dimension);
 	}
+
+	/*
+	 * Go generate any and all CONSTANTs needed each of the BITFIELDs
+	 * defined within this AGGREGATE/subaggregate.  We ignore the return
+	 * parameter from the call.
+	 */
+	(void) _sdl_create_bitfield_constants(context, memberList);
     }
 
     /*
@@ -5230,4 +5202,112 @@ static void _sdl_check_bitfieldSizes(
      * Return back to the caller.
      */
     return;
+}
+
+/*
+ * _sdl_create_bitfield_constants
+ *  This function is called after an AGGREGATE or subaggregate is ENDed.  This
+ *  function scans the provided member list and generates the constants needed
+ *  by the BITFIELD definitions.  We do this at the end, because the actual
+ *  size of a BITFIELD may not be fully known until the AGGREGATE or
+ *  subaggregate is ENDed.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  memberList:
+ *	A pointer to the member list header.  This is used to determine when we
+ *	have recursed back to the beginning of the list.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  1:	Normal Successful Completion.
+ *  0:	An error occurred.
+ */
+static int _sdl_create_bitfield_constants(
+			SDL_CONTEXT *context,
+			SDL_QUEUE *memberList)
+{
+    SDL_MEMBERS		*member = (SDL_MEMBERS *) memberList->flink;
+    SDL_CONSTANT	*constDef;
+    int			retVal = 1;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_check_bitfieldSizes\n", __FILE__, __LINE__);
+
+    /*
+     * Loop through the members in the member list until we've processed all of
+     * the BITFIELDS within the list and generated the CONSTANT definitions.
+     */
+    while ((member != (SDL_MEMBERS *) &memberList->flink) && (retVal == 1))
+    {
+	if (sdl_isBitfield(member) == true)
+	{
+
+	    /*
+	     * OK, we have everything we need.  We now need to create a SIZE
+	     * constant and potentially a MASK constant.
+	     */
+	    constDef = _sdl_create_constant(
+				member->item.id,
+				(member->item.prefix == NULL ?
+					"" :
+					member->item.prefix),
+				(_sdl_all_lower(member->item.id) ? "s" : "S"),
+				NULL,
+				NULL,
+				SDL_K_RADIX_DEC,
+				member->item.length,
+				NULL,
+				context->wordSize,
+				member->srcLineNo);
+	    if (constDef != NULL)
+		_sdl_queue_constant(context, constDef);
+	    if (member->item.mask == true)
+	    {
+		uint64_t mask;
+
+		/*
+		 * Calculate the mask value.  It is 2 to the power of the
+		 * number bits for the mask, minus one, and then left-shifted
+		 * into the proper bit position.
+		 */
+		mask = ((uint64_t) pow(
+				    (double) 2,
+				    (double) member->item.length) - 1) <<
+			member->item.bitOffset;
+		constDef = _sdl_create_constant(
+				member->item.id,
+				(member->item.prefix == NULL ?
+					"" :
+					member->item.prefix),
+				(_sdl_all_lower(member->item.id) ? "m" : "M"),
+				NULL,
+				NULL,
+				SDL_K_RADIX_HEX,
+				mask,
+				NULL,
+				member->item.size,
+				member->srcLineNo);
+		if (constDef != NULL)
+		    _sdl_queue_constant(context, constDef);
+	    }
+	}
+
+	/*
+	 * Move onto the next member in the list.
+	 */
+	member = (SDL_MEMBERS *) member->header.queue.flink;
+    }
+
+    /*
+     * Return the results of the call back to the caller.
+     */
+    return(retVal);
 }

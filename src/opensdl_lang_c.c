@@ -40,218 +40,218 @@ extern _Bool trace;
 
 static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 {
-	/* 32-bit	64-bit	*/
+	/* signed	unsigned */
     {					/*  0 */
-	{"void",	"void"},	/* NONE */
-	{"void",	"void"}		/* NONE */
+	{"void",	"void"},	/* NONE 32-bit */
+	{"void",	"void"}		/* NONE 64-bit */
     },
     {					/*  1 */
-	{"int8_t",	"int8_t"},	/* BYTE */
-	{"uint8_t",	"uint8_t"}	/* BYTE */
+	{"int8_t",	"uint8_t"},	/* BYTE 32-bit */
+	{"int8_t",	"uint8_t"}	/* BYTE 64-bit */
     },
     {					/*  2 */
-	{"int8_t",	"int8_t"},	/* INTEGER_BYTE */
-	{"uint8_t",	"uint8_t"}	/* INTEGER_BYTE */
+	{"int8_t",	"uint8_t"},	/* INTEGER_BYTE 32-bit */
+	{"int8_t",	"uint8_t"}	/* INTEGER_BYTE 64-bit */
     },
     {					/*  3 */
-	{"int16_t",	"int16_t"},	/* WORD */
-	{"uint16_t",	"uint16_t"}	/* WORD */
+	{"int16_t",	"uint16_t"},	/* WORD 32-bit */
+	{"int16_t",	"uint16_t"}	/* WORD 64-bit */
     },
     {					/*  4 */
-	{"int16_t",	"int16_t"},	/* INTEGER_WORD */
-	{"uint16_t",	"uint16_t"}	/* INTEGER_WORD */
+	{"int16_t",	"uint16_t"},	/* INTEGER_WORD 32-bit */
+	{"int16_t",	"uint16_t"}	/* INTEGER_WORD 64-bit */
     },
     {					/*  5 */
-	{"int32_t",	"int32_t"},	/* LONGWORD */
-	{"uint32_t",	"uint32_t"}	/* LONGWORD */
+	{"int32_t",	"uint32_t"},	/* LONGWORD 32-bit */
+	{"int32_t",	"uint32_t"}	/* LONGWORD 64-bit */
     },
     {					/*  6 */
-	{"int32_t",	"int32_t"},	/* INTEGER_LONG */
-	{"uint32_t",	"uint32_t"}	/* INTEGER_LONG */
+	{"int32_t",	"uint32_t"},	/* INTEGER_LONG 32-bit */
+	{"int32_t",	"uint32_t"}	/* INTEGER_LONG 64-bit */
     },
     {					/*  7 */
-	{"int",		"int"},		/* INTEGER */
-	{"unsigned int","unsigned int"}	/* INTEGER */
+	{"int",		"unsigned int"},/* INTEGER 32-bit */
+	{"int",		"unsigned int"}	/* INTEGER 64-bit */
     },
     {					/*  8 */
-	{"int32_t",	"int64_t"},	/* INTEGER_HW */
-	{"uint32_t",	"uint64_t"}	/* INTEGER_HW */
+	{"int32_t",	"uint64_t"},	/* INTEGER_HW 32-bit */
+	{"int32_t",	"uint64_t"}	/* INTEGER_HW 64-bit */
     },
     {					/*  9 */
-	{"int32_t",	"int64_t"},	/* HARDWARE_INTEGER */
-	{"uint32_t",	"uint64_t"}	/* HARDWARE_INTEGER */
+	{"int32_t",	"uint64_t"},	/* HARDWARE_INTEGER 32-bit */
+	{"int32_t",	"uint64_t"}	/* HARDWARE_INTEGER 64-bit */
     },
     {					/* 10 */
-	{"int64_t",	"int64_t"},	/* QUADWORD */
-	{"uint64_t",	"uint64_t"}	/* QUADWORD */
+	{"int64_t",	"uint64_t"},	/* QUADWORD 32-bit */
+	{"int64_t",	"uint64_t"}	/* QUADWORD 64-bit */
     },
     {					/* 11 */
-	{"int64_t",	"int64_t"},	/* INTEGER_QUAD */
-	{"uint64_t",	"uint64_t"}	/* INTEGER_QUAD */
+	{"int64_t",	"uint64_t"},	/* INTEGER_QUAD 32-bit */
+	{"int64_t",	"uint64_t"}	/* INTEGER_QUAD 64-bit */
     },
     {					/* 12 */
-	{"__int128_t",	"__int128_t"},	/* OCTAWORD */
-	{"__uint128_t",	"__uint128_t"}	/* OCTAWORD */
+	{"__int128_t",	"__uint128_t"},	/* OCTAWORD 32-bit */
+	{"__int128_t",	"__uint128_t"}	/* OCTAWORD 64-bit */
     },
     {					/* 13 */
-	{"float",	"float"},	/* T_FLOATING */
-	{"float",	"float"}	/* T_FLOATING */
+	{"float",	"float"},	/* T_FLOATING 32-bit */
+	{"float",	"float"}	/* T_FLOATING 64-bit */
     },
     {					/* 14 */
-	{"float complex","float complex"},/* T_FLOATING COMPLEX */
-	{"float complex","float complex"} /* T_FLOATING COMPLEX */
+	{"float complex","float complex"},/* T_FLOATING COMPLEX 32-bit */
+	{"float complex","float complex"} /* T_FLOATING COMPLEX 64-bit */
     },
     {					/* 15 */
-	{"double",	"double"},	/* S_FLOATING */
-	{"double",	"double"}	/* S_FLOATING */
+	{"double",	"double"},	/* S_FLOATING 32-bit */
+	{"double",	"double"}	/* S_FLOATING 64-bit */
     },
     {					/* 16 */
-	{"double complex","double complex"},/* S_FLOATING COMPLEX */
-	{"double complex","double complex"} /* S_FLOATING COMPLEX */
+	{"double complex","double complex"},/* S_FLOATING COMPLEX 32-bit */
+	{"double complex","double complex"} /* S_FLOATING COMPLEX 64-bit */
     },
     {					/* 17 */
-	{"long double","long double"},	/* X_FLOATING */
-	{"long double","long double"}	/* X_FLOATING */
+	{"long double","long double"},	/* X_FLOATING 32-bit */
+	{"long double","long double"}	/* X_FLOATING 64-bit */
     },
     {					/* 18 */
-	{"long double complex","long double complex"},/* X_FLOATING COMPLEX */
-	{"long double complex","long double complex"} /* X_FLOATING COMPLEX */
+	{"long double complex","long double complex"},/* X_FLOATING COMPLEX 32-bit */
+	{"long double complex","long double complex"} /* X_FLOATING COMPLEX 64-bit */
     },
     {					/* 19 */
-	{"float",	"float"},	/* F_FLOATING */
-	{"float",	"float"}	/* F_FLOATING */
+	{"float",	"float"},	/* F_FLOATING 32-bit */
+	{"float",	"float"}	/* F_FLOATING 64-bit */
     },
     {					/* 20 */
-	{"float",	"float"},	/* F_FLOATING COMPLEX */
-	{"float",	"float"}	/* F_FLOATING COMPLEX */
+	{"float",	"float"},	/* F_FLOATING COMPLEX 32-bit */
+	{"float",	"float"}	/* F_FLOATING COMPLEX 64-bit */
     },
     {					/* 21 */
-	{"double",	"double"},	/* D_FLOATING */
-	{"double",	"double"}	/* D_FLOATING */
+	{"double",	"double"},	/* D_FLOATING 32-bit */
+	{"double",	"double"}	/* D_FLOATING 64-bit */
     },
     {					/* 22 */
-	{"double",	"double"},	/* D_FLOATING COMPLEX */
-	{"double",	"double"}	/* D_FLOATING COMPLEX */
+	{"double",	"double"},	/* D_FLOATING COMPLEX 32-bit */
+	{"double",	"double"}	/* D_FLOATING COMPLEX 64-bit */
     },
     {					/* 23 */
-	{"double",	"double"},	/* G_FLOATING */
-	{"double",	"double"}	/* G_FLOATING */
+	{"double",	"double"},	/* G_FLOATING 32-bit */
+	{"double",	"double"}	/* G_FLOATING 64-bit */
     },
     {					/* 24 */
-	{"double",	"double"},	/* G_FLOATING COMPLEX */
-	{"double",	"double"}	/* G_FLOATING COMPLEX */
+	{"double",	"double"},	/* G_FLOATING COMPLEX 32-bit */
+	{"double",	"double"}	/* G_FLOATING COMPLEX 64-bit */
     },
     {					/* 25 */
-	{"long double","long double"},	/* H_FLOATING */
-	{"long double","long double"}	/* H_FLOATING */
+	{"long double","long double"},	/* H_FLOATING 32-bit */
+	{"long double","long double"}	/* H_FLOATING 64-bit */
     },
     {					/* 26 */
-	{"long double complex","long double complex"},/* H_FLOATING COMPLEX */
-	{"long double complex","long double complex"} /* H_FLOATING COMPLEX */
+	{"long double complex","long double complex"},/* H_FLOATING COMPLEX 32-bit */
+	{"long double complex","long double complex"} /* H_FLOATING COMPLEX 64-bit */
     },
     {					/* 27 */
-	{"char",	"char"},	/* DECIMAL */
-	{"char",	"char"}		/* DECIMAL */
+	{"char",	"char"},	/* DECIMAL 32-bit */
+	{"char",	"char"}		/* DECIMAL 64-bit */
     },
     {					/* 28 */
-	{"int",		"int"},		/* BITFIELD */
-	{"unsigned int","unsigned int"}	/* BITFIELD */
+	{"int",		"unsigned int"},/* BITFIELD 32-bit */
+	{"int",		"unsigned int"}	/* BITFIELD 64-bit */
     },
     {					/* 29 */
-	{"int8_t",	"int8_t"},	/* BITFIELD BYTE */
-	{"uint8_t",	"uint8_t"}	/* BITFIELD BYTE */
+	{"int8_t",	"uint8_t"},	/* BITFIELD BYTE 32-bit */
+	{"int8_t",	"uint8_t"}	/* BITFIELD BYTE 64-bit */
     },
     {					/* 30 */
-	{"int16_t",	"int16_t"},	/* BITFIELD WORD */
-	{"uint16_t",	"uint16_t"}	/* BITFIELD WORD */
+	{"int16_t",	"uint16_t"},	/* BITFIELD WORD 32-bit */
+	{"int16_t",	"uint16_t"}	/* BITFIELD WORD 64-bit */
     },
     {					/* 31 */
-	{"int32_t",	"int32_t"},	/* BITFIELD LONGWORD */
-	{"uint32_t",	"uint32_t"}	/* BITFIELD LONGWORD */
+	{"int32_t",	"uint32_t"},	/* BITFIELD LONGWORD 32-bit */
+	{"int32_t",	"uint32_t"}	/* BITFIELD LONGWORD 64-bit */
     },
     {					/* 32 */
-	{"int64_t",	"int64_t"},	/* BITFIELD QUADWORD */
-	{"uint64_t",	"uint64_t"}	/* BITFIELD QUADWORD */
+	{"int64_t",	"uint64_t"},	/* BITFIELD QUADWORD 32-bit */
+	{"int64_t",	"uint64_t"}	/* BITFIELD QUADWORD 64-bit */
     },
     {					/* 33 */
-	{"__int128_t",	"__int128_t"},	/* BITFIELD OCTAWORD */
-	{"__uint128_t",	"__uint128_t"}	/* BITFIELD OCTAWORD */
+	{"__int128_t",	"__uint128_t"},	/* BITFIELD OCTAWORD 32-bit */
+	{"__int128_t",	"__uint128_t"}	/* BITFIELD OCTAWORD 64-bit */
     },
     {					/* 34 */
-	{"char",	"char"},	/* CHAR */
-	{"char",	"char"}		/* CHAR */
+	{"char",	"char"},	/* CHAR 32-bit */
+	{"char",	"char"}		/* CHAR 64-bit */
     },
     {					/* 35 */
-	{NULL,		NULL},		/* CHAR VARYING */
-	{NULL,		NULL},		/* CHAR VARYING */
+	{NULL,		NULL},		/* CHAR VARYING 32-bit */
+	{NULL,		NULL},		/* CHAR VARYING 64-bit */
     },
     {					/* 36 */
-	{"char",	"char"},	/* CHAR LENGTH(*) */
-	{"char",	"char"}		/* CHAR LENGTH(*) */
+	{"char",	"char"},	/* CHAR LENGTH(*) 32-bit */
+	{"char",	"char"}		/* CHAR LENGTH(*) 64-bit */
     },
     {					/* 37 */
-	{NULL,		NULL},		/* ADDRESS */
-	{NULL,		NULL}		/* ADDRESS */
+	{NULL,		NULL},		/* ADDRESS 32-bit */
+	{NULL,		NULL}		/* ADDRESS 64-bit */
     },
     {					/* 38 */
-	{"uint32_t",	"uint32_t"},	/* ADDRESS_LONG */
-	{"uint32_t",	"uint32_t"}	/* ADDRESS_LONG */
+	{"uint32_t",	"uint32_t"},	/* ADDRESS_LONG  32-bit*/
+	{"uint32_t",	"uint32_t"}	/* ADDRESS_LONG 64-bit */
     },
     {					/* 39 */
-	{"uint64_t",	"uint64_t"},	/* ADDRESS_QUAD */
-	{"uint64_t",	"uint64_t"}	/* ADDRESS_QUAD */
+	{"uint64_t",	"uint64_t"},	/* ADDRESS_QUAD 32-bit */
+	{"uint64_t",	"uint64_t"}	/* ADDRESS_QUAD 64-bit */
     },
     {					/* 40 */
-	{"uint32_t",	"uint64_t"},	/* ADDRESS_HW */
-	{"uint32_t",	"uint64_t"}	/* ADDRESS_HW */
+	{"uint32_t",	"uint64_t"},	/* ADDRESS_HW 32-bit */
+	{"uint32_t",	"uint64_t"}	/* ADDRESS_HW 64-bit */
     },
     {					/* 41 */
-	{"uint32_t",	"uint64_t"},	/* HARDWARE_ADDRESS*/
-	{"uint32_t",	"uint64_t"}	/* HARDWARE_ADDRESS*/
+	{"uint32_t",	"uint64_t"},	/* HARDWARE_ADDRESS 32-bit */
+	{"uint32_t",	"uint64_t"}	/* HARDWARE_ADDRESS 64-bit */
     },
     {					/* 42 */
-	{NULL,		NULL},		/* POINTER */
-	{NULL,		NULL}		/* POINTER */
+	{NULL,		NULL},		/* POINTER 32-bit */
+	{NULL,		NULL}		/* POINTER 64-bit */
     },
     {					/* 43 */
-	{"uint32_t",	"uint32_t"},	/* POINTER_LONG */
-	{"uint32_t",	"uint32_t"}	/* POINTER_LONG */
+	{"uint32_t",	"uint32_t"},	/* POINTER_LONG 32-bit */
+	{"uint32_t",	"uint32_t"}	/* POINTER_LONG 64-bit */
     },
     {					/* 44 */
-	{"uint64_t",	"uint64_t"},	/* POINTER_QUAD */
-	{"uint64_t",	"uint64_t"}	/* POINTER_QUAD */
+	{"uint64_t",	"uint64_t"},	/* POINTER_QUAD 32-bit */
+	{"uint64_t",	"uint64_t"}	/* POINTER_QUAD 64-bit */
     },
     {					/* 45 */
-	{"uint32_t",	"uint64_t"},	/* POINTER_HW */
-	{"uint32_t",	"uint64_t"}	/* POINTER_HW */
+	{"uint32_t",	"uint64_t"},	/* POINTER_HW 32-bit */
+	{"uint32_t",	"uint64_t"}	/* POINTER_HW 64-bit */
     },
     {					/* 46 */
-	{"void",	"void"},	/* ANY */
-	{"void",	"void"}		/* ANY */
+	{"void",	"void"},	/* ANY 32-bit */
+	{"void",	"void"}		/* ANY 64-bit */
     },
     {					/* 47 */
-	{"void",	"void"},	/* VOID */
-	{"void",	"void"}		/* VOID */
+	{"void",	"void"},	/* VOID 32-bit */
+	{"void",	"void"}		/* VOID 64-bit */
     },
     {					/* 48 */
-	{"bool",	"bool"},	/* BOOLEAN */
-	{"bool",	"bool"}		/* BOOLEAN */
+	{"bool",	"bool"},	/* BOOLEAN 32-bit */
+	{"bool",	"bool"}		/* BOOLEAN 64-bit */
     },
     {					/* 49 */
-	{"struct",	"struct"},	/* STRUCTURE */
-	{"struct",	"struct"}	/* STRUCTURE */
+	{"struct",	"struct"},	/* STRUCTURE 32-bit */
+	{"struct",	"struct"}	/* STRUCTURE 64-bit */
     },
     {					/* 50 */
-	{"union",	"union"},	/* UNION */
-	{"union",	"union"}	/* UNION */
+	{"union",	"union"},	/* UNION 32-bit */
+	{"union",	"union"}	/* UNION 64-bit */
     },
     {					/* 51 */
-	{"enum",	"enum"},	/* ENUM */
-	{"enum",	"enum"}		/* ENUM */
+	{"enum",	"enum"},	/* ENUM 32-bit */
+	{"enum",	"enum"}		/* ENUM 64-bit */
     },
     {					/* 52 */
-	{NULL,		NULL},		/* ENTRY */
-	{NULL,		NULL}		/* ENTRY */
+	{NULL,		NULL},		/* ENTRY 32-bit */
+	{NULL,		NULL}		/* ENTRY 64-bit */
     }
 };
 
@@ -262,7 +262,11 @@ static int _sdl_c_output_alignment(
 			FILE *fp,
 			int alignment,
 			SDL_CONTEXT *context);
-static char *_sdl_c_generate_name(char *name, char *prefix, char *tag);
+static char *_sdl_c_generate_name(
+			char *name,
+			char *prefix,
+			char *tag,
+			SDL_CONTEXT *context);
 static char *_sdl_c_typeidStr(
 			int typeID,
 			int subType,
@@ -750,7 +754,11 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
     SDL_MEMBERS	dummy = { .type = item->type };
     char	*type;
-    char	*name = _sdl_c_generate_name(item->id, item->prefix, item->tag);
+    char	*name = _sdl_c_generate_name(
+					item->id,
+					item->prefix,
+					item->tag,
+					context);
     int		retVal = 1;
     bool	freeMe = false;
 
@@ -883,7 +891,11 @@ int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 {
     char 	*prefix = constant->prefix;
-    char	*name = _sdl_c_generate_name(constant->id, prefix, constant->tag);
+    char	*name = _sdl_c_generate_name(
+					constant->id,
+					prefix,
+					constant->tag,
+					context);
     int		retVal = 1;
     int		size = constant->size * 8;
 
@@ -1051,7 +1063,8 @@ int sdl_c_aggregate(
 	    name = _sdl_c_generate_name(
 				my.aggr->id,
 				my.aggr->marker,
-				my.aggr->tag);
+				my.aggr->tag,
+				context);
 
 	    /*
 	     * Are we starting or ending an AGGREGATE?
@@ -1107,7 +1120,8 @@ int sdl_c_aggregate(
 	    name = _sdl_c_generate_name(
 				my.subaggr->id,
 				my.subaggr->prefix,
-				my.subaggr->tag);
+				my.subaggr->tag,
+				context);
 
 	    /*
 	     * Are we starting or ending an AGGREGATE?
@@ -1142,7 +1156,7 @@ int sdl_c_aggregate(
 	    break;
 
 	case LangComment:
-	    if (retVal == 1)
+	    if ((retVal == 1) && (context->commentsOff == false))
 		retVal = sdl_c_comment(
 				fp,
 				my.comment->comment,
@@ -1327,7 +1341,8 @@ int sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
     char		*name = _sdl_c_generate_name(
 					_enum->id,
 					_enum->prefix,
-					_enum->tag);
+					_enum->tag,
+					context);
     int			retVal = 1;
 
     /*
@@ -1484,7 +1499,11 @@ static int _sdl_c_output_alignment(
  *  NULL:	An error occurred trying to allocate memory for the string.
  *  !NULL:	A pointer to the generated name.
  */
-static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
+static char *_sdl_c_generate_name(
+			char *name,
+			char *prefix,
+			char *tag,
+			SDL_CONTEXT *context)
 {
     char	*retVal = NULL;
     size_t	len = 1;
@@ -1503,14 +1522,15 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
      */
     if (prefix != NULL)
     {
-	len += strlen(prefix);
+	if (context->suppressPrefix == false)
+	    len += strlen(prefix);
 
 	/*
 	 * Next look at the tag.  If is it null or zero length, then it is not
 	 * concatenated to the current string.  Otherwise, it is (with an
 	 * underscore between the prefix/tag and the name.
 	 */
-	if (tag != NULL)
+	if ((tag != NULL) && (context->suppressTag == false))
 	{
 	    tagLen = strlen(tag);
 
@@ -1529,9 +1549,12 @@ static char *_sdl_c_generate_name(char *name, char *prefix, char *tag)
     len = 0;
     if (prefix != NULL)
     {
-	strcpy(&retVal[len], prefix);
-	len += strlen(prefix);
-	if ((tag != NULL) && (tagLen > 0))
+	if (context->suppressPrefix == false)
+	{
+	    strcpy(&retVal[len], prefix);
+	    len += strlen(prefix);
+	}
+	if ((tag != NULL) && (tagLen > 0) && (context->suppressTag == false))
 	{
 	    strcpy(&retVal[len], tag);
 	    len += tagLen;
@@ -1609,7 +1632,8 @@ static char *_sdl_c_typeidStr(
 	    retVal = _sdl_c_generate_name(
 				myDeclare->id,
 				myDeclare->prefix,
-				myDeclare->tag);
+				myDeclare->tag,
+				context);
 	if (retVal != NULL)
 	    *freeMe = true;
     }
@@ -1675,10 +1699,7 @@ static char *_sdl_c_leading_spaces(int depth)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-    {
 	printf("%s:%d:_sdl_c_leading_spaces(%d)\n", __FILE__, __LINE__, depth);
-	printf("\tspaces: %d\n\ttabs: %d\n\tremaining: %d\n", spaces, tabs, remaining);
-    }
 
     /*
      * Allocate enough memory for the return string.

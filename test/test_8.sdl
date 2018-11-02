@@ -143,22 +143,22 @@ END test_8i;
 /-
 #max_args = 10;
 AGGREGATE test_8j STRUCTURE PREFIX opr_;
-	flink ADDRESS;							/* offset = 0; size = 8
-	blink ADDRESS;							/* offset = 8; size = 8
-	opcount WORD;							/* offset = 16; size = 2
-	optype CHARACTER LENGTH 1;				/* offset = 18; size = 1
-	id WORD;								/* offset = 20; size = 2
-	flags STRUCTURE;						/* offset = 22; size = 1
+	flink ADDRESS;					/* offset = 0
+	blink ADDRESS;					/* offset = 8
+	opcount WORD;					/* offset = 16
+	optype CHARACTER LENGTH 1;			/* offset = 18
+	id WORD;					/* offset = 20
+	flags STRUCTURE;				/* offset = 22
 		is_constant_size BITFIELD LENGTH 1 MASK;
 		is_terminator BITFIELD MASK LENGTH 1;
 		context BITFIELD LENGTH 3 MASK;
 		filler BITFIELD LENGTH 8-^;
 	END;
-	#opsize = .;							/* offset = 23
-	operands LONGWORD DIMENSION(#max_args);	/* offset = 24; size = 4; dim = 10
-	#instruction_size = :;					/* offset = 64
+	#opsize = .;					/* offset = 23
+	operands LONGWORD DIMENSION(#max_args);		/* offset = 24
+	#instruction_size = :;				/* offset = 64
 END;
-CONSTANT node_size EQUALS #opsize / 2;
-CONSTANT inst_size EQUALS #instruction_size;
+CONSTANT node_size EQUALS #opsize / 2;			/* 11 = 23 / 2
+CONSTANT inst_size EQUALS #instruction_size;		/* 64
 
 END_MODULE test_8;

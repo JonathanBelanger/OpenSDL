@@ -27,19 +27,15 @@
 #ifndef _OPENSDL_MESSAGES_H_
 #define _OPENSDL_MESSAGES_H_
 
-#define SDL_K_FACILITY	186
 #define SYS_K_FACILITY	0
 #define RMS_K_FACILITY	1
+#define SDL_K_FACILITY	186
 
-#define SDL_M_SEVERITY	0x00000007
-#define SDL_M_MESSAGE	0x0000fff8
-#define SDL_M_FACILITY	0x0fff0000
-#define SDL_M_CONTROL	0xf0000000
-
-#define SDL_GET_SEVERITY(msg)	((msg) & SDL_M_SEVERITY)
-#define SDL_GET_MESSAGE(msg)	(((msg) & SDL_M_MESSAGE) >> 3)
-#define SDL_GET_FACILITY(msg)	(((msg) & SDL_M_FACILITY) >> 16)
-#define SDL_GET_CONTROL(msg)	(((msg) & SDL_M_CONTROL) >> 28)
+#define SDL_GET_SEVERITY(msg)	((msg)->severity)
+#define SDL_GET_MESSAGE(msg)	((msg)->msg_no)
+#define SDL_GET_FACILITY(msg)	((msg)->fac_no)
+#define SDL_GET_INHIBIT(msg)	((msg)->inhib_msg)
+#define SDL_GET_CONTROL(msg)	((msg)->control)
 
 #define SDL_K_WARNING	0
 #define SDL_K_SUCCESS	1
@@ -100,8 +96,8 @@
 #define SDL_MULTDEFSYM		0x00ba013a
 #define SDL_INVPARMTYP		0x00ba0142
 #define SDL_INVEXPR		0x00ba014a
-#define SDL_invlistopt  	0x00ba0152
-#define SDL_basealign   	0x00ba015a
+#define SDL_INVLISTOPT  	0x00ba0152
+#define SDL_BASEALIGN   	0x00ba015a
 
 /*
  * Warning SDL Errors.
@@ -141,6 +137,13 @@
 #define RMS_EOF			0x0001827a
 #define RMS_FNF			0x00018292
 #define RMS_PRV			0x0001829a
+#define RMS_NORMAL		0x00010001
+
+/*
+ * Useful SYS Errors.
+ */
+#define SYS_NORMAL		0x00000001
+#define SYS_FATAL		0x00000004
 
 typedef union
 {
@@ -173,50 +176,25 @@ typedef union
 typedef struct
 {
     char		*msgText;
-    uint32_t		faoStr;
-    uint32_t		faoInt;
+    char		*msgSymb;
+    uint16_t		faoStr;
+    uint16_t		faoInt;
 } SDL_MSG_ARRAY;
 
 typedef struct
 {
     SDL_MESSAGE		msgCode;
-    uint32_t		faoCount;
-    uint32_t		faoInfo;
+    uint16_t		faoCount;
+    uint16_t		faoInfo;
 } SDL_MSG_VECTOR;
 
 typedef struct
 {
-    uint16_t		faoType;
-    uint16_t		faoLength;
+    uint8_t		faoType;
+    uint8_t		faoLength;
 } SDL_MSG_FAO;
 
 #define SDL_MSG_FAO_NUMBER	0
 #define SDL_MSG_FAO_STRING	1
-
-#define SDL_MSG_STRING_PAD(__len) 					\
-    (((__len) % sizeof(uint32_t)) == 0 ? 0 :				\
-	(sizeof(uint32_t) - ((__len) % sizeof(uint32_t))))
-
-#define SDL_MSG_NEXT_FAO(__fao)						\
-    (((__fao)->faoType == SDL_MSG_FAO_NUMBER) ?				\
-	(char *) &((__fao)->faoLenth + sizeof(uint16_t) + sizeof(uint32_t) : \
-	(char *) &((__fao)->faoLength) + sizeof)(uint16_t) +		\
-	    (__fao)->faoLength + SDL_MSG_STRING_PAD((__fao)->faoLength))
-
-#define SDL_MSG_NEXT_MSG(_msg)						\
-    if ((__msg)->faoCount == 0)						\
-	(SDL_MSG_VECTOR *) &(__msg)->faoInfo;				\
-    else								\
-    {									\
-	int __ii;							\
-	SDL_MSG_FAO *__msgFao = (SDL_MSG_FAO *) &((__msg)->faoInfo);	\
-	char *__ptr = (char *) &__msgFao->faoLength + sizeof(uint16_t);	\
-									\
-	for(__ii = 0; ii < (__msg)->faoCount; ii++)			\
-	{								\
-	    __ptr = SDL_MSG_NEXT_FAO(__msgFao);				\
-	}								\
-	(SDL_MSG_VECTOR *) __ptr;					\
-    }
 
 #endif	/* _OPENSDL_MESSAGES_H_ */

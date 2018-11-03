@@ -1052,6 +1052,7 @@ int sdl_c_aggregate(
     SDL_LANG_AGGR	my = { .parameter = param };
     int			bits = (context->wordSize / 32) - 1;  /* 0=32, 1=64 */
     int			retVal = 1;
+    bool		defVariable = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1070,54 +1071,67 @@ int sdl_c_aggregate(
 				my.aggr->marker,
 				my.aggr->tag,
 				context);
-
-	    /*
-	     * Are we starting or ending an AGGREGATE?
-	     */
-	    if ((ending == false) && (retVal == 1) && (name != NULL))
+	    if ((name != NULL) && (retVal == 1))
 	    {
-		if (my.aggr->commonDef == true)
-		    if (fprintf(fp, "extern ") < 0)
-			retVal = 0;
-		if ((retVal == 1) && (my.aggr->typeDef == true))
-		{
-		    if (fprintf(fp, "typedef ") < 0)
-			retVal = 0;
-		}
-		if (retVal == 1)
-		{
-		    char *which =
-			    _types[my.aggr->aggType][bits][my.aggr->_unsigned];
-		    char *td = (my.aggr->typeDef == true ? "_" : "");
 
-		    if (fprintf(fp, "%s", which) < 0)
-			retVal = 0;
-		    if ((retVal == 1) && (my.aggr->alignmentPresent == true))
-			retVal = _sdl_c_output_alignment(
-						fp,
-						my.aggr->alignment,
-						context);
-		    if ((retVal == 1) &&
-			(fprintf(fp, " %s%s\n%s{\n", td, name, spaces) < 0))
-			retVal = 0;
-		}
-	    }
-	    else if ((retVal == 1) && (name != NULL))
-	    {
-		if (my.aggr->typeDef == true)
+		/*
+		 * Are we starting or ending an AGGREGATE?
+		 */
+		if (ending == false)
 		{
-		    if (fprintf(fp, "} %s", name) < 0)
-			retVal = 0;
+		    if (my.aggr->commonDef == true)
+			if (fprintf(fp, "extern ") < 0)
+			    retVal = 0;
+		    if ((retVal == 1) && (my.aggr->typeDef == true))
+		    {
+			if (fprintf(fp, "typedef ") < 0)
+			    retVal = 0;
+		    }
+		    defVariable = my.aggr->commonDef || my.aggr->typeDef;
+		    if (retVal == 1)
+		    {
+			char *which =
+				_types[my.aggr->aggType][bits][my.aggr->_unsigned];
+			char *td = (defVariable == true ? "_" : "");
+
+			if (fprintf(fp, "%s", which) < 0)
+			    retVal = 0;
+			if ((retVal == 1) && (my.aggr->alignmentPresent == true))
+			    retVal = _sdl_c_output_alignment(
+						    fp,
+						    my.aggr->alignment,
+						    context);
+			if ((retVal == 1) &&
+			    (fprintf(fp, " %s%s\n%s{\n", td, name, spaces) < 0))
+			    retVal = 0;
+		    }
 		}
 		else
 		{
-		    if (fprintf(fp, "}") < 0)
+		    defVariable = my.aggr->commonDef || my.aggr->typeDef;
+		    if (defVariable == true)
+		    {
+			if (fprintf(fp, "} %s", name) < 0)
+			    retVal = 0;
+			else if (my.aggr->dimension == true)
+			{
+			    int64_t dimension = my.aggr->hbound -
+						my.aggr->lbound + 1;
+
+			    if (fprintf(fp, "[%ld]", dimension) < 0)
+				retVal = 0;
+			}
+		    }
+		    else
+		    {
+			if (fprintf(fp, "}") < 0)
+			    retVal = 0;
+		    }
+		    if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
 			retVal = 0;
 		}
-		if ((retVal == 1) && (fprintf(fp, ";\n") < 0))
-		    retVal = 0;
 	    }
-	    else if (name == NULL)
+	    else
 		retVal = 0;
 	    break;
 
@@ -1127,51 +1141,53 @@ int sdl_c_aggregate(
 				my.subaggr->prefix,
 				my.subaggr->tag,
 				context);
-
-	    /*
-	     * Are we starting or ending an AGGREGATE?
-	     */
-	    if ((ending == false) && (retVal == 1) && (name != NULL))
+	    if ((name != NULL) && (retVal == 1))
 	    {
-		char *which =
-			_types[my.subaggr->aggType][bits][my.subaggr->_unsigned];
 
-		if (fprintf(fp, "%s ", which) < 0)
-		    retVal = 0;
-		if ((retVal == 1) && (my.subaggr->parentAlignment == false))
-		    retVal = _sdl_c_output_alignment(
-						fp,
-						my.subaggr->alignment,
-						context);
-		if ((retVal == 1) && (fprintf(fp, "\n%s{\n", spaces) < 0))
-		    retVal = 0;
-	    }
-	    else if ((retVal == 1) && (name != NULL))
-	    {
-		if (fprintf(fp, "} %s", name) < 0)
-		    retVal = 0;
-		else if (my.subaggr->dimension == true)
+		/*
+		 * Are we starting or ending an AGGREGATE?
+		 */
+		if (ending == false)
 		{
-		    int64_t dimension = my.subaggr->hbound -
-					my.subaggr->lbound + 1;
+		    char *which =
+			    _types[my.subaggr->aggType][bits][my.subaggr->_unsigned];
 
-		    if (fprintf(fp, "[%ld]", dimension) < 0)
+		    if (fprintf(fp, "%s ", which) < 0)
+			retVal = 0;
+		    if ((retVal == 1) && (my.subaggr->parentAlignment == false))
+			retVal = _sdl_c_output_alignment(
+						    fp,
+						    my.subaggr->alignment,
+						    context);
+		    if ((retVal == 1) && (fprintf(fp, "\n%s{\n", spaces) < 0))
 			retVal = 0;
 		}
-		if ((retVal == 1) && fprintf(fp, ";\n") < 0)
-		    retVal = 0;
+		else
+		{
+		    if (fprintf(fp, "} %s", name) < 0)
+			retVal = 0;
+		    else if (my.subaggr->dimension == true)
+		    {
+			int64_t dimension = my.subaggr->hbound -
+					    my.subaggr->lbound + 1;
+
+			if (fprintf(fp, "[%ld]", dimension) < 0)
+			    retVal = 0;
+		    }
+		    if ((retVal == 1) && fprintf(fp, ";\n") < 0)
+			retVal = 0;
+		}
 	    }
-	    else if (name == NULL)
+	    else
 		retVal = 0;
 	    break;
 
 	case LangItem:
-	    if (retVal == 1)
-		retVal = sdl_c_item(fp, my.item, context);
+	    retVal = sdl_c_item(fp, my.item, context);
 	    break;
 
 	case LangComment:
-	    if ((retVal == 1) && (context->commentsOff == false))
+	    if (context->commentsOff == false)
 		retVal = sdl_c_comment(
 				fp,
 				my.comment->comment,

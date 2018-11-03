@@ -969,11 +969,41 @@ int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
 			{
 			    if (sdl_isItem(member))
 			    {
+				int64_t	realSize;
+				int64_t	length;
+
+				/*
+				 * Some datatypes have a specified length.
+				 */
+				switch (member->item.type)
+				{
+				    case SDL_K_TYPE_CHAR:
+				    case SDL_K_TYPE_CHAR_VARY:
+					length = member->item.length;
+					break;
+
+				    case SDL_K_TYPE_DECIMAL:
+					length = member->item.precision;
+					break;
+
+				    default:
+					length = 1;
+					break;
+				}
+				if (length == 0)
+				    length = 1;
+				realSize = member->item.size * length;
+
+				if (member->item.type == SDL_K_TYPE_CHAR_VARY)
+				    realSize += sizeof(int16_t);
+				else if (member->item.type == SDL_K_TYPE_DECIMAL)
+				    realSize++;
+
 				if (member->item.dimension == true)
 				    dimension = member->item.hbound -
 						member->item.lbound + 1;
 				retVal = member->offset - origin +
-					 (member->item.size * dimension);
+					 (realSize * dimension);
 			    }
 			    else
 			    {
@@ -1987,11 +2017,14 @@ int64_t sdl_sizeof(SDL_CONTEXT *context, int item)
 		    break;
 
 		case SDL_K_TYPE_CHAR:
+		case SDL_K_TYPE_CHAR_VARY: 	/* (1 * length) + 2 */
+		case SDL_K_TYPE_CHAR_STAR:
 		    retVal = sizeof(char);
 		    break;
 
 		case SDL_K_TYPE_WORD:
 		case SDL_K_TYPE_INT_W:
+		case SDL_K_TYPE_DECIMAL:	/* (2 * precision) + 1 */
 		case SDL_K_TYPE_BITFLD_W:
 		    retVal = sizeof(int16_t);
 		    break;
@@ -2060,18 +2093,6 @@ int64_t sdl_sizeof(SDL_CONTEXT *context, int item)
 		case SDL_K_TYPE_DFLT_C:
 		case SDL_K_TYPE_GFLT_C:
 		    retVal = sizeof(double _Complex);
-		    break;
-
-		case SDL_K_TYPE_DECIMAL:
-		    retVal = 2;		/* (2 * precision) + 1 */
-		    break;
-
-		case SDL_K_TYPE_CHAR_VARY:
-		    retVal = 2; /* length + 2 bytes for len */
-		    break;
-
-		case SDL_K_TYPE_CHAR_STAR:
-		    retVal = sizeof(char);
 		    break;
 
 		case SDL_K_TYPE_ADDR:

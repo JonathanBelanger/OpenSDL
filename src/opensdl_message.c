@@ -40,85 +40,98 @@
 #define SDL_MSG_BASE	0
 static SDL_MSG_ARRAY sdlmsg[] =
 {
-    {"Normal successful completion", 0, 0},
-    {"Symbol table overflow", 0, 0},
-    {"Fatal internal error. Unable to continue execution", 0, 0},
-    {"Unable to open input file %s" , 1, 0},
-    {"Internal consistency failure [Line %d] - please submit a bug report", 0, 1},
-    {"Front-end / back-end version mismatch.  Check installation.", 0, 0},
-    {"Error exit", 0, 0},
-    {"Shareable language image not found %s", 1, 0},
-    {"Null structure %s has no members [Line %d]", 1, 1},
-    {"Item %s has duplicate or conflicting attributes [Line %d]", 1, 1},
-    {"Item %s has bitfield length or offset greater than, 3},2 [Line %d]", 1, 1},
-    {"Undefined local symbol %s used in expression [Line %d]", 1, 1},
-    {"Undefined constant name %s used in expression [Line %d]", 1, 1},
-    {"Undefined user type name %s referenced [Line %d]", 1, 1},
-    {"Invalid DECLARE for type %s [Line %d]", 1, 1},
-    {"Unable to open include file %s [Line %d]", 1, 1},
-    {"Definition of ORIGIN name %s not found in aggregate [Line %d]", 1, 1},
-    {"Invalid attributes for output language %s [Line %d]", 1, 1},
-    {"Token exceeds maximum size of %s [Line %d]", 1, 1},
-    {"Unable to open output file %s", 1, 0},
-    {"Syntax error [Line %d]", 0, 1},
-    {"Integer overflow in expression [Line %d]", 0, 1},
-    {"Zero divide in expression [Line %d]", 0, 1},
-    {"Aggregate %s must be integral byte size [Line %d]", 1, 1},
-    {"Structure %s has too many fields [Line %d]", 1, 1},
-    {"Unknown length attribute valid only for parameter type [Line %d]", 0, 1},
-    {"Size or type of item %s redefined [Line %d]", 1, 1},
-    {"Item %s, an aggregate, cannot be qualified by SIZEOF [Line %d]", 1, 1},
-    {"Illegal nesting of SIZEOF clauses (Item %s) [Line %d]", 1, 1},
-    {"String constant %s used in arithmetic expression [Line %d]", 1, 1},
-    {"Item name is invalid", 0, 0},
-    {"Illegal forward reference for output language %s [Line %d]", 1, 1},
-    {"Invalid symbol %s specified in /SYMBOLS qualifier", 1, 0},
-    {"Symbol %s was already defined in command line", 1, 0},
-    {"Illegal value for /ALIGNMENT qualifier in command line", 0, 0},
-    {"File format error reading intermediate file %s.  Possible version mismatch", 1, 0},
-    {"Invalid bitfield %s -- bitfields must be aggregate members [Line %d]", 1, 1},
-    {"Address object %s must have based storage class [Line %d]", 1, 1},
-    {"Incompletely defined structure -- %s [Line %d]", 1, 1},
-    {"Multiply defined symbol -- %s [Line %d]", 1, 1},
-    {"Invalid parameter type for language %s [Line %d]", 1, 1},
-    {"Invalid expression -- cannot be resolved to a constant as required, %s [Line %d]", 1, 1},
-    {"Invalid use of LIST attribute -- LIST may only appear on the last parameter.  %s [Line %d]", 1, 1},
-    {"Invalid expression with BASEALIGN option.  Value must be in range 0 to 124. %s [Line %d]", 1, 1},
-    {"Unable to open listing file %s", 1, 0},
-    {"No language output produced", 0, 0},
-    {"Item %s has 0 or negative length [Line %d]", 1, 1},
-    {"End name does not match declaration name %s [Line %d]", 1, 1},
-    {"Warning exit", 0, 0},
-    {"Aggregate type name not supported [Line %d]", 0, 1},
-    {"Required parameter encountered after optional parameter %s", 1, 0},
-    {"Generated name too long - truncated to 64 characters %s", 1, 0},
-    {"Output language does not support data type %s [Line %d]", 1, 1},
-    {"Cannot pass values larger than 32 bits by immediate mechanism [Line %d]", 0, 1},
-    {"SDL-generated identifier longer than 31 characters exceeds capacity of %s compiler [Line %d]", 1, 1},
-    {"Language name %s appears more than once in list [Line %d]", 1, 1},
-    {"Language %s does not appear in list of matching IF statement [Line %d]", 1, 1},
-    {"Language %s in list of matching IF statement missing from END list [Line %d]", 1, 1},
-    {"%s does not align on its natural boundry [Line %d]", 1, 1},
-    {"Fill item %s has a negative length [Line %d]", 1, 1},
-    {"Offset or origin relative expression involves a forward or circular reference. %s [Line %d]", 1, 1},
-    {"Symbol %s was not defined in command line, value zero assumed [Line %d]", 1, 1},
-    {"Aggregate %s has a negative origin - negative offset elements will be ignored [Line %d]", 1, 1},
-    {"Fill item %s has a zero length [Line %d]", 1, 1},
-    {"internal node type is unknown for language %s", 1, 0},
-    {"DIMENSION * for MEMBER \"%s\" has no known discriminant [Line %d]", 1, 1},
-    {"temporary hardcoded list used to discriminate for MEMBER \"%s\" [Line %d]", 1, 1},
-    {"possible circular definition for type %s [Line %d]", 1, 1}
+    {"NORMAL", "Normal successful completion", 0, 0},
+    {"SYNTABOVR", "Symbol table overflow", 0, 0},
+    {"ABORT", "Fatal internal error. Unable to continue execution", 0, 0},
+    {"INFILOPN", "Unable to open input file %s" , 1, 0},
+    {"BUGCHECK", "Internal consistency failure [Line %d] - please submit a bug report", 0, 1},
+    {"REVCHECK", "Front-end / back-end version mismatch.  Check installation.", 0, 0},
+    {"ERREXIT", "Error exit", 0, 0},
+    {"INVSHRIMG", "Sharable language image not found %s", 1, 0},
+    {"NULLSTRUCT", "Null structure %s has no members [Line %d]", 1, 1},
+    {"DUPCONATT", "Item %s has duplicate or conflicting attributes [Line %d]", 1, 1},
+    {"INVFLDSIZ", "Item %s has bitfield length or offset greater than, 3},2 [Line %d]", 1, 1},
+    {"UNDEFSYM", "Undefined local symbol %s used in expression [Line %d]", 1, 1},
+    {"UNDEFCON", "Undefined constant name %s used in expression [Line %d]", 1, 1},
+    {"UNDEFUSER", "Undefined user type name %s referenced [Line %d]", 1, 1},
+    {"INVDECL", "Invalid DECLARE for type %s [Line %d]", 1, 1},
+    {"UNDEFFIL", "Unable to open include file %s [Line %d]", 1, 1},
+    {"UNDEFORG", "Definition of ORIGIN name %s not found in aggregate [Line %d]", 1, 1},
+    {"INVOUT", "Invalid attributes for output language %s [Line %d]", 1, 1},
+    {"TOLOVF", "Token exceeds maximum size of %s [Line %d]", 1, 1},
+    {"OUTFILOPN", "Unable to open output file %s", 1, 0},
+    {"SYNTAXERR", "Syntax error [Line %d]", 0, 1},
+    {"INTOVF", "Integer overflow in expression [Line %d]", 0, 1},
+    {"ZERODIV", "Zero divide in expression [Line %d]", 0, 1},
+    {"BYTSIZ", "Aggregate %s must be integral byte size [Line %d]", 1, 1},
+    {"TOOMANYFIELDS", "Structure %s has too many fields [Line %d]", 1, 1},
+    {"INVUNKLEN", "Unknown length attribute valid only for parameter type [Line %d]", 0, 1},
+    {"SIZEREFDEF", "Size or type of item %s redefined [Line %d]", 1, 1},
+    {"SIZEQUAL", "Item %s, an aggregate, cannot be qualified by SIZEOF [Line %d]", 1, 1},
+    {"SIZENEST", "Illegal nesting of SIZEOF clauses (Item %s) [Line %d]", 1, 1},
+    {"STRINGCONST", "String constant %s used in arithmetic expression [Line %d]", 1, 1},
+    {"INVNAME", "Item name is invalid", 0, 0},
+    {"ILLFORWREF", "Illegal forward reference for output language %s [Line %d]", 1, 1},
+    {"INVSYMDEF", "Invalid symbol %s specified in /SYMBOLS qualifier", 1, 0},
+    {"SYMALRDEF", "Symbol %s was already defined in command line", 1, 0},
+    {"INVALIGN", "Illegal value for /ALIGNMENT qualifier in command line", 0, 0},
+    {"INFILSDI", "File format error reading intermediate file %s.  Possible version mismatch", 1, 0},
+    {"INFBITFLD", "Invalid bitfield %s -- bitfields must be aggregate members [Line %d]", 1, 1},
+    {"ADROBJBAS", "Address object %s must have based storage class [Line %d]", 1, 1},
+    {"INCDEFSTRUCT", "Incompletely defined structure -- %s [Line %d]", 1, 1},
+    {"MULTDEFSYM", "Multiply defined symbol -- %s [Line %d]", 1, 1},
+    {"INVPARMTYP", "Invalid parameter type for language %s [Line %d]", 1, 1},
+    {"INVEXPR", "Invalid expression -- cannot be resolved to a constant as required, %s [Line %d]", 1, 1},
+    {"INVLISTOPT", "Invalid use of LIST attribute -- LIST may only appear on the last parameter.  %s [Line %d]", 1, 1},
+    {"BASEALIGN", "Invalid expression with BASEALIGN option.  Value must be in range 0 to 124. %s [Line %d]", 1, 1},
+    {"LISFILOPN", "Unable to open listing file %s", 1, 0},
+    {"NOOUTPUT", "No language output produced", 0, 0},
+    {"ZEROLEN", "Item %s has 0 or negative length [Line %d]", 1, 1},
+    {"MATCHEND", "End name does not match declaration name %s [Line %d]", 1, 1},
+    {"WARNEXIT", "Warning exit", 0, 0},
+    {"TYPNAM", "Aggregate type name not supported [Line %d]", 0, 1},
+    {"INVREQPARAM", "Required parameter encountered after optional parameter %s", 1, 0},
+    {"NAMTRUNC", "Generated name too long - truncated to 64 characters %s", 1, 0},
+    {"TYPNOTSUP", "Output language does not support data type %s [Line %d]", 1, 1},
+    {"IMMCTR32", "Cannot pass values larger than 32 bits by immediate mechanism [Line %d]", 0, 1},
+    {"IDENTGTR31", "SDL-generated identifier longer than 31 characters exceeds capacity of %s compiler [Line %d]", 1, 1},
+    {"LANGDUP", "Language name %s appears more than once in list [Line %d]", 1, 1},
+    {"LANGMATCH", "Language %s does not appear in list of matching IF statement [Line %d]", 1, 1},
+    {"LANGMISS", "Language %s in list of matching IF statement missing from END list [Line %d]", 1, 1},
+    {"UNALIGNED", "%s does not align on its natural boundary [Line %d]", 1, 1},
+    {"FILLNEGLEN", "Fill item %s has a negative length [Line %d]", 1, 1},
+    {"OFFSETEXPR", "Offset or origin relative expression involves a forward or circular reference. %s [Line %d]", 1, 1},
+    {"SYMNOTDEF", "Symbol %s was not defined in command line, value zero assumed [Line %d]", 1, 1},
+    {"NEGORIGIN", "Aggregate %s has a negative origin - negative offset elements will be ignored [Line %d]", 1, 1},
+    {"FILLZEROLEN", "Fill item %s has a zero length [Line %d]", 1, 1},
+    {"BADNODETYPE", "internal node type is unknown for language %s", 1, 0},
+    {"DIMENSIONSTAR", "DIMENSION * for MEMBER \"%s\" has no known discriminant [Line %d]", 1, 1},
+    {"FIXUP", "temporary hard-coded list used to discriminate for MEMBER \"%s\" [Line %d]", 1, 1},
+    {"POSSCIRC", "possible circular definition for type %s [Line %d]", 1, 1}
 };
 
 #define RMS_MSG_BASE	79
 static SDL_MSG_ARRAY rmsmsg[] =
 {
-   {"end of file detected", 0, 0},
-   {NULL, 0, 0},
-   {NULL, 0, 0},
-   {"file not found", 0, 0},
-   {"insufficient privilege or file protection violation", 0, 0}
+    {"NORMAL", "Normal successful completion", 0, 0},
+    {"EOF", "end of file detected", 0, 0},
+    {NULL, NULL, 0, 0},
+    {NULL, NULL, 0, 0},
+    {"FNF", "file not found", 0, 0},
+    {"PRV", "insufficient privilege or file protection violation", 0, 0}
 };
+
+#define SDL_K_FAC_SDL	0
+#define SDL_K_FAC_RMS	1
+#define SDL_K_FAC_SYM	2
+static char *facilityName[] =
+{
+    "SDL",
+    "RMS",
+    "SYS"
+};
+
+static char severity[] = {'W', 'S', 'E', 'I', 'F'};
 
 /*
  * sdl_set_message
@@ -142,56 +155,69 @@ static SDL_MSG_ARRAY rmsmsg[] =
  *  None.
  *
  * Return Values:
- *  0:	An error occurred trying to initialize the message vector.
- *  1:	Normal successful completion.
+ *  SYS_NORMAL:	Normal successful completion.
  */
-int sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
+uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
 {
     va_list		ap;
     SDL_MSG_VECTOR	*msgIdx = msgVec;
-    unsigned int	*faoPtr;
+    SDL_MSG_FAO		*fao;
+    char		*str, *ptr;
     int			ii, jj;
-    int			retVal = 1;
+    uint32_t		retVal = SYS_NORMAL;
+    uint16_t		strCnt, intCnt;
 
     va_start(ap, msgCnt);
 
     /*
      * Loop through the messages and message arguments provided on the call.
-     * TODO: This code needs help with message arguments that are strings.  We
-     * TODO: may want to insert a counted string into the message vector (so
-     * TODO: that we don't have issues with deallocated memory).
      */
     for (ii = 0; ii < msgCnt; ii++)
     {
-	msgIdx->msgCode.msgCode = va_arg(ap, unsigned int);
-	switch(msgIdx->msgCode.facility)
+	msgIdx->msgCode.msgCode = va_arg(ap, uint32_t);
+	switch(msgIdx->msgCode.fac_no)
 	{
 	    case SDL_K_FACILITY:
-		msgIdx->faoCount =
-			sdlmsg[msgIdx->msgCode.message - SDL_MSG_BASE].faoStr +
-			sdlmsg[msgIdx->msgCode.message - SDL_MSG_BASE].faoInt;
+		strCnt = sdlmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].faoStr;
+		intCnt = sdlmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].faoInt;
 		break;
 
 	    case RMS_K_FACILITY:
-		msgIdx->faoCount =
-			rmsmsg[msgIdx->msgCode.message - RMS_MSG_BASE].faoStr +
-			rmsmsg[msgIdx->msgCode.message - RMS_MSG_BASE].faoInt;
+		strCnt = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].faoStr;
+		intCnt = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].faoInt;
 		break;
 
+	    case SYS_K_FACILITY:
 	    default:
-		msgIdx->faoCount = 0;
+		strCnt = 0;
+		intCnt = 0;
 		break;
 	}
-	faoPtr = &msgIdx->faoCount;
-	faoPtr++;
+	msgIdx->faoCount = strCnt + intCnt;
+	fao = (SDL_MSG_FAO *) &msgIdx->faoInfo;
 	for (jj = 0; jj < msgIdx->faoCount; jj++)
 	{
-	    faoPtr = va_arg(ap, unsigned int);
-	    faoPtr++;
+	    ptr = (char *) fao + sizeof(SDL_MSG_FAO);
+	    if (strCnt > 0)
+	    {
+		str = va_arg(ap, char *);
+		strCnt--;
+		fao->faoType = SDL_MSG_FAO_STRING;
+		fao->faoLength = strlen(str);
+		strncpy(ptr, str, fao->faoLength);
+		ptr += fao->faoLength;
+	    }
+	    else
+	    {
+		fao->faoType = SDL_MSG_FAO_NUMBER;
+		fao->faoLength = 0;
+		*((uint32_t *) ptr) = va_arg(ap, uint32_t);
+		ptr += sizeof(uint32_t);
+	    }
+	    fao = (SDL_MSG_FAO *) ptr;
 	}
-	msgIdx = (SDL_MSG_VECTOR *) faoPtr;
+	msgIdx = (SDL_MSG_VECTOR *) ptr;
     }
-    msgIdx->faoCount = 0;
     msgIdx->msgCode.msgCode = 0;
     va_end(ap);
 
@@ -215,110 +241,126 @@ int sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
  *	A pointer to a location to receive the message text.
  *
  * Return Values:
- *  0:	An error occurred trying to initialize the message vector.
- *  1:	Normal successful completion.
+ *  SYS_FATAL:	An error occurred trying to initialize the message vector.
+ *  SYS_NORMAL:	Normal successful completion.
  */
-int sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
+uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 {
     SDL_MSG_VECTOR	*msgIdx = msgVec;
-    unsigned int	*faoPtr;
+    SDL_MSG_FAO		*fao;
     char		*msgFmt;
+    char		*ptr, string, *facStr, *symbol;
     char		localMsgStr[SDL_LOCAL_MSG_LEN];
-    int			retVal = 1;
-    int			faoStr, faoInt;
-    int			msgStrLen = 0;
-    int			msgStrSize = 0;
-    int			msgRemLen = 0;
-    int			localMsgLen;
+    int			ii;
+    uint32_t		retVal = SYS_NORMAL;
+    uint32_t		value;
+    uint16_t		faoStr, faoInt, length;
+    uint8_t		msgStrLen = 0;
+    uint8_t		msgStrSize = 0;
+    uint8_t		msgRemLen = 0;
+    uint8_t		localMsgLen;
+    char		first = '%';
     bool		done = false;
 
     *msgStr = NULL;
 
+    /*
+     * Loop through the message vector starting at the message code.
+     */
     while ((done == false) && (retVal == 1))
     {
-	switch (msgIdx->msgCode.facility)
+
+	/*
+	 * Get the message text associated with the message code.
+	 */
+	switch (msgIdx->msgCode.fac_no)
 	{
 	    case SDL_K_FACILITY:
-		msgFmt = sdlmsg[msgIdx->msgCode.message - SDL_MSG_BASE].msgText;
-		faoStr = sdlmsg[msgIdx->msgCode.message - SDL_MSG_BASE].faoStr;
-		faoInt = sdlmsg[msgIdx->msgCode.message - SDL_MSG_BASE].faoInt;
+		symbol = sdlmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].msgSymb;
+		msgFmt = sdlmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].msgText;
+		faoStr = sdlmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].faoStr;
+		faoInt = sdlmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].faoInt;
+		facStr = facilityName[SDL_K_FAC_SDL];
 		break;
 
 	    case RMS_K_FACILITY:
-		msgFmt = rmsmsg[msgIdx->msgCode.message - RMS_MSG_BASE].msgText;
-		faoStr = rmsmsg[msgIdx->msgCode.message - RMS_MSG_BASE].faoStr;
-		faoInt = rmsmsg[msgIdx->msgCode.message - RMS_MSG_BASE].faoInt;
+		symbol = rmsmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].msgSymb;
+		msgFmt = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].msgText;
+		faoStr = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].faoStr;
+		faoInt = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].faoInt;
+		facStr = facilityName[SDL_K_FAC_RMS];
 		break;
 
 	    default:
 		msgFmt = NULL;
 		break;
 	}
-	faoPtr = &msgIdx->faoCount;
-	faoPtr++;
-	switch(msgIdx->faoCount)
+
+	/*
+	 * Now we need to loop through each of the messages FAO arguments.
+	 */
+	fao = &msgIdx->faoCount;
+	ptr = (char *) fao + sizeof(SDL_MSG_FAO);
+	string = NULL;
+	for (ii = 0;  ii < msgIdx->faoCount; ii++)
 	{
-	    case 1:
-		if (faoStr == 1)
-		{
-		    char *string = *(faoPtr++);
+	    switch(fao->faoType)
+	    {
+		case SDL_MSG_FAO_NUMBER:
+		    value = *((uint32_t *) ptr);
+		    ptr += sizeof(uint32_t);
+		    break;
 
-		    sprintf(localMsgStr, msgFmt, string);
-		}
-		else
-		{
-		    unsigned int value = *(faoPtr++);
-
-		    sprintf(localMsgStr, msgFmt, value);
-		}
-		break;
-
-	    case 2:
-		if (faoStr == 2)
-		{
-		    char *string1 = *(faoPtr++);
-		    char *string2 = *(faoPtr++);
-
-		    sprintf(localMsgStr, msgFmt, string1, string2);
-		}
-		else if (faoStr == 1)
-		{
-		    char *string = *(faoPtr++);
-		     unsigned int value = *(faoPtr++);
-
-		    sprintf(localMsgStr, msgFmt, string, value);
-		}
-		else
-		{
-		    unsigned int value1 = *(faoPtr++);
-		    unsigned int value2 = *(faoPtr++);
-
-		    sprintf(localMsgStr, msgFmt, value1, value2);
-		}
-		break;
-
-	    default:
-		localMsgStr[0] = '\0';
-		faoPtr++;
-		break;
+		case SDL_MSG_FAO_STRING:
+		    length = fao->faoLength;
+		    ptr += sizeof(uint8_t);
+		    string = ptr;
+		    ptr += length;
+		    break;
+	    }
 	}
-	localMsgLen = strlen(localMsgStr);
-	msgRemLen = msgStrSize - msgStrLen - localMsgLen - 1;
 
+	/*
+	 * If we have a string value, then the string is always first and the
+	 * value may or may not be needed, but putting it here does no harm.
+	 * If we do not have a string value, then we either have a value or
+	 * don't need it, again no harm in supplying it.
+	 */
+	if (string != NULL)
+	    localMsgLen = sprintf(localMsgStr, msgFmt, string, value);
+	else
+	    localMsgLen = sprintf(localMsgStr, msgFmt, value);
+
+	/*
+	 * Determine if there is enough space in the message string we are
+	 * generating.  If not, we reallocate some more.
+	 */
+	msgRemLen = msgStrSize -
+		    msgStrLen -
+		    (strlen(facStr) + strlen(symbol) + localMsgLen + 7);
 	if (msgRemLen < 0)
 	{
 	    msgStrSize += SDL_LOCAL_MSG_LEN;
 	    *msgStr = realloc(*msgStr, msgStrSize);
 	}
+
+	/*
+	 * If we have a place to put the string, then do so now.
+	 */
 	if (*msgStr != NULL)
-	{
-	    strcpy(msgStr[msgStrLen], localMsgStr);
-	    msgStrLen = strlen(*msgStr);
-	}
+	    msgStrLen += sprintf(
+			    &msgStr[msgStrLen],
+			    "%c%s-%c-%s, %s\n",
+			    first,
+			    facStr,
+			    severity[msgIdx->msgCode.severity],
+			    symbol,
+			    localMsgStr);
 	else
-	    retVal = 0;
-	msgIdx = (SDL_MSG_VECTOR *) faoPtr;
-	done = ((msgIdx->faoCount == 0) && (msgIdx->msgCode.msgCode == 0));
+	    retVal = SYS_FATAL;
+	msgIdx = (SDL_MSG_VECTOR *) ptr;
+	done = (msgIdx->msgCode.msgCode == 0);
+	first = '-';
     }
 
     /*

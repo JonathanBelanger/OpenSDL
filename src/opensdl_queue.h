@@ -27,7 +27,6 @@
  *  V01.000	04-OCT-2018	Jonathan D. Belanger
  *  Initially written.
  */
-
 #ifndef _OPENSDL_QUEUE_H_
 #define _OPENSDL_QUEUE_H_
 

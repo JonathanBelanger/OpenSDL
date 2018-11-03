@@ -79,6 +79,7 @@
 #include "opensdl_lexical.h"
 #include "opensdl_actions.h"
 #include "opensdl_lang.h"
+#include "opensdl_message.h"
 
 /*
  * Defines and includes for enable extend trace and logging
@@ -123,6 +124,17 @@ char *sdl_months[] =
     "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
     "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
 };
+
+/*
+ * Define the message vector to be used to report error messages throughout
+ * the application.  Each entry in the message vector contains a 32-bit message
+ * code, followed by a 16-bit Formatted ASCII Output (FAO) count, and a 16-bit
+ * FAO information field.  The FAO information field contains an 8-bit type and
+ * and 8-bit length field (256 character long strings should be long enough).
+ * So, each message vector entry is 64-bits long.
+ */
+#define SDL_MSG_VEC_LEN	1024
+SDL_MSG_VECTOR	msgVec[SDL_MSG_VEC_LEN];
 
 void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg)
 {
@@ -655,7 +667,7 @@ int main(int argc, char *argv[])
 	fprintf(
 	    stderr,
 	    "Cannot open input file '%s', errno = %d",
-	    argv[1],
+	    context.inputFile,
 	    errno);
 	return(-1);
     }

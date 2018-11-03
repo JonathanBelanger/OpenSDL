@@ -1791,16 +1791,16 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 	}
 	else	/* list of CONSTANTs or ENUMs */
 	{
-	    char 		*ptr = id;
-	    char		*nl;
+	    char 	*ptr = id;
+	    char	*nl;
 	    int64_t	prevValue = value;
-	    bool		freeTag = tag == NULL;
-	    bool		done = false;
+	    bool	freeTag = tag == NULL;
+	    bool	done = false;
 
 	    /*
-	     * If an enum name was specified, then we are not creating a CONSTANT,
-	     * but an ENUM.  Adjust the data-type accordingly.  Also, allocate and
-	     * initialize the ENUM parent.
+	     * If an enum name was specified, then we are not creating a
+	     * CONSTANT, but an ENUM.  Adjust the data-type accordingly.  Also,
+	     * allocate and initialize the ENUM parent.
 	     */
 	    if (enumName != NULL)
 	    {
@@ -1840,8 +1840,10 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 				else
 				    comment = NULL; /* Local comment, ignore */
 			    }
-			    else
+			    else if (ii == _SDL_OUTPUT_COMMENT)
 				ptr = strchr(comment, '\0');
+			    else
+				comment = NULL;	/* Local comment, ignore */
 			}
 			else
 			    comment = NULL;
@@ -2582,13 +2584,15 @@ int sdl_aggregate_member(
 							tagDatatype,
 							_sdl_all_lower(name));
 			    myMember->item.size = sdl_sizeof(context, datatype);
-			    if (myMember->type == SDL_K_TYPE_CHAR)
-				myMember->item.size *= myMember->item.length;
-			    else if (myMember->type == SDL_K_TYPE_CHAR_VARY)
+
+			    /*
+			     * Varying text is the maximum length of the string
+			     * plus 2 bytes for the length fields.  We do this
+			     * differently from other datatypes because of the
+			     * way this is handled internally.
+			     */
+			    if (myMember->type == SDL_K_TYPE_CHAR_VARY)
 				myMember->item.size += myMember->item.length;
-			    else if (myMember->type == SDL_K_TYPE_DECIMAL)
-				myMember->item.size = (myMember->item.size *
-						myMember->item.precision) + 1;
 			    if (myAggr != NULL)
 				myMember->item.alignment = myAggr->alignment;
 			    else
@@ -4480,6 +4484,8 @@ static void _sdl_determine_offsets(
 			bool parentIsUnion)
 {
     SDL_MEMBERS		*prevMember;
+    int64_t		realSize;
+    int64_t		length = 1;
     int			dimension = 1;
     bool		memberItem = sdl_isItem(member);
     bool		prevItem = false;
@@ -4533,11 +4539,56 @@ static void _sdl_determine_offsets(
 	    member->item.bitOffset = 0;
 	    if (prevItem == true)
 	    {
-		if (prevMember->item.dimension)
+
+		/*
+		 * Get the length information, which can come from the
+		 * length, or precision information, depending upon type.
+		 */
+		switch (prevMember->item.type)
+		{
+		    case SDL_K_TYPE_CHAR:
+		    case SDL_K_TYPE_CHAR_VARY:
+			length = prevMember->item.length;
+			break;
+
+		    case SDL_K_TYPE_DECIMAL:
+			length = prevMember->item.precision;
+			break;
+
+		    default:
+			length = 1;
+			break;
+		}
+		if (length == 0)
+		    length = 1;
+
+		/*
+		 * The real size if the item size times the length.
+		 */
+		realSize = prevMember->item.size * length;
+
+		/*
+		 * If the type is CHARACTER LENGTH VARYING or DECIMAL, then we
+		 * need to add 2 bytes for the length field for the former and
+		 * 1 byte for the latter, to the realSize.
+		 */
+		if (prevMember->item.type == SDL_K_TYPE_CHAR_VARY)
+		    realSize += sizeof(int16_t);
+		else if (prevMember->item.type == SDL_K_TYPE_DECIMAL)
+		    realSize++;
+
+		/*
+		 * Now get the actual dimension, if specified, for the item.
+		 */
+		if (prevMember->item.dimension == true)
 		    dimension = prevMember->item.hbound -
 				prevMember->item.lbound + 1;
-		member->offset = prevMember->offset +
-				 (prevMember->item.size * dimension);
+
+		/*
+		 * The offset for this member is the offset of the previous
+		 * member plus the product of the real size and the dimension.
+		 */
+		member->offset = prevMember->offset + (realSize * dimension);
 	    }
 	    else if (prevMember != NULL)
 	    {
@@ -4684,7 +4735,6 @@ static void _sdl_determine_offsets(
      */
     else
     {
-	int	size;
 
 	/*
 	 * We may be inserting after a BITFIELD.
@@ -4710,21 +4760,66 @@ static void _sdl_determine_offsets(
 	{
 	    if ((prevItem == true) && (parentIsUnion == false))
 	    {
-		size = prevMember->item.size;
+
+		/*
+		 * Get the length information, which can come from the
+		 * length, or precision information, depending upon type.
+		 */
+		switch (prevMember->item.type)
+		{
+		    case SDL_K_TYPE_CHAR:
+		    case SDL_K_TYPE_CHAR_VARY:
+			length = prevMember->item.length;
+			break;
+
+		    case SDL_K_TYPE_DECIMAL:
+			length = prevMember->item.precision;
+			break;
+
+		    default:
+			length = 1;
+			break;
+		}
+		if (length == 0)
+		    length = 1;
+
+		/*
+		 * The real size if the item size times the length.
+		 */
+		realSize = prevMember->item.size * length;
+
+		/*
+		 * If the type is CHARACTER LENGTH VARYING or DECIMAL, then we
+		 * need to add 2 bytes for the length field for the former and
+		 * 1 byte for the latter, to the realSize.
+		 */
+		if (prevMember->item.type == SDL_K_TYPE_CHAR_VARY)
+		    realSize += sizeof(int16_t);
+		else if (prevMember->item.type == SDL_K_TYPE_DECIMAL)
+		    realSize++;
+
+		/*
+		 * Now get the actual dimension, if specified, for the item.
+		 */
 		if (prevMember->item.dimension == true)
 		    dimension = prevMember->item.hbound -
 				prevMember->item.lbound + 1;
 	    }
 	    else if (parentIsUnion == false)
 	    {
-		size = prevMember->subaggr.size;
+		realSize = prevMember->subaggr.size;
 		if (prevMember->subaggr.dimension == true)
 		    dimension = prevMember->subaggr.hbound -
 				prevMember->subaggr.lbound + 1;
 	    }
 	    else
-		size = 0;	/* all the offsets are the same in unions */
-	    member->offset = prevMember->offset + (size * dimension);
+		realSize = 0;	/* all the offsets are the same in unions */
+
+	    /*
+	     * The offset for this member is the offset of the previous
+	     * member plus the product of the real size and the dimension.
+	     */
+	    member->offset = prevMember->offset + (realSize * dimension);
 	}
 	else
 	    member->offset = 0;
@@ -4745,12 +4840,7 @@ static void _sdl_determine_offsets(
 		break;
 
 	    case SDL_K_ALIGN:
-		if ((member->item.type == SDL_K_TYPE_CHAR_VARY) ||
-		    (member->item.type == SDL_K_TYPE_DECIMAL) ||
-		    (member->offset == 0))
-		    adjustment = 0;
-		else
-		    adjustment = member->offset % member->item.size;
+		adjustment = member->offset % member->item.size;
 		if (adjustment != 0)
 		    adjustment = member->item.size - adjustment;
 		break;
@@ -4892,7 +4982,6 @@ static int64_t _sdl_aggregate_size(
 	{
 	    member = (SDL_MEMBERS *) subAggr->members.blink;
 	    memberList = &subAggr->members;
-	    retVal = subAggr->offset;
 	}
 	isUnion = subAggr->aggType == SDL_K_TYPE_UNION;
 	unionType = subAggr->type;
@@ -5015,7 +5104,7 @@ static int64_t _sdl_aggregate_size(
 	}
 	else
 	{
-	    retVal = member->offset - retVal;
+	    retVal = member->offset;
 	    if (sdl_isItem(member) == true)
 	    {
 		size = member->item.size;

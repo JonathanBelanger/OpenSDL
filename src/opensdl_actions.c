@@ -2435,6 +2435,7 @@ int sdl_aggregate_member(
 								&datatype);
 			myMember->subaggr.type = datatype;
 			myMember->subaggr.parent = context->currentAggr;
+			myMember->subaggr.self = myMember;
 			if (myAggr != NULL)
 			{
 			    if (myAggr->prefix != NULL)
@@ -2683,7 +2684,7 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	if (context->optionsIdx > 0)
 	{
 	    SDL_MEMBERS	*myMember = NULL;
-	    int64_t		dimension;
+	    int64_t	dimension;
 	    int		ii;
 
 	    /*
@@ -4925,8 +4926,10 @@ static void _sdl_fill_bitfield(
 /*
  * _sdl_aggregate_size
  *  This function is called to determine an AGGREGATE's or subaggregate's
- *  actual size.  NOTE: aggr and subAggr parameters cannot be supplied or NULL
- *  at the same time.
+ *  actual size.  In addition to the size of an AGGGREGATE or subaggregate, for
+ *  each subaggregate, the offset is checked against the first member.
+ *  NOTE: aggr and subAggr parameters cannot be supplied or NULL at the same
+ *  time.
  *
  * Input Parameters:
  *  aggr:
@@ -4978,13 +4981,86 @@ static int64_t _sdl_aggregate_size(
     }
     else if (subAggr != NULL)
     {
+	isUnion = subAggr->aggType == SDL_K_TYPE_UNION;
+	unionType = subAggr->type;
 	if (SDL_Q_EMPTY(&subAggr->members) == false)
 	{
+	    int		adjustment;
+	    int64_t	alignSize = sdl_sizeof(context, unionType);
+
+	    /*
+	     * Before we go too far, check the first member in the list and
+	     * make sure that the offset for the subaggregate is properly
+	     * aligned for the first member.
+	     */
+	    member = (SDL_MEMBERS *) subAggr->members.flink;
+
+	    /*
+	     * If this is a union, we need the largest member in the union.
+	     * Otherwise, we need the first non-comment in the structure.
+	     */
+	    if (isUnion == true)
+	    {
+		while (member != (SDL_MEMBERS *) &subAggr->members.flink)
+		{
+		    if (sdl_isComment(member) == false)
+		    {
+			int64_t	memberSize;
+
+			if (sdl_isItem(member) == true)
+			    memberSize = member->item.size;
+			else
+			    memberSize = member->subaggr.size;
+			if (alignSize < memberSize)
+			    alignSize = memberSize;
+		    }
+		    member = member->header.queue.flink;
+		}
+	    }
+	    else
+	    {
+		while ((member != (SDL_MEMBERS *) &subAggr->members.flink) &&
+		       (sdl_isComment(member) == true))
+		    member = member->header.queue.flink;
+		if (member != (SDL_MEMBERS *) &subAggr->members.flink)
+		    alignSize = member->item.size;
+	    }
+
+	    /*
+	     * Determine what the adjustment needs to be for the alignment.
+	     */
+	    switch (subAggr->alignment)
+	    {
+		case SDL_K_NOALIGN:
+		    adjustment = 0;
+		    break;
+
+		case SDL_K_ALIGN:
+		    adjustment = subAggr->offset % alignSize;
+		    if (adjustment != 0)
+			adjustment = alignSize - adjustment;
+		    break;
+
+		default:
+		    adjustment = subAggr->offset % subAggr->alignment;
+		    if (adjustment != 0)
+			adjustment = subAggr->alignment - adjustment;
+		    break;
+	    }
+
+	    /*
+	     * Update the offset so that the STRUCTURE/UNION are aligned.
+	     */
+	    subAggr->offset += adjustment;
+	    subAggr->self->offset = subAggr->offset;
+
+	    /*
+	     * Now change to the last member, which is needed for the remainder
+	     * of the code.
+	     */
 	    member = (SDL_MEMBERS *) subAggr->members.blink;
 	    memberList = &subAggr->members;
 	}
-	isUnion = subAggr->aggType == SDL_K_TYPE_UNION;
-	unionType = subAggr->type;
     }
 
     /*
@@ -5032,11 +5108,35 @@ static int64_t _sdl_aggregate_size(
 		dimension = 1;
 		if (sdl_isItem(member) == true)
 		{
+		    int64_t	length;
+
 		    if (sdl_isComment(member) == true)
 			size = 0;
 		    else
 		    {
 			size = member->item.size;
+			switch (member->item.type)
+			{
+			    case SDL_K_TYPE_CHAR:
+			    case SDL_K_TYPE_CHAR_VARY:
+				length = member->item.length;
+				break;
+
+			    case SDL_K_TYPE_DECIMAL:
+				length = member->item.precision;
+				break;
+
+			    default:
+				length = 1;
+				break;
+			}
+			if (length == 0)
+			    length = 1;
+			size *= length;
+			if (member->item.type == SDL_K_TYPE_CHAR_VARY)
+			    size += sizeof(int16_t);
+			else if (member->item.type == SDL_K_TYPE_DECIMAL)
+			    size++;
 			if (member->item.dimension == true)
 			    dimension = member->item.hbound -
 					member->item.lbound + 1;
@@ -5107,7 +5207,31 @@ static int64_t _sdl_aggregate_size(
 	    retVal = member->offset;
 	    if (sdl_isItem(member) == true)
 	    {
+		int64_t	length;
+
 		size = member->item.size;
+		switch(member->item.type)
+		{
+		    case SDL_K_TYPE_CHAR:
+		    case SDL_K_TYPE_CHAR_VARY:
+			length = member->item.length;
+			break;
+
+		    case SDL_K_TYPE_DECIMAL:
+			length = member->item.precision;
+			break;
+
+		    default:
+			length = 1;
+			break;
+		}
+		if (length == 0)
+		    length = 1;
+		size *= length;
+		if (member->item.type == SDL_K_TYPE_CHAR_VARY)
+		    size += sizeof(int16_t);
+		else if (member->item.type == SDL_K_TYPE_DECIMAL)
+		    size++;
 		if (member->item.dimension == true)
 		    dimension = member->item.hbound - member->item.lbound + 1;
 	    }

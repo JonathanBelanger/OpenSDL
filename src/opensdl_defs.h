@@ -451,7 +451,8 @@ typedef struct
     char		*marker;
     char		*prefix;
     char		*tag;
-    struct _sdl_member	*parent;
+    void		*parent;
+    struct _sdl_member	*self;
     SDL_QUEUE		members;
     int64_t		currentOffset;
     int64_t		hbound;
@@ -735,6 +736,7 @@ typedef struct
 {
     char 		*ident;
     char 		*module;
+    char		*copyrightFile;
     char		*inputFile;
     char		*outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];

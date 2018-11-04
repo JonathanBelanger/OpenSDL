@@ -188,7 +188,7 @@ static void _sdl_usage(void)
     printf("\t\t\t    the default)\n");
     printf("  -[no]supress:prefix|tag   Suppress outputting symbols with a prefix, tag,\n");
     printf("\t\t\t    or both. (nosupress is the default).\n");
-    printf("  -symbol:<symbol:value>    Used in conditional compilation where\n");
+    printf("  -symbol:<symbol=value>    Used in conditional compilation where\n");
     printf("\t\t\t    IFSYMBOL is specified in the input file.  A\n");
     printf("\t\t\t    value of zero turns off the symbol and a\n");
     printf("\t\t\t    non-zero value turns it on.\n");
@@ -304,7 +304,19 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    else if (strcmp(argv[ii], "-comments") == 0)
 			context->commentsOff = false;
 		    else if (strcmp(argv[ii], "-copy") == 0)
+		    {
+			char	*path = realpath(argv[0], NULL);
+			int	jj;
+
 			context->copyright = true;
+			jj = strlen(path) - 1;
+			while ((jj > 0) && (path[jj - 1] != '/'))
+			    jj--;
+			context->copyrightFile = calloc(1, jj + 14);
+			strncpy(context->copyrightFile, path, jj);
+			strcpy(&context->copyrightFile[jj], "copyright.sdl");
+			free(path);
+		    }
 		    else
 			retVal = 0;
 		    break;
@@ -329,7 +341,7 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		case 'l':
 		    if (strncmp(argv[ii], "-lang", 4) == 0)
 		    {
-			if (argv[ii][4] == ':')
+			if (argv[ii][5] == ':')
 			{
 			    int		jj = 0;
 			    bool	langSet = false;
@@ -341,15 +353,15 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 				if (ptr == NULL)
 				    ptr = &argv[ii][strlen(argv[ii])];
 				if (strncasecmp(
-					&argv[ii][5],
+					&argv[ii][6],
 					context->languages[jj].langStr,
-					(ptr - &argv[ii][5])) == 0)
+					(ptr - &argv[ii][6])) == 0)
 				{
 				    int	lang = context->languages[jj].langVal;
 
-				    if (context->langEna[lang] == false)
+				    if (context->langSpec[lang] == false)
 				    {
-					context->langEna[lang] = true;
+					context->langSpec[lang] = true;
 					if (*ptr == '=')
 					    context->outFileName[lang] =
 						strdup(&ptr[1]);
@@ -358,6 +370,7 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 				    else
 					retVal = 0;
 				}
+				jj++;
 			    }
 			    if (langSet == false)
 				retVal = 0;
@@ -597,7 +610,6 @@ int main(int argc, char *argv[])
 	context.langEna[ii] = true;
 	context.outFileName[ii] = NULL;
     }
-    context.langSpec[SDL_K_LANG_C] = true; /* C/C++ only supported languages */
     context.processingEnabled = true;
 
     /*
@@ -750,12 +762,12 @@ int main(int argc, char *argv[])
 				context.outFP[ii],
 				timeInfo) == 1)
 		    {
-			char		*path = realpath(argv[1], NULL);
+			char		*path = realpath(context.inputFile, NULL);
 			struct stat	fileStats;
 			_Bool		freePath = false;
 
 			if (path == NULL)
-			    path = argv[1];
+			    path = context.inputFile;
 			else
 			    freePath = true;
 			if (stat(path, &fileStats) != 0)
@@ -815,7 +827,37 @@ int main(int argc, char *argv[])
     context.ident = NULL;
 
     /*
-     * Start parsing ...
+     * If the copyright needs to be put into the file, then do so now.
+     */
+    if (context.copyright == true)
+    {
+	FILE	*cfp;
+
+	if (context.copyrightFile == NULL)
+	{
+	    fprintf(stderr, "No copyright input file");
+	    return(-1);
+	}
+
+	if ((cfp = fopen(context.copyrightFile, "r")) == NULL)
+	{
+	    fprintf(
+		stderr,
+		"Cannot open input file '%s', errno = %d",
+		context.copyrightFile,
+		errno);
+	    return(-1);
+	}
+	yylex_init(&scanner);
+	yyset_debug(1, scanner);
+	yydebug = 0;
+	yyset_in(cfp, scanner);
+	yyparse(scanner);
+	yylex_destroy(scanner);
+    }
+
+    /*
+     * Start parsing the real input file
      */
     yylex_init(&scanner);
     yyset_debug(1, scanner);

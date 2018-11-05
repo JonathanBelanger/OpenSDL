@@ -27,9 +27,9 @@
 #ifndef _OPENSDL_MESSAGES_H_
 #define _OPENSDL_MESSAGES_H_
 
-#define SYS_K_FACILITY	0
-#define RMS_K_FACILITY	1
-#define SDL_K_FACILITY	186
+#define SYSTEM_K_FACILITY	0
+#define RMS_K_FACILITY		1
+#define SDL_K_FACILITY		186
 
 #define SDL_GET_SEVERITY(msg)	((msg)->severity)
 #define SDL_GET_MESSAGE(msg)	((msg)->msg_no)
@@ -98,6 +98,8 @@
 #define SDL_INVEXPR		0x00ba014a
 #define SDL_INVLISTOPT  	0x00ba0152
 #define SDL_BASEALIGN   	0x00ba015a
+#define SDL_NOINPFIL		0x00ba022a
+#define SDL_NOCOPYFIL		0x00ba0232
 
 /*
  * Warning SDL Errors.
@@ -122,6 +124,7 @@
 #define SDL_SYMNOTDEF		0x00ba01e8
 #define SDL_BADNODETYPE		0x00ba0200
 #define SDL_DIMENSIONSTAR	0x00ba0208
+#define SDL_DUPLANG		0x00ba0220
 
 /*
  * Informational SDL Errors.
@@ -134,16 +137,18 @@
 /*
  * Useful RMS Errors.
  */
+#define RMS_NORMAL		0x00018261
 #define RMS_EOF			0x0001827a
 #define RMS_FNF			0x00018292
 #define RMS_PRV			0x0001829a
-#define RMS_NORMAL		0x00010001
 
 /*
  * Useful SYS Errors.
  */
-#define SYS_NORMAL		0x00000001
-#define SYS_FATAL		0x00000004
+#define SS_NORMAL		0x00000001
+#define SS_INVQUAL		0x0000000a
+#define SS_FATAL		0x00000014
+#define SS_INSVIRMEM		0x0000001c
 
 typedef union
 {
@@ -175,8 +180,8 @@ typedef union
 
 typedef struct
 {
-    char		*msgText;
     char		*msgSymb;
+    char		*msgText;
     uint16_t		faoStr;
     uint16_t		faoInt;
 } SDL_MSG_ARRAY;
@@ -196,5 +201,11 @@ typedef struct
 
 #define SDL_MSG_FAO_NUMBER	0
 #define SDL_MSG_FAO_STRING	1
+
+/*
+ * Function prototypes.
+ */
+uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...);
+uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr);
 
 #endif	/* _OPENSDL_MESSAGES_H_ */

@@ -135,6 +135,7 @@ char *sdl_months[] =
  */
 #define SDL_MSG_VEC_LEN	1024
 SDL_MSG_VECTOR	msgVec[SDL_MSG_VEC_LEN];
+static char	*errFmt = "\n%s";
 
 void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg)
 {
@@ -219,14 +220,14 @@ static void _sdl_usage(void)
  *	line arguments.
  *
  * Return Values:
- *  1:	Normal successful completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal successful completion.
+ *  !SDL_NORMAL:	An error occurred.
  */
-static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
+static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 {
     char	*ptr;
     int		ii = 1;
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * Initialize all the defaults.
@@ -249,7 +250,7 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
      * Loop through each of the arguments extracting the relevant information
      * and storing it into the context block.
      */
-    while ((ii < argc) && (retVal == 1))
+    while ((ii < argc) && (retVal == SDL_NORMAL))
     {
 	if (argv[ii][0] == '-')
 	{
@@ -261,6 +262,16 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		case '3':
 		    if ((argv[ii][2] == '2') && (argv[ii][3] == '\0'))
 			context->wordSize = 32;
+		    else
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		/*
@@ -269,6 +280,16 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		case '6':
 		    if ((argv[ii][2] == '4') && (argv[ii][3] == '\0'))
 			context->wordSize = 64;
+		    else
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		/*
@@ -283,14 +304,31 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 						    &argv[ii][6],
 						    NULL,
 						    10);
-			    if (context->alignment <= 0)
-				retVal = 0;
+			    if (context->alignment < 0)
+				retVal = SDL_INVALIGN;
 			}
 			else
-			    retVal = 0;
+			    retVal = SDL_INVALIGN;
+			if (retVal == SDL_INVALIGN)
+			{
+			    if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+				retVal = SS_FATAL;
+			}
 		    }
 		    else
-			retVal = 0;
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		/*
@@ -308,17 +346,32 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			char	*path = realpath(argv[0], NULL);
 			int	jj;
 
-			context->copyright = true;
-			jj = strlen(path) - 1;
-			while ((jj > 0) && (path[jj - 1] != '/'))
-			    jj--;
-			context->copyrightFile = calloc(1, jj + 14);
-			strncpy(context->copyrightFile, path, jj);
-			strcpy(&context->copyrightFile[jj], "copyright.sdl");
-			free(path);
+			if (path != NULL)
+			{
+			    context->copyright = true;
+			    jj = strlen(path) - 1;
+			    while ((jj > 0) && (path[jj - 1] != '/'))
+				jj--;
+			    context->copyrightFile = calloc(1, jj + 14);
+			    strncpy(context->copyrightFile, path, jj);
+			    strcpy(
+				&context->copyrightFile[jj],
+				"copyright.sdl");
+			    free(path);
+			}
+			else
+			    retVal = SS_FATAL;
 		    }
 		    else
-			retVal = 0;
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		/*
@@ -331,7 +384,15 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    else if (strcmp(argv[ii], "-help") == 0)
 			_sdl_usage();
 		    else
-			retVal = 0;
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		/*
@@ -347,7 +408,8 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    bool	langSet = false;
 
 			    while ((context->languages[jj].langStr != NULL) &&
-				   (context->languages[jj].langVal != -1))
+				   (context->languages[jj].langVal != -1) &&
+				   (retVal == SDL_NORMAL))
 			    {
 				ptr = strchr(argv[ii], '=');
 				if (ptr == NULL)
@@ -368,20 +430,47 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 					langSet = true;
 				    }
 				    else
-					retVal = 0;
+				    {
+					char	lang[32];
+
+					retVal = SDL_DUPLANG;
+					strncpy(lang,
+						&argv[ii][6],
+						(ptr - &argv[ii][6]));
+					if (sdl_set_message(
+							msgVec,
+							1,
+							retVal,
+							lang) != SS_NORMAL)
+					    retVal = SS_FATAL;
+				    }
 				}
 				jj++;
 			    }
-			    if (langSet == false)
-				retVal = 0;
+			    if ((langSet == false) && (retVal == SDL_NORMAL))
+			    {
+				retVal = SS_INVQUAL;
+				if (sdl_set_message(
+						msgVec,
+						1,
+						retVal,
+						argv[ii]) != SS_NORMAL)
+				    retVal = SS_FATAL;
+			    }
 			}
 		    }
 		    else if (strncmp(argv[ii], "-list", 4) == 0)
-		    {
-			/* ignore for now */
-		    }
+		    {	/* ignore for now */	}
 		    else
-			retVal = 0;
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		/*
@@ -392,7 +481,15 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    if (strncasecmp(argv[ii], "-member", 6) == 0)
 			context->memberAlign = true;
 		    else if (strncasecmp(argv[ii], "-module", 7) != 0)
-			retVal = 0;
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		/*
@@ -425,13 +522,22 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    else if ((strcmp(argv[ii], "-nolist") != 0) &&
 			     (strcmp(argv[ii], "-nomodule") != 0) &&
 		    	     (strcmp(argv[ii], "-noparse") != 0))
-			retVal = 0;
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		/*
 		 * parse, generate an intermediate file.
 		 */
 		case 'p':
+		    /* Ignore */
 		    break;
 
 		/*
@@ -450,8 +556,8 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    else if (strncasecmp(ptr, "tag", 3) == 0)
 				context->suppressTag= true;
 			    else
-				retVal = 0;
-			    if (retVal != 0)
+				retVal = SS_INVQUAL;
+			    if (retVal == SDL_NORMAL)
 			    {
 				ptr = strchr(argv[ii], ',');
 				if (ptr != NULL)
@@ -462,12 +568,12 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 				    else if (strncasecmp(ptr, "tag", 3) == 0)
 					context->suppressTag= true;
 				    else
-					retVal = 0;
+					retVal = SS_INVQUAL;
 				}
 			    }
 			}
 			else
-			    retVal = 0;
+			    retVal = SS_INVQUAL;
 		    }
 		    else if (strncmp(argv[ii], "-symbol", 6) == 0)
 		    {
@@ -524,16 +630,26 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 					value;
 				}
 				else
-				    retVal = 0;
+				    retVal = SDL_SYMALRDEF;
 			    }
 			    else
-				retVal = 0;
+				retVal = SDL_ABORT;
 			}
 			else
-			    retVal = 0;
+			    retVal = SS_INVQUAL;
 		    }
 		    else
-			retVal = 0;
+			retVal = SS_INVQUAL;
+		    if (retVal == SS_INVQUAL)
+		    {
+			retVal = SS_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SS_NORMAL)
+			    retVal = SS_FATAL;
+		    }
 		    break;
 
 		default:
@@ -543,9 +659,15 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 	else if (context->inputFile == NULL)
 	    context->inputFile = strdup(argv[ii++]);
 	else
-	    retVal = 0;
-	if (retVal == 0)
-	    _sdl_usage();
+	{
+	    retVal = SS_INVQUAL;
+	    if (sdl_set_message(
+			    msgVec,
+			    1,
+			    retVal,
+				argv[ii]) != SS_NORMAL)
+		    retVal = SS_FATAL;
+	}
 	ii++;
     }
 
@@ -576,10 +698,13 @@ static int _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
  */
 int main(int argc, char *argv[])
 {
+    FILE	*cfp = NULL;
     FILE	*fp;
-    int		ii, jj;
-    time_t	localTime;
+    char	*msgTxt = NULL;
     struct tm	*timeInfo;
+    time_t	localTime;
+    uint32_t	status;
+    int		ii, jj;
 
     /*
      * Turn on tracing
@@ -665,23 +790,84 @@ int main(int argc, char *argv[])
     /*
      * Parse out the command line arguments.
      */
-    if (_sdl_parse_args(argc, argv, &context) != 1)
-	return(-1);
-
-    if (context.inputFile == NULL)
+    status = _sdl_parse_args(argc, argv, &context);
+    if ((status != SDL_NORMAL) && (status != SS_FATAL))
     {
-	fprintf(stderr, "No input specified");
+	status = sdl_get_message(msgVec, &msgTxt);
+	if (status == SS_NORMAL)
+	    fprintf(stderr, errFmt, msgTxt);
+	free(msgTxt);
 	return(-1);
     }
 
+    if (context.inputFile == NULL)
+    {
+	status = sdl_set_message(
+			msgVec,
+			1,
+			SDL_NOINPFIL);
+	if (status == SS_NORMAL)
+	    status = sdl_get_message(msgVec, &msgTxt);
+	if (status == SS_NORMAL)
+	    fprintf(stderr, errFmt, msgTxt);
+	free(msgTxt);
+	return(-1);
+    }
+
+    /*
+     * Open the input file or reading.
+     */
     if ((fp = fopen(context.inputFile, "r")) == NULL)
     {
-	fprintf(
-	    stderr,
-	    "Cannot open input file '%s', errno = %d",
-	    context.inputFile,
-	    errno);
+	status = sdl_set_message(
+			msgVec,
+			2,
+			SDL_INFILOPN,
+			context.inputFile,
+			RMS_FNF);
+	if (status == SS_NORMAL)
+	    status = sdl_get_message(msgVec, &msgTxt);
+	if (status == SS_NORMAL)
+	    fprintf(stderr, errFmt, msgTxt);
+	free(msgTxt);
 	return(-1);
+    }
+
+    /*
+     * If the user indicated that they wanted the copyright information at the
+     * start of the file, then open it for read.
+     */
+    if (context.copyright == true)
+    {
+	if (context.copyrightFile == NULL)
+	{
+	    status = sdl_set_message(
+				msgVec,
+				1,
+				SDL_NOCOPYFIL);
+	    if (status == SS_NORMAL)
+		status = sdl_get_message(msgVec, &msgTxt);
+	    if (status == SS_NORMAL)
+		fprintf(stderr, errFmt, msgTxt);
+	}
+	else if ((cfp = fopen(context.copyrightFile, "r")) == NULL)
+	{
+	    status = sdl_set_message(
+				msgVec,
+				2,
+				SDL_INFILOPN,
+				context.copyrightFile,
+				RMS_FNF);
+	    if (status == SS_NORMAL)
+		status = sdl_get_message(msgVec, &msgTxt);
+	    if (status == SS_NORMAL)
+		fprintf(stderr, errFmt, msgTxt);
+	}
+	if (msgTxt != NULL)
+	{
+	    free(msgTxt);
+	    return(-1);
+	}
     }
 
     /*
@@ -731,16 +917,22 @@ int main(int argc, char *argv[])
 	    strcpy(&context.outFileName[ii][jj], _extensions[ii]);
 
 	    /*
-	     * Try and open the file for this language.  If ti fails, we are
+	     * Try and open the file for this language.  If it fails, we are
 	     * done.
 	     */
 	    if ((context.outFP[ii] = fopen(context.outFileName[ii], "w")) == NULL)
 	    {
-		fprintf(
-		    stderr,
-		    "Cannot open output file '%s', errno = %d",
-		    context.outFileName[ii],
-		    errno);
+		status = sdl_set_message(
+				msgVec,
+				2,
+				SDL_OUTFILOPN,
+				context.outFileName[ii],
+				RMS_FNF);
+		if (status == SS_NORMAL)
+		    status = sdl_get_message(msgVec, &msgTxt);
+		if (status == SS_NORMAL)
+		    fprintf(stderr, errFmt, msgTxt);
+		free(msgTxt);
 		return(-1);
 	    }
 	    else if (context.header == true)
@@ -829,25 +1021,8 @@ int main(int argc, char *argv[])
     /*
      * If the copyright needs to be put into the file, then do so now.
      */
-    if (context.copyright == true)
+    if (cfp != NULL)
     {
-	FILE	*cfp;
-
-	if (context.copyrightFile == NULL)
-	{
-	    fprintf(stderr, "No copyright input file");
-	    return(-1);
-	}
-
-	if ((cfp = fopen(context.copyrightFile, "r")) == NULL)
-	{
-	    fprintf(
-		stderr,
-		"Cannot open input file '%s', errno = %d",
-		context.copyrightFile,
-		errno);
-	    return(-1);
-	}
 	yylex_init(&scanner);
 	yyset_debug(1, scanner);
 	yydebug = 0;

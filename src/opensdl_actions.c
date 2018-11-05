@@ -41,6 +41,7 @@
 #include "opensdl_actions.h"
 #include "opensdl_lang.h"
 #include "opensdl_utility.h"
+#include "opensdl_message.h"
 
 extern _Bool trace;
 
@@ -137,41 +138,43 @@ static char *_defaultTag[] =
 /*
  * Local Prototypes (found at the end of this module).
  */
-static int _sdl_aggregate_callback(
-			SDL_CONTEXT *context,
-			SDL_MEMBERS *member,
-			bool ending,
-			int depth);
+static uint32_t _sdl_aggregate_callback(
+		SDL_CONTEXT *context,
+		SDL_MEMBERS *member,
+		bool ending,
+		int depth);
 static SDL_DECLARE *_sdl_get_declare(SDL_DECLARE_LIST *declare, char *name);
 static SDL_ITEM *_sdl_get_item(SDL_ITEM_LIST *item, char *name);
 static char *_sdl_get_tag(
-        SDL_CONTEXT *context,
-        char *tag,
-        int datatype,
-        bool lower);
+		SDL_CONTEXT *context,
+		char *tag,
+		int datatype,
+		bool lower);
 static SDL_CONSTANT *_sdl_create_constant(
-        char *id,
-        char *prefix,
-        char *tag,
-        char *comment,
-        char *typeName,
-        int radix,
-        int64_t value,
-        char *string,
-        int size,
-        int srcLineNo);
-static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst);
+		char *id,
+		char *prefix,
+		char *tag,
+		char *comment,
+		char *typeName,
+		int radix,
+		int64_t value,
+		char *string,
+		int size,
+		int srcLineNo);
+static uint32_t _sdl_queue_constant(
+		SDL_CONTEXT *context,
+		SDL_CONSTANT *myConst);
 static SDL_ENUMERATE *_sdl_create_enum(
-				SDL_CONTEXT *context,
-				char *id,
-				char *prefix,
-				char *tag,
-				bool typeDef,
-				int srcLineNo);
-static int _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum);
+		SDL_CONTEXT *context,
+		char *id,
+		char *prefix,
+		char *tag,
+		bool typeDef,
+		int srcLineNo);
+static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum);
 static bool _sdl_all_lower(const char *str);
 static void _sdl_reset_options(SDL_CONTEXT *context);
-static int _sdl_iterate_members(
+static uint32_t _sdl_iterate_members(
 		SDL_CONTEXT *context,
 		SDL_MEMBERS *member,
 		void *qhead,
@@ -184,26 +187,26 @@ static void _sdl_determine_offsets(
 		SDL_QUEUE *memberList,
 		bool parentIsUnion);
 static void _sdl_fill_bitfield(
-			SDL_QUEUE *memberList,
-			SDL_MEMBERS *member,
-			int bits,
-			int number,
-			int srcLineNo);
+		SDL_QUEUE *memberList,
+		SDL_MEMBERS *member,
+		int bits,
+		int number,
+		int srcLineNo);
 static int64_t _sdl_aggregate_size(
-			SDL_CONTEXT *context,
-			SDL_AGGREGATE *aggr,
-			SDL_SUBAGGR *subAggr);
+		SDL_CONTEXT *context,
+		SDL_AGGREGATE *aggr,
+		SDL_SUBAGGR *subAggr);
 static void _sdl_checkAndSetOrigin(SDL_CONTEXT *context, SDL_MEMBERS *member);
 static void _sdl_check_bitfieldSizes(
-			SDL_CONTEXT *context,
-			SDL_QUEUE *memberList,
-			SDL_MEMBERS *member,
-			int64_t length,
-			SDL_MEMBERS *newMember,
-			bool *updated);
-static int _sdl_create_bitfield_constants(
-			SDL_CONTEXT *context,
-			SDL_QUEUE *memberList);
+		SDL_CONTEXT *context,
+		SDL_QUEUE *memberList,
+		SDL_MEMBERS *member,
+		int64_t length,
+		SDL_MEMBERS *newMember,
+		bool *updated);
+static uint32_t _sdl_create_bitfield_constants(
+		SDL_CONTEXT *context,
+		SDL_QUEUE *memberList);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file		*/
@@ -226,13 +229,13 @@ static int _sdl_create_bitfield_constants(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
+uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
 {
-    int	retVal = 1;
-    int ii;
+    uint32_t	retVal = SDL_NORMAL;
+    int 	ii;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -276,7 +279,9 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
 	     * Loop through all the possible languages and call the appropriate
 	     * output function for each of the enabled languages.
 	     */
-	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    for (ii = 0;
+		 ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
+		 ii++)
 		if ((context->langSpec[ii] == true) &&
 		    (context->langEna[ii] == true) &&
 		    (context->commentsOff == false))
@@ -313,13 +318,13 @@ int sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
+uint32_t sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
 {
     char	*ptr, *nl;
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
     int 	ii;
     bool	start_comment, start_done = false;
     bool	middle_comment;
@@ -418,7 +423,9 @@ int sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
 		 * appropriate output function for each of the enabled
 		 * languages.
 		 */
-		for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+		for (ii = 0;
+		     ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
+		     ii++)
 		    if ((context->langSpec[ii] == true) &&
 			(context->langEna[ii] == true))
 			retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
@@ -474,7 +481,7 @@ int sdl_set_local(
 		int64_t value,
 		int srcLineNo)
 {
-    int			retVal = 1;
+    int	retVal = 1;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -500,7 +507,7 @@ int sdl_set_local(
 	}
 
 	/*
-	 * OK, if we did not find a local variable with the same name, then we\
+	 * OK, if we did not find a local variable with the same name, then we
 	 * need to go get one.
 	 */
 	if (local == NULL)
@@ -551,16 +558,16 @@ int sdl_set_local(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_module(
-	SDL_CONTEXT *context,
-	char *moduleName,
-	char *identName,
-	int srcLineNo)
+uint32_t sdl_module(
+		SDL_CONTEXT *context,
+		char *moduleName,
+		char *identName,
+		int srcLineNo)
 {
-    int	retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
     int ii;
 
     /*
@@ -584,7 +591,7 @@ int sdl_module(
      * Loop through all the possible languages and call the appropriate output
      * function for each of the enabled languages.
      */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
 	if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
 	    retVal = (*_outputFuncs[ii][SDL_K_MODULE_CB])(
 				context->outFP[ii],
@@ -614,13 +621,13 @@ int sdl_module(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
+uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
 {
-    int			retVal = 1;
-    int			ii;
+    uint32_t	retVal = SDL_NORMAL;
+    int		ii;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -639,7 +646,7 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
      * Loop through all the possible languages and call the appropriate output
      * function for each of the enabled languages.
      */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
 	if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
 	    retVal = (*_outputFuncs[ii][SDL_K_END_MODULE_CB])(
 				context->outFP[ii],
@@ -990,17 +997,17 @@ int sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_literal(
-	SDL_CONTEXT *context,
-	SDL_QUEUE *literals,
-	char *line,
-	int srcLineNo)
+uint32_t sdl_literal(
+		SDL_CONTEXT *context,
+		SDL_QUEUE *literals,
+		char *line,
+		int srcLineNo)
 {
     SDL_LITERAL	*literalLine;
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
     size_t	len = strlen(line);
 
     /*
@@ -1070,13 +1077,16 @@ int sdl_literal(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals, int srcLineNo)
+uint32_t sdl_literal_end(
+		SDL_CONTEXT *context,
+		SDL_QUEUE *literals,
+		int srcLineNo)
 {
     SDL_LITERAL	*literalLine;
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
     int		ii;
 
     /*
@@ -1096,7 +1106,7 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals, int srcLineNo)
 	/*
 	 * Keep pulling off literal lines until there are no more.
 	 */
-	while ((SDL_Q_EMPTY(literals) == false) && (retVal == 1))
+	while ((SDL_Q_EMPTY(literals) == false) && (retVal == SDL_NORMAL))
 	{
 	    SDL_REMQUE(literals, literalLine);
 
@@ -1104,7 +1114,9 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals, int srcLineNo)
 	     * Loop through each of the supported languages and if we are
 	     * generating a file for the language, write out the line to it.
 	     */
-	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    for (ii = 0;
+		 ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
+		 ii++)
 		if ((context->langSpec[ii] == true) &&
 		    (context->langEna[ii] == true))
 		{
@@ -1148,16 +1160,16 @@ int sdl_literal_end(SDL_CONTEXT *context, SDL_QUEUE *literals, int srcLineNo)
  *  None.
  *
  * Return Value:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_declare(
-	SDL_CONTEXT *context,
-	char *name,
-	int64_t sizeType,
-	int srcLineNo)
+uint32_t sdl_declare(
+		SDL_CONTEXT *context,
+		char *name,
+		int64_t sizeType,
+		int srcLineNo)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -1230,15 +1242,15 @@ int sdl_declare(
  *  None.
  *
  * Return Value:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
+uint32_t sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
 {
     SDL_DECLARE	*myDeclare = (SDL_DECLARE *) context->declares.header.blink;
     char 	*prefix = NULL;
     char 	*tag = NULL;
-    int		ii, retVal = 1;
+    uint32_t	ii, retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -1310,12 +1322,16 @@ int sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype, int srcLineNo)
+uint32_t sdl_item(
+		SDL_CONTEXT *context,
+		char *name,
+		int64_t datatype,
+		int srcLineNo)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -1385,16 +1401,17 @@ int sdl_item(SDL_CONTEXT *context, char *name, int64_t datatype, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
+uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
 {
     SDL_ITEM	*myItem = context->items.header.blink;
     char	*prefix = NULL;
     char	*tag = NULL;
     int64_t	addrType = SDL_K_TYPE_NONE;
-    int		ii, retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
+    int		ii;
     int		storage = 0;
     int		basealign = 0;
     int		dimension;
@@ -1498,7 +1515,9 @@ int sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
 	     * Loop through all the possible languages and call the appropriate
 	     * output function for each of the enabled languages.
 	     */
-	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    for (ii = 0;
+		 ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
+		 ii++)
 		if ((context->langSpec[ii] == true) &&
 		    (context->langEna[ii] == true))
 		    retVal = (*_outputFuncs[ii][SDL_K_ITEM_CB])(
@@ -1538,17 +1557,17 @@ int sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_constant(
+uint32_t sdl_constant(
 		SDL_CONTEXT *context,
 		char *id,
 		int64_t value,
 		char *valueStr,
 		int srcLineNo)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -1604,13 +1623,13 @@ int sdl_constant(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
 #define _SDL_OUTPUT_COMMENT	0
 #define _SDL_COMMA_		2
 #define _SDL_COMMENT_LIST_NULL	3
-int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
+uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 {
     SDL_CONSTANT	*myConst;
     SDL_ENUMERATE	*myEnum = NULL;
@@ -1621,7 +1640,7 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 					NULL;
     char		*comma = strchr(id, ',');
     static char		*commentList[] = {"/*", "{", ",", NULL};
-    int			ii, retVal = 1;
+    uint32_t		ii, retVal = SDL_NORMAL;
     char		*prefix = NULL;
     char		*tag = NULL;
     char		*counter = NULL;
@@ -1817,7 +1836,7 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 	    }
 
 	    sdl_trim_str(ptr, SDL_M_LEAD);
-	    while ((done == false) && (retVal == 1))
+	    while ((done == false) && (retVal == SDL_NORMAL))
 	    {
 		char	*name = ptr;
 		char	*comment;
@@ -1905,7 +1924,9 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 			}
 		    }
 		}
-		if ((retVal == 1) && (counter != NULL) && (prevValue != value))
+		if ((retVal == SDL_NORMAL) &&
+		    (counter != NULL) &&
+		    (prevValue != value))
 		{
 		    retVal = sdl_set_local(context, counter, value, srcLineNo);
 		    prevValue = value;
@@ -1921,7 +1942,7 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 	 * If we created an enumeration, then go complete it (this will output
 	 * it to the language output files).
 	 */
-	if ((retVal == 1) && (myEnum != NULL))
+	if ((retVal == SDL_NORMAL) && (myEnum != NULL))
 	    retVal = _sdl_enum_compl(context, myEnum);
     }
 
@@ -1973,17 +1994,17 @@ int sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_aggregate(
-	SDL_CONTEXT *context,
-	char *name,
-	int64_t datatype,
-	int aggType,
-	int srcLineNo)
+uint32_t sdl_aggregate(
+		SDL_CONTEXT *context,
+		char *name,
+		int64_t datatype,
+		int aggType,
+		int srcLineNo)
 {
-    int			retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -2057,10 +2078,10 @@ int sdl_aggregate(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_aggregate_member(
+uint32_t sdl_aggregate_member(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t datatype,
@@ -2081,7 +2102,7 @@ int sdl_aggregate_member(
     int64_t		subType = SDL_K_TYPE_BYTE;
     int64_t		length = 0;
     int64_t 		tmpDatatype = abs(datatype);
-    int			retVal = 1;
+    uint32_t		retVal = SDL_NORMAL;
     bool		bitfieldSized = false;
     bool		mask = false;
     bool		_signed = false;
@@ -2654,14 +2675,14 @@ int sdl_aggregate_member(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
+uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 {
     SDL_AGGREGATE	*myAggr = (SDL_AGGREGATE *) context->currentAggr;
     SDL_SUBAGGR		*mySubAggr = (SDL_SUBAGGR *) context->currentAggr;
-    int			retVal = 1;
+    uint32_t		retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -2821,7 +2842,9 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	     * Loop through all the possible languages and call the appropriate
 	     * output function for each of the enabled languages.
 	     */
-	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    for (ii = 0;
+		 ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
+		 ii++)
 		if ((context->langSpec[ii] == true) &&
 		    (context->langEna[ii] == true))
 		    retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
@@ -2831,7 +2854,8 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 					    false,
 					    0,
 					    context);
-	    if (SDL_Q_EMPTY(&myAggr->members) == false)
+	    if ((retVal == SDL_NORMAL) &&
+		(SDL_Q_EMPTY(&myAggr->members) == false))
 		retVal = _sdl_iterate_members(
 			    context,
 			    myAggr->members.flink,
@@ -2844,7 +2868,9 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	     * Loop through all the possible languages and call the appropriate
 	     * output function for each of the enabled languages.
 	     */
-	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    for (ii = 0;
+		 ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
+		 ii++)
 		if ((context->langSpec[ii] == true) &&
 		    (context->langEna[ii] == true))
 		    retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
@@ -2893,13 +2919,13 @@ int sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
+uint32_t sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
 {
     SDL_ENTRY	*myEntry = sdl_allocate_block(EntryBlock, NULL, srcLineNo);
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
     int		ii;
 
     /*
@@ -2974,7 +3000,9 @@ int sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
 	     * Loop through all the possible languages and call the appropriate
 	     * output function for each of the enabled languages.
 	     */
-	    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	    for (ii = 0;
+		 ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
+		 ii++)
 		if ((context->langSpec[ii] == true) &&
 		    (context->langEna[ii] == true))
 		    retVal = (*_outputFuncs[ii][SDL_K_ENTRY_CB])(
@@ -3018,16 +3046,16 @@ int sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_add_parameter(
+uint32_t sdl_add_parameter(
 		SDL_CONTEXT *context,
 		int64_t datatype,
 		int passing,
 		int srcLineNo)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
     int		ii;
 
     /*
@@ -3178,10 +3206,10 @@ int sdl_add_parameter(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_conditional(
+uint32_t sdl_conditional(
 		SDL_CONTEXT *context,
 		int conditional,
 		void *expr,
@@ -3189,7 +3217,7 @@ int sdl_conditional(
 {
     char		*symbol = (char *) expr;
     SDL_LANGUAGE_LIST	*langs = (SDL_LANGUAGE_LIST *) expr;
-    int			retVal = 1;
+    uint32_t		retVal = SDL_NORMAL;
     int			ii, jj;
     bool		done = false;
 
@@ -3484,12 +3512,12 @@ int sdl_conditional(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
+uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -3603,10 +3631,10 @@ void *sdl_get_language(SDL_CONTEXT *context, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-static int _sdl_aggregate_callback(
+static uint32_t _sdl_aggregate_callback(
 			SDL_CONTEXT *context,
 			SDL_MEMBERS *member,
 			bool ending,
@@ -3614,7 +3642,7 @@ static int _sdl_aggregate_callback(
 {
     void		*param;
     SDL_LANG_AGGR_TYPE	type;
-    int			retVal = 1;
+    uint32_t		retVal = SDL_NORMAL;
     int			ii;
 
     /*
@@ -3643,7 +3671,7 @@ static int _sdl_aggregate_callback(
      * Loop through all the possible languages and call the appropriate
      * output function for each of the enabled languages.
      */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
 	if ((context->langSpec[ii] == true) && (context->langEna[ii] == true))
 	    retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
 					context->outFP[ii],
@@ -3946,16 +3974,16 @@ static char *_sdl_get_tag(
  *  !NULL:	Normal Successful Completion.
  */
 static SDL_CONSTANT *_sdl_create_constant(
-        char *id,
-        char *prefix,
-        char *tag,
-        char *comment,
-        char *typeName,
-        int radix,
-        int64_t value,
-        char *string,
-        int size,
-        int srcLineNo)
+		char *id,
+		char *prefix,
+		char *tag,
+		char *comment,
+		char *typeName,
+		int radix,
+		int64_t value,
+		char *string,
+		int size,
+		int srcLineNo)
 {
     SDL_CONSTANT *retVal = sdl_allocate_block(ConstantBlock, NULL, srcLineNo);
 
@@ -4021,12 +4049,14 @@ static SDL_CONSTANT *_sdl_create_constant(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst)
+static uint32_t _sdl_queue_constant(
+		SDL_CONTEXT *context,
+		SDL_CONSTANT *myConst)
 {
-    int retVal = 1;
+    uint32_t retVal = SDL_NORMAL;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4045,7 +4075,7 @@ static int _sdl_queue_constant(SDL_CONTEXT *context, SDL_CONSTANT *myConst)
 	 * appropriate output function for each of the enabled
 	 * languages.
 	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
 	    if ((context->langSpec[ii] == true)
 		    && (context->langEna[ii] == true))
 		retVal = (*_outputFuncs[ii][SDL_K_CONSTANT_CB])(
@@ -4146,12 +4176,12 @@ static SDL_ENUMERATE *_sdl_create_enum(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-static int _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
+static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
 {
-    int retVal = 1;
+    uint32_t retVal = SDL_NORMAL;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4168,7 +4198,7 @@ static int _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
 	 * appropriate output function for each of the enabled
 	 * languages.
 	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == 1)); ii++)
+	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
 	    if ((context->langSpec[ii] == true)
 		    && (context->langEna[ii] == true))
 		retVal = (*_outputFuncs[ii][SDL_K_ENUM_CB])(
@@ -4310,10 +4340,10 @@ static void _sdl_reset_options(SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-static int _sdl_iterate_members(
+static uint32_t _sdl_iterate_members(
 		SDL_CONTEXT *context,
 		SDL_MEMBERS *member,
 		void *qhead,
@@ -4321,7 +4351,7 @@ static int _sdl_iterate_members(
 		int depth,
 		int count)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -5492,16 +5522,16 @@ static void _sdl_check_bitfieldSizes(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-static int _sdl_create_bitfield_constants(
-			SDL_CONTEXT *context,
-			SDL_QUEUE *memberList)
+static uint32_t _sdl_create_bitfield_constants(
+		SDL_CONTEXT *context,
+		SDL_QUEUE *memberList)
 {
     SDL_MEMBERS		*member = (SDL_MEMBERS *) memberList->flink;
     SDL_CONSTANT	*constDef;
-    int			retVal = 1;
+    uint32_t		retVal = SDL_NORMAL;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -5513,7 +5543,8 @@ static int _sdl_create_bitfield_constants(
      * Loop through the members in the member list until we've processed all of
      * the BITFIELDS within the list and generated the CONSTANT definitions.
      */
-    while ((member != (SDL_MEMBERS *) &memberList->flink) && (retVal == 1))
+    while ((member != (SDL_MEMBERS *) &memberList->flink) &&
+	   (retVal == SDL_NORMAL))
     {
 	if (sdl_isBitfield(member) == true)
 	{

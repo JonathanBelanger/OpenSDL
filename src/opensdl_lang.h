@@ -38,7 +38,7 @@
 /*
  * Typedefs to define output function calling arrays.
  */
-typedef	int (*SDL_FUNC)();
+typedef	uint32_t (*SDL_FUNC)();
 typedef SDL_FUNC SDL_LANG_FUNC[SDL_K_FUNC_PER_LANG];
 
 /*
@@ -69,28 +69,31 @@ typedef struct
 /*
  * Define the C/C++ output function prototypes.
  */
-int sdl_c_commentStars(FILE *fp);
-int sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo);
-int sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath);
-int sdl_c_comment(
+uint32_t sdl_c_commentStars(FILE *fp);
+uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo);
+uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath);
+uint32_t sdl_c_comment(
 		FILE *fp,
 		char *comment,
 		bool lineComment,
 		bool startComment,
 		bool middleComment,
 		bool endComment);
-int sdl_c_module(FILE *fp, SDL_CONTEXT *context);
-int sdl_c_module_end(FILE *fp, SDL_CONTEXT *context);
-int sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context);
-int sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context);
-int sdl_c_aggregate(
+uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context);
+uint32_t sdl_c_module_end(FILE *fp, SDL_CONTEXT *context);
+uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context);
+uint32_t sdl_c_constant(
+		FILE *fp,
+		SDL_CONSTANT *constant,
+		SDL_CONTEXT *context);
+uint32_t sdl_c_aggregate(
 		FILE *fp,
 		void *param,
 		SDL_LANG_AGGR_TYPE type,
 		bool ending,
 		int depth,
 		SDL_CONTEXT *context);
-int sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context);
-int sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *entry, SDL_CONTEXT *context);
+uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context);
+uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *entry, SDL_CONTEXT *context);
 
 #endif	/* _OPENSDL_LANG_H_ */

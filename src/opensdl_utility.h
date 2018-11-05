@@ -27,27 +27,30 @@
 #ifndef _OPENSDL_UTILITY_H_
 #define _OPENSDL_UTILITY_H_
 
-int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int ssrcLineNo);
+uint32_t sdl_state_transition(
+		SDL_CONTEXT *context,
+		SDL_STATE action,
+		int ssrcLineNo);
 char *sdl_unquote_str(char *str);
 SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name);
 SDL_DECLARE *sdl_get_declare(SDL_DECLARE_LIST *declare, int typeID);
 SDL_ITEM *sdl_get_item(SDL_ITEM_LIST *item, int typeID);
 SDL_AGGREGATE *sdl_get_aggregate(SDL_AGGREGATE_LIST *aggregate, int typeID);
 SDL_ENUMERATE *sdl_get_enum(SDL_ENUM_LIST *enums, int typeID);
-int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value);
+uint32_t sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value);
 int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype);
 int sdl_aggrtype_idx(SDL_CONTEXT *context, char *aggregateName);
 int64_t sdl_bin2int(char *binStr);
-int sdl_str2int(char *strVal, int64_t *val);
+uint32_t sdl_str2int(char *strVal, int64_t *val);
 int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo);
 int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound);
-int sdl_add_option(
+uint32_t sdl_add_option(
 		SDL_CONTEXT *context,
 		SDL_OPTION_TYPE option,
 		__int64_t value,
 		char *string,
 		int srcLineNo);
-int sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale);
+uint32_t sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
 #define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */

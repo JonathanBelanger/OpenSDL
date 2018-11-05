@@ -30,23 +30,24 @@
 #	Change the parent folder name to OpenSDL.
 #
 HOME		= /cygdrive/g/git/OpenSDL
-SRC			= $(HOME)/src
-BIN			= $(HOME)/bin
-EXE			= $(HOME)/exe
-TST			= $(HOME)/test
+SRC		= $(HOME)/src
+BIN		= $(HOME)/bin
+EXE		= $(HOME)/exe
+TST		= $(HOME)/test
 
 CFLAGS		= -m64 -std=gnu99 -Wall -I$(SRC) -I$(BIN)
 LFLAGS		=
 YFLAGS		=
 LDFLAGS		= 
 SDLDEFS		= $(SRC)/opensdl_defs.h		\
-			  $(BIN)/opensdl_lexical.h	\
-			  $(BIN)/opensdl_parser.h
+		  $(BIN)/opensdl_lexical.h	\
+		  $(BIN)/opensdl_parser.h
 OBJS		= $(BIN)/opensdl_actions.o 	\
-			  $(BIN)/opensdl_utility.o	\
-			  $(BIN)/opensdl_lang_c.o 	\
-			  $(BIN)/opensdl_parser.o 	\
-			  $(BIN)/opensdl_lexical.o
+		  $(BIN)/opensdl_utility.o	\
+		  $(BIN)/opensdl_lang_c.o 	\
+		  $(BIN)/opensdl_message.o	\
+		  $(BIN)/opensdl_parser.o 	\
+		  $(BIN)/opensdl_lexical.o
 
 debug: CFLAGS += -g -O0
 debug: LFLAGS += -d
@@ -75,6 +76,9 @@ $(BIN)/opensdl_utility.o : $(SRC)/opensdl_utility.c $(SDLDEFS)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 $(BIN)/opensdl_lang_c.o : $(SRC)/opensdl_lang_c.c $(SDLDEFS)
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+$(BIN)/opensdl_message.o : $(SRC)/opensdl_message.c $(SRC)/opensdl_message.h
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 $(EXE)/opensdl.exe : $(SRC)/opensdl_main.c $(OBJS) $(BIN)/opensdl_parser.h $(BIN)/opensdl_lexical.h $(SDLDEFS)

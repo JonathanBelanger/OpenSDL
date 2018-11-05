@@ -31,6 +31,7 @@
 #include "opensdl_defs.h"
 #include "opensdl_utility.h"
 #include "opensdl_actions.h"
+#include "opensdl_message.h"
 
 extern bool trace;
 
@@ -51,13 +52,13 @@ extern bool trace;
  *	A pointer to the location to receive the value of the local variable.
  *
  * Return Value
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
+uint32_t sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
 {
     SDL_LOCAL_VARIABLE	*local = sdl_find_local(context, name);
-    int			retVal = 1;
+    uint32_t		retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -89,7 +90,7 @@ int sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
 	 */
 	if (trace == true)
 	{
-	    if (retVal == 1)
+	    if (retVal == SDL_NORMAL)
 		printf(
 		    "%s, %ld (%016lx - %4.4s)",
 		    name,
@@ -180,12 +181,12 @@ SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name)
  *  None.
  *
  * Return Value
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	Action invalid in current state.
  */
-int sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLineNo)
+uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLineNo)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -779,12 +780,12 @@ __int64_t sdl_bin2int(char *binStr)
  *	converted string.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_str2int(char *strVal, __int64_t *val)
+uint32_t sdl_str2int(char *strVal, __int64_t *val)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
     size_t	len = strlen(strVal);
 
     /*
@@ -1182,17 +1183,17 @@ int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_add_option(
+uint32_t sdl_add_option(
 		SDL_CONTEXT *context,
 		SDL_OPTION_TYPE option,
 		__int64_t value,
 		char *string,
 		int srcLineNo)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -1339,12 +1340,12 @@ int sdl_add_option(
  *  None.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
+ *  SDL_NORMAL:	Normal Successful Completion.
  *  0:	An error occurred.
  */
-int sdl_precision(SDL_CONTEXT *context, __int64_t precision, __int64_t scale)
+uint32_t sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale)
 {
-    int		retVal = 1;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..

@@ -82,7 +82,14 @@ uint32_t sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
 	{
 	    if (value != NULL)
 		value = 0;
-	    retVal = 0;
+	    retVal = SDL_UNDEFSYM;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				name,
+				0) != SS_NORMAL)
+		    retVal = SDL_ABORT;
 	}
 
 	/*
@@ -2311,6 +2318,57 @@ bool sdl_isBitfield(SDL_MEMBERS *member)
 	(member->type == SDL_K_TYPE_BITFLD_Q) ||
 	(member->type == SDL_K_TYPE_BITFLD_O))
 	retVal = true;
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_isAddress
+ *   This function is called to determine if a type is one of the ADDRESS types
+ *   or not.
+ *
+ * Input Parameters:
+ *   int:
+ *   	A value indicating the type to check.
+ *
+ * Output Parameters:
+ *  None
+ *
+ * Return Values:
+ *  true:	The type is an ADDRESS.
+ *  false:	The type is not an ADDRESS.
+ */
+bool sdl_isAddress(int *type)
+{
+    bool	retVal;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_isAddress\n", __FILE__, __LINE__);
+
+    switch (type)
+    {
+	case SDL_K_TYPE_ADDR:
+	case SDL_K_TYPE_ADDR_L:
+	case SDL_K_TYPE_ADDR_Q:
+	case SDL_K_TYPE_ADDR_HW:
+	case SDL_K_TYPE_HW_ADDR:
+	case SDL_K_TYPE_PTR:
+	case SDL_K_TYPE_PTR_L:
+	case SDL_K_TYPE_PTR_Q:
+	case SDL_K_TYPE_PTR_HW:
+	    retVal = true;
+	    break;
+
+	default:
+	    retVal = false;
+	    break;
+    }
 
     /*
      * Return the results back to the caller.

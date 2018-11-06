@@ -640,6 +640,18 @@ uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
      */
     context->modEndSrcLineNo = srcLineNo;
 
+    if ((moduleName != NULL) && (strcmp(context->module, moduleName) != 0))
+    {
+	retVal = SDL_MATCHEND;
+	if (sdl_set_message(
+		msgVec,
+		1,
+		retVal,
+		context->module,
+		srcLineNo) != SS_NORMAL)
+	    retVal = SDL_ABORT;
+    }
+
     /*
      * OK, time to write out the OpenSDL Parser's MODULE footer.
      *
@@ -1500,16 +1512,28 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
 	    /*
 	     * Addresses can have sub-types.
 	     */
-	    if ((myItem->type == SDL_K_TYPE_ADDR) ||
-		(myItem->type == SDL_K_TYPE_ADDR_L) ||
-		(myItem->type == SDL_K_TYPE_ADDR_Q) ||
-		(myItem->type == SDL_K_TYPE_ADDR_HW) ||
-		(myItem->type == SDL_K_TYPE_HW_ADDR) ||
-		(myItem->type == SDL_K_TYPE_PTR) ||
-		(myItem->type == SDL_K_TYPE_PTR_L) ||
-		(myItem->type == SDL_K_TYPE_PTR_Q) ||
-		(myItem->type == SDL_K_TYPE_PTR_HW))
+	    if (sdl_isAddress(myItem->type) == true)
+	    {
 		myItem->subType = addrType;
+		if ((addrType >= SDL_K_AGGREGATE_MIN) &&
+		    (addrType <= SDL_K_AGGREGATE_MAX))
+		{
+		    SDL_AGGREGATE *myAggr;
+
+		    myAggr = sdl_get_aggregate(context->aggregates, addrType);
+		    if ((myAggr != NULL) && (myAggr->basedPtrName == NULL))
+		    {
+			retVal = SDL_ADROBJBAS;
+			if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				myAggr->id,
+				srcLineNo) != SS_NORMAL)
+			    retVal = SDL_ABORT;
+		    }
+		}
+	    }
 
 	    /*
 	     * Loop through all the possible languages and call the appropriate
@@ -2557,11 +2581,32 @@ uint32_t sdl_aggregate_member(
 				    default:
 					break;
 				}
+				if (myMember->item.length < 0)
+				{
+				    retVal = SDL_ZEROLEN;
+				    if (sdl_set_message(
+						    msgVec,
+						    1,
+						    retVal,
+						    myMember->item.id,
+						    srcLineNo) != SS_NORMAL)
+					retVal = SDL_ABORT;
+				}
 				break;
 
 			    case SDL_K_TYPE_CHAR:
 			    case SDL_K_TYPE_CHAR_VARY:
 				myMember->item.length = length;
+				break;
+
+			    case SDL_K_TYPE_CHAR_STAR:
+				retVal = SDL_INVUNKLEN;
+				if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					srcLineNo) != SS_NORMAL)
+				    retVal = SDL_ABORT;
 				break;
 
 			    case SDL_K_TYPE_ADDR:
@@ -2574,6 +2619,27 @@ uint32_t sdl_aggregate_member(
 			    case SDL_K_TYPE_PTR_Q:
 			    case SDL_K_TYPE_PTR_HW:
 				myMember->item.subType = subType;
+				if ((subType >= SDL_K_AGGREGATE_MIN) &&
+				    (subType <= SDL_K_AGGREGATE_MAX))
+				{
+				    SDL_AGGREGATE *lclAggr;
+
+				    lclAggr = sdl_get_aggregate(
+						    context->aggregates,
+						    subType);
+				    if ((lclAggr != NULL) &&
+					(lclAggr->basedPtrName == NULL))
+				    {
+					retVal = SDL_ADROBJBAS;
+					if (sdl_set_message(
+						msgVec,
+						1,
+						retVal,
+						lclAggr->id,
+						srcLineNo) != SS_NORMAL)
+					    retVal = SDL_ABORT;
+				    }
+				}
 				break;
 			}
 			if (sdl_isComment(myMember) == false)
@@ -2837,6 +2903,28 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	     */
 	    context->currentAggr = NULL;
 	    myAggr->size = _sdl_aggregate_size(context, myAggr, NULL);
+	    if ((name != NULL) && (strcmp(myAggr->id) != 0))
+	    {
+		retVal = SDL_MATCHEND;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				myAggr->id,
+				srcLineNo) != SS_NORMAL)
+		    retVal = SDL_ABORT;
+	    }
+	    else if (SDL_Q_EMPTY(myAggr->members) == true)
+	    {
+		retVal = SDL_NULLSTRUCT;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				myAggr->id,
+				srcLineNo) != SS_NORMAL)
+		    retVal = SDL_ABORT;
+	    }
 
 	    /*
 	     * Loop through all the possible languages and call the appropriate
@@ -2891,6 +2979,28 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	{
 	    context->currentAggr = mySubAggr->parent;
 	    mySubAggr->size = _sdl_aggregate_size(context, NULL, mySubAggr);
+	    if ((name != NULL) && (strcmp(mySubAggr->id) != 0))
+	    {
+		retVal = SDL_MATCHEND;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				mySubAggr->id,
+				srcLineNo) != SS_NORMAL)
+		    retVal = SDL_ABORT;
+	    }
+	    else if (SDL_Q_EMPTY(mySubAggr->members) == true)
+	    {
+		retVal = SDL_NULLSTRUCT;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				mySubAggr->id,
+				srcLineNo) != SS_NORMAL)
+		    retVal = SDL_ABORT;
+	    }
 	}
     }
 
@@ -3277,6 +3387,17 @@ uint32_t sdl_conditional(
 			}
 			done = true;
 		    }
+		}
+		if (done == false)
+		{
+		    retVal = SDL_SYMNOTDEF;
+		    if (sdl_set_message(
+				    msgVec,
+				    1,
+				    retVal,
+				    symbol,
+				    srcLineNo) != SS_NORMAL)
+			retVal = SDL_ABORT;
 		}
 	    }
 	    else

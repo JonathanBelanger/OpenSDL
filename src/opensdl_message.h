@@ -28,7 +28,6 @@
 #define _OPENSDL_MESSAGES_H_
 
 #define SYSTEM_K_FACILITY	0
-#define RMS_K_FACILITY		1
 #define SDL_K_FACILITY		186
 
 #define SDL_GET_SEVERITY(msg)	((msg)->severity)
@@ -57,6 +56,7 @@
 #define SDL_BUGCHECK		0x00ba0024
 #define SDL_REVCHECK		0x00ba002c
 #define SDL_ERREXIT		0x00ba0034
+#define SDL_INVACTSTA		0x00ba023c
 
 /*
  * Error SDL Errors.
@@ -100,6 +100,14 @@
 #define SDL_BASEALIGN   	0x00ba015a
 #define SDL_NOINPFIL		0x00ba022a
 #define SDL_NOCOPYFIL		0x00ba0232
+#define SDL_UNKRADIX		0x00ba0242
+#define SDL_UNKCONSTTYP		0x00ba024a
+#define SDL_INVAGGRNAM		0x00ba0252
+#define SDL_INVENUMNAM		0x00ba025a
+#define SDL_UNKOPTION		0x00ba0262
+#define SDL_INVCONDST		0x00ba026a
+#define SDL_INVQUAL		0x00ba0272
+
 
 /*
  * Warning SDL Errors.
@@ -133,22 +141,6 @@
 #define SDL_FILLZEROLEN		0x00ba01fb
 #define SDL_FIXUP		0x00ba0213
 #define SDL_POSSCIRC		0x00ba021b
-
-/*
- * Useful RMS Errors.
- */
-#define RMS_NORMAL		0x00018261
-#define RMS_EOF			0x0001827a
-#define RMS_FNF			0x00018292
-#define RMS_PRV			0x0001829a
-
-/*
- * Useful SYS Errors.
- */
-#define SS_NORMAL		0x00000001
-#define SS_INVQUAL		0x0000000a
-#define SS_FATAL		0x00000014
-#define SS_INSVIRMEM		0x0000001c
 
 typedef union
 {

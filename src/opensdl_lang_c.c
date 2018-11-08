@@ -27,6 +27,7 @@
  *  V01.001	06-SEP-2018	Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
  */
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,7 @@
 #include "opensdl_lang.h"
 #include "opensdl_utility.h"
 #include "opensdl_message.h"
+#include "opensdl_main.h"
 
 extern char *sdl_months[];
 extern _Bool trace;
@@ -290,8 +292,9 @@ static char *_sdl_c_leading_spaces(int depth);
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_commentStars(FILE *fp)
 {
@@ -320,7 +323,15 @@ uint32_t sdl_c_commentStars(FILE *fp)
      * Write out the string to the output file.
      */
     if (fprintf(fp, "%s\n", str) < 0)
-	retVal = SDL_ABORT;	/* TODO: RMS_WER */
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return back to the caller.
@@ -345,8 +356,9 @@ uint32_t sdl_c_commentStars(FILE *fp)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
 {
@@ -389,8 +401,16 @@ uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
     /*
      * Write out the string to the output file.
      */
-    retVal = fprintf(fp, "%s\n", str);
-    retVal = (retVal < 0) ? SDL_ABORT : SDL_NORMAL;	/* TODO: RMS_WER */
+    if (fprintf(fp, "%s\n", str) < 0)
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
 
 
     /*
@@ -416,8 +436,9 @@ uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
 {
@@ -484,7 +505,15 @@ uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
      * Write out the string to the output file.
      */
     if (fprintf(fp, "%s\n", str) < 0)
-	retVal = SDL_ABORT;	/* TODO: RMS_WER */
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return back to the caller.
@@ -518,8 +547,9 @@ uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_comment(
 		FILE *fp,
@@ -564,18 +594,26 @@ uint32_t sdl_c_comment(
     else
 	whichComment = "%s";
 
-    /*
-     * If the file has been opened, then write out the comment.
-     */
-    if (fp != NULL)
+    if (fprintf(fp, whichComment, comment) < 0)
     {
-	if (fprintf(fp, whichComment, comment) < 0)
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
-	else if (fprintf(fp, "\n") < 0)
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
-    }
-    else
 	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
+    else if (fprintf(fp, "\n") < 0)
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -599,8 +637,9 @@ uint32_t sdl_c_comment(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 {
@@ -613,63 +652,103 @@ uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 	printf("%s:%d:sdl_c_module\n", __FILE__, __LINE__);
 
     /*
-     * OK, time to write out the OpenSDL Parser's MODULE header.
+     * Write out the MODULE comment at near the top of the file.
      */
-    if (fp != NULL)
+    if (fprintf(fp, "\n/*** MODULE %s ", context->module) < 0)
     {
-
-	/*
-	 * Write out the MODULE comment at near the top of the file.
-	 */
-	if (fprintf(fp, "\n/*** MODULE %s ", context->module) < 0)
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
-	else if ((context->ident != NULL) && (strlen(context->ident) > 0))
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
+    else if ((context->ident != NULL) && (strlen(context->ident) > 0))
+    {
+	if (fprintf(fp, "IDENT = %s ", context->ident) < 0)
 	{
-	    if (fprintf(fp, "IDENT = %s ", context->ident) < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
 	}
-	if ((retVal == SDL_NORMAL) && (fprintf(fp, "***/\n") < 0))
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+    }
+    if ((retVal == SDL_NORMAL) && (fprintf(fp, "***/\n") < 0))
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
 
-	/*
-	 * We include some standard C headers that will simplify the rest of
-	 * the definitions.
-	 */
-	if ((retVal == SDL_NORMAL) &&
-	    (fprintf(
+    /*
+     * We include some standard C headers that will simplify the rest of
+     * the definitions.
+     */
+    if ((retVal == SDL_NORMAL) &&
+	(fprintf(
 		fp,
 		"#include <ctype.h>\n"
 		"#include <stdint.h>\n"
 		"#include <stdbool.h>\n"
 		"#include <complex.h>\n") < 0))
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
-
-	/*
-	 * We now put in the "if not defined" statements to make sure that this
-	 * header file, itself, can only be included once.
-	 */
-	if (retVal == SDL_NORMAL)
-	{
-	    if (fprintf(
-			fp,
-			"\n#ifndef _%s_\n#define _%s_ 1\n",
-			strupr(context->module),
-			strupr(context->module)) < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
-	}
-
-	/*
-	 * Finally, put in the items to allow C++ to be able to include this
-	 * header file.
-	 */
-	if ((retVal == SDL_NORMAL) && (fprintf(
-				fp,
-				"#ifdef __cplusplus\nextern \"C\" {\n"
-				"#endif\n") < 0))
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
-    }
-    else
+    {
 	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
+
+    /*
+     * We now put in the "if not defined" statements to make sure that this
+     * header file, itself, can only be included once.
+     */
+    if (retVal == SDL_NORMAL)
+    {
+	if (fprintf(
+		fp,
+		"\n#ifndef _%s_\n#define _%s_ 1\n",
+		strupr(context->module),
+		strupr(context->module)) < 0)
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
+    }
+
+    /*
+     * Finally, put in the items to allow C++ to be able to include this
+     * header file.
+     */
+    if ((retVal == SDL_NORMAL) &&
+	(fprintf(
+		fp,
+		"#ifdef __cplusplus\nextern \"C\" {\n"
+		"#endif\n") < 0))
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -693,8 +772,9 @@ uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
 {
@@ -707,23 +787,22 @@ uint32_t sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
 	printf("%s:%d:sdl_c_cmodule_end\n", __FILE__, __LINE__);
 
     /*
-     * OK, time to write out the OpenSDL Parser's MODULE footer.
+     * Finally, close of the C++ mode and the close to only allow this
+     * header file to be included once.
      */
-    if (fp != NULL)
-    {
-
-	/*
-	 * Finally, close of the C++ mode and the close to only allow this
-	 * header file to be included once.
-	 */
-	if (fprintf(
+    if (fprintf(
 		fp,
 		"\n#ifdef __cplusplus\n}\n#endif\n#endif /* _%s_ */\n",
 		strupr(context->module)) < 0)
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
-    }
-    else
+    {
 	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -748,8 +827,10 @@ uint32_t sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_INVNAME:	Invalid item name specified.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 {
@@ -772,7 +853,7 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
     /*
      * Output the ITEM declaration.
      */
-    if ((fp != NULL) && (name != NULL))
+    if (name != NULL)
     {
 	type = _sdl_c_typeidStr(
 			item->type,
@@ -787,12 +868,28 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	if (item->typeDef == true)
 	{
 	    if (fprintf(fp, "typedef ") < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+	    }
 	}
 	else if (item->commonDef == true)
 	{
 	    if (fprintf(fp, "extern ") < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+	    }
 	}
 
 	/*
@@ -808,14 +905,31 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 			"char string_text[%ld];} %s",
 			item->length,
 			name) < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	    else
 	    {
 		char *addr = ((item->type == SDL_K_TYPE_ADDR) ||
 			      (item->type == SDL_K_TYPE_PTR)) ? "*" : "";
+
 		if (fprintf(fp, "%s %s%s", type, addr, name) < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	}
 
@@ -827,7 +941,15 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	    if (sdl_isBitfield(&dummy) == true)
 	    {
 		if (fprintf(fp, " : %ld", item->length) < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	    else if ((item->dimension == true) ||
 		     (item->type == SDL_K_TYPE_DECIMAL))
@@ -839,12 +961,28 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 		else
 		    len = item->hbound - item->lbound + 1;
 		if (fprintf(fp, "[%ld]", len) < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	    else if ((item->length > 0) && (item->type == SDL_K_TYPE_CHAR))
 	    {
 		if (fprintf(fp, "[%ld]", item->length) < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	}
 
@@ -860,10 +998,25 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
 	 */
 	if (retVal == SDL_NORMAL)
 	    if (fprintf(fp, ";\n") < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+	    }
     }
     else
-	retVal = SDL_ABORT;
+    {
+	retVal = SDL_INVNAME;
+	if (sdl_set_message(
+			msgVec,
+			1,
+			retVal) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
+    }
 
     if (freeMe == true)
 	free(type);
@@ -891,8 +1044,11 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_UNKCONSTTYP:	Unknown constant type specified.
+ *  SDL_UNKRADIX:	Unknown radix specified.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 {
@@ -923,7 +1079,15 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
      * First the #define <name> portion.
      */
     if (fprintf(fp, "#define %s\t", name) < 0)
-	retVal = SDL_ABORT;	/* TODO: RMS_WER */
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
+    }
 
     /*
      * If first part was successful and this is a string constant, then output
@@ -935,7 +1099,15 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 	{
 	    case SDL_K_CONST_STR:
 		if (fprintf(fp, "\"%s\"\t", constant->string) < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 		break;
 
 	    case SDL_K_CONST_NUM:
@@ -943,7 +1115,15 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 		{
 		    case SDL_K_RADIX_DEC:
 			if (fprintf(fp, "%ld\t", constant->value) < 0)
-			    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 			break;
 
 		    case SDL_K_RADIX_OCT:
@@ -952,7 +1132,15 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 				"0%0*lo\t",
 				(size / 3) + 1,
 				constant->value) < 0)
-			    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 			break;
 
 		    case SDL_K_RADIX_HEX:
@@ -961,17 +1149,39 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 				"0x%0*lx\t",
 				(size / 4),
 				constant->value) < 0)
-			    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 			break;
 
 		    default:
-			retVal = SDL_ABORT;
+			retVal = SDL_UNKRADIX;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					constant->radix,
+					constant->srcLineNo) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 			break;
 		}
 		break;
 
 	    default:
-		retVal = 0;
+		retVal = SDL_UNKCONSTTYP;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				constant->type,
+				constant->srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 		break;
 	}
     }
@@ -982,13 +1192,29 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
      */
     if ((retVal == SDL_NORMAL) && (constant->comment != NULL))
 	if (fprintf(fp, "/*%s */", constant->comment) < 0)
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
 
     /*
      * Move to the next line in the output file.
      */
     if ((retVal == SDL_NORMAL) && (fprintf(fp, "\n") < 0))
-	retVal = SDL_ABORT;	/* TODO: RMS_WER */
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -1037,8 +1263,10 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_INVAGGRNAM:	Invalid aggregate name.
+ *  SDL_ABORT:		An error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_aggregate(
 		FILE *fp,
@@ -1062,7 +1290,15 @@ uint32_t sdl_c_aggregate(
 	printf("%s:%d:sdl_c_aggregate\n", __FILE__, __LINE__);
 
     if (fprintf(fp, spaces) < 0)
-	retVal = SDL_ABORT;	/* TODO: RMS_WER */
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
+    }
 
     switch (type)
     {
@@ -1082,11 +1318,27 @@ uint32_t sdl_c_aggregate(
 		{
 		    if (my.aggr->commonDef == true)
 			if (fprintf(fp, "extern ") < 0)
-			    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 		    if ((retVal == SDL_NORMAL) && (my.aggr->typeDef == true))
 		    {
 			if (fprintf(fp, "typedef ") < 0)
-			    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 		    }
 		    defVariable = my.aggr->commonDef || my.aggr->typeDef;
 		    if (retVal == SDL_NORMAL)
@@ -1096,7 +1348,15 @@ uint32_t sdl_c_aggregate(
 			char *td = (defVariable == true ? "_" : "");
 
 			if (fprintf(fp, "%s", which) < 0)
-			    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 			if ((retVal == SDL_NORMAL) &&
 			    (my.aggr->alignmentPresent == true))
 			    retVal = _sdl_c_output_alignment(
@@ -1105,7 +1365,15 @@ uint32_t sdl_c_aggregate(
 						    context);
 			if ((retVal == SDL_NORMAL) &&
 			    (fprintf(fp, " %s%s\n%s{\n", td, name, spaces) < 0))
-			    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 		    }
 		}
 		else
@@ -1114,27 +1382,67 @@ uint32_t sdl_c_aggregate(
 		    if (defVariable == true)
 		    {
 			if (fprintf(fp, "} %s", name) < 0)
-			    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 			else if (my.aggr->dimension == true)
 			{
 			    int64_t dimension = my.aggr->hbound -
 						my.aggr->lbound + 1;
 
 			    if (fprintf(fp, "[%ld]", dimension) < 0)
-				retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			    {
+				retVal = SDL_ABORT;
+				if (sdl_set_message(
+						msgVec,
+						2,
+						retVal,
+						errno) != SDL_NORMAL)
+				    retVal = SDL_ERREXIT;
+			    }
 			}
 		    }
 		    else
 		    {
 			if (fprintf(fp, "}") < 0)
-				retVal = SDL_ABORT;	/* TODO: RMS_WER */
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 		    }
 		    if ((retVal == SDL_NORMAL) && (fprintf(fp, ";\n") < 0))
-			retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		    {
+			retVal = SDL_ABORT;
+			if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		}
 	    }
 	    else
-		retVal = 0;
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	    break;
 
 	case LangSubaggregate:
@@ -1155,7 +1463,15 @@ uint32_t sdl_c_aggregate(
 			    _types[my.subaggr->aggType][bits][my.subaggr->_unsigned];
 
 		    if (fprintf(fp, "%s ", which) < 0)
-			retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		    {
+			retVal = SDL_ABORT;
+			if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		    if ((retVal == SDL_NORMAL) &&
 			(my.subaggr->parentAlignment == false))
 			retVal = _sdl_c_output_alignment(
@@ -1164,26 +1480,65 @@ uint32_t sdl_c_aggregate(
 						    context);
 		    if ((retVal == SDL_NORMAL) &&
 			(fprintf(fp, "\n%s{\n", spaces) < 0))
-			retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		    {
+			retVal = SDL_ABORT;
+			if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		}
 		else
 		{
 		    if (fprintf(fp, "} %s", name) < 0)
-			retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		    {
+			retVal = SDL_ABORT;
+			if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		    else if (my.subaggr->dimension == true)
 		    {
 			int64_t dimension = my.subaggr->hbound -
 					    my.subaggr->lbound + 1;
 
 			if (fprintf(fp, "[%ld]", dimension) < 0)
-			    retVal = 0;
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 		    }
 		    if ((retVal == SDL_NORMAL) && fprintf(fp, ";\n") < 0)
-			retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		    {
+			retVal = SDL_ABORT;
+			if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		}
 	    }
 	    else
-		retVal = 0;
+	    {
+		retVal = SDL_INVAGGRNAM;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	    break;
 
 	case LangItem:
@@ -1233,8 +1588,9 @@ uint32_t sdl_c_aggregate(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 {
@@ -1260,7 +1616,15 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     if (entry->returns.type == SDL_K_TYPE_NONE)
     {
 	if (fprintf(fp, "void %s(", entry->id) < 0)
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
     }
     else
     {
@@ -1271,14 +1635,22 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 			context,
 			&freeMe);
 	if (entry->returns._unsigned == true)
-	    outLen += sprintf(&outBuf[outLen], "unsigend ");
+	    outLen += sprintf(&outBuf[outLen], "unsigned ");
 	outLen += sprintf(&outBuf[outLen], "%s ", type);
 	if ((entry->returns.type == SDL_K_TYPE_ADDR) ||
 	    (entry->returns.type == SDL_K_TYPE_PTR))
 	    outLen += sprintf(&outBuf[outLen], "%s", "*");
 	outLen += sprintf(&outBuf[outLen], "%s(", entry->id);
 	if (fprintf(fp, outBuf) < 0)
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
 	if ((freeMe == true) && (type != NULL))
 	    free(type);
     }
@@ -1327,23 +1699,55 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 	    (param == (SDL_PARAMETER *) &entry->parameters))
 	{
 	    if (fprintf(fp, outBuf) < 0)		/* only parameter */
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	}
 	else if ((firstLine == true) &&
 		(param == (SDL_PARAMETER *) &entry->parameters))
 	{
 	    if (fprintf(fp, "\n\t%s", outBuf) < 0)	/* last parameter */
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	}
 	else
 	{
 	    if (fprintf(fp, "\n\t%s,", outBuf) < 0)	/* other parameter */
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	    firstLine = true;
 	}
     }
     if ((retVal == SDL_NORMAL) && (fprintf(fp, ");\n") < 0))
-	retVal = 0;
+    {
+	retVal = SDL_ABORT;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -1368,8 +1772,10 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_INVENUMNAM	Invalid enumeration name.
+ *  SDL_ERREXIT:	Error exit.
+ *  SDL_ABORT:		An unexpected error occurred.
  */
 uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 {
@@ -1396,12 +1802,28 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 	if (_enum->typeDef == true)
 	{
 	    if (fprintf(fp, "typedef enum _%s\n{\n", name) < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	}
 	else
 	{
 	    if (fprintf(fp, "enum %s\n{\n", name) < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	}
 
 	/*
@@ -1411,16 +1833,40 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 	      (myMem != (SDL_ENUM_MEMBER *) &_enum->members))
 	{
 	    if (fprintf(fp, "    %s", myMem->id) < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	    else
 	    {
 		if (myMem->valueSet == true)
 		{
 		    if (fprintf(fp, " = %ld,\n", myMem->value) < 0)
-			retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		    {
+			retVal = SDL_ABORT;
+			if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		}
 		else if (fprintf(fp, ",\n") < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	}
 
@@ -1428,11 +1874,27 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 	 * Finally, we need to close of the enum definition.
 	 */
 	if ((retVal == SDL_NORMAL) && (fprintf(fp, "}") < 0))
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
 	if ((retVal == SDL_NORMAL) && (_enum->typeDef == true))
 	{
 	    if (fprintf(fp, " %s", name) < 0)
-		retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	}
 	if (retVal == SDL_NORMAL)
 	    retVal = _sdl_c_output_alignment(
@@ -1440,11 +1902,27 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 					_enum->alignment,
 					context);
 	if ((retVal == SDL_NORMAL) && (fprintf(fp, ";\n") < 0))
-	    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			errno) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
 	free(name);
     }
     else
-	retVal = SDL_ABORT;
+    {
+	retVal = SDL_INVENUMNAM;
+	if (sdl_set_message(
+			msgVec,
+			1,
+			retVal,
+			_enum->srcLineNo) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -1473,8 +1951,9 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  SDL_ABORT:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ERREXIT:	Error exit.
+ *  SDL_ABORT:		An unexpected error occurred.
  */
 static uint32_t _sdl_c_output_alignment(
 		FILE *fp,
@@ -1489,12 +1968,28 @@ static uint32_t _sdl_c_output_alignment(
 	{
 	    case SDL_K_NOALIGN:
 		if (fprintf(fp, " __attribute__ ((__packed__))") < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 		break;
 
 	    case SDL_K_ALIGN:
 		if (fprintf(fp, " __attribute__ ((aligned))") < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 		break;
 
 	    default:
@@ -1502,7 +1997,15 @@ static uint32_t _sdl_c_output_alignment(
 			fp,
 			" __attribute__ ((aligned (%d)))",
 			alignment) < 0)
-		    retVal = SDL_ABORT;	/* TODO: RMS_WER */
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				errno) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 		break;
 	}
     }

@@ -72,6 +72,6 @@ bool sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);
 bool sdl_isItem(SDL_MEMBERS *member);
 bool sdl_isComment(SDL_MEMBERS *member);
 bool sdl_isBitfield(SDL_MEMBERS *member);
-bool sdl_isAddress(int *type);
+bool sdl_isAddress(int type);
 
 #endif	/* _OPENSDL_UTILITY_H_ */

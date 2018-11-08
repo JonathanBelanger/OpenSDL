@@ -24,6 +24,7 @@
  *  V01.000	04-OCT-2018	Jonathan D. Belanger
  *  Initially written.
  */
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,7 @@
 #include "opensdl_utility.h"
 #include "opensdl_actions.h"
 #include "opensdl_message.h"
+#include "opensdl_main.h"
 
 extern bool trace;
 
@@ -52,8 +54,8 @@ extern bool trace;
  *	A pointer to the location to receive the value of the local variable.
  *
  * Return Value
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
 {
@@ -83,13 +85,13 @@ uint32_t sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
 	    if (value != NULL)
 		value = 0;
 	    retVal = SDL_UNDEFSYM;
-		if (sdl_set_message(
-				msgVec,
-				1,
-				retVal,
-				name,
-				0) != SS_NORMAL)
-		    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			1,
+			retVal,
+			name,
+			0) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
 	}
 
 	/*
@@ -188,8 +190,9 @@ SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name)
  *  None.
  *
  * Return Value
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	Action invalid in current state.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_INVACTSTA:	Action invalid in current state.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLineNo)
 {
@@ -232,7 +235,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 			break;
 
 		    default:
-			retVal = 0;
+			retVal = SDL_INVACTSTA;
 			break;
 		}
 		break;
@@ -275,24 +278,24 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 			break;
 
 		    default:
-			retVal = 0;
+			retVal = SDL_INVACTSTA;
 			break;
 		}
 		break;
 
 	    case Comment:
-		retVal = 0;
+		retVal = SDL_INVACTSTA;
 		break;
 
 	    case Literal:
-		retVal = 0;
+		retVal = SDL_INVACTSTA;
 		break;
 
 	    case Local:
 		if (action == DefinitionEnd)
 		    context->state = Module;
 		else
-		    retVal = 0;
+		    retVal = SDL_INVACTSTA;
 		break;
 
 	    case Declare:
@@ -302,7 +305,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 		    sdl_declare_compl(context, srcLineNo);
 		}
 		else
-		    retVal = 0;
+		    retVal = SDL_INVACTSTA;
 		break;
 
 	    case Constant:
@@ -314,7 +317,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 			break;
 
 		    default:
-			retVal = 0;
+			retVal = SDL_INVACTSTA;
 			break;
 		}
 		break;
@@ -326,7 +329,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 		    sdl_item_compl(context, srcLineNo);
 		}
 		else
-		    retVal = 0;
+		    retVal = SDL_INVACTSTA;
 		break;
 
 	    case Aggregate:
@@ -346,7 +349,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 			break;
 
 		    default:
-			retVal = 0;
+			retVal = SDL_INVACTSTA;
 			break;
 		}
 		break;
@@ -379,7 +382,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 			break;
 
 		    default:
-			retVal = 0;
+			retVal = SDL_INVACTSTA;
 			break;
 		}
 		break;
@@ -397,15 +400,25 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 			break;
 
 		    default:
-			retVal = 0;
+			retVal = SDL_INVACTSTA;
 			break;
 		}
 		break;
 
 	    case DefinitionEnd:
-		retVal = 0;
+		retVal = SDL_INVACTSTA;
 		break;
 	}
+    }
+
+    if (retVal != SDL_NORMAL)
+    {
+	if (sdl_set_message(
+			msgVec,
+			1,
+			retVal,
+			srcLineNo) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
     }
 
     /*
@@ -429,8 +442,8 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
  *	quotes.
  *
  * Return Values:
- *  1:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  A pointer to the sting without the double quotes at the beginning and end
+ *  of the string (embedded ones will remain).
  */
 char *sdl_unquote_str(char *str)
 {
@@ -787,8 +800,9 @@ __int64_t sdl_bin2int(char *binStr)
  *	converted string.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_STRINGCONST:	String constant used in arithmetic expression.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_str2int(char *strVal, __int64_t *val)
 {
@@ -828,7 +842,16 @@ uint32_t sdl_str2int(char *strVal, __int64_t *val)
 	    ptr[ii] = strVal[ii];
     }
     else
-	retVal = 0;
+    {
+	retVal = SDL_STRINGCONST;
+	if (sdl_set_message(
+			msgVec,
+			1,
+			retVal,
+			strVal,
+			0) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
+    }
 
     /*
      * Return the results of this call back to the caller.
@@ -1190,8 +1213,9 @@ int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_UNKOPTION:	Unknown option specified.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_add_option(
 		SDL_CONTEXT *context,
@@ -1240,7 +1264,7 @@ uint32_t sdl_add_option(
 	    size = context->optionsSize * sizeof(SDL_OPTION);
 	    context->options = realloc(context->options, size);
 	    if (context->options == NULL)
-		retVal = 0;
+		retVal = ENOMEM;
 	}
 
 	/*
@@ -1256,7 +1280,13 @@ uint32_t sdl_add_option(
 		 * We should never get this one.
 		 */
 		case None:
-		    retVal = 0;
+		    retVal = SDL_UNKOPTION;
+		    if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					srcLineNo) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
 		    break;
 
 		/*
@@ -1348,7 +1378,6 @@ uint32_t sdl_add_option(
  *
  * Return Values:
  *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
  */
 uint32_t sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale)
 {
@@ -1372,6 +1401,10 @@ uint32_t sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale)
 		__LINE__,
 		precision,
 		scale);
+
+	/*
+	 * Save the precision and scale information where we can find it later.
+	 */
 	context->precision = precision;
 	context->scale = scale;
     }
@@ -2341,7 +2374,7 @@ bool sdl_isBitfield(SDL_MEMBERS *member)
  *  true:	The type is an ADDRESS.
  *  false:	The type is not an ADDRESS.
  */
-bool sdl_isAddress(int *type)
+bool sdl_isAddress(int type)
 {
     bool	retVal;
 

@@ -221,7 +221,8 @@ static void _sdl_usage(void)
  *
  * Return Values:
  *  SDL_NORMAL:		Normal successful completion.
- *  !SDL_NORMAL:	An error occurred.
+ *  SDL_INVQUAL:	An invalid qualifier was specified.
+ *  SDL_ERREXIT:	Error exit.
  */
 static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 {
@@ -264,13 +265,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			context->wordSize = 32;
 		    else
 		    {
-			retVal = SS_INVQUAL;
+			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -282,13 +283,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			context->wordSize = 64;
 		    else
 		    {
-			retVal = SS_INVQUAL;
+			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -315,19 +316,19 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-				retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
 			}
 		    }
 		    else
 		    {
-			retVal = SS_INVQUAL;
+			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -360,17 +361,17 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    free(path);
 			}
 			else
-			    retVal = SS_FATAL;
+			    retVal = SDL_ERREXIT;
 		    }
 		    else
 		    {
-			retVal = SS_INVQUAL;
+			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -385,13 +386,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			_sdl_usage();
 		    else
 		    {
-			retVal = SS_INVQUAL;
+			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -441,21 +442,21 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 							msgVec,
 							1,
 							retVal,
-							lang) != SS_NORMAL)
-					    retVal = SS_FATAL;
+							lang) != SDL_NORMAL)
+					    retVal = SDL_ERREXIT;
 				    }
 				}
 				jj++;
 			    }
 			    if ((langSet == false) && (retVal == SDL_NORMAL))
 			    {
-				retVal = SS_INVQUAL;
+				retVal = SDL_INVQUAL;
 				if (sdl_set_message(
 						msgVec,
 						1,
 						retVal,
-						argv[ii]) != SS_NORMAL)
-				    retVal = SS_FATAL;
+						argv[ii]) != SDL_NORMAL)
+				    retVal = SDL_ERREXIT;
 			    }
 			}
 		    }
@@ -463,13 +464,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    {	/* ignore for now */	}
 		    else
 		    {
-			retVal = SS_INVQUAL;
+			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -482,13 +483,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			context->memberAlign = true;
 		    else if (strncasecmp(argv[ii], "-module", 7) != 0)
 		    {
-			retVal = SS_INVQUAL;
+			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -523,13 +524,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			     (strcmp(argv[ii], "-nomodule") != 0) &&
 		    	     (strcmp(argv[ii], "-noparse") != 0))
 		    {
-			retVal = SS_INVQUAL;
+			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -556,7 +557,7 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    else if (strncasecmp(ptr, "tag", 3) == 0)
 				context->suppressTag= true;
 			    else
-				retVal = SS_INVQUAL;
+				retVal = SDL_INVQUAL;
 			    if (retVal == SDL_NORMAL)
 			    {
 				ptr = strchr(argv[ii], ',');
@@ -568,12 +569,12 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 				    else if (strncasecmp(ptr, "tag", 3) == 0)
 					context->suppressTag= true;
 				    else
-					retVal = SS_INVQUAL;
+					retVal = SDL_INVQUAL;
 				}
 			    }
 			}
 			else
-			    retVal = SS_INVQUAL;
+			    retVal = SDL_INVQUAL;
 		    }
 		    else if (strncmp(argv[ii], "-symbol", 6) == 0)
 		    {
@@ -636,19 +637,18 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 				retVal = SDL_ABORT;
 			}
 			else
-			    retVal = SS_INVQUAL;
+			    retVal = SDL_INVQUAL;
 		    }
 		    else
-			retVal = SS_INVQUAL;
-		    if (retVal == SS_INVQUAL)
+			retVal = SDL_INVQUAL;
+		    if (retVal == SDL_INVQUAL)
 		    {
-			retVal = SS_INVQUAL;
 			if (sdl_set_message(
 					msgVec,
 					1,
 					retVal,
-					argv[ii]) != SS_NORMAL)
-			    retVal = SS_FATAL;
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		    break;
 
@@ -660,13 +660,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 	    context->inputFile = strdup(argv[ii++]);
 	else
 	{
-	    retVal = SS_INVQUAL;
+	    retVal = SDL_INVQUAL;
 	    if (sdl_set_message(
 			    msgVec,
 			    1,
 			    retVal,
-				argv[ii]) != SS_NORMAL)
-		    retVal = SS_FATAL;
+				argv[ii]) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 	}
 	ii++;
     }
@@ -791,10 +791,10 @@ int main(int argc, char *argv[])
      * Parse out the command line arguments.
      */
     status = _sdl_parse_args(argc, argv, &context);
-    if ((status != SDL_NORMAL) && (status != SS_FATAL))
+    if ((status != SDL_NORMAL) && (status != SDL_ERREXIT))
     {
 	status = sdl_get_message(msgVec, &msgTxt);
-	if (status == SS_NORMAL)
+	if (status == SDL_NORMAL)
 	    fprintf(stderr, errFmt, msgTxt);
 	free(msgTxt);
 	return(-1);
@@ -806,9 +806,9 @@ int main(int argc, char *argv[])
 			msgVec,
 			1,
 			SDL_NOINPFIL);
-	if (status == SS_NORMAL)
+	if (status == SDL_NORMAL)
 	    status = sdl_get_message(msgVec, &msgTxt);
-	if (status == SS_NORMAL)
+	if (status == SDL_NORMAL)
 	    fprintf(stderr, errFmt, msgTxt);
 	free(msgTxt);
 	return(-1);
@@ -824,10 +824,10 @@ int main(int argc, char *argv[])
 			2,
 			SDL_INFILOPN,
 			context.inputFile,
-			RMS_FNF);
-	if (status == SS_NORMAL)
+			errno);
+	if (status == SDL_NORMAL)
 	    status = sdl_get_message(msgVec, &msgTxt);
-	if (status == SS_NORMAL)
+	if (status == SDL_NORMAL)
 	    fprintf(stderr, errFmt, msgTxt);
 	free(msgTxt);
 	return(-1);
@@ -845,9 +845,9 @@ int main(int argc, char *argv[])
 				msgVec,
 				1,
 				SDL_NOCOPYFIL);
-	    if (status == SS_NORMAL)
+	    if (status == SDL_NORMAL)
 		status = sdl_get_message(msgVec, &msgTxt);
-	    if (status == SS_NORMAL)
+	    if (status == SDL_NORMAL)
 		fprintf(stderr, errFmt, msgTxt);
 	}
 	else if ((cfp = fopen(context.copyrightFile, "r")) == NULL)
@@ -857,10 +857,10 @@ int main(int argc, char *argv[])
 				2,
 				SDL_INFILOPN,
 				context.copyrightFile,
-				RMS_FNF);
-	    if (status == SS_NORMAL)
+				errno);
+	    if (status == SDL_NORMAL)
 		status = sdl_get_message(msgVec, &msgTxt);
-	    if (status == SS_NORMAL)
+	    if (status == SDL_NORMAL)
 		fprintf(stderr, errFmt, msgTxt);
 	}
 	if (msgTxt != NULL)
@@ -927,10 +927,10 @@ int main(int argc, char *argv[])
 				2,
 				SDL_OUTFILOPN,
 				context.outFileName[ii],
-				RMS_FNF);
-		if (status == SS_NORMAL)
+				errno);
+		if (status == SDL_NORMAL)
 		    status = sdl_get_message(msgVec, &msgTxt);
-		if (status == SS_NORMAL)
+		if (status == SDL_NORMAL)
 		    fprintf(stderr, errFmt, msgTxt);
 		free(msgTxt);
 		return(-1);

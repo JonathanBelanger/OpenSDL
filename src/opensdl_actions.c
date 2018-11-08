@@ -31,6 +31,7 @@
  *  Added a more complete definition of the possible data type keywords we can
  *  get from the parser.
  */
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,6 +43,7 @@
 #include "opensdl_lang.h"
 #include "opensdl_utility.h"
 #include "opensdl_message.h"
+#include "opensdl_main.h"
 
 extern _Bool trace;
 
@@ -229,8 +231,9 @@ static uint32_t _sdl_create_bitfield_constants(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
 {
@@ -318,8 +321,9 @@ uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
 {
@@ -522,7 +526,13 @@ int sdl_set_local(
 	    else
 	    {
 		free(name);
-		retVal = 0;
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 	    }
 	}
 
@@ -558,8 +568,9 @@ int sdl_set_local(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_module(
 		SDL_CONTEXT *context,
@@ -621,8 +632,10 @@ uint32_t sdl_module(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_MATCHEND:	The module name specified on END does not match MODULE.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
 {
@@ -648,8 +661,8 @@ uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
 		1,
 		retVal,
 		context->module,
-		srcLineNo) != SS_NORMAL)
-	    retVal = SDL_ABORT;
+		srcLineNo) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
     }
 
     /*
@@ -1009,8 +1022,9 @@ uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_literal(
 		SDL_CONTEXT *context,
@@ -1058,7 +1072,13 @@ uint32_t sdl_literal(
 	}
 	else
 	{
-	    retVal = 0;
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 	    free(line);
 	}
     }
@@ -1089,8 +1109,9 @@ uint32_t sdl_literal(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_literal_end(
 		SDL_CONTEXT *context,
@@ -1136,7 +1157,15 @@ uint32_t sdl_literal_end(
 			    context->outFP[ii],
 			    "%s\n",
 			    literalLine->line) < 0)
-			retVal = 0;
+		    {
+			retVal = SDL_ABORT;
+			if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					errno) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		}
 
 	    /*
@@ -1172,8 +1201,9 @@ uint32_t sdl_literal_end(
  *  None.
  *
  * Return Value:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_declare(
 		SDL_CONTEXT *context,
@@ -1225,7 +1255,13 @@ uint32_t sdl_declare(
 	    }
 	    else
 	    {
-		retVal = 0;
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 		free(name);
 	    }
 	}
@@ -1255,7 +1291,6 @@ uint32_t sdl_declare(
  *
  * Return Value:
  *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
  */
 uint32_t sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
 {
@@ -1334,8 +1369,9 @@ uint32_t sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_item(
 		SDL_CONTEXT *context,
@@ -1384,7 +1420,13 @@ uint32_t sdl_item(
 	}
 	else
 	{
-	    retVal = 0;
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
 	    free(name);
 	}
     }
@@ -1413,8 +1455,9 @@ uint32_t sdl_item(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ADROBJBAS:	Aggregate must have BASED storage class.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
 {
@@ -1520,7 +1563,7 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
 		{
 		    SDL_AGGREGATE *myAggr;
 
-		    myAggr = sdl_get_aggregate(context->aggregates, addrType);
+		    myAggr = sdl_get_aggregate(&context->aggregates, addrType);
 		    if ((myAggr != NULL) && (myAggr->basedPtrName == NULL))
 		    {
 			retVal = SDL_ADROBJBAS;
@@ -1529,8 +1572,8 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
 				1,
 				retVal,
 				myAggr->id,
-				srcLineNo) != SS_NORMAL)
-			    retVal = SDL_ABORT;
+				srcLineNo) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		}
 	    }
@@ -1582,7 +1625,6 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
  *
  * Return Values:
  *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
  */
 uint32_t sdl_constant(
 		SDL_CONTEXT *context,
@@ -1647,8 +1689,9 @@ uint32_t sdl_constant(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An expected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 #define _SDL_OUTPUT_COMMENT	0
 #define _SDL_COMMA_		2
@@ -1788,7 +1831,15 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 		if (myConst != NULL)
 		    retVal = _sdl_queue_constant(context, myConst);
 		else
-		    retVal = 0;
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 
 	    /*
@@ -1825,11 +1876,25 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 		    {
 			free(myEnum);
 			myEnum = NULL;
-			retVal = 0;
+			retVal = SDL_ABORT;
+			if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					ENOMEM) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
 		    }
 		}
 		else
-		    retVal = 0;
+		{
+		    myEnum = NULL;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	}
 	else	/* list of CONSTANTs or ENUMs */
@@ -1856,7 +1921,15 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 				    typeDef,
 				    srcLineNo);
 		if (myEnum == NULL)
-		    retVal = 0;
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 
 	    sdl_trim_str(ptr, SDL_M_LEAD);
@@ -1925,7 +1998,15 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 			if (myConst != NULL)
 			    retVal = _sdl_queue_constant(context, myConst);
 			else
-			    retVal = 0;
+			{
+			    retVal = SDL_ABORT;
+			    if (sdl_set_message(
+					msgVec,
+					2,
+					retVal,
+					ENOMEM) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 			if (freeTag == true)
 			{
 			    free(tag);
@@ -2018,8 +2099,9 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_aggregate(
 		SDL_CONTEXT *context,
@@ -2069,7 +2151,15 @@ uint32_t sdl_aggregate(
 	    context->aggregateDepth++;
 	}
 	else
-	    retVal = 0;
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			ENOMEM) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
     }
 
     /*
@@ -2102,8 +2192,9 @@ uint32_t sdl_aggregate(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_aggregate_member(
 		SDL_CONTEXT *context,
@@ -2589,7 +2680,7 @@ uint32_t sdl_aggregate_member(
 						    1,
 						    retVal,
 						    myMember->item.id,
-						    srcLineNo) != SS_NORMAL)
+						    srcLineNo) != SDL_NORMAL)
 					retVal = SDL_ABORT;
 				}
 				break;
@@ -2605,8 +2696,8 @@ uint32_t sdl_aggregate_member(
 					msgVec,
 					1,
 					retVal,
-					srcLineNo) != SS_NORMAL)
-				    retVal = SDL_ABORT;
+					srcLineNo) != SDL_NORMAL)
+				    retVal = SDL_ERREXIT;
 				break;
 
 			    case SDL_K_TYPE_ADDR:
@@ -2625,7 +2716,7 @@ uint32_t sdl_aggregate_member(
 				    SDL_AGGREGATE *lclAggr;
 
 				    lclAggr = sdl_get_aggregate(
-						    context->aggregates,
+						    &context->aggregates,
 						    subType);
 				    if ((lclAggr != NULL) &&
 					(lclAggr->basedPtrName == NULL))
@@ -2636,8 +2727,8 @@ uint32_t sdl_aggregate_member(
 						1,
 						retVal,
 						lclAggr->id,
-						srcLineNo) != SS_NORMAL)
-					    retVal = SDL_ABORT;
+						srcLineNo) != SDL_NORMAL)
+					    retVal = SDL_ERREXIT;
 				    }
 				}
 				break;
@@ -2711,7 +2802,24 @@ uint32_t sdl_aggregate_member(
 		}
 	    }
 	    else
-		retVal = 0;
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
+	}
+	else
+	{
+	    retVal = SDL_INVAGGRNAM;
+	    if (sdl_set_message(
+			msgVec,
+			1,
+			retVal) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
 	}
     }
 
@@ -2741,8 +2849,11 @@ uint32_t sdl_aggregate_member(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_MATCHEND:	Specified name does not match AGGREGATE name.
+ *  SADL_NULLSTRUCT:	An aggregate with no members was defined.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 {
@@ -2903,7 +3014,7 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	     */
 	    context->currentAggr = NULL;
 	    myAggr->size = _sdl_aggregate_size(context, myAggr, NULL);
-	    if ((name != NULL) && (strcmp(myAggr->id) != 0))
+	    if ((name != NULL) && (strcmp(myAggr->id, name) != 0))
 	    {
 		retVal = SDL_MATCHEND;
 		if (sdl_set_message(
@@ -2911,10 +3022,10 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 				1,
 				retVal,
 				myAggr->id,
-				srcLineNo) != SS_NORMAL)
-		    retVal = SDL_ABORT;
+				srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 	    }
-	    else if (SDL_Q_EMPTY(myAggr->members) == true)
+	    else if (SDL_Q_EMPTY(&myAggr->members) == true)
 	    {
 		retVal = SDL_NULLSTRUCT;
 		if (sdl_set_message(
@@ -2922,8 +3033,8 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 				1,
 				retVal,
 				myAggr->id,
-				srcLineNo) != SS_NORMAL)
-		    retVal = SDL_ABORT;
+				srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 	    }
 
 	    /*
@@ -2979,7 +3090,7 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	{
 	    context->currentAggr = mySubAggr->parent;
 	    mySubAggr->size = _sdl_aggregate_size(context, NULL, mySubAggr);
-	    if ((name != NULL) && (strcmp(mySubAggr->id) != 0))
+	    if ((name != NULL) && (strcmp(mySubAggr->id, name) != 0))
 	    {
 		retVal = SDL_MATCHEND;
 		if (sdl_set_message(
@@ -2987,10 +3098,10 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 				1,
 				retVal,
 				mySubAggr->id,
-				srcLineNo) != SS_NORMAL)
-		    retVal = SDL_ABORT;
+				srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 	    }
-	    else if (SDL_Q_EMPTY(mySubAggr->members) == true)
+	    else if (SDL_Q_EMPTY(&mySubAggr->members) == true)
 	    {
 		retVal = SDL_NULLSTRUCT;
 		if (sdl_set_message(
@@ -2998,8 +3109,8 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 				1,
 				retVal,
 				mySubAggr->id,
-				srcLineNo) != SS_NORMAL)
-		    retVal = SDL_ABORT;
+				srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
 	    }
 	}
     }
@@ -3029,8 +3140,9 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
 {
@@ -3121,7 +3233,15 @@ uint32_t sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
 					    context);
 	}
 	else
-	    retVal = 0;
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			ENOMEM) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
     }
 
     /*
@@ -3156,8 +3276,9 @@ uint32_t sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_add_parameter(
 		SDL_CONTEXT *context,
@@ -3260,7 +3381,15 @@ uint32_t sdl_add_parameter(
 	    context->parameters[context->parameterIdx++] = param;
 	}
 	else
-	    retVal = 0;
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			2,
+			retVal,
+			ENOMEM) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
     }
 
     /*
@@ -3316,8 +3445,11 @@ uint32_t sdl_add_parameter(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_SYMNOTDEF:	The symbol specified has not been defined.
+ *  SDL_INVCONDST:	Invalid condition state.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_conditional(
 		SDL_CONTEXT *context,
@@ -3396,12 +3528,20 @@ uint32_t sdl_conditional(
 				    1,
 				    retVal,
 				    symbol,
-				    srcLineNo) != SS_NORMAL)
-			retVal = SDL_ABORT;
+				    srcLineNo) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
 		}
 	    }
 	    else
-		retVal = 0;
+	    {
+		retVal = SDL_INVCONDST;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	    break;
 
 	/*
@@ -3456,7 +3596,15 @@ uint32_t sdl_conditional(
 		    }
 		}
 		else
-		    retVal = 0;
+		{
+		    retVal = SDL_INVCONDST;
+		    if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				srcLineNo) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	    langs->listUsed = 0;
 	    break;
@@ -3505,7 +3653,15 @@ uint32_t sdl_conditional(
 		}
 	    }
 	    else
-		retVal = 0;
+	    {
+		retVal = SDL_INVCONDST;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	    break;
 
 	/*
@@ -3541,7 +3697,15 @@ uint32_t sdl_conditional(
 		context->processingEnabled = ~context->processingEnabled;
 	    }
 	    else if (context->processingEnabled == true)
-		retVal = 0;
+	    {
+		retVal = SDL_INVCONDST;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	    break;
 
 	/*
@@ -3565,7 +3729,15 @@ uint32_t sdl_conditional(
 		context->processingEnabled = true;
 	    }
 	    else
-		retVal = 0;
+	    {
+		retVal = SDL_INVCONDST;
+		if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				srcLineNo) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
 	    break;
 
 	/*
@@ -3596,14 +3768,28 @@ uint32_t sdl_conditional(
 			context->langEna[ii] = context->langSpec[ii];
 		}
 		else
-		    retVal = 0;
+		{
+		    retVal = SDL_INVCONDST;
+		    if (sdl_set_message(
+				msgVec,
+				1,
+				retVal,
+				srcLineNo) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	    if (langs != NULL)
 		langs->listUsed = 0;
 	    break;
 
 	default:
-	    retVal = 0;
+	    retVal = SDL_INVCONDST;
+	    if (sdl_set_message(
+			msgVec,
+			1,
+			retVal,
+			srcLineNo) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
 	    break;
     }
 
@@ -3633,8 +3819,9 @@ uint32_t sdl_conditional(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
 {
@@ -3668,10 +3855,25 @@ uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
 		    context->langCondList.lang[context->langCondList.listUsed++],
 		    langStr);
 	    else
-		retVal = 0;
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+	    }
 	}
 	else
-	    retVal = 0;
+	{
+	    retVal = SDL_ABORT;
+	    if (sdl_set_message(
+			msgVec,
+			1,
+			retVal) != SDL_NORMAL)
+		retVal = SDL_ERREXIT;
+	}
     }
 
     /*
@@ -3752,8 +3954,9 @@ void *sdl_get_language(SDL_CONTEXT *context, int srcLineNo)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected  error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 static uint32_t _sdl_aggregate_callback(
 			SDL_CONTEXT *context,
@@ -4171,13 +4374,13 @@ static SDL_CONSTANT *_sdl_create_constant(
  *
  * Return Values:
  *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
  */
 static uint32_t _sdl_queue_constant(
 		SDL_CONTEXT *context,
 		SDL_CONSTANT *myConst)
 {
-    uint32_t retVal = SDL_NORMAL;
+    uint32_t	retVal = SDL_NORMAL;
+    int		ii;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4185,27 +4388,23 @@ static uint32_t _sdl_queue_constant(
     if (trace == true)
 	printf("%s:%d:_sdl_queue_constant\n", __FILE__, __LINE__);
 
-    if (myConst != NULL)
-    {
-	int ii;
+    /*
+     * Queue up the constant for later searches.
+     */
+    SDL_INSQUE(&context->constants, &myConst->header.queue);
 
-	SDL_INSQUE(&context->constants, &myConst->header.queue);
-
-	/*
-	 * Loop through all the possible languages and call the
-	 * appropriate output function for each of the enabled
-	 * languages.
-	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
-	    if ((context->langSpec[ii] == true)
-		    && (context->langEna[ii] == true))
-		retVal = (*_outputFuncs[ii][SDL_K_CONSTANT_CB])(
-		        context->outFP[ii],
-		        myConst,
-		        context);
-    }
-    else
-	retVal = 0;
+    /*
+     * Loop through all the possible languages and call the
+     * appropriate output function for each of the enabled
+     * languages.
+     */
+    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
+	if ((context->langSpec[ii] == true) &&
+	    (context->langEna[ii] == true))
+	    retVal = (*_outputFuncs[ii][SDL_K_CONSTANT_CB])(
+			    context->outFP[ii],
+			    myConst,
+			    context);
 
     /*
      * Return the results back to the caller.
@@ -4302,7 +4501,8 @@ static SDL_ENUMERATE *_sdl_create_enum(
  */
 static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
 {
-    uint32_t retVal = SDL_NORMAL;
+    uint32_t	retVal = SDL_NORMAL;
+    int		ii;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4310,25 +4510,18 @@ static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
     if (trace == true)
 	printf("%s:%d:_sdl_enum_compl\n", __FILE__, __LINE__);
 
-    if (myEnum != NULL)
-    {
-	int ii;
-
-	/*
-	 * Loop through all the possible languages and call the
-	 * appropriate output function for each of the enabled
-	 * languages.
-	 */
-	for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
-	    if ((context->langSpec[ii] == true)
-		    && (context->langEna[ii] == true))
-		retVal = (*_outputFuncs[ii][SDL_K_ENUM_CB])(
-		        context->outFP[ii],
-		        myEnum,
-		        context);
-    }
-    else
-	retVal = 0;
+    /*
+     * Loop through all the possible languages and call the
+     * appropriate output function for each of the enabled
+     * languages.
+     */
+    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
+	if ((context->langSpec[ii] == true) &&
+	    (context->langEna[ii] == true))
+	    retVal = (*_outputFuncs[ii][SDL_K_ENUM_CB])(
+				context->outFP[ii],
+				myEnum,
+				context);
 
     /*
      * Return the results back to the caller.
@@ -4461,8 +4654,9 @@ static void _sdl_reset_options(SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected  error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 static uint32_t _sdl_iterate_members(
 		SDL_CONTEXT *context,
@@ -5643,8 +5837,9 @@ static void _sdl_check_bitfieldSizes(
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:	Normal Successful Completion.
- *  0:	An error occurred.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
 static uint32_t _sdl_create_bitfield_constants(
 		SDL_CONTEXT *context,
@@ -5689,6 +5884,17 @@ static uint32_t _sdl_create_bitfield_constants(
 				member->srcLineNo);
 	    if (constDef != NULL)
 		_sdl_queue_constant(context, constDef);
+	    else
+	    {
+		retVal = SDL_ABORT;
+		if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+		    retVal = SDL_ERREXIT;
+	    }
+
 	    if (member->item.mask == true)
 	    {
 		uint64_t mask;
@@ -5717,6 +5923,16 @@ static uint32_t _sdl_create_bitfield_constants(
 				member->srcLineNo);
 		if (constDef != NULL)
 		    _sdl_queue_constant(context, constDef);
+		else
+		{
+		    retVal = SDL_ABORT;
+		    if (sdl_set_message(
+				msgVec,
+				2,
+				retVal,
+				ENOMEM) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
+		}
 	    }
 	}
 

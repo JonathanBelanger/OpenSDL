@@ -23,6 +23,7 @@
  *  V01.000	09-OCT-2018	Jonathan D. Belanger
  *  Initially written.
  */
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,37 +111,171 @@ static SDL_MSG_ARRAY sdlmsg[] =
     {"DUPLANG", "Language name %.*s appears more than once on command line", 1, 0},
     {"NOINPFIL", "No input file specified", 0, 0},
     {"NOCOPYFIL", "No copyright input file", 0, 0},
+    {"INVACTSTA", "Invalid action for internal state [Line %d]", 0, 1},
+    {"UNKRADIX", "Unknown radix %d [Line %d]", 0, 2},
+    {"UNKCONSTTYP", "Unknown constant type %d [Line %d]", 0, 2},
+    {"INVAGGRNAM", "Invalid or no aggregate name specified", 0, 0},
+    {"INVENUMNAM", "Invalid or no enumeration name specified [Line %d]", 0, 0},
+    {"UNKOPTION", "Unknown option specified [Line %d]", 0, 1},
+    {"INVCONDST", "Unknown condition state [Line %d]", 0, 1},
+    {"INVQUAL", "Invalid qualifier, %.*s, specified on command line", 1, 0},
     {"", "", 0, 0}
 };
 
-#define RMS_MSG_BASE	4174
-static SDL_MSG_ARRAY rmsmsg[] =
+static char *sysSym[] =
 {
-    {"NORMAL", "Normal successful completion", 0, 0},
-    {"EOF", "end of file detected", 0, 0},
-    {NULL, NULL, 0, 0},
-    {NULL, NULL, 0, 0},
-    {"FNF", "file not found", 0, 0},
-    {"PRV", "insufficient privilege or file protection violation", 0, 0}
+    NULL,		/* no 0 */
+    "EPERM",		/* Not owner */
+    "ENOENT",		/* No such file or directory */
+    "ESRCH",		/* No such process */
+    "EINTR",		/* Interrupted system call */
+    "EIO",		/* I/O error */
+    "ENXIO",		/* No such device or address */
+    "E2BIG",		/* Arg list too long */
+    "ENOEXEC",		/* Exec format error */
+    "EBADF",		/* Bad file number */
+    "ECHILD",		/* No children */
+    "EAGAIN",		/* No more processes */
+    "ENOMEM",		/* Not enough space */
+    "EACCES",		/* Permission denied */
+    "EFAULT",		/* Bad address */
+    "ENOTBLK",		/* Block device required */
+    "EBUSY",		/* Device or resource busy */
+    "EEXIST",		/* File exists */
+    "EXDEV",		/* Cross-device link */
+    "ENODEV",		/* No such device */
+    "ENOTDIR",		/* Not a directory */
+    "EISDIR",		/* Is a directory */
+    "EINVAL",		/* Invalid argument */
+    "ENFILE",		/* Too many open files in system */
+    "EMFILE",		/* File descriptor value too large */
+    "ENOTTY",		/* Not a character device */
+    "ETXTBSY",		/* Text file busy */
+    "EFBIG",		/* File too large */
+    "ENOSPC",		/* No space left on device */
+    "ESPIPE",		/* Illegal seek */
+    "EROFS",		/* Read-only file system */
+    "EMLINK",		/* Too many links */
+    "EPIPE",		/* Broken pipe */
+    "EDOM",		/* Mathematics argument out of domain of function */
+    "ERANGE",		/* Result too large */
+    "ENOMSG",		/* No message of desired type */
+    "EIDRM",		/* Identifier removed */
+    "ECHRNG",		/* Channel number out of range */
+    "EL2NSYNC",		/* Level 2 not synchronized */
+    "EL3HLT",		/* Level 3 halted */
+    "EL3RST",		/* Level 3 reset */
+    "ELNRNG",		/* Link number out of range */
+    "EUNATCH",		/* Protocol driver not attached */
+    "ENOCSI",		/* No CSI structure available */
+    "EL2HLT",		/* Level 2 halted */
+    "EDEADLK",		/* Deadlock */
+    "ENOLCK",		/* No lock */
+    NULL,		/* no 47 */
+    NULL,		/* no 48 */
+    NULL,		/* no 49 */
+    NULL,		/* no 50 */
+    "EBADE",		/* Invalid exchange */
+    "EBADR",		/* Invalid request descriptor */
+    "EXFULL",		/* Exchange full */
+    "ENOANO",		/* No anode */
+    "EBADRQC",		/* Invalid request code */
+    "EBADSLT",		/* Invalid slot */
+    "EDEADLOCK",	/* File locking deadlock error */
+    "EBFONT",		/* Bad font file fmt */
+    NULL,		/* no 58 */
+    NULL,		/* no 59 */
+    "ENOSTR",		/* Not a stream */
+    "ENODATA",		/* No data (for no delay io) */
+    "ETIME",		/* Stream ioctl timeout */
+    "ENOSR",		/* No stream resources */
+    "ENONET",		/* Machine is not on the network */
+    "ENOPKG",		/* Package not installed */
+    "EREMOTE",		/* The object is remote */
+    "ENOLINK",		/* Virtual circuit is gone */
+    "EADV",		/* Advertise error */
+    "ESRMNT",		/* Srmount error */
+    "ECOMM",		/* Communication error on send */
+    "EPROTO",		/* Protocol error */
+    NULL,		/* no 72 */
+    NULL,		/* no 73 */
+    "EMULTIHOP",	/* Multihop attempted */
+    "ELBIN",		/* Inode is remote (not really error) */
+    "EDOTDOT",		/* Cross mount point (not really error) */
+    "EBADMSG",		/* Bad message */
+    NULL,		/* no 78 */
+    "EFTYPE",		/* Inappropriate file type or format */
+    "ENOTUNIQ",		/* Given log. name not unique */
+    "EBADFD",		/* f.d. invalid for this operation */
+    "EREMCHG",		/* Remote address changed */
+    "ELIBACC",		/* Can't access a needed shared lib */
+    "ELIBBAD",		/* Accessing a corrupted shared lib */
+    "ELIBSCN",		/* .lib section in a.out corrupted */
+    "ELIBMAX",		/* Attempting to link in too many libs */
+    "ELIBEXEC",		/* Attempting to exec a shared library */
+    "ENOSYS",		/* Function not implemented */
+    "ENMFILE",		/* No more files */
+    "ENOTEMPTY",	/* Directory not empty */
+    "ENAMETOOLONG",	/* File or path name too long */
+    "ELOOP",		/* Too many symbolic links */
+    NULL,		/* no 93 */
+    NULL,		/* no 94 */
+    "EOPNOTSUPP",	/* Operation not supported on socket */
+    "EPFNOSUPPORT",	/* Protocol family not supported */
+    NULL,		/* no 97 */
+    NULL,		/* no 98 */
+    NULL,		/* no 99 */
+    NULL,		/* no 100 */
+    NULL,		/* no 101 */
+    NULL,		/* no 102 */
+    NULL,		/* no 103 */
+    "ECONNRESET",	/* Connection reset by peer */
+    "ENOBUFS",		/* No buffer space available */
+    "EAFNOSUPPORT",	/* Address family not supported by protocol family */
+    "EPROTOTYPE",	/* Protocol wrong type for socket */
+    "ENOTSOCK",		/* Socket operation on non-socket */
+    "ENOPROTOOPT",	/* Protocol not available */
+    "ESHUTDOWN",	/* Can't send after socket shutdown */
+    "ECONNREFUSED",	/* Connection refused */
+    "EADDRINUSE",	/* Address already in use */
+    "ECONNABORTED",	/* Software caused connection abort */
+    "ENETUNREACH",	/* Network is unreachable */
+    "ENETDOWN",		/* Network interface is not configured */
+    "ETIMEDOUT",	/* Connection timed out */
+    "EHOSTDOWN",	/* Host is down */
+    "EHOSTUNREACH",	/* Host is unreachable */
+    "EINPROGRESS",	/* Connection already in progress */
+    "EALREADY",		/* Socket already connected */
+    "EDESTADDRREQ",	/* Destination address required */
+    "EMSGSIZE",		/* Message too long */
+    "EPROTONOSUPPORT",	/* Unknown protocol */
+    "ESOCKTNOSUPPORT",	/* Socket type not supported */
+    "EADDRNOTAVAIL",	/* Address not available */
+    "ENETRESET",	/* Connection aborted by network */
+    "EISCONN",		/* Socket is already connected */
+    "ENOTCONN",		/* Socket is not connected */
+    "ETOOMANYREFS",
+    "EPROCLIM",
+    "EUSERS",
+    "EDQUOT",
+    "ESTALE",
+    "ENOTSUP",		/* Not supported */
+    "ENOMEDIUM",	/* No medium (in tape drive) */
+    "ENOSHARE",		/* No such host or network path */
+    "ECASECLASH",	/* Filename exists with different case */
+    "EILSEQ",		/* Illegal byte sequence */
+    "EOVERFLOW",	/* Value too large for defined data type */
+    "ECANCELED",	/* Operation canceled */
+    "ENOTRECOVERABLE",	/* State not recoverable */
+    "EOWNERDEAD",	/* Previous owner died */
+    "ESTRPIPE"		/* Streams pipe error */
 };
-
-#define SYS_MSG_BASE	0
-static SDL_MSG_ARRAY sysmsg[] =
-{
-    {"NORMAL", "Normal successful completion", 0, 0},
-    {"INVQUAL", "Invalid command line qualifier %.*s", 1, 0},
-    {"FATAL", "Fatal internal error. Unable to continue execution", 0, 0},
-    {"INSVIRMEM", "Insufficient virtual memory", 0, 0}
-};
-
 
 #define SDL_K_FAC_SDL	0
-#define SDL_K_FAC_RMS	1
-#define SDL_K_FAC_SYS	2
+#define SDL_K_FAC_SYS	1
 static char *facilityName[] =
 {
     "SDL",
-    "RMS",
     "SYSTEM"
 };
 
@@ -168,7 +303,7 @@ static char severity[] = {'W', 'S', 'E', 'I', 'F'};
  *  None.
  *
  * Return Values:
- *  SS_NORMAL:	Normal successful completion.
+ *  SDL_NORMAL:	Normal successful completion.
  */
 uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
 {
@@ -177,7 +312,7 @@ uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
     SDL_MSG_FAO		*fao;
     char		*str, *ptr;
     int			ii, jj;
-    uint32_t		retVal = SS_NORMAL;
+    uint32_t		retVal = SDL_NORMAL;
     uint16_t		strCnt, intCnt;
 
     va_start(ap, msgCnt);
@@ -195,14 +330,11 @@ uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
 		intCnt = sdlmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].faoInt;
 		break;
 
-	    case RMS_K_FACILITY:
-		strCnt = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].faoStr;
-		intCnt = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].faoInt;
-		break;
-
 	    case SYSTEM_K_FACILITY:
-		strCnt = sysmsg[msgIdx->msgCode.msg_no - SYS_MSG_BASE].faoStr;
-		intCnt = sysmsg[msgIdx->msgCode.msg_no - SYS_MSG_BASE].faoInt;
+		strCnt = 0;
+		intCnt = 0;
+		msgIdx->msgCode.msgCode <<= 3;
+		msgIdx->msgCode.severity = SDL_K_ERROR;
 		break;
 
 	    default:
@@ -261,8 +393,8 @@ uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
  *	A pointer to a location to receive the message text.
  *
  * Return Values:
- *  SS_FATAL:	An error occurred trying to initialize the message vector.
- *  SS_NORMAL:	Normal successful completion.
+ *  SDL_NORMAL:		Normal successful completion.
+ *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 {
@@ -273,7 +405,7 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
     char		*ptr, *string, *facStr, *symbol;
     char		localMsgStr[SDL_LOCAL_MSG_LEN];
     int			ii;
-    uint32_t		retVal = SS_NORMAL;
+    uint32_t		retVal = SDL_NORMAL;
     uint32_t		value;
     uint16_t		length;
     uint16_t		msgStrLen = 0;
@@ -288,7 +420,7 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
     /*
      * Loop through the message vector starting at the message code.
      */
-    while ((done == false) && (retVal == SS_NORMAL))
+    while ((done == false) && (retVal == SDL_NORMAL))
     {
 
 	/*
@@ -302,15 +434,12 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 		facStr = facilityName[SDL_K_FAC_SDL];
 		break;
 
-	    case RMS_K_FACILITY:
-		symbol = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].msgSymb;
-		msgFmt = rmsmsg[msgIdx->msgCode.msg_no - RMS_MSG_BASE].msgText;
-		facStr = facilityName[SDL_K_FAC_RMS];
-		break;
-
 	    case SYSTEM_K_FACILITY:
-		symbol = sysmsg[msgIdx->msgCode.msg_no - SYS_MSG_BASE].msgSymb;
-		msgFmt = sysmsg[msgIdx->msgCode.msg_no - SYS_MSG_BASE].msgText;
+		if (msgIdx->msgCode.msg_no <= ESTRPIPE)
+		    symbol = sysSym[msgIdx->msgCode.msg_no];
+		else
+		    symbol = "EUKNOWN";
+		msgFmt = strerror(msgIdx->msgCode.msg_no);
 		facStr = facilityName[SDL_K_FAC_SYS];
 		break;
 
@@ -380,7 +509,7 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 			    symbol,
 			    localMsgStr);
 	else
-	    retVal = SS_FATAL;
+	    retVal = SDL_ERREXIT;
 	msgIdx = (SDL_MSG_VECTOR *) ptr;
 	done = (msgIdx->msgCode.msgCode == 0);
 	first = '-';

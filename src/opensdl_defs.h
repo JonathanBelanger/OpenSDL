@@ -50,10 +50,10 @@ typedef struct
     int		last_column;
 } SDL_YYLTYPE;
 
-#define SDL_K_VERSION_TYPE	'X'
+#define SDL_K_VERSION_TYPE	'V'
 #define SDL_K_VERSION_MAJOR	3
 #define SDL_K_VERSION_MINOR	4
-#define SDL_K_VERSION_LEVEL	10
+#define SDL_K_VERSION_LEVEL	20181113
 
 /*
  * These are the base types supported by OpenSDL.

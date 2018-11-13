@@ -119,6 +119,7 @@ static SDL_MSG_ARRAY sdlmsg[] =
     {"UNKOPTION", "Unknown option specified [Line %d]", 0, 1},
     {"INVCONDST", "Unknown condition state [Line %d]", 0, 1},
     {"INVQUAL", "Invalid qualifier, %.*s, specified on command line", 1, 0},
+    {"PARSEERR", "%.*s", 1, 0},
     {"", "", 0, 0}
 };
 
@@ -469,6 +470,8 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 		    ptr += length;
 		    break;
 	    }
+	    fao = (SDL_MSG_FAO *) ptr;
+	    ptr = (char *) fao + sizeof(SDL_MSG_FAO);
 	}
 
 	/*

@@ -42,6 +42,14 @@
 #include <stdio.h>
 #include "opensdl_queue.h"
 
+typedef struct
+{
+    int		first_line;
+    int		first_column;
+    int		last_line;
+    int		last_column;
+} SDL_YYLTYPE;
+
 #define SDL_K_VERSION_TYPE	'X'
 #define SDL_K_VERSION_MAJOR	3
 #define SDL_K_VERSION_MINOR	4
@@ -260,9 +268,9 @@ typedef struct _sdl_header
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*id; /* Variable name	*/
     int64_t		value; /* Variable value	*/
-    int			srcLineNo;
 } SDL_LOCAL_VARIABLE;
 
 /*
@@ -273,8 +281,8 @@ typedef struct
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*line;
-    int			srcLineNo;
 } SDL_LITERAL;
 
 /*
@@ -283,6 +291,7 @@ typedef struct
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*comment;
     char		*id;
     char		*prefix;
@@ -296,7 +305,6 @@ typedef struct
     int			radix;
     int			type;	/* Numeric or String */
     int			size;	/* Number of bytes to be output (for masks) */
-    int			srcLineNo;
 } SDL_CONSTANT;
 
 /*
@@ -306,16 +314,17 @@ typedef struct
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*comment;
     char		*id;
     int64_t		value;
-    int			srcLineNo;
     bool		valueSet;
 } SDL_ENUM_MEMBER;
 
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     SDL_QUEUE		members;
     char		*id;
     char		*prefix;
@@ -323,7 +332,6 @@ typedef struct
     int64_t		size;
     int			typeID;
     int			alignment;
-    int			srcLineNo;
     bool		typeDef;
 } SDL_ENUMERATE;
 
@@ -339,11 +347,11 @@ typedef struct
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*id;
     char		*prefix;
     char		*tag;
     int64_t		size;
-    int			srcLineNo;
     int			type;
     int			typeID;
     bool		_unsigned;
@@ -361,6 +369,7 @@ typedef struct
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*id;
     char		*prefix;
     char		*tag;
@@ -374,7 +383,6 @@ typedef struct
     int64_t		size;
     int			alignment;
     int			bitOffset;	/* for BITFIELDs only	*/
-    int			srcLineNo;
     int			type;		/* data or user type	*/
     int			typeID;
     bool		commonDef;
@@ -402,6 +410,7 @@ typedef struct
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*comment;
     char		*name;
     char		*typeName;
@@ -409,7 +418,6 @@ typedef struct
     int64_t		bound;
     int64_t		defaultValue;
     int			passingMech;
-    int			srcLineNo;
     int			type;
     bool		defaultPresent;
     bool		dimension;
@@ -422,22 +430,22 @@ typedef struct
 
 typedef struct
 {
+    SDL_YYLTYPE		loc;
     char		*name;
     int64_t		type;
-    int			srcLineNo;
     bool		_unsigned;
 } SDL_RETURNS;
 
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*alias;
     char		*id;
     char		*linkage;
     char		*typeName;
     SDL_QUEUE		parameters;
     SDL_RETURNS		returns;
-    int			srcLineNo;
     bool		variable;
 } SDL_ENTRY;
 
@@ -483,6 +491,7 @@ typedef struct
 typedef struct _sdl_member
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     union
     {
 	SDL_ITEM    	item;
@@ -490,20 +499,20 @@ typedef struct _sdl_member
 	SDL_COMMENT	comment;
     };
     int64_t		offset;
-    int			srcLineNo;
     int			type;
 } SDL_MEMBERS;
 
 typedef struct
 {
+    SDL_YYLTYPE		loc;
     char 		*id;
     SDL_MEMBERS		*origin;
-    int			srcLineNo;
 } SDL_ORIGIN;
 
 typedef struct
 {
     SDL_HEADER		header;
+    SDL_YYLTYPE		loc;
     char		*basedPtrName;
     char		*id;
     char		*marker;
@@ -518,7 +527,6 @@ typedef struct
     int			aggType;
     int			alignment;
     int			currentBitOffset;
-    int			srcLineNo;
     int			type;
     int			typeID;
     bool		alignmentPresent;
@@ -602,12 +610,12 @@ typedef enum
 typedef struct
 {
     SDL_OPTION_TYPE	option;
+    SDL_YYLTYPE		loc;
     union
     {
 	int64_t	value;
 	char	*string;
     };
-    int			srcLineNo;
 } SDL_OPTION;
 
 /*
@@ -684,14 +692,14 @@ typedef struct
  */
 typedef struct
 {
-    char			*id;
+    SDL_YYLTYPE		loc;
+    char		*id;
     union
     {
 	int64_t	value;
 	char	*valueStr;
     };
     bool		string;
-    int			srcLineNo;
 } SDL_CONSTANT_DEF;
 
 /*
@@ -752,12 +760,14 @@ typedef struct
     SDL_AGGREGATE_LIST	aggregates;
     SDL_ENUM_LIST	enums;
     SDL_STATE		state;
-    SDL_STATE		constantPrevState;
+    SDL_STATE		*stateStack;
     SDL_COND_STATE	condState;
     SDL_QUEUE		locals;
     SDL_QUEUE		constants;
     SDL_QUEUE		entries;
     SDL_CONSTANT_DEF	constDef;
+    SDL_YYLTYPE		modEndloc;
+    SDL_YYLTYPE		modStartloc;
     SDL_LANGUAGE_LIST	langCondList;
     SDL_SYMBOL_LIST	symbCondList;
     int64_t		precision;
@@ -769,8 +779,8 @@ typedef struct
     int			optionsSize;
     int			parameterIdx;
     int			parameterSize;
-    int			modEndSrcLineNo;
-    int			modSrcLineNo;
+    int			stateIdx;
+    int			stateSize;
     int			wordSize;	/* 32 or 64 */
     bool		checkAlignment;
     bool		commentsOff;
@@ -781,5 +791,11 @@ typedef struct
     bool		suppressPrefix;
     bool		suppressTag;
 } SDL_CONTEXT;
+
+#define SDL_COPY_LOC(dest, src)						\
+		(dest).first_column = (src)->first_column;		\
+		(dest).first_line = (src)->first_line;			\
+		(dest).last_column = (src)->last_column;		\
+		(dest).last_line = (src)->last_line
 
 #endif /* _OPENSDL_DEFS_H_ */

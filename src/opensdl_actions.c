@@ -45,8 +45,6 @@
 #include "opensdl_message.h"
 #include "opensdl_main.h"
 
-extern _Bool trace;
-
 /*
  * Define the language specific entry-points.
  */
@@ -162,7 +160,7 @@ static SDL_CONSTANT *_sdl_create_constant(
 		int64_t value,
 		char *string,
 		int size,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 static uint32_t _sdl_queue_constant(
 		SDL_CONTEXT *context,
 		SDL_CONSTANT *myConst);
@@ -172,7 +170,7 @@ static SDL_ENUMERATE *_sdl_create_enum(
 		char *prefix,
 		char *tag,
 		bool typeDef,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum);
 static bool _sdl_all_lower(const char *str);
 static void _sdl_reset_options(SDL_CONTEXT *context);
@@ -193,7 +191,7 @@ static void _sdl_fill_bitfield(
 		SDL_MEMBERS *member,
 		int bits,
 		int number,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 static int64_t _sdl_aggregate_size(
 		SDL_CONTEXT *context,
 		SDL_AGGREGATE *aggr,
@@ -224,8 +222,9 @@ static uint32_t _sdl_create_bitfield_constants(
  *	the current parsing.
  *  comment:
  *  	A pointer to the comment string to be output.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -235,7 +234,10 @@ static uint32_t _sdl_create_bitfield_constants(
  *  SDL_ABORT:		An error occurred.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
+uint32_t sdl_comment_line(
+		SDL_CONTEXT *context,
+		char *comment,
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
     int 	ii;
@@ -258,7 +260,12 @@ uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
 	 * If tracing is turned on, write out this call (calls only, no returns).
 	 */
 	if (trace == true)
-	    printf("%s:%d:sdl_comment_line\n", __FILE__, __LINE__);
+	    printf(
+		"%s:%d:sdl_comment_line ([%d:%d] to [%d:%d])\n",
+		__FILE__,
+		__LINE__,
+		loc->first_line, loc->first_column,
+		loc->last_line, loc->last_column);
 
 	/*
 	 * If this comment is in an AGGREGATE or subaggregate, then store it as
@@ -271,7 +278,7 @@ uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
 				&comment[2],	     /* ignore comment token */
 				SDL_K_TYPE_COMMENT,
 				SDL_K_TYPE_NONE,
-				srcLineNo,
+				loc,
 				true,
 				false,
 				false,
@@ -314,8 +321,9 @@ uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
  *	the current parsing.
  *  comment:
  *  	A pointer to the comment string to be output.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -325,7 +333,10 @@ uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo)
  *  SDL_ABORT:		An error occurred.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
+uint32_t sdl_comment_block(
+		SDL_CONTEXT *context,
+		char *comment,
+		SDL_YYLTYPE *loc)
 {
     char	*ptr, *nl;
     uint32_t	retVal = SDL_NORMAL;
@@ -352,7 +363,12 @@ uint32_t sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
 	 * If tracing is turned on, write out this call (calls only, no returns).
 	 */
 	if (trace == true)
-	    printf("%s:%d:sdl_comment_block\n", __FILE__, __LINE__);
+	    printf(
+		"%s:%d:sdl_comment_block ([%d:%d] to [%d:%d])\n",
+		__FILE__,
+		__LINE__,
+		loc->first_line, loc->first_column,
+		loc->last_line, loc->last_column);
 
 	/*
 	 * Loop through each line of the comment until we reach the end of the
@@ -415,7 +431,7 @@ uint32_t sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
 					ptr,
 					SDL_K_TYPE_COMMENT,
 					SDL_K_TYPE_NONE,
-					srcLineNo,
+					loc,
 					false,
 					start_comment,
 					middle_comment,
@@ -468,24 +484,25 @@ uint32_t sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo)
  *	A pointer to the name of the local variable.
  *  value:
  *	A 64-bit integer value the local variable it to be set.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
  *
  * Return Value
- *  1:	Normal Successful Completion.
- *  0:	An error occurred.
- *  -1:	Normal Successful Completion, local variable created.
+ *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_ABORT:		An unexpected error occurred.
+ *  SDL_ERREXIT:	Error exit.
  */
-int sdl_set_local(
+uint32_t sdl_set_local(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t value,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
-    int	retVal = 1;
+    int	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -516,12 +533,11 @@ int sdl_set_local(
 	 */
 	if (local == NULL)
 	{
-	    local = sdl_allocate_block(LocalBlock, NULL, srcLineNo);
+	    local = sdl_allocate_block(LocalBlock, NULL, loc);
 	    if (local != NULL)
 	    {
 		local->id = name;
 		SDL_INSQUE(&context->locals, &local->header.queue);
-		retVal = -1;
 	    }
 	    else
 	    {
@@ -561,8 +577,9 @@ int sdl_set_local(
  *  	A pointer to the MODULE module-name string to be output.
  *  identString:
  *  	A pointer to the IDENT "ident-string" string to be output.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -576,7 +593,7 @@ uint32_t sdl_module(
 		SDL_CONTEXT *context,
 		char *moduleName,
 		char *identName,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
     int ii;
@@ -585,13 +602,18 @@ uint32_t sdl_module(
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_module\n", __FILE__, __LINE__);
+	printf(
+	    "%s:%d:sdl_module ([%d:%d] to [%d:%d])\n",
+	    __FILE__,
+	    __LINE__,
+	    loc->first_line, loc->first_column,
+	    loc->last_line, loc->last_column);
 
     /*
      * Save the MODULE's module-name (and the source line number for it).
      */
     context->module = moduleName;
-    context->modSrcLineNo = srcLineNo;
+    SDL_COPY_LOC(context->modStartloc, loc);
 
     /*
      * Save the IDENT's indent-name.
@@ -625,8 +647,9 @@ uint32_t sdl_module(
  *	the current parsing.
  *  moduleName:
  *  	A pointer to the MODULE module-name string.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -637,7 +660,10 @@ uint32_t sdl_module(
  *  SDL_ABORT:		An unexpected error occurred.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
+uint32_t sdl_module_end(
+		SDL_CONTEXT *context,
+		char *moduleName,
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
     int		ii;
@@ -646,12 +672,17 @@ uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_module_end\n", __FILE__, __LINE__);
+	printf(
+	    "%s:%d:sdl_module_end ([%d:%d] to [%d:%d])\n",
+	    __FILE__,
+	    __LINE__,
+	    loc->first_line, loc->first_column,
+	    loc->last_line, loc->last_column);
 
     /*
      * Save the source line number for the END_MODULE.
      */
-    context->modEndSrcLineNo = srcLineNo;
+    SDL_COPY_LOC(context->modEndloc, loc);
 
     if ((moduleName != NULL) && (strcmp(context->module, moduleName) != 0))
     {
@@ -661,7 +692,7 @@ uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
 		1,
 		retVal,
 		context->module,
-		srcLineNo) != SDL_NORMAL)
+		loc->first_line) != SDL_NORMAL)
 	    retVal = SDL_ERREXIT;
     }
 
@@ -1015,8 +1046,9 @@ uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo)
  *	A pointer to the queue containing the current set of literal lines.
  *  line:
  *  	A pointer to the line of text from the input file.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1030,7 +1062,7 @@ uint32_t sdl_literal(
 		SDL_CONTEXT *context,
 		SDL_QUEUE *literals,
 		char *line,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     SDL_LITERAL	*literalLine;
     uint32_t	retVal = SDL_NORMAL;
@@ -1064,7 +1096,7 @@ uint32_t sdl_literal(
 		(int) len,
 		line);
 
-	literalLine = sdl_allocate_block(LiteralBlock, NULL, srcLineNo);
+	literalLine = sdl_allocate_block(LiteralBlock, NULL, loc);
 	if (literalLine != NULL)
 	{
 	    literalLine->line = line;
@@ -1102,8 +1134,9 @@ uint32_t sdl_literal(
  *	the current parsing.
  *  literals:
  *	A pointer to the queue containing the current set of literal lines.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1116,7 +1149,7 @@ uint32_t sdl_literal(
 uint32_t sdl_literal_end(
 		SDL_CONTEXT *context,
 		SDL_QUEUE *literals,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     SDL_LITERAL	*literalLine;
     uint32_t	retVal = SDL_NORMAL;
@@ -1194,8 +1227,9 @@ uint32_t sdl_literal_end(
  *	A pointer to a string containing the name of the type.
  *  sizeType:
  *	A value indicating the size or datatype of the declaration.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1209,7 +1243,7 @@ uint32_t sdl_declare(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t sizeType,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
 
@@ -1233,7 +1267,7 @@ uint32_t sdl_declare(
 	 */
 	if (myDeclare == NULL)
 	{
-	    myDeclare = sdl_allocate_block(DeclareBlock, NULL, srcLineNo);
+	    myDeclare = sdl_allocate_block(DeclareBlock, NULL, loc);
 	    if (myDeclare != NULL)
 	    {
 		myDeclare->id = name;
@@ -1283,8 +1317,9 @@ uint32_t sdl_declare(
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1292,7 +1327,7 @@ uint32_t sdl_declare(
  * Return Value:
  *  SDL_NORMAL:	Normal Successful Completion.
  */
-uint32_t sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
+uint32_t sdl_declare_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 {
     SDL_DECLARE	*myDeclare = (SDL_DECLARE *) context->declares.header.blink;
     char 	*prefix = NULL;
@@ -1362,8 +1397,9 @@ uint32_t sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo)
  *	A pointer the the name of the item to be defined.
  *  datatype:
  *	A value to be associated with the datatype for this item.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1377,7 +1413,7 @@ uint32_t sdl_item(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t datatype,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
 
@@ -1402,7 +1438,7 @@ uint32_t sdl_item(
 	 */
 	if (myItem == NULL)
 	{
-	    myItem = sdl_allocate_block(ItemBlock, NULL, srcLineNo);
+	    myItem = sdl_allocate_block(ItemBlock, NULL, loc);
 	    if (myItem != NULL)
 	    {
 		myItem->id = name;
@@ -1448,8 +1484,9 @@ uint32_t sdl_item(
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1459,7 +1496,7 @@ uint32_t sdl_item(
  *  SDL_ADROBJBAS:	Aggregate must have BASED storage class.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
+uint32_t sdl_item_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 {
     SDL_ITEM	*myItem = context->items.header.blink;
     char	*prefix = NULL;
@@ -1572,7 +1609,7 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
 				1,
 				retVal,
 				myAggr->id,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 			    retVal = SDL_ERREXIT;
 		    }
 		}
@@ -1617,8 +1654,9 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo)
  *  valueStr:
  *	A pointer to a string to be associated with the constant.  If this is
  *	NULL, then value is used.  Otherwise, this is used.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1631,7 +1669,7 @@ uint32_t sdl_constant(
 		char *id,
 		int64_t value,
 		char *valueStr,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
 
@@ -1682,8 +1720,9 @@ uint32_t sdl_constant(
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current parsing.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1696,7 +1735,7 @@ uint32_t sdl_constant(
 #define _SDL_OUTPUT_COMMENT	0
 #define _SDL_COMMA_		2
 #define _SDL_COMMENT_LIST_NULL	3
-uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
+uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 {
     SDL_CONSTANT	*myConst;
     SDL_ENUMERATE	*myEnum = NULL;
@@ -1758,7 +1797,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 					    context,
 					    counter,
 					    value,
-					    srcLineNo) < 0;
+					    loc) < 0;
 		    break;
 
 		case TypeName:
@@ -1827,7 +1866,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 				    value,
 				    valueStr,
 				    size,
-				    srcLineNo);
+				    loc);
 		if (myConst != NULL)
 		    retVal = _sdl_queue_constant(context, myConst);
 		else
@@ -1853,13 +1892,13 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 				    prefix,
 				    tag,
 				    typeDef,
-				    srcLineNo);
+				    loc);
 		if (myEnum != NULL)
 		{
 		    SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
 						    EnumMemberBlock,
 						    &myEnum->header,
-						    srcLineNo);
+						    loc);
 
 		    if (myMem != NULL)
 		    {
@@ -1919,7 +1958,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 				    prefix,
 				    tag,
 				    typeDef,
-				    srcLineNo);
+				    loc);
 		if (myEnum == NULL)
 		{
 		    retVal = SDL_ABORT;
@@ -1994,7 +2033,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 						value,
 						NULL,
 						size,
-						srcLineNo);
+						loc);
 			if (myConst != NULL)
 			    retVal = _sdl_queue_constant(context, myConst);
 			else
@@ -2018,7 +2057,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 			SDL_ENUM_MEMBER *myMem = sdl_allocate_block(
 							    EnumMemberBlock,
 							    &myEnum->header,
-							    srcLineNo);
+							    loc);
 
 			if (myMem != NULL)
 			{
@@ -2033,7 +2072,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
 		    (counter != NULL) &&
 		    (prevValue != value))
 		{
-		    retVal = sdl_set_local(context, counter, value, srcLineNo);
+		    retVal = sdl_set_local(context, counter, value, loc);
 		    prevValue = value;
 		}
 		if (incrementPresent == true)
@@ -2092,8 +2131,9 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo)
  *  aggType:
  *	A value indicating if this AGGREGATE is for a UNION or STRUCTURE
  *	definition.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -2108,7 +2148,7 @@ uint32_t sdl_aggregate(
 		char *name,
 		int64_t datatype,
 		int aggType,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
 
@@ -2121,14 +2161,19 @@ uint32_t sdl_aggregate(
 	SDL_AGGREGATE	*myAggr = sdl_allocate_block(
 						AggregateBlock,
 						NULL,
-						srcLineNo);
+						loc);
 
 	/*
 	 * If tracing is turned on, write out this call (calls only, no
 	 * returns).
 	 */
 	if (trace == true)
-	    printf("%s:%d:sdl_aggregate\n", __FILE__, __LINE__);
+	    printf(
+		"%s:%d:sdl_aggregate ([%d:%d] to [%d:%d])\n",
+		__FILE__,
+		__LINE__,
+		loc->first_line, loc->first_column,
+		loc->last_line, loc->last_column);
 
 	if (myAggr != NULL)
 	{
@@ -2185,8 +2230,9 @@ uint32_t sdl_aggregate(
  *  aggType:
  *	A value indicating the type of subaggregate that is being requested to
  *	be created.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -2201,7 +2247,7 @@ uint32_t sdl_aggregate_member(
 		char *name,
 		int64_t datatype,
 		int aggType,
-		int srcLineNo,
+		SDL_YYLTYPE *loc,
 		bool lineComment,
 		bool startComment,
 		bool middleComment,
@@ -2234,11 +2280,11 @@ uint32_t sdl_aggregate_member(
 	 */
 	if (trace == true)
 	    printf(
-		"%s:%d:sdl_aggregate_member(%ld, %d)\n",
+		"%s:%d:sdl_aggregate_member ([%d:%d] to [%d:%d])\n",
 		__FILE__,
 		__LINE__,
-		datatype,
-		aggType);
+		loc->first_line, loc->first_column,
+		loc->last_line, loc->last_column);
 
 	/*
 	 * Before we go too far, there may have been one or more options
@@ -2528,7 +2574,7 @@ uint32_t sdl_aggregate_member(
 				    (myAggr != NULL ?
 					    &myAggr->header :
 					    (SDL_HEADER *) mySubAggr),
-				    srcLineNo);
+				    loc);
 	    if (myMember != NULL)
 	    {
 
@@ -2621,7 +2667,7 @@ uint32_t sdl_aggregate_member(
 							    context,
 							    &datatype);
 			    myMember->item.type = datatype;
-			    myMember->item.srcLineNo = myMember->srcLineNo;
+			    SDL_COPY_LOC(myMember->item.loc, &myMember->loc);
 			}
 			switch (datatype)
 			{
@@ -2676,11 +2722,11 @@ uint32_t sdl_aggregate_member(
 				{
 				    retVal = SDL_ZEROLEN;
 				    if (sdl_set_message(
-						    msgVec,
-						    1,
-						    retVal,
-						    myMember->item.id,
-						    srcLineNo) != SDL_NORMAL)
+						msgVec,
+						1,
+						retVal,
+						myMember->item.id,
+						loc->first_line) != SDL_NORMAL)
 					retVal = SDL_ABORT;
 				}
 				break;
@@ -2696,7 +2742,7 @@ uint32_t sdl_aggregate_member(
 					msgVec,
 					1,
 					retVal,
-					srcLineNo) != SDL_NORMAL)
+					loc->first_line) != SDL_NORMAL)
 				    retVal = SDL_ERREXIT;
 				break;
 
@@ -2727,7 +2773,7 @@ uint32_t sdl_aggregate_member(
 						1,
 						retVal,
 						lclAggr->id,
-						srcLineNo) != SDL_NORMAL)
+						loc->first_line) != SDL_NORMAL)
 					    retVal = SDL_ERREXIT;
 				    }
 				}
@@ -2842,8 +2888,9 @@ uint32_t sdl_aggregate_member(
  *  name:
  *	A pointer to the string to be associated with this aggregate
  *	definition.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -2855,7 +2902,7 @@ uint32_t sdl_aggregate_member(
  *  SDL_ABORT:		An unexpected error occurred.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
+uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc)
 {
     SDL_AGGREGATE	*myAggr = (SDL_AGGREGATE *) context->currentAggr;
     SDL_SUBAGGR		*mySubAggr = (SDL_SUBAGGR *) context->currentAggr;
@@ -2873,7 +2920,12 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 	 * returns).
 	 */
 	if (trace == true)
-	    printf("%s:%d:sdl_aggregate_compl\n", __FILE__, __LINE__);
+	    printf(
+		"%s:%d:sdl_aggregate_compl ([%d:%d] to [%d:%d])\n",
+		__FILE__,
+		__LINE__,
+		loc->first_line, loc->first_column,
+		loc->last_line, loc->last_column);
 
 	/*
 	 * If we have any options that had been processed, they are for the
@@ -3022,7 +3074,7 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 				1,
 				retVal,
 				myAggr->id,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 	    }
 	    else if (SDL_Q_EMPTY(&myAggr->members) == true)
@@ -3033,7 +3085,7 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 				1,
 				retVal,
 				myAggr->id,
-				srcLineNo) != SDL_NORMAL)
+				myAggr->loc.first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 	    }
 
@@ -3098,7 +3150,7 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 				1,
 				retVal,
 				mySubAggr->id,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 	    }
 	    else if (SDL_Q_EMPTY(&mySubAggr->members) == true)
@@ -3109,7 +3161,7 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
 				1,
 				retVal,
 				mySubAggr->id,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 	    }
 	}
@@ -3133,8 +3185,9 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
  *	the current parsing.
  *  name:
  *	A pointer to the string to be associated with this entry definition.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -3144,9 +3197,9 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo)
  *  SDL_ABORT:		An unexpected error occurred.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
+uint32_t sdl_entry(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc)
 {
-    SDL_ENTRY	*myEntry = sdl_allocate_block(EntryBlock, NULL, srcLineNo);
+    SDL_ENTRY	*myEntry = sdl_allocate_block(EntryBlock, NULL, loc);
     uint32_t	retVal = SDL_NORMAL;
     int		ii;
 
@@ -3269,8 +3322,9 @@ uint32_t sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo)
  *	get what we came to get.
  *  passing:
  *	A value indicating how a parameter is passed (by reference or value).
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -3284,7 +3338,7 @@ uint32_t sdl_add_parameter(
 		SDL_CONTEXT *context,
 		int64_t datatype,
 		int passing,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
     int		ii;
@@ -3320,7 +3374,7 @@ uint32_t sdl_add_parameter(
 	    SDL_PARAMETER	*param = sdl_allocate_block(
 						ParameterBlock,
 						NULL,
-						srcLineNo);
+						loc);
 
 	    param->_unsigned = sdl_isUnsigned(context, &datatype);
 	    param->type = datatype;
@@ -3438,8 +3492,9 @@ uint32_t sdl_add_parameter(
  *	IFLANGUAGE, this will be a pointer to a structure that contains the
  *	list of languages specified.  For IFSYMBOL, this will be the singular
  *	string for the conditional.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -3455,7 +3510,7 @@ uint32_t sdl_conditional(
 		SDL_CONTEXT *context,
 		int conditional,
 		void *expr,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     char		*symbol = (char *) expr;
     SDL_LANGUAGE_LIST	*langs = (SDL_LANGUAGE_LIST *) expr;
@@ -3528,7 +3583,7 @@ uint32_t sdl_conditional(
 				    1,
 				    retVal,
 				    symbol,
-				    srcLineNo) != SDL_NORMAL)
+				    loc->first_line) != SDL_NORMAL)
 			retVal = SDL_ERREXIT;
 		}
 	    }
@@ -3539,7 +3594,7 @@ uint32_t sdl_conditional(
 				msgVec,
 				1,
 				retVal,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 	    }
 	    break;
@@ -3602,7 +3657,7 @@ uint32_t sdl_conditional(
 				msgVec,
 				1,
 				retVal,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 			retVal = SDL_ERREXIT;
 		}
 	    }
@@ -3659,7 +3714,7 @@ uint32_t sdl_conditional(
 				msgVec,
 				1,
 				retVal,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 	    }
 	    break;
@@ -3703,7 +3758,7 @@ uint32_t sdl_conditional(
 				msgVec,
 				1,
 				retVal,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 	    }
 	    break;
@@ -3735,7 +3790,7 @@ uint32_t sdl_conditional(
 				msgVec,
 				1,
 				retVal,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 	    }
 	    break;
@@ -3774,7 +3829,7 @@ uint32_t sdl_conditional(
 				msgVec,
 				1,
 				retVal,
-				srcLineNo) != SDL_NORMAL)
+				loc->first_line) != SDL_NORMAL)
 			retVal = SDL_ERREXIT;
 		}
 	    }
@@ -3788,7 +3843,7 @@ uint32_t sdl_conditional(
 			msgVec,
 			1,
 			retVal,
-			srcLineNo) != SDL_NORMAL)
+			loc->first_line) != SDL_NORMAL)
 		retVal = SDL_ERREXIT;
 	    break;
     }
@@ -3812,8 +3867,9 @@ uint32_t sdl_conditional(
  *  langStr:
  *	A pointer to a string containing the language specifier to be added to
  *	the list of language specifiers currently in process.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -3823,7 +3879,7 @@ uint32_t sdl_conditional(
  *  SDL_ABORT:		An unexpected error occurred.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
+uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
 
@@ -3892,8 +3948,9 @@ uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
  *  context:
  *	A pointer to the context structure where we maintain information about
  *	the current state of the parsing.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -3902,7 +3959,7 @@ uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo)
  *  !NULL:	Normal Successful Completion.
  *  NULL:	No languages specified.
  */
-void *sdl_get_language(SDL_CONTEXT *context, int srcLineNo)
+void *sdl_get_language(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 {
     void	*retVal = NULL;
 
@@ -4287,8 +4344,9 @@ static char *_sdl_get_tag(
  *  size:
  *	The number of bytes that this constant represents (used for outputting
  *	MASK constants).
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -4307,9 +4365,9 @@ static SDL_CONSTANT *_sdl_create_constant(
 		int64_t value,
 		char *string,
 		int size,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
-    SDL_CONSTANT *retVal = sdl_allocate_block(ConstantBlock, NULL, srcLineNo);
+    SDL_CONSTANT *retVal = sdl_allocate_block(ConstantBlock, NULL, loc);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4430,8 +4488,9 @@ static uint32_t _sdl_queue_constant(
  *  typeDef:
  *	A boolean value indicating that this enumeration will be declared as a
  *	typedef.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -4446,12 +4505,12 @@ static SDL_ENUMERATE *_sdl_create_enum(
 				char *prefix,
 				char *tag,
 				bool typeDef,
-				int srcLineNo)
+				SDL_YYLTYPE *loc)
 {
     SDL_ENUMERATE	*retVal = sdl_allocate_block(
 					EnumerateBlock,
 					NULL,
-					srcLineNo);
+					loc);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -5056,7 +5115,7 @@ static void _sdl_determine_offsets(
 				prevMember,
 				availBits,
 				context->fillerCount++,
-				member->item.srcLineNo);
+				&member->item.loc);
 		}
 	    }
 	    else
@@ -5069,7 +5128,7 @@ static void _sdl_determine_offsets(
 				prevMember,
 				availBits,
 				context->fillerCount++,
-				member->item.srcLineNo);
+				&member->item.loc);
 	    }
 	}
 	else
@@ -5096,7 +5155,7 @@ static void _sdl_determine_offsets(
 				prevMember,
 				availBits,
 				context->fillerCount++,
-				member->item.srcLineNo);
+				&member->item.loc);
 	}
 
 	/*
@@ -5221,9 +5280,9 @@ static void _sdl_determine_offsets(
  *	A pointer to the member that will precede the one we are creating.
  *  bits:
  *	A value indicating the number of bits to be associated with this field.
- *  srcLineNo:
- *	A value indicating the line number from the source file that is causing
- *	this field to be created.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -5236,12 +5295,12 @@ static void _sdl_fill_bitfield(
 			SDL_MEMBERS *member,
 			int bits,
 			int number,
-			int srcLineNo)
+			SDL_YYLTYPE *loc)
 {
     SDL_MEMBERS *filler = sdl_allocate_block(
 				AggrMemberBlock,
 				member->header.parent,
-				0);
+				loc);
     char	idBuf[32];
 
     /*
@@ -5259,7 +5318,7 @@ static void _sdl_fill_bitfield(
     filler->item.length = bits;
     filler->item.mask = false;
     filler->item.bitOffset = member->item.bitOffset + 1;
-    filler->item.srcLineNo = member->item.srcLineNo;
+    SDL_COPY_LOC(filler->item.loc, &member->item.loc);
     SDL_INSQUE(memberList, &filler->header.queue);
 
     /*
@@ -5424,7 +5483,7 @@ static int64_t _sdl_aggregate_size(
 				member,
 				availBits,
 				context->fillerCount++,
-				member->item.srcLineNo);
+				&member->item.loc);
     }
 
     /*
@@ -5510,9 +5569,10 @@ static int64_t _sdl_aggregate_size(
 	    {
 		SDL_MEMBERS	*filler;
 		void		*parent;
+		SDL_YYLTYPE	loc = {0, 0, 0, 0};
 
 		parent = aggr != NULL ? &aggr->header : (SDL_HEADER *) subAggr;
-		filler = sdl_allocate_block(AggrMemberBlock, parent, 0);
+		filler = sdl_allocate_block(AggrMemberBlock, parent, &loc);
 		if (filler != NULL)
 		{
 		    char	*prefix;
@@ -5540,7 +5600,7 @@ static int64_t _sdl_aggregate_size(
 						datatype,
 						_sdl_all_lower(
 							filler->item.id));
-		    filler->item.srcLineNo = filler->srcLineNo;
+		    SDL_COPY_LOC(filler->item.loc, &filler->loc);
 		    _sdl_determine_offsets(context, filler, memberList, true);
 		    SDL_INSQUE(memberList, &filler->header.queue);
 		}
@@ -5881,7 +5941,7 @@ static uint32_t _sdl_create_bitfield_constants(
 				member->item.length,
 				NULL,
 				context->wordSize,
-				member->srcLineNo);
+				&member->loc);
 	    if (constDef != NULL)
 		_sdl_queue_constant(context, constDef);
 	    else
@@ -5920,7 +5980,7 @@ static uint32_t _sdl_create_bitfield_constants(
 				mask,
 				NULL,
 				member->item.size,
-				member->srcLineNo);
+				&member->loc);
 		if (constDef != NULL)
 		    _sdl_queue_constant(context, constDef);
 		else

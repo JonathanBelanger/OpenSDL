@@ -33,10 +33,14 @@
  *  V01.002	22-OCT-2018	Jonathan D. Belanger
  *  Added IF_LANGUAGE and IF_SYMBOL parsing.  Unlike the original SDL, we will
  *  allow conditionals to be properly nested.
+ *
+ *  V01.003	10-NOV-2018	Jonathan D. Belanger
+ *  Added a macro to keep track of the line numbers so that they can be
+ *  reported in error messages.
  */
 %verbose
 %define parse.lac	full
-%define parse.error verbose
+%define parse.error	verbose
 %define api.pure	true
 
 %locations
@@ -63,11 +67,61 @@
 #include "opensdl_lexical.h"
 #include "opensdl_parser.h"
 #include "opensdl_actions.h"
+#include "opensdl_message.h"
+#include "opensdl_main.h"
 
 SDL_CONTEXT			context;
 SDL_QUEUE			literal;
 
+#define YYLLOC_DEFAULT(_cur, _rhs, _n)				\
+do								\
+{								\
+    if (_n > 0)							\
+    {								\
+	(_cur).first_line   = YYRHSLOC(_rhs, 1).first_line;	\
+	(_cur).first_column = YYRHSLOC(_rhs, 1).first_column;	\
+	(_cur).last_line    = YYRHSLOC(_rhs, _n).last_line;	\
+	(_cur).last_column  = YYRHSLOC(_rhs, _n).last_column;	\
+    }								\
+    else							\
+    {								\
+	(_cur).first_line   = (_cur).last_line   =		\
+	    YYRHSLOC(_rhs, 0).last_line;			\
+	(_cur).first_column = (_cur).last_column =		\
+	    YYRHSLOC(_rhs, 0).last_column;			\
+    }								\
+} while (false)
+
 void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg);
+static char *bugchk = "%%SDL-F-BUGCHECK, Internal consistency failure "
+			"[Line %d] - please submit a bug report\n";
+static char *errexit = "-SDL-F-ERREXIT, Error exit\n";
+	    							\
+
+#define SDL_CALL(funct, loc)					\
+do								\
+{								\
+    uint32_t	status = (funct);				\
+    if (status != SDL_NORMAL)					\
+    {								\
+	char 	*_msgTxt;					\
+								\
+	if ((status != SDL_ERREXIT) &&				\
+	    (sdl_get_message(msgVec, &_msgTxt) == SDL_NORMAL))	\
+	{							\
+	    fprintf(stderr, "%s\n", _msgTxt);			\
+	    free(_msgTxt);					\
+	}							\
+	else							\
+	{							\
+	    fprintf(stderr, bugchk, (loc).first_line);		\
+	    if (status == SDL_ERREXIT)				\
+		fprintf(stderr, errexit);			\
+	    exit(0);						\
+	}							\
+    }								\
+} while (false)
+
 %}
 
 /*
@@ -279,9 +333,17 @@ file_layout
 
 comments
 	: t_line_comment
-	    { sdl_comment_line(&context, $1, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_comment_line(&context, $1, (SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| t_block_comment
-	    { sdl_comment_block(&context, $1, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_comment_block(&context, $1, (SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	;
 
 module_format
@@ -299,13 +361,27 @@ _t_id
 module
 	: SDL_K_MODULE t_name
 	    { 
-		sdl_state_transition(&context, Module, yyloc.first_line);
-		sdl_module(&context, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Module,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_module(&context, $2, NULL, (SDL_YYLTYPE *) &@2),
+		    @$);
 	    }
 	| SDL_K_MODULE t_name SDL_K_IDENT t_string
 	    {
-		sdl_state_transition(&context, Module, yyloc.first_line);
-		sdl_module(&context, $2, $4, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Module,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_module(&context, $2, $4, (SDL_YYLTYPE *) &@2),
+		    @$);
 	    }
 	;
 
@@ -319,8 +395,18 @@ _t_module_name
 end_module
 	: SDL_K_END_MODULE _t_module_name
 	    {
-		sdl_state_transition(&context, DefinitionEnd, yyloc.first_line);
-		sdl_module_end(&context, $2, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			DefinitionEnd,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_module_end(
+			&context,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 	    }
 	;
 
@@ -358,7 +444,12 @@ definition_end
 		    case Constant:
 		    case Item:
 		    case Entry:
-			sdl_state_transition(&context, DefinitionEnd, yyloc.first_line);
+			SDL_CALL(
+			    sdl_state_transition(
+				&context,
+				DefinitionEnd,
+				(SDL_YYLTYPE *) &@1),
+			    @$);
 			break;
 
 		    default:
@@ -379,7 +470,38 @@ _v_terminal
 	: _v_terminal SDL_K_MULT _v_boolean
 	    { $$ = $1 * $3; }
 	| _v_terminal SDL_K_DIVIDE _v_boolean
-	    { $$ = $1 / $3; }
+	    {
+		if ($3 == 0)
+		{
+		    if (sdl_set_message(
+			msgVec,
+			1,
+			SDL_ZERODIV,
+			@3.first_line) == SDL_NORMAL)
+		    {
+			char *msgText;
+
+			if (sdl_get_message(msgVec, &msgText) == SDL_NORMAL)
+			{
+			    fprintf(stderr, "%s\n", msgText);
+			    free(msgText);
+			}
+			else
+			{
+			    fprintf(
+				stderr,
+				"%%SDL-F-BUGCHECK, Internal consistency "
+				    "failure [Line %d] - please submit a bug "
+				    "report\n",
+				    @3.first_line);
+			    exit(0);
+			}
+		    }
+		    $$ = 0;
+		}
+		else
+		    $$ = $1 / $3;
+	    }
 	| _v_boolean
 	;
 
@@ -407,14 +529,14 @@ _v_factor
 	| _v_number
 	    { $$ = $1; }
 	| t_string
-	    { sdl_str2int(sdl_unquote_str($1), &$$); }
+	    { SDL_CALL(sdl_str2int(sdl_unquote_str($1), &$$), @$); }
 	;
 
 _v_number
 	: v_int
 	    { $$ = $1; }
 	| t_variable
-	    { sdl_get_local(&context, $1, &$$); }
+	    { SDL_CALL(sdl_get_local(&context, $1, &$$), @$); }
 	| t_hex
 	    { sscanf($1, "%lx", &$$); free($1); }
 	| t_octal
@@ -428,40 +550,62 @@ _v_number
 		$$ = sdl_offset(
 			&context,
 			SDL_K_OFF_BYTE_REL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1);
 	    }
 	| SDL_K_FULL
 	    {
 		$$ = sdl_offset(
 			&context,
 			SDL_K_OFF_BYTE_BEG,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1);
 	    }
 	| SDL_K_CARAT
-	    { $$ = sdl_offset(&context, SDL_K_OFF_BIT, yyloc.first_line); }
+	    { $$ = sdl_offset(&context, SDL_K_OFF_BIT, (SDL_YYLTYPE *) &@1); }
 	;
 
 varset
 	: t_variable SDL_K_EQ _v_expression
 	    {
-		sdl_state_transition(&context, Local, yyloc.first_line);
-		sdl_set_local(&context, $1, $3, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Local,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_set_local(&context, $1, $3, (SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	;
 
 literal
 	: SDL_K_LITERAL
 	| t_literal_string
-	    { sdl_literal(&context, &literal, $1, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_literal(&context, &literal, $1, (SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| SDL_K_END_LITERAL
-	    { sdl_literal_end(&context, &literal, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_literal_end(&context, &literal, (SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	;
 
 declare
 	: SDL_K_DECLARE _t_id SDL_K_SIZEOF _v_sizeof
 	    { 
-		sdl_state_transition(&context, Declare, yyloc.first_line);
-		sdl_declare(&context, $2, $4, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Declare,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_declare(&context, $2, $4, (SDL_YYLTYPE *) &@2),
+		    @$);
 	    }
 	;
 
@@ -474,51 +618,150 @@ _v_sizeof
 
 prefix
 	: SDL_K_PREFIX _t_id
-	    { sdl_add_option(&context, Prefix, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Prefix,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_PREFIX _t_aggr_id
-	    { sdl_add_option(&context, Prefix, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Prefix,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 marker
 	: SDL_K_MARKER _t_aggr_id
-	    { sdl_add_option(&context, Marker, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Marker,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 tag
 	: SDL_K_TAG _t_id
-	    { sdl_add_option(&context, Tag, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Tag,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_TAG _t_aggr_id
-	    { sdl_add_option(&context, Tag, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Tag,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 origin
 	: SDL_K_ORIGIN _t_aggr_id
-	    { sdl_add_option(&context, Origin, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Origin,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 counter
 	: SDL_K_COUNTER t_variable
-	    { sdl_add_option(&context, Counter, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Counter,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 _typename
 	: SDL_K_TYPENAME _t_id
-	    { sdl_add_option(&context, TypeName, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			TypeName,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 radix
 	: SDL_K_RADIX v_int
-	    { sdl_add_option(&context, Radix, $2, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Radix,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 increment
 	: SDL_K_INCR _v_expression
-	    { sdl_add_option(&context, Increment, $2, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Increment,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 enumerate
 	: SDL_K_ENUM _t_id
-	    { sdl_add_option(&context, Enumerate, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Enumerate,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 constant
@@ -538,31 +781,91 @@ _clause_list
 _clause
 	: t_constant_name SDL_K_EQUALS _v_expression
 	    {
-		sdl_state_transition(&context, Constant, yyloc.first_line);
-		sdl_constant(&context, $1, $3, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Constant,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_constant(
+			&context,
+			$1,
+			$3,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| t_constant_names SDL_K_EQUALS _v_expression
 	    {
-		sdl_state_transition(&context, Constant, yyloc.first_line);
-		sdl_constant(&context, $1, $3, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Constant,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_constant(
+			&context,
+			$1,
+			$3,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	;
 
 _complex_clause
 	: t_constant_name SDL_K_EQUALS SDL_K_STRING t_string
 	    {
-		sdl_state_transition(&context, Constant, yyloc.first_line);
-		sdl_constant(&context, $1, 0, $4, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Constant,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_constant(
+			&context,
+			$1,
+			0,
+			$4,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| t_constant_name SDL_K_EQUALS _v_expression
 	    {
-		sdl_state_transition(&context, Constant, yyloc.first_line);
-		sdl_constant(&context, $1, $3, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Constant,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_constant(
+			&context,
+			$1,
+			$3,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| t_constant_names SDL_K_EQUALS _v_expression
 	    {
-		sdl_state_transition(&context, Constant, yyloc.first_line);
-		sdl_constant(&context, $1, $3, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Constant,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_constant(
+			&context,
+			$1,
+			$3,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	;
 
@@ -591,7 +894,14 @@ _v_basetypes
 	    { $$ = SDL_K_TYPE_CHAR; }
 	| SDL_K_CHAR SDL_K_LENGTH _v_expression _v_char_opt
 	    {
-		sdl_add_option(&context, Length, $3, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Length,
+			$3,
+			NULL,
+			(SDL_YYLTYPE *) &@3),
+		    @$);
 		$$ = $4;
 	    }
 	| SDL_K_CHAR SDL_K_LENGTH SDL_K_MULT
@@ -670,7 +980,7 @@ _v_float
 	| SDL_K_DECIMAL SDL_K_PRECISION SDL_K_OPENP _v_expression SDL_K_COMMA
 	  _v_expression SDL_K_CLOSEP
 	    {
-		sdl_precision(&context, $4, $6);
+		SDL_CALL(sdl_precision(&context, $4, $6), @$);
 		$$ = SDL_K_TYPE_DECIMAL;
 	    }
 	;
@@ -687,47 +997,110 @@ _v_signed
 _v_address
 	: SDL_K_ADDR _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_ADDR;
 	    }
 	| SDL_K_ADDR_L _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_ADDR_L;
 	    }
 	| SDL_K_ADDR_Q _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_ADDR_Q;
 	    }
 	| SDL_K_ADDR_HW _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_ADDR_HW;
 	    }
 	| SDL_K_HW_ADDR _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_HW_ADDR;
 	    }
 	| SDL_K_PTR _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_PTR;
 	    }
 	| SDL_K_PTR_L _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_PTR_L;
 	    }
 	| SDL_K_PTR_Q _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_PTR_Q;
 	    }
 	| SDL_K_PTR_HW _v_object
 	    {
-		sdl_add_option(&context, SubType, $2, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			SubType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 		$$ = -SDL_K_TYPE_PTR_HW;
 	    }
 	;
@@ -751,71 +1124,147 @@ _basealign
 basealign
 	: SDL_K_BASEALIGN SDL_K_OPENP _v_expression SDL_K_CLOSEP
 	    {
-		sdl_add_option(
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			BaseAlign,
 			pow(2, $3),
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_BASEALIGN _v_datatypes
 	    {
-		sdl_add_option(
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			BaseAlign,
 			sdl_sizeof(&context, $2),
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	;
 
 item
 	: SDL_K_ITEM _t_id _v_datatypes
 	    {
-		sdl_state_transition(&context, Item, yyloc.first_line);
-		sdl_item(&context, $2, $3, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Item,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(sdl_item(&context, $2, $3, (SDL_YYLTYPE *) &@2), @$);
 	    }
 	;
 
 _typedef
 	: SDL_K_TYPEDEF
-	    { sdl_add_option(&context, Typedef, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Typedef,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	;
 
 storage
 	: SDL_K_COMMON
-	    { sdl_add_option(&context, Common, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Common,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| SDL_K_GLOBAL
-	    { sdl_add_option(&context, Global, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Global,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| SDL_K_BASED _t_aggr_id
-	    { sdl_add_option(&context, Based, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Based,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_FILL
-	    { sdl_add_option(&context, Fill, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Fill,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| SDL_KWD_ALIGN
-	    { sdl_add_option(&context, Align, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Align,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| SDL_KWD_NOALIGN
-	    { sdl_add_option(&context, NoAlign, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			NoAlign,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| basealign
 	;
 
 dimension
 	: SDL_K_DIMENSION _v_expression
 	    {
-		sdl_add_option(
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			Dimension,
 			sdl_dimension(&context, 1, $2),
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 	    }
 	| SDL_K_DIMENSION _v_expression SDL_K_FULL _v_expression
-	    { 
-		sdl_add_option(
+	    {
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			Dimension,
 			sdl_dimension(&context, $2, $4),
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 	    }
 	;
 
@@ -829,29 +1278,74 @@ _v_aggtypes
 aggregate
 	: SDL_K_AGGREGATE _t_id SDL_K_STRUCTURE _v_aggtypes
 	   {
-	    	sdl_state_transition(&context, Aggregate, yyloc.first_line);
-	    	sdl_aggregate(&context, $2, $4, SDL_K_TYPE_STRUCT, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Aggregate,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_aggregate(
+			&context,
+			$2,
+			$4,
+			SDL_K_TYPE_STRUCT,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 	   }
 	| SDL_K_AGGREGATE _t_id SDL_K_UNION _v_aggtypes
 	   {
-	    	sdl_state_transition(&context, Aggregate, yyloc.first_line);
-	    	sdl_aggregate(&context, $2, $4, SDL_K_TYPE_UNION, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Aggregate,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_aggregate(
+			&context,
+			$2,
+			$4,
+			SDL_K_TYPE_UNION,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 	   }
 	| aggregate_body
 	| SDL_K_END _t_aggr_id SDL_K_SEMI
 	   {
-	    	sdl_state_transition(&context, DefinitionEnd, yyloc.first_line);
-		sdl_aggregate_compl(&context, $2, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			DefinitionEnd,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_aggregate_compl(&context, $2, (SDL_YYLTYPE *) &@2),
+		    @$);
 	   }
 	| SDL_K_END SDL_K_SEMI
 	   {
-	    	sdl_state_transition(&context, DefinitionEnd, yyloc.first_line);
-		sdl_aggregate_compl(&context, NULL, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			DefinitionEnd,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_aggregate_compl(&context, NULL, (SDL_YYLTYPE *) &@1),
+		    @$);
 	   }
 	| SDL_K_END _t_id SDL_K_SEMI
 	   {
-	    	sdl_state_transition(&context, DefinitionEnd, yyloc.first_line);
-		sdl_aggregate_compl(&context, $2, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			DefinitionEnd,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_aggregate_compl(&context, $2, (SDL_YYLTYPE *) &@2),
+		    @$);
 	   }
 	;
 
@@ -865,70 +1359,90 @@ _t_aggr_id
 aggregate_body
 	: _t_aggr_id _v_datatypes
 	    {
-		sdl_aggregate_member(
+		SDL_CALL(
+		    sdl_aggregate_member(
 			&context,
 			$1,
 			$2,
 			SDL_K_TYPE_NONE,
-			yyloc.first_line,
+			(SDL_YYLTYPE *) &@1,
 			false,
 			false,
 			false,
-			false);
+			false),
+		    @$);
 	    }
 	| _t_aggr_id _t_aggr_id
 	    {
-		sdl_aggregate_member(
+		SDL_CALL(
+		    sdl_aggregate_member(
 			&context,
 			$1,
 			sdl_aggrtype_idx(&context, $2),
 			SDL_K_TYPE_NONE,
-			yyloc.first_line,
+			(SDL_YYLTYPE *) &@1,
 			false,
 			false,
 			false,
-			false);
+			false),
+		    @$);
 	    }
 	| _t_aggr_id SDL_K_STRUCTURE _v_aggtypes
 	    {
-	    	sdl_state_transition(&context, Subaggregate, yyloc.first_line);
-		sdl_aggregate_member(
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Subaggregate,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_aggregate_member(
 			&context,
 			$1,
 			$3,
 			SDL_K_TYPE_STRUCT,
-			yyloc.first_line,
+			(SDL_YYLTYPE *) &@1,
 			false,
 			false,
 			false,
-			false);
+			false),
+		    @$);
 	    }
 	| _t_aggr_id SDL_K_UNION _v_aggtypes
 	    {
-	    	sdl_state_transition(&context, Subaggregate, yyloc.first_line);
-		sdl_aggregate_member(
+		SDL_CALL(
+		    sdl_state_transition(
+			&context,
+			Subaggregate,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(
+		    sdl_aggregate_member(
 			&context,
 			$1,
 			$3,
 			SDL_K_TYPE_UNION,
-			yyloc.first_line,
+			(SDL_YYLTYPE *) &@1,
 			false,
 			false,
 			false,
-			false);
+			false),
+		    @$);
 	    }
 	| _t_aggr_id SDL_K_BITFIELD bitfield_options SDL_K_SEMI
 	    {
-		sdl_aggregate_member(
+		SDL_CALL(
+		    sdl_aggregate_member(
 			&context,
 			$1,
 			SDL_K_TYPE_BITFLD,
 			SDL_K_TYPE_NONE,
-			yyloc.first_line,
+			(SDL_YYLTYPE *) &@1,
 			false,
 			false,
 			false,
-			false);
+			false),
+		    @$);
 	    }
 	;
 
@@ -940,62 +1454,101 @@ bitfield_options
 bitfield_choices
 	: SDL_K_BYTE
 	    {
-		sdl_add_option(
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			SubType,
 			SDL_K_TYPE_BYTE,
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_WORD
 	    {
-		sdl_add_option(
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			SubType,
 			SDL_K_TYPE_WORD,
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_LONG
 	    {
-		sdl_add_option(
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			SubType,
 			SDL_K_TYPE_LONG,
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_QUAD
 	    {
-		sdl_add_option(
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			SubType,
 			SDL_K_TYPE_QUAD,
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_OCTA
 	    {
-		sdl_add_option(
+		SDL_CALL(
+		    sdl_add_option(
 			&context,
 			SubType,
 			SDL_K_TYPE_OCTA,
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_LENGTH _v_expression
-	    { sdl_add_option(&context, Length, $2, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Length,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_MASK
-	    { sdl_add_option(&context, Mask, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Mask,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| SDL_K_SIGNED
-	    { sdl_add_option(&context, Signed, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Signed,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	;
 
 entry
 	: SDL_K_ENTRY _t_id entry_options
 	    {
-	    	sdl_state_transition(&context, Entry, yyloc.first_line);
-		sdl_entry(&context, $2, yyloc.first_line);
+		SDL_CALL(
+		    sdl_state_transition(&context, Entry, (SDL_YYLTYPE *) &@1),
+		    @$);
+		SDL_CALL(sdl_entry(&context, $2, (SDL_YYLTYPE *) &@2), @$);
 	    }
 	;
 
@@ -1006,15 +1559,56 @@ entry_options
 
 entry_choices
 	: SDL_K_ALIAS _t_id
-	    { sdl_add_option(&context, Alias, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Alias,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_LINKAGE _t_id
-	    { sdl_add_option(&context, Linkage, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Linkage,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_VARIABLE
-	    { sdl_add_option(&context, Variable, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Variable,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| SDL_K_RETURNS _v_datatypes _a_returns_options
 	    {
-		sdl_add_option(&context, ReturnsType, $2, NULL, yyloc.first_line);
-		sdl_add_option(&context, ReturnsNamed, 0, $3, yyloc.first_line);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			ReturnsType,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			ReturnsNamed,
+			0,
+			$3,
+			(SDL_YYLTYPE *) &@3),
+		    @$);
 	    }
 	| SDL_K_PARAM SDL_K_OPENP parameter_desc SDL_K_CLOSEP
 	;
@@ -1025,7 +1619,11 @@ parameter_desc
 
 parameter_options
 	: _v_datatypes _v_passing_option parameter_choices
-	   { sdl_add_parameter(&context, $1, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_parameter(&context, $1, $2, (SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	;
 
 _v_passing_option
@@ -1048,21 +1646,72 @@ parameter_choices
 
 parameter_loop
 	: SDL_K_IN
-	    { sdl_add_option(&context, In, 0, NULL, yyloc.first_line); }
+	    {
+		sdl_add_option(&context, In, 0, NULL, (SDL_YYLTYPE *) &@1);
+	    }
 	| SDL_K_OUT
-	    { sdl_add_option(&context, Out, 0, NULL, yyloc.first_line); }
+	    {
+		sdl_add_option(&context, Out, 0, NULL, (SDL_YYLTYPE *) &@1);
+	    }
 	| _a_named
-	    { sdl_add_option(&context, Named, 0, $1, yyloc.first_line); }
+	    {
+		sdl_add_option(&context, Named, 0, $1, (SDL_YYLTYPE *) &@1);
+	    }
 	| SDL_K_DIMENSION _v_expression
-	    { sdl_add_option(&context, Dimension, $2, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Dimension,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_DEFAULT _v_expression
-	    { sdl_add_option(&context, Default, $2, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Default,
+			$2,
+			NULL,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_TYPENAME _t_id
-	    { sdl_add_option(&context, TypeName, 0, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			TypeName,
+			0,
+			$2,
+			(SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	| SDL_K_OPT
-	    { sdl_add_option(&context, Optional, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			Optional,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	| SDL_K_LIST
-	    { sdl_add_option(&context, List, 0, NULL, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_option(
+			&context,
+			List,
+			0,
+			NULL,
+			(SDL_YYLTYPE *) &@1),
+		    @$);
+	    }
 	;
 
 _a_returns_options
@@ -1080,58 +1729,74 @@ _a_named
 conditionals
 	: SDL_K_IFLANG language_list
 	    {
-		sdl_conditional(
+		SDL_CALL(
+		    sdl_conditional(
 			&context,
 			SDL_K_COND_LANG,
-			sdl_get_language(&context, yyloc.first_line),
-			yyloc.first_line);
+			sdl_get_language(&context, (SDL_YYLTYPE *) &@2),
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_ELSE
 	    {
-		sdl_conditional(
+		SDL_CALL(
+		    sdl_conditional(
 			&context,
 			SDL_K_COND_ELSE,
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_END_IFLANG language_list
 	    {
-		sdl_conditional(
+		SDL_CALL(
+		    sdl_conditional(
 			&context,
 			SDL_K_COND_END_LANG,
-			sdl_get_language(&context, yyloc.first_line),
-			yyloc.first_line);
+			sdl_get_language(&context, (SDL_YYLTYPE *) &@2),
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	| SDL_K_IFSYMB _t_id
 	    {
-		sdl_conditional(
+		SDL_CALL(
+		    sdl_conditional(
 			&context,
 			SDL_K_COND_SYMB,
 			$2,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 	    }
 	| SDL_K_ELSE_IFSYMB _t_id
 	    {
-		sdl_conditional(
+		SDL_CALL(
+		    sdl_conditional(
 			&context,
 			SDL_K_COND_ELSEIF,
 			$2,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@2),
+		    @$);
 	    }
 	| SDL_K_END_IFSYMB
 	    {
-		sdl_conditional(
+		SDL_CALL(
+		    sdl_conditional(
 			&context,
 			SDL_K_COND_END_SYMB,
 			NULL,
-			yyloc.first_line);
+			(SDL_YYLTYPE *) &@1),
+		    @$);
 	    }
 	;
 
 language_list
 	: %empty
 	| language_list _t_id
-	    { sdl_add_language(&context, $2, yyloc.first_line); }
+	    {
+		SDL_CALL(
+		    sdl_add_language(&context, $2, (SDL_YYLTYPE *) &@2),
+		    @$);
+	    }
 	;
 
 %%	/* End Grammar rules */

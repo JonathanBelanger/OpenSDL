@@ -35,7 +35,12 @@
 #include "opensdl_message.h"
 #include "opensdl_main.h"
 
-extern bool trace;
+/*
+ * Local prototypes.
+ */
+static void _sdl_push_state(SDL_CONTEXT *context, SDL_STATE state);
+static SDL_STATE _sdl_pop_state(SDL_CONTEXT *context);
+
 
 /*
  * sdl_get_local
@@ -55,6 +60,7 @@ extern bool trace;
  *
  * Return Value
  *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_UNDEFSYM:	Undefined local symbol.
  *  SDL_ERREXIT:	Error exit.
  */
 uint32_t sdl_get_local(SDL_CONTEXT *context, char *name, __int64_t *value)
@@ -183,8 +189,9 @@ SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name)
  *  action:
  *	A value representing what is being parsed.  This may or may not cause a
  *	state transition.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -194,7 +201,10 @@ SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name)
  *  SDL_INVACTSTA:	Action invalid in current state.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLineNo)
+uint32_t sdl_state_transition(
+		SDL_CONTEXT *context,
+		SDL_STATE action,
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
 
@@ -254,7 +264,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 
 		    case Constant:
 			context->state = Constant;
-			context->constantPrevState = Module;
+			_sdl_push_state(context, Module);
 			break;
 
 		    case Item:
@@ -293,7 +303,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 
 	    case Local:
 		if (action == DefinitionEnd)
-		    context->state = Module;
+		    context->state = _sdl_pop_state(context);
 		else
 		    retVal = SDL_INVACTSTA;
 		break;
@@ -302,7 +312,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 		if (action == DefinitionEnd)
 		{
 		    context->state = Module;
-		    sdl_declare_compl(context, srcLineNo);
+		    sdl_declare_compl(context, loc);
 		}
 		else
 		    retVal = SDL_INVACTSTA;
@@ -312,8 +322,8 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 		switch (action)
 		{
 		    case DefinitionEnd:
-			context->state = context->constantPrevState;
-			sdl_constant_compl(context, srcLineNo);
+			context->state = _sdl_pop_state(context);
+			sdl_constant_compl(context, loc);
 			break;
 
 		    default:
@@ -326,7 +336,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 		if (action == DefinitionEnd)
 		{
 		    context->state = Module;
-		    sdl_item_compl(context, srcLineNo);
+		    sdl_item_compl(context, loc);
 		}
 		else
 		    retVal = SDL_INVACTSTA;
@@ -345,7 +355,12 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 
 		    case Constant:
 			context->state = Constant;
-			context->constantPrevState = Aggregate;
+			_sdl_push_state(context, Aggregate);
+			break;
+
+		    case Local:
+			context->state = Local;
+			_sdl_push_state(context, Aggregate);
 			break;
 
 		    default:
@@ -378,7 +393,12 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 
 		    case Constant:
 			context->state = Constant;
-			context->constantPrevState = Subaggregate;
+			_sdl_push_state(context, Subaggregate);
+			break;
+
+		    case Local:
+			context->state = Local;
+			_sdl_push_state(context, Subaggregate);
 			break;
 
 		    default:
@@ -396,7 +416,12 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 
 		    case Constant:
 			context->state = Constant;
-			context->constantPrevState = Entry;
+			_sdl_push_state(context, Entry);
+			break;
+
+		    case Local:
+			context->state = Local;
+			_sdl_push_state(context, Entry);
 			break;
 
 		    default:
@@ -417,7 +442,7 @@ uint32_t sdl_state_transition(SDL_CONTEXT *context, SDL_STATE action, int srcLin
 			msgVec,
 			1,
 			retVal,
-			srcLineNo) != SDL_NORMAL)
+			loc->first_line) != SDL_NORMAL)
 	    retVal = SDL_ERREXIT;
     }
 
@@ -876,9 +901,9 @@ uint32_t sdl_str2int(char *strVal, __int64_t *val)
  *	    SDL_K_OFF_BYTE_BEG	- Relative from the beginning.
  *	    SDL_K_OFF_BIT	- bit offset from the beginning or most recent
  *				  element.
- *  srcLineNo:
- *  	A value indicating the line number in the source file that caused this
- *  	function to be called.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *	None.
@@ -887,7 +912,7 @@ uint32_t sdl_str2int(char *strVal, __int64_t *val)
  *  0:		if we did not find anything.
  *  >=0:	if we did find something to return.
  */
-int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
+int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, SDL_YYLTYPE *loc)
 {
     SDL_AGGREGATE	*myAgg = NULL;
     SDL_MEMBERS		*member = NULL;
@@ -920,7 +945,7 @@ int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo)
 			    NULL,
 			    SDL_K_TYPE_NONE,
 			    SDL_K_TYPE_NONE,
-			    srcLineNo,
+			    loc,
 			    false,
 			    false,
 			    false,
@@ -1206,8 +1231,9 @@ int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound)
  *  	A 64-bit integer value when the option is an integer.
  *  string:
  *  	A pointer to a string when the option is a string.
- *  srcLineNo:
- *	A value representing the source file line number.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1222,7 +1248,7 @@ uint32_t sdl_add_option(
 		SDL_OPTION_TYPE option,
 		__int64_t value,
 		char *string,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     uint32_t	retVal = SDL_NORMAL;
 
@@ -1272,7 +1298,7 @@ uint32_t sdl_add_option(
 	 */
 	if (retVal == 1)
 	{
-	    context->options[context->optionsIdx].srcLineNo = srcLineNo;
+	    SDL_COPY_LOC(context->options[context->optionsIdx].loc, loc);
 	    switch (option)
 	    {
 
@@ -1285,7 +1311,7 @@ uint32_t sdl_add_option(
 					msgVec,
 					1,
 					retVal,
-					srcLineNo) != SDL_NORMAL)
+					loc->first_line) != SDL_NORMAL)
 			retVal = SDL_ERREXIT;
 		    break;
 
@@ -1600,9 +1626,9 @@ void sdl_trim_str(char *str, int type)
  *  parent:
  *	A pointer to the parent block for this block.  If this is NULL, then
  *	there is no particular parent with which we need to concern ourselves.
- *  srcLineNo:
- *	A value representing the source file line number that parsing caused
- *	this block to be allocated.
+ *  loc:
+ *	A pointer to the start and end locations for this item in the input
+ *	file.
  *
  * Output Parameters:
  *  None.
@@ -1615,7 +1641,7 @@ void sdl_trim_str(char *str, int type)
 void *sdl_allocate_block(
 		SDL_BLOCK_ID blockID,
 		SDL_HEADER *parent,
-		int srcLineNo)
+		SDL_YYLTYPE *loc)
 {
     void	*retVal = NULL;
 
@@ -1633,7 +1659,7 @@ void *sdl_allocate_block(
 		local->header.parent = parent;
 		local->header.blockID = blockID;
 		local->header.top = false;
-		local->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(local->loc, loc);
 	    }
 	    break;
 
@@ -1646,7 +1672,7 @@ void *sdl_allocate_block(
 		literal->header.parent = parent;
 		literal->header.blockID = blockID;
 		literal->header.top = false;
-		literal->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(literal->loc, loc);
 	    }
 	    break;
 
@@ -1659,7 +1685,7 @@ void *sdl_allocate_block(
 		constBlk->header.parent = parent;
 		constBlk->header.blockID = blockID;
 		constBlk->header.top = false;
-		constBlk->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(constBlk->loc, loc);
 	    }
 	    break;
 
@@ -1672,7 +1698,7 @@ void *sdl_allocate_block(
 		member->header.parent = parent;
 		member->header.blockID = blockID;
 		member->header.top = false;
-		member->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(member->loc, loc);
 	    }
 	    break;
 
@@ -1685,7 +1711,7 @@ void *sdl_allocate_block(
 		myEnum->header.parent = parent;
 		myEnum->header.blockID = blockID;
 		myEnum->header.top = false;
-		myEnum->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(myEnum->loc, loc);
 		SDL_Q_INIT(&myEnum->members);
 	    }
 	    break;
@@ -1699,7 +1725,7 @@ void *sdl_allocate_block(
 		decl->header.parent = parent;
 		decl->header.blockID = blockID;
 		decl->header.top = false;
-		decl->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(decl->loc, loc);
 	    }
 	    break;
 
@@ -1712,7 +1738,7 @@ void *sdl_allocate_block(
 		item->header.parent = parent;
 		item->header.blockID = blockID;
 		item->header.top = false;
-		item->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(item->loc, loc);
 	    }
 	    break;
 
@@ -1725,7 +1751,7 @@ void *sdl_allocate_block(
 		member->header.parent = parent;
 		member->header.blockID = blockID;
 		member->header.top = false;
-		member->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(member->loc, loc);
 	    }
 	    break;
 
@@ -1738,7 +1764,7 @@ void *sdl_allocate_block(
 		aggr->header.parent = parent;
 		aggr->header.blockID = blockID;
 		aggr->header.top = false;
-		aggr->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(aggr->loc, loc);
 		SDL_Q_INIT(&aggr->members);
 	    }
 	    break;
@@ -1752,7 +1778,7 @@ void *sdl_allocate_block(
 		param->header.parent = parent;
 		param->header.blockID = blockID;
 		param->header.top = false;
-		param->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(param->loc, loc);
 	    }
 	    break;
 
@@ -1765,7 +1791,7 @@ void *sdl_allocate_block(
 		entry->header.parent = parent;
 		entry->header.blockID = blockID;
 		entry->header.top = false;
-		entry->srcLineNo = srcLineNo;
+		SDL_COPY_LOC(entry->loc, loc);
 		SDL_Q_INIT(&entry->parameters);
 	    }
 	    break;
@@ -2402,6 +2428,102 @@ bool sdl_isAddress(int type)
 	    retVal = false;
 	    break;
     }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * _sdl_push_state
+ *  This function is called to push the current state of what we are parsing
+ *  onto a stack.  If there is no room for another value, the stack is
+ *  reallocated with a larger size.  NOTE: This function is only called when
+ *  we have a condition where we need to get back to the previous state.
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *  state:
+ *	A value of the state to be pushed onto the stack.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Value:
+ *  None.
+ */
+static void _sdl_push_state(SDL_CONTEXT *context, SDL_STATE state)
+{
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_push_state\n", __FILE__, __LINE__);
+
+    /*
+     * If there is no room for another value, then reallocate the stack to be
+     * able to hold an additional item.  We do it this way, because we are
+     * probably only ever going to need a small number of entries, and the
+     * number of needed entries will stabilize pretty quickly.
+     */
+    if (context->stateIdx >= context->stateSize)
+    {
+	size_t	newSize = sizeof(SDL_STATE) * context->stateSize + 1;
+
+	context->stateStack = (SDL_STATE *) realloc(
+						context->stateStack,
+						newSize);
+	context->stateSize++;
+    }
+
+    /*
+     * If something didn't go wrong, then push the next value onto the stack.
+     */
+    if (context->stateStack != NULL)
+	context->stateStack[context->stateIdx++] = state;
+
+    /*
+     * Return back to the caller.
+     */
+    return;
+}
+
+/*
+ * _sdl_pop_state
+ *  This function is called to pop the most recently saved state of what we are
+ *  parsing off of the stack.  NOTE: This function will return a default state
+ *  when nothing is on the stack..
+ *
+ * Input Parameters:
+ *  context:
+ *	A pointer to the context structure where we maintain information about
+ *	the current state of the parsing.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Value:
+ *  A value state, usually the previous one.
+ */
+static SDL_STATE _sdl_pop_state(SDL_CONTEXT *context)
+{
+    SDL_STATE	retVal = Module;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:_sdl_pop_state\n", __FILE__, __LINE__);
+
+    /*
+     * If there is something on the stack, then pop it off.
+     */
+    if (context->stateIdx > 0)
+	retVal = context->stateStack[--context->stateIdx];
 
     /*
      * Return the results back to the caller.

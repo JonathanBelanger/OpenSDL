@@ -33,76 +33,77 @@
 /*
  * Parsing functions.
  */
-int sdl_set_local(
+uint32_t sdl_set_local(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t value,
-		int srcLineNo);
-uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, int srcLineNo);
-uint32_t sdl_comment_block(SDL_CONTEXT *context, char *comment, int srcLineNo);
+		SDL_YYLTYPE *loc);
+uint32_t sdl_comment_line(SDL_CONTEXT *context, char *comment, SDL_YYLTYPE *loc);
+uint32_t sdl_comment_block(SDL_CONTEXT *context, char *comment, SDL_YYLTYPE *loc);
 uint32_t sdl_module(
 		SDL_CONTEXT *context,
 		char *moduleName,
 		char *identName,
-		int srcLineNo);
-uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, int srcLineNo);
+		SDL_YYLTYPE *loc);
+uint32_t sdl_module_end(SDL_CONTEXT *context, char *moduleName, SDL_YYLTYPE *loc);
 uint32_t sdl_literal(
 		SDL_CONTEXT *context,
 		SDL_QUEUE *literals,
 		char *line,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 uint32_t sdl_literal_end(
 		SDL_CONTEXT *context,
 		SDL_QUEUE *literals,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 uint32_t sdl_declare(
 		SDL_CONTEXT *context,
 		char *name,
-		int64_t size, int srcLineNo);
-uint32_t sdl_declare_compl(SDL_CONTEXT *context, int srcLineNo);
+		int64_t size,
+		SDL_YYLTYPE *loc);
+uint32_t sdl_declare_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc);
 uint32_t sdl_item(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t datatype,
-		int srcLineNo);
-uint32_t sdl_item_compl(SDL_CONTEXT *context, int srcLineNo);
+		SDL_YYLTYPE *loc);
+uint32_t sdl_item_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc);
 uint32_t sdl_constant(
 		SDL_CONTEXT *context,
 		char *id,
 		int64_t value,
 		char *valueStr,
-		int srcLineNo);
-uint32_t sdl_constant_compl(SDL_CONTEXT *context, int srcLineNo);
+		SDL_YYLTYPE *loc);
+uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc);
 uint32_t sdl_aggregate(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t datatype,
 		int aggType,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 uint32_t sdl_aggregate_member(
 		SDL_CONTEXT *context,
 		char *name,
 		int64_t datatype,
 		int aggType,
-		int srcLineNo,
+		SDL_YYLTYPE *loc,
 		bool lineComment,
 		bool startComment,
 		bool middleComment,
 		bool endComment);
-uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, int srcLineNo);
-uint32_t sdl_entry(SDL_CONTEXT *context, char *name, int srcLineNo);
+uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc);
+uint32_t sdl_entry(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc);
 uint32_t sdl_add_parameter(
 		SDL_CONTEXT *context,
 		int64_t datatype,
 		int passing,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 uint32_t sdl_conditional(
 		SDL_CONTEXT *context,
 		int conditional,
 		void *expr,
-		int srcLineNo);
-uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, int srcLineNo);
-void *sdl_get_language(SDL_CONTEXT *context, int srcLineNo);
+		SDL_YYLTYPE *loc);
+uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, SDL_YYLTYPE *loc);
+void *sdl_get_language(SDL_CONTEXT *context, SDL_YYLTYPE *loc);
 
 /*
  * These are used to specify the constant information being saved.

@@ -139,13 +139,22 @@ static char	*errFmt = "\n%s";
 
 void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg)
 {
-    fprintf(stderr,
-	"[%d:%d] -> [%d:%d], %s",
-	locp->first_line,
-	locp->first_column,
-	locp->last_line,
-	locp->last_column,
-	msg);
+    if (sdl_set_message(
+			msgVec,
+			2,
+			SDL_SYNTAXERR,
+			locp->first_line,
+			SDL_PARSEERR,
+			msg) == SDL_NORMAL)
+    {
+	char	*msgText;
+
+	if (sdl_get_message(msgVec, &msgText) == SDL_NORMAL)
+	{
+	    fprintf(stderr, "%s\n", msgText);
+	    free(msgText);
+	}
+    }
     return;
 }
 
@@ -709,8 +718,7 @@ int main(int argc, char *argv[])
     /*
      * Turn on tracing
      */
-    trace = true;
-    yydebug = 1;
+    trace = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -752,6 +760,9 @@ int main(int argc, char *argv[])
     context.parameters = NULL;
     context.parameterSize = 0;
     context.parameterIdx = 0;
+    context.stateStack = NULL;
+    context.stateSize = 0;
+    context.stateIdx = 0;
     context.langCondList.lang = NULL;
     context.langCondList.listSize = 0;
     context.langCondList.listUsed = 0;
@@ -1024,8 +1035,7 @@ int main(int argc, char *argv[])
     if (cfp != NULL)
     {
 	yylex_init(&scanner);
-	yyset_debug(1, scanner);
-	yydebug = 0;
+	yyset_debug(0, scanner);
 	yyset_in(cfp, scanner);
 	yyparse(scanner);
 	yylex_destroy(scanner);
@@ -1035,8 +1045,7 @@ int main(int argc, char *argv[])
      * Start parsing the real input file
      */
     yylex_init(&scanner);
-    yyset_debug(1, scanner);
-    yydebug = 0;
+    yyset_debug(0, scanner);
 
     /*
      * Associate the input file to the parser.
@@ -1067,7 +1076,8 @@ int main(int argc, char *argv[])
     /*
      * Return the results back to the caller.
      */
-    fprintf(stderr, "'%s' has been processed", context.inputFile);
+    if (trace == true)
+	fprintf(stderr, "'%s' has been processed", context.inputFile);
 
     /*
      * Clean-up memory.

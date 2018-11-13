@@ -30,7 +30,7 @@
 uint32_t sdl_state_transition(
 		SDL_CONTEXT *context,
 		SDL_STATE action,
-		int ssrcLineNo);
+		SDL_YYLTYPE *loc);
 char *sdl_unquote_str(char *str);
 SDL_LOCAL_VARIABLE *sdl_find_local(SDL_CONTEXT *context, char *name);
 SDL_DECLARE *sdl_get_declare(SDL_DECLARE_LIST *declare, int typeID);
@@ -42,14 +42,14 @@ int sdl_usertype_idx(SDL_CONTEXT *context, char *usertype);
 int sdl_aggrtype_idx(SDL_CONTEXT *context, char *aggregateName);
 int64_t sdl_bin2int(char *binStr);
 uint32_t sdl_str2int(char *strVal, int64_t *val);
-int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, int srcLineNo);
+int64_t sdl_offset(SDL_CONTEXT *context, int offsetType, SDL_YYLTYPE *loc);
 int sdl_dimension(SDL_CONTEXT *context, size_t lbound, size_t hbound);
 uint32_t sdl_add_option(
 		SDL_CONTEXT *context,
 		SDL_OPTION_TYPE option,
 		__int64_t value,
 		char *string,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 uint32_t sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
@@ -65,7 +65,7 @@ int64_t *sdl_increment(int64_t value);
 void *sdl_allocate_block(
 		SDL_BLOCK_ID blockID,
 		SDL_HEADER *parent,
-		int srcLineNo);
+		SDL_YYLTYPE *loc);
 void sdl_deallocate_block(SDL_HEADER *block);
 int64_t sdl_sizeof(SDL_CONTEXT *context, int item);
 bool sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);

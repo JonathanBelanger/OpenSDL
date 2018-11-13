@@ -38,9 +38,6 @@
 #include "opensdl_message.h"
 #include "opensdl_main.h"
 
-extern char *sdl_months[];
-extern _Bool trace;
-
 static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 {
 	/* signed	unsigned */
@@ -1163,11 +1160,11 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 		    default:
 			retVal = SDL_UNKRADIX;
 			if (sdl_set_message(
-					msgVec,
-					1,
-					retVal,
-					constant->radix,
-					constant->srcLineNo) != SDL_NORMAL)
+				msgVec,
+				1,
+				retVal,
+				constant->radix,
+				constant->loc.first_line) != SDL_NORMAL)
 			    retVal = SDL_ERREXIT;
 			break;
 		}
@@ -1180,7 +1177,7 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
 				1,
 				retVal,
 				constant->type,
-				constant->srcLineNo) != SDL_NORMAL)
+				constant->loc.first_line) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
 		break;
 	}
@@ -1920,7 +1917,7 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 			msgVec,
 			1,
 			retVal,
-			_enum->srcLineNo) != SDL_NORMAL)
+			_enum->loc.first_line) != SDL_NORMAL)
 	    retVal = SDL_ERREXIT;
     }
 

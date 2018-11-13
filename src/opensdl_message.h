@@ -107,7 +107,7 @@
 #define SDL_UNKOPTION		0x00ba0262
 #define SDL_INVCONDST		0x00ba026a
 #define SDL_INVQUAL		0x00ba0272
-
+#define SDL_PARSEERR		0x00ba027a
 
 /*
  * Warning SDL Errors.

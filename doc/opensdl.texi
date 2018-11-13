@@ -14,14 +14,14 @@
 @copying
 This manual is for the OpenSDL Language and Processor Utility, @value{VERSION}
 
-Copyright @copyright{} 1985, 1987, 1989, 2007, 2017
+Copyright @copyright{} 1985, 1987, 1989, 2007, 2018
 
 Permission is granted to the source code and this manual, with no warrantee of
 any kind, implied or otherwise.
 @end copying
 
 @titlepage
-@title Guide to the Open Structure Definition Language
+@title Guide to the Open Structure Definition Language Utility
 
 
 
@@ -61,7 +61,7 @@ included in the section entitled ``GNU Free Documentation License''.
 @strong{Revised, November 1987}@*
 @strong{Revised, May 1989}@*
 @strong{Revised, October 2007}@*
-@strong{Revised, October 2018}@*
+@strong{Revised, November 2018}@*
 
 Published by Digital Equipment Corporation, Compaq Computer Corporation,
 Hewlett-Packard Corporation, VMS Software, and Jonathan D. Belanger
@@ -125,9 +125,7 @@ previous experience with OpenSDL in order to use this manual.
 This manual contains the following chapters and appendixes.
 
 Chapter 1 provides a brief overview of OpenSDL and the translation process.@*
-Chapter 2 describes how to create, edit, and process an OpenSDL source file
-using the Language-Sensitive Editor (LSE) templates and the SDL command
-options.@*
+Chapter 2 describes how to create, edit, and process an OpenSDL source file.@*
 Chapter 3 describes the OpenSDL language elements that compose OpenSDL
 declarations.@*
 Chapter 4 describes the function and format of OpenSDL declarations.@*
@@ -183,7 +181,7 @@ statements or elements are shown.
 @tab Boldface words in text are used to introduce or define a new term, or to
 refer to a term used in a code example.
 
-@item @command{$ LSEDIT USER.SDL}
+@item @command{$ opensdl user.sdl}
 @tab In interactive examples, user input is @strong{underlined}.
 @end multitable
 

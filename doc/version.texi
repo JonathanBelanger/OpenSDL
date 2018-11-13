@@ -1,4 +1,4 @@
 @set OS Cygwin
-@set OSVERSION 2.11.1
-@set VERSION 3.3
-@set UPDATED October 2018
+@set OSVERSION 2.11.2
+@set VERSION 3.4
+@set UPDATED November 2018

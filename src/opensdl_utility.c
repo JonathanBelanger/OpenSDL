@@ -1296,7 +1296,7 @@ uint32_t sdl_add_option(
 	/*
 	 * Add another option, then do so now.
 	 */
-	if (retVal == 1)
+	if (retVal == SDL_NORMAL)
 	{
 	    SDL_COPY_LOC(context->options[context->optionsIdx].loc, loc);
 	    switch (option)
@@ -1334,7 +1334,8 @@ uint32_t sdl_add_option(
 		case Typedef:
 		case Value:
 		case Variable:
-		    context->options[context->optionsIdx++].option = option;
+		    context->options[context->optionsIdx].option = option;
+		    context->optionsIdx += 1;
 		    break;
 
 		/*
@@ -1349,7 +1350,8 @@ uint32_t sdl_add_option(
 		case ReturnsType:
 		case SubType:
 		    context->options[context->optionsIdx].option = option;
-		    context->options[context->optionsIdx++].value = value;
+		    context->options[context->optionsIdx].value = value;
+		    context->optionsIdx += 1;
 		    break;
 
 		/*
@@ -1367,7 +1369,8 @@ uint32_t sdl_add_option(
 		case Tag:
 		case TypeName:
 		    context->options[context->optionsIdx].option = option;
-		    context->options[context->optionsIdx++].string = string;
+		    context->options[context->optionsIdx].string = string;
+		    context->optionsIdx += 1;
 		    break;
 
 		/*
@@ -1378,6 +1381,7 @@ uint32_t sdl_add_option(
 	    }
 	}
     }
+printf("\n>>>> optionsIdx = %d <<<<\n", context->optionsIdx);
 
     /*
      * Return the results of this call back to the caller.

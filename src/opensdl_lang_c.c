@@ -712,11 +712,14 @@ uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
      */
     if (retVal == SDL_NORMAL)
     {
+	char	*moduleName = strdup(context->module);
+
+	strupr(moduleName);
 	if (fprintf(
 		fp,
 		"\n#ifndef _%s_\n#define _%s_ 1\n",
-		strupr(context->module),
-		strupr(context->module)) < 0)
+		moduleName,
+		moduleName) < 0)
 	{
 	    retVal = SDL_ABORT;
 	    if (sdl_set_message(
@@ -726,6 +729,7 @@ uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 			errno) != SDL_NORMAL)
 		retVal = SDL_ERREXIT;
 	}
+	free(moduleName);
     }
 
     /*

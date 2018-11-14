@@ -53,7 +53,7 @@ typedef struct
 #define SDL_K_VERSION_TYPE	'V'
 #define SDL_K_VERSION_MAJOR	3
 #define SDL_K_VERSION_MINOR	4
-#define SDL_K_VERSION_LEVEL	20181113
+#define SDL_K_VERSION_LEVEL	20181114
 
 /*
  * These are the base types supported by OpenSDL.

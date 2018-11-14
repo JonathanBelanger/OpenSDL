@@ -5354,13 +5354,17 @@ static int64_t _sdl_aggregate_size(
 			SDL_AGGREGATE *aggr,
 			SDL_SUBAGGR *subAggr)
 {
-    SDL_MEMBERS	*member = NULL;
-    SDL_QUEUE	*memberList = NULL;
-    int64_t	retVal = 0;
-    int64_t	size = 0;
-    int		dimension = 1;
-    int		unionType;
-    bool	isUnion;
+    SDL_MEMBERS		*member = NULL;
+    SDL_QUEUE		*memberList = NULL;
+    SDL_CONSTANT	*constDef;
+    char		*name;
+    char		*prefix;
+    SDL_YYLTYPE		loc = {0, 0, 0, 0};
+    int64_t		retVal = 0;
+    int64_t		size = 0;
+    int			dimension = 1;
+    int			unionType;
+    bool		isUnion;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -5375,6 +5379,8 @@ static int64_t _sdl_aggregate_size(
      */
     if (aggr != NULL)
     {
+	name = aggr->id;
+	prefix = aggr->prefix;
 	if (SDL_Q_EMPTY(&aggr->members) == false)
 	{
 	    member = (SDL_MEMBERS *) aggr->members.blink;
@@ -5385,6 +5391,8 @@ static int64_t _sdl_aggregate_size(
     }
     else if (subAggr != NULL)
     {
+	name = subAggr->id;
+	prefix = subAggr->prefix;
 	isUnion = subAggr->aggType == SDL_K_TYPE_UNION;
 	unionType = subAggr->type;
 	if (SDL_Q_EMPTY(&subAggr->members) == false)
@@ -5657,6 +5665,23 @@ static int64_t _sdl_aggregate_size(
 	 */
 	(void) _sdl_create_bitfield_constants(context, memberList);
     }
+
+    /*
+     * Create the constant for the size of the AGGREGATE/subaggregate.
+     */
+    constDef = _sdl_create_constant(
+			name,
+			(prefix == NULL ? "" : prefix),
+			(_sdl_all_lower(name) ? "s" : "S"),
+			NULL,
+			NULL,
+			SDL_K_RADIX_DEC,
+			retVal,
+			NULL,
+			context->wordSize,
+			&loc);
+    if (constDef != NULL)
+	_sdl_queue_constant(context, constDef);
 
     /*
      * Return the results back to the caller.

@@ -84,7 +84,6 @@
 /*
  * Defines and includes for enable extend trace and logging
  */
-extern int		yydebug;
 extern SDL_CONTEXT	context;
 extern SDL_QUEUE	literal;
 
@@ -718,7 +717,7 @@ int main(int argc, char *argv[])
     /*
      * Turn on tracing
      */
-    trace = false;
+    trace = true;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -954,7 +953,7 @@ int main(int argc, char *argv[])
 		 * comments.  First starting with a row of '*'s.
 		 */
 		if ((*_outputFuncs[ii][SDL_K_STARS])(
-				context.outFP[ii]) == 1)
+				context.outFP[ii]) == SDL_NORMAL)
 		{
 
 		    /*
@@ -963,7 +962,7 @@ int main(int argc, char *argv[])
 		     */
 		    if ((*_outputFuncs[ii][SDL_K_CREATED])(
 				context.outFP[ii],
-				timeInfo) == 1)
+				timeInfo) == SDL_NORMAL)
 		    {
 			char		*path = realpath(context.inputFile, NULL);
 			struct stat	fileStats;
@@ -993,7 +992,7 @@ int main(int argc, char *argv[])
 			if ((*_outputFuncs[ii][SDL_K_FILEINFO])(
 					context.outFP[ii],
 					timeInfo,
-					path) == 1)
+					path) == SDL_NORMAL)
 			{
 			    if (freePath == true)
 				free(path);
@@ -1005,21 +1004,43 @@ int main(int argc, char *argv[])
 			     * generation.
 			     */
 			    if ((_outputFuncs[ii][SDL_K_STARS])(
-					context.outFP[ii]) == 0)
+					context.outFP[ii]) != SDL_NORMAL)
+			    {
+				status = sdl_get_message(msgVec, &msgTxt);
+				if (status == SDL_NORMAL)
+				    fprintf(stderr, errFmt, msgTxt);
+				free(msgTxt);
 				return(-1);
+			    }
 			}
 			else
 			{
 			    if (freePath == true)
 				free(path);
+			    status = sdl_get_message(msgVec, &msgTxt);
+			    if (status == SDL_NORMAL)
+				fprintf(stderr, errFmt, msgTxt);
+			    free(msgTxt);
 			    return(-1);
 			}
 		    }
 		    else
+		    {
+			status = sdl_get_message(msgVec, &msgTxt);
+			if (status == SDL_NORMAL)
+			    fprintf(stderr, errFmt, msgTxt);
+			free(msgTxt);
 			return(-1);
+		    }
 		}
 		else
+		{
+		    status = sdl_get_message(msgVec, &msgTxt);
+		    if (status == SDL_NORMAL)
+			fprintf(stderr, errFmt, msgTxt);
+		    free(msgTxt);
 		    return(-1);
+		}
 	    }
 	}
 	else
@@ -1045,7 +1066,7 @@ int main(int argc, char *argv[])
      * Start parsing the real input file
      */
     yylex_init(&scanner);
-    yyset_debug(0, scanner);
+    yyset_debug(1, scanner);
 
     /*
      * Associate the input file to the parser.

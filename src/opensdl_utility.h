@@ -51,6 +51,7 @@ uint32_t sdl_add_option(
 		char *string,
 		SDL_YYLTYPE *loc);
 uint32_t sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale);
+bool sdl_all_lower(const char *str);
 
 #define SDL_M_LEAD	0x00000001	/* remove leading spaces */
 #define SDL_M_TRAIL	0x00000002	/* remove trailing spaces */

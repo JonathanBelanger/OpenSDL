@@ -2093,6 +2093,8 @@ static char *_sdl_c_generate_name(
 	if (context->suppressPrefix == false)
 	{
 	    strcpy(&retVal[len], prefix);
+	    if (sdl_all_lower(prefix) == true)
+		strlwr(&retVal[len]);
 	    len += strlen(prefix);
 	}
 	if ((tag != NULL) && (tagLen > 0) && (context->suppressTag == false))

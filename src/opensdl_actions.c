@@ -172,7 +172,6 @@ static SDL_ENUMERATE *_sdl_create_enum(
 		bool typeDef,
 		SDL_YYLTYPE *loc);
 static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum);
-static bool _sdl_all_lower(const char *str);
 static void _sdl_reset_options(SDL_CONTEXT *context);
 static uint32_t _sdl_iterate_members(
 		SDL_CONTEXT *context,
@@ -1373,7 +1372,7 @@ uint32_t sdl_declare_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 			context,
 			tag,
 			myDeclare->type,
-			_sdl_all_lower(myDeclare->id));
+			sdl_all_lower(myDeclare->id));
 	}
     }
 
@@ -1587,7 +1586,7 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 			context,
 			tag,
 			myItem->type,
-			_sdl_all_lower(myItem->id));
+			sdl_all_lower(myItem->id));
 
 	    /*
 	     * Addresses can have sub-types.
@@ -1848,7 +1847,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 			    context,
 			    NULL,
 			    datatype,
-			    _sdl_all_lower(id));
+			    sdl_all_lower(id));
 
 	    /*
 	     * OK, we have the tag we need, so if we are really creating a
@@ -2022,7 +2021,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 					context,
 					NULL,
 					datatype,
-					_sdl_all_lower(id));
+					sdl_all_lower(id));
 			myConst = _sdl_create_constant(
 						name,
 						prefix,
@@ -2189,7 +2188,7 @@ uint32_t sdl_aggregate(
 				    context,
 				    NULL,
 				    aggType,
-				    _sdl_all_lower(name));
+				    sdl_all_lower(name));
 	    SDL_Q_INIT(&myAggr->members);
 	    SDL_INSQUE(&context->aggregates.header, &myAggr->header.queue);
 	    context->currentAggr = myAggr;
@@ -2640,7 +2639,7 @@ uint32_t sdl_aggregate_member(
 							context,
 							NULL,
 							myMember->type,
-							_sdl_all_lower(name));
+							sdl_all_lower(name));
 			if (myAggr != NULL)
 			    myMember->subaggr.alignment = myAggr->alignment;
 			else
@@ -2807,7 +2806,7 @@ uint32_t sdl_aggregate_member(
 							context,
 							NULL,
 							tagDatatype,
-							_sdl_all_lower(name));
+							sdl_all_lower(name));
 			    myMember->item.size = sdl_sizeof(context, datatype);
 
 			    /*
@@ -4589,45 +4588,6 @@ static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
 }
 
 /*
- * _sdl_all_lower
- *  This function is called to determine if the supplied string is all lower
- *  case.
- *
- * Input Parameters:
- *  str:
- *	A pointer to the string to check.
- *
- * Output Parameters:
- *  None.
- *
- * Return Values:
- *  true:	'str' is all lower case.
- *  false:	'str' is either all uppercase or mixed case.
- */
-static bool _sdl_all_lower(const char *str)
-{
-    int ii, len = (str ? strlen(str) : 0);
-    bool retVal = true;
-
-    /*
-     * If tracing is turned on, write out this call (calls only, no returns).
-     */
-    if (trace == true)
-	printf("%s:%d:_sdl_all_lower\n", __FILE__, __LINE__);
-
-    for (ii = 0; ((ii < len) && (retVal == true)); ii++)
-    {
-	if (isalpha(str[ii]) == true)
-	    retVal = islower(str[ii]);
-    }
-
-    /*
-     * Return the results back to the caller.
-     */
-    return(retVal);
-}
-
-/*
  * _sdl_reset_options
  *  This function is called to reset the options array in the context block.
  *  If any of the saved options is a string and it is not NULL, then free it.
@@ -5606,7 +5566,7 @@ static int64_t _sdl_aggregate_size(
 						context,
 						NULL,
 						datatype,
-						_sdl_all_lower(
+						sdl_all_lower(
 							filler->item.id));
 		    SDL_COPY_LOC(filler->item.loc, &filler->loc);
 		    _sdl_determine_offsets(context, filler, memberList, true);
@@ -5672,7 +5632,7 @@ static int64_t _sdl_aggregate_size(
     constDef = _sdl_create_constant(
 			name,
 			(prefix == NULL ? "" : prefix),
-			(_sdl_all_lower(name) ? "s" : "S"),
+			(sdl_all_lower(name) ? "s" : "S"),
 			NULL,
 			NULL,
 			SDL_K_RADIX_DEC,
@@ -5959,7 +5919,7 @@ static uint32_t _sdl_create_bitfield_constants(
 				(member->item.prefix == NULL ?
 					"" :
 					member->item.prefix),
-				(_sdl_all_lower(member->item.id) ? "s" : "S"),
+				(sdl_all_lower(member->item.id) ? "s" : "S"),
 				NULL,
 				NULL,
 				SDL_K_RADIX_DEC,
@@ -5998,7 +5958,7 @@ static uint32_t _sdl_create_bitfield_constants(
 				(member->item.prefix == NULL ?
 					"" :
 					member->item.prefix),
-				(_sdl_all_lower(member->item.id) ? "m" : "M"),
+				(sdl_all_lower(member->item.id) ? "m" : "M"),
 				NULL,
 				NULL,
 				SDL_K_RADIX_HEX,

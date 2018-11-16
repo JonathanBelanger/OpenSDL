@@ -39,7 +39,7 @@
  *				the date and the source filename is included at
  *				the beginning of the output file(s). (header is
  *				the default)
- *		-help		display the usage information.
+ *		-help		Display the usage information.
  *		-lang:<lang[=filespec]>	Specifies one of the language options.
  *				At least one needs to be specified on the
  *				command line.
@@ -59,6 +59,11 @@
  *				IFSYMBOL is specified in the input file.  A
  *				value of zero turns off the symbol and a
  *				non-zero value turns it on.
+ *		-v		Verbose information during processing.  By
+ *				default this is turned off.
+ *		-V		Display the version information for the OpenSDL
+ *				utility.  By default the version information is
+ *				not displayed.
  *
  * Revision History:
  *
@@ -88,7 +93,8 @@ extern SDL_CONTEXT	context;
 extern SDL_QUEUE	literal;
 
 void			*scanner = NULL;
-_Bool			trace = false;
+bool			trace;
+int			_verbose;
 
 #define SDL_K_STARS	0
 #define SDL_K_CREATED	1
@@ -201,6 +207,10 @@ static void _sdl_usage(void)
     printf("\t\t\t    IFSYMBOL is specified in the input file.  A\n");
     printf("\t\t\t    value of zero turns off the symbol and a\n");
     printf("\t\t\t    non-zero value turns it on.\n");
+    printf("  -v    Verbose information during processing.  By default this is\n");
+    printf("\t\t\t    turned off.\n");
+    printf("  -V    Display the version information for the OpenSDL utility.\n");
+    printf("\t\t\t    By default the version information is not displayed.\n");
 
     /*
      * Return back to the caller.
@@ -237,6 +247,7 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
     char	*ptr;
     int		ii = 1;
     uint32_t	retVal = SDL_NORMAL;
+    bool	langSet = false;
 
     /*
      * Initialize all the defaults.
@@ -414,7 +425,6 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			if (argv[ii][5] == ':')
 			{
 			    int		jj = 0;
-			    bool	langSet = false;
 
 			    while ((context->languages[jj].langStr != NULL) &&
 				   (context->languages[jj].langVal != -1) &&
@@ -660,6 +670,26 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    }
 		    break;
 
+		/*
+		 * v, display verbose tracing information.
+		 */
+		case 'v':
+		    trace = true;
+		    _verbose = 1;
+		    break;
+
+		/*
+		 * V, display version information.
+		 */
+		case 'V':
+		    printf(
+			"\nOpenSDL Version %c%d.%d-%d.\n",
+			SDL_K_VERSION_TYPE,
+			SDL_K_VERSION_MAJOR,
+			SDL_K_VERSION_MINOR,
+			SDL_K_VERSION_LEVEL);
+		    break;
+
 		default:
 		    break;
 	    }
@@ -677,6 +707,19 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    retVal = SDL_ERREXIT;
 	}
 	ii++;
+    }
+
+    /*
+     * At lease one language needed to be specified on the command line.
+     */
+    if (langSet == false)
+    {
+	retVal = SDL_NOOUTPUT;
+	if (sdl_set_message(
+			msgVec,
+			1,
+			retVal) != SDL_NORMAL)
+	    retVal = SDL_ERREXIT;
     }
 
     /*
@@ -715,9 +758,10 @@ int main(int argc, char *argv[])
     int		ii, jj;
 
     /*
-     * Turn on tracing
+     * Turn off tracing
      */
-    trace = true;
+    trace = false;
+    _verbose = 0;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -1056,7 +1100,7 @@ int main(int argc, char *argv[])
     if (cfp != NULL)
     {
 	yylex_init(&scanner);
-	yyset_debug(0, scanner);
+	yyset_debug(_verbose, scanner);
 	yyset_in(cfp, scanner);
 	yyparse(scanner);
 	yylex_destroy(scanner);
@@ -1066,7 +1110,7 @@ int main(int argc, char *argv[])
      * Start parsing the real input file
      */
     yylex_init(&scanner);
-    yyset_debug(1, scanner);
+    yyset_debug(_verbose, scanner);
 
     /*
      * Associate the input file to the parser.

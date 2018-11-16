@@ -1381,7 +1381,6 @@ uint32_t sdl_add_option(
 	    }
 	}
     }
-printf("\n>>>> optionsIdx = %d <<<<\n", context->optionsIdx);
 
     /*
      * Return the results of this call back to the caller.
@@ -1443,6 +1442,45 @@ uint32_t sdl_precision(SDL_CONTEXT *context, int64_t precision, int64_t scale)
      * Return the results of this call back to the caller.
      */
     return (retVal);
+}
+
+/*
+ * sdl_all_lower
+ *  This function is called to determine if the supplied string is all lower
+ *  case.
+ *
+ * Input Parameters:
+ *  str:
+ *	A pointer to the string to check.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  true:	'str' is all lower case.
+ *  false:	'str' is either all upper or mixed case.
+ */
+bool sdl_all_lower(const char *str)
+{
+    int ii, len = (str ? strlen(str) : 0);
+    bool retVal = true;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_all_lower\n", __FILE__, __LINE__);
+
+    for (ii = 0; ((ii < len) && (retVal == true)); ii++)
+    {
+	if (isalpha(str[ii]) == true)
+	    retVal = islower(str[ii]);
+    }
+
+    /*
+     * Return the results back to the caller.
+     */
+    return(retVal);
 }
 
 /*

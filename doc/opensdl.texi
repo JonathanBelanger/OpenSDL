@@ -54,7 +54,7 @@ Permission is granted to copy, distribute and/or modify this document under the
 terms of the GNU Free Documentation License, Version 1.3 or any later version
 published by the Free Software Foundation; with no Invariant Sections, with no
 Front-Cover Texts, and with no Back-Cover Texts.  A copy of the license is
-included in the section entitled ``GNU Free Documentation License''.
+included in the section entitled ``GNU Free Documentation License".
 
 @strong{First Printing, June 1981}@*
 @strong{Revised, June 1985}@*
@@ -318,7 +318,6 @@ used.
 @end enumerate
 @end float
 
-
 Key to @ref{OpenSDL Translation Process}:
 @enumerate
 
@@ -490,324 +489,340 @@ void *current_node_ptr __attribute__ ((aligned));
 @chapter Creating, Editing, and Processing an OpenSDL Source File
 @cindex Chapter 2
 
-This chapter describes how to create an OpenSDL source file using the
-recommended HP Language-Sensitive Editor (LSE) text editor and how to process
-your source file using the SDL command and all its qualifiers.
+This chapter describes how to create an OpenSDL source file using a basic
+text editor (Notepad++) and how to process your source file using the OpenSDL
+command and its qualifiers.
 
-You can use any text editor to create your source file, including EDT and
-TPU/EVE.  LSE offers the advantages of being layered on TPU and of giving you
-the option of selecting either an EDT- or EVE-style keypad.  In addition, LSE
-increases your productivity as a programmer by providing you with OpenSDL
-language-specific templates to help you write your OpenSDL source code.
+You can use any text editor to create your source file.
 
-@ref{Entering Source Code Using Placeholders and Tokens} describes how to use
-the LSE templates to enter source code.  @ref{Getting Started with OpenSDL}
-provides a tutorial to get you started using the LSE templates to write
-OpenSDL source code.  @ref{Compiling Source Code} describes how to compile your
-source code and use split-screen mode to review your .LIS and output files from
-within the LSE editing environment.
+@ref{Entering Source Code} describes how to use a text editor to enter OpenSDL
+source code.  @ref{Getting Started with OpenSDL} provides a tutorial to get you
+started using a text editor to write OpenSDL source code.  @ref{Compiling
+Source Code} describes how to compile your source code.
 
 @ref{Processing an OpenSDL Source File} describes the SDL command and the uses
 of the SDL command qualifiers.
 
-For more information on the advanced features of LSE, see the @cite{Guide to HP
-Language Sensitive Editor} and @cite{HP Source Code Analyzer}.
+@section Creating an OpenSDL Source File with Notepad++
 
-@section Creating an OpenSDL Source File with LSE
+Open Notepad++ and create a file with a filename containing a @file{.sdl} file
+extension.
 
-To invoke LSE, issue the LSEDIT command followed by a file name with an .SDL
-file type at the DCL prompt.  For example:@*
-@command{$ LSEDIT USER.SDL}
+@float Figure, Opened File
+@image{FileOpen,6in,,,.jpg}
+@end float
 
 @quotation NOTE
-If you are unable to access OpenSDL or LSE support for OpenSDL, contact your
-system manager to ensure that they are installed on your system.
+If you are unable to access OpenSDL or Notepad++, contact your system manager
+to ensure that they are installed on your system.
 @end quotation
 
-@ref{Entering Source Code Using Placeholders and Tokens} describes how to enter
-source code using LSE, and @ref{Getting Started with OpenSDL} provides a
-tutorial on using a text editor to generate OpenSDL source code.
-@ref{Compiling Source Code} describes LSE’s compiler interface features.
+@ref{Entering Source Code} describes how to enter
+source code using Notepad++, and @ref{Getting Started with OpenSDL} provides a
+tutorial on using a text editor to create OpenSDL source code.
+@ref{Compiling Source Code} describes compiling the OpenSDL source code.
 
-@node Entering Source Code Using Placeholders and Tokens
-@subsection Entering Source Code Using Placeholders and Tokens
+@node Entering Source Code
+@subsection Entering Source Code
 
-LSE simplifies the tasks of developing and maintaining software systems.  LSE
-provides the functions of a traditional text editor, plus these additional
-powerful features: language specific placeholders and tokens, aliases, comment
-and indentation control, and templates for subroutine libraries.
+This section provides basic information about entering OpenSDL formatter code
+into a text editor.
 
-@strong{Placeholders} are markers in the source code that indicate locations
-where you can provide program text.  Placeholders help you to supply the
-appropriate syntax in a given context.  Generally, you do not need to type
-placeholders; rather, they are inserted for you by LSE.
+The parser for OpenSDl ignores most whitespace characters, including @key{SP},
+@key{TAB}, and @key{ENTER}.  Therefore, these characters can be used to
+structure the file for easier understanding.
 
-Placeholders are either optional or required.  Required placeholders, which are
-delimited by braces ( @{@} ), represent places in the source code where you
-must provide program text.  Optional placeholders, which are delimited by
-brackets ( [ ] ), represent places in the source code where you can either
-provide additional constructs or delete the placeholder.
+The OpenSDL keywords are not case sensitive.  As such, they can be enter as all
+uppercase, all lowercase, or mixed (camel) case.
 
-The following table describes the three types of LSE placeholders.
+The identifiers associated with various OpenSDL keywords are case sensitive,
+depending upon the output language.  Within the OpenSDL parser, a lowercase
+@code{AGGREGATE} @emph{ID} will @strong{not} match an uppercase (or camelcase)
+@code{END} @emph{ID}, and will cause a warning message to be displayed.
 
-@multitable @columnfractions .4 .6
-@headitem Type of Placeholder @tab Description
-
-@item Terminal @tab Provides text that describes valid replacements for the
-placeholder
-
-@item Nonterminal @tab Expands into additional language constructs
-
-@item Menu @tab Provides a list of options corresponding to the placeholder
-@end multitable
-
-You can move forward or backward from placeholder to placeholder.  In addition,
-you can delete or expand placeholders as needed.  @ref{Getting Started with 
-OpenSDL} shows examples of expanding placeholders.  Tokens
-typically represent keywords in OpenSDL.  When expanded, tokens provide
-additional language constructs.  You can type tokens directly into the buffer.
-Generally, you use tokens when you want to add language constructs and there
-are no placeholders in an existing program.  For example, typing AGGREGATE and
-issuing the EXPAND (CTRL/E) command causes a template for an AGGREGATE
-declaration to appear on your screen.  You can also use tokens to bypass long
-menus in cases where expanding a placeholder, such as @{statement@}, will
-result in a lengthy menu.
-
-You can use tokens to insert text when editing an existing file by typing the
-name for a function or keyword and pressing @key{CTRL/E}.
-
-LSE commands allow you to manipulate tokens and placeholders.  The following
-table shows the LSE commands and their default key bindings.
-
-@multitable @columnfractions .4 .15 .35
-@headitem Command @tab Key Binding @tab Function
-@item @code{EXPAND} @tab @key{CTRL/E} @tab Expands a placeholder
-@item @code{UNEXPAND} @tab @key{PF1} - @key{CTRL/E} @tab Reverses the effect of
-the most recent placeholder expansion
-@item @code{GOTO PLACEHOLDER/FORWARD} @tab @key{CTRL/N} @tab Moves the cursor
-to the next placeholder
-@item @code{GOTO PLACEHOLDER/REVERSE} @tab @key{CTRL/P} @tab Moves the cursor
-to the previous placeholder
-@item @code{ERASE PLACEHOLDER/FORWARD} @tab @key{CTRL/K} @tab Erases a
-placeholder
-@item @code{UNERASE PLACEHOLDER} @tab @key{PF1} - @key{CTRL/K} @tab Restores
-the most recently erased placeholder
-@item None @tab V @tab Moves the indicator down through a menu
-@item None @tab ^ @tab Moves the indicator up through a menu
-@item None @tab @{ ENTER @} or @tab Selects a menu option
-@item @tab @{ RETURN @}
-@end multitable
-
-You can display a list of all defined tokens and placeholders, or a particular
-token or placeholder, with the LSE commands SHOW TOKEN and SHOW PLACEHOLDER.
-To copy the listed information into a separate file, first issue the
-appropriate SHOW command to put the list into the $SHOW buffer.  Then issue the
-following commands:
-
-@command{LSE> GOTO BUFFER $SHOW}
-@command{LSE> WRITE filename}
-
-To obtain a hard copy of the list, use the @command{PRINT} command at DCL level
-to print the file you created.
+Identifiers that are also an OpenSDL keyword can be used, but need to be
+enclosed in double-quotes (@key{"}).  Any leading and trailing spaces will be
+ignored.
 
 @node Getting Started with OpenSDL
 @subsection Getting Started with OpenSDL
 
 This section provides a tutorial on using some common tokens and placeholders
-to write SDL source code.  The tutorial shows expansions of the following
+to write OpenSDL source code.  The tutorial shows expansions of the following
 OpenSDL declarations and language elements:
 
 @itemize @bullet
 @item MODULE declaration
-@item Output comment
+@item Output line comment
 @item Local symbol declaration
 @item CONSTANT declaration
 @item AGGREGATE declaration
 @item ITEM declaration
 @end itemize
 
-@ref{Creating a Sample OpenSDL Source File Using LSE} shows the sample OpenSDL
-source file described in Chapter 1.  You will be creating this sample source
-file in the following tutorial.  The numbered callouts in the example correspond
+@ref{Creating a Sample OpenSDL Source File} shows the sample OpenSDL source
+file described in Chapter 1.  You will be creating this sample source file in
+the following tutorial.  The numbered callouts in the example correspond
 to the source code you will be entering in each step.  Following each step,
 intermediate and resulting screen displays highlight the source code you just
 entered.
 
-As you step through the tutorial, refer to @ref{Entering Source Code Using
-Placeholders and Tokens} for the commands that manipulate tokens and
-placeholders.  You can also access online help by typing @command{HELP} at the
-@command{LSE>} prompt.  Remember that braces ( @{@} ) enclose required
-placeholders; brackets ( [ ] ) enclose optional placeholders.  When you erase an
-optional placeholder, LSE also deletes any associated text before and after
-that placeholder.
+As you step through the tutorial, refer to @ref{Entering Source Code}
+for specifies about entering source code in a text editor.  You can also access
+online help by typing @command{opensdl -help} at the @command{$} prompt.
 
 
-@float Example, Creating a Sample OpenSDL Source File Using LSE
+@float Example, Creating a Sample OpenSDL Source File
 @example
-MODULE opr_descriptor IDENT "Version 2.0";@footnote{Move to the required
-placeholder @{module-name@} by pressing @key{CTRL/N} and type opr_descriptor.
-Then move to the optional placeholder [ident-string].  As you move the cursor,
-notice that LSE inserts the opr_descriptor module name for the END_MODULE name
-as well.  Expand [ident-string] and type Version 2.0 over the resulting
-placeholder "[ident-text]".  Your screen will look as follows:}
+MODULE opr_descriptor IDENT "Version 2.0";@sup{1}
 
-/* define constants and node structure for operators@footnote{Move to the
-placeholder [statement] and press CTRL/E.  LSE displays a menu of options.
-Press the down arrow (V) key to move the pointer to the menu option
-@{output-comment@} and press RETURN.  Type define constants and node structure
-for operators over the placeholder [TBS].  Your screen will look as follows:}
+/* define constants and node structure for operators@sup{2}
+#max_args = 10;@sup{3}
+CONSTANT@sup{4} (fixed_binary,floating,char,untyped)@sup{5} EQUALS 1@sup{6} INCREMENT 1@sup{7};
+AGGREGATE@sup{8} operator@sup{9} STRUCTURE@sup{10}
+    PREFIX@sup{11} "opr_";@sup{12}
+    flink@sup{13} ADDRESS;@sup{14}
+    blink ADDRESS;@sup{15}
+    opcount WORD;@sup{15}
+    optype CHARACTER LENGTH 1;@sup{15}
+    id WORD;@sup{15}
+    operands LONGWORD@sup{16} DIMENSION@sup{17} 0:#max_args-1;@sup{18}
+END operator;@sup{19}
 
-#max_args = 10;@footnote{Move to the placeholder [statement] and press
-@key{CTRL/E}.  LSE displays a menu of options.  Press the down arrow (V) key to
-move the pointer to the menu option @{local-assignment@} and press
-@key{RETURN}.  Type max_args over the current placeholder @{local-symbol@}.
-Move to the placeholder @{expression@} and type the value 10.  Your screen will
-look as follows:}
+#opsize = .;@sup{20}
 
-CONSTANT (fixed_binary,floating,char,untyped) EQUALS 1 INCREMENT 1;@footnote{
-Move to the placeholder [statement] and press @key{CTRL/E}.  Press @key{RETURN}
-to select the menu option @{constant-declaration@} displayed on your screen.
-Your screen will look as follows:
+CONSTANT@sup{21} opr_node_size@sup{22} EQUALS #opsize@sup{23} / 2;@sup{24}
+ITEM@sup{25} current_node_ptr ADDRESS GLOBAL@sup{26};
 
-Press @key{CTRL/E} to expand the current placeholder @{constant-definition@}.
-Press the down arrow (V) key to move the pointer to the menu option
-"([constant-name]...) EQUALS @{CONSTANT-expression@} [increment-expression]"
-and press @key{RETURN}.  Your screen will look as follows:
-
-Type fixed_binary, floating, char, and untyped over the current placeholder
-[constant-name].  Press @key{CTRL/K} to delete the last occurrence of the placeholder
-[constant-name].  Move to the placeholder @{CONSTANT-expression@} and type the
-value 1.  Move to the placeholder [increment-expression] and press @key{CTRL/E}.  Move
-to the resulting placeholder @{expression@} and type the value 1.  Your screen
-will look as follows:
-
-Move to the three optional placeholders [prefix-declaration],
-[tag-declaration], and [counter-declaration] and delete each of them by
-pressing @key{CTRL/K}.}
-
-AGGREGATE operator STRUCTURE
-    PREFIX "opr_";@footnote{Expand the current placeholder [statement].  Press
-the down arrow (V) key to move the pointer to the menu option
-@{aggregate-declaration@} and press @key{RETURN}.  Your screen will look as
-follows:
-
-Move to the placeholder @{aggregate-name@} and type operator.
-
-Move to the placeholder @{aggregate_type@} and press @key{CTRL/E}.  Press
-@key{RETURN} to select the menu option "STRUCTURE" displayed on your screen.
-
-Press @key{CTRL/E} to expand the current placeholder [aggregate-options].  Press
-@key{RETURN} to select the menu option @{member-options@} : PREFIX, TAG, OR
-DIMENSION displayed on your screen.  Press @key{RETURN} again to select the new
-menu option @{PREFIX-DECLARATION@} : PREFIX.
-
-Type "opr_" over the current placeholder @{prefix_string@}.  Your screen will
-look as follows:}
-
-    flink ADDRESS;@footnote{Move to the placeholder [aggregate-options] and
-press @key{CTRL/K} to delete it.
-
-Expand the current placeholder [member-declaration].  Press @key{RETURN} to
-select the menu option @{member-name@} @{member-type@} [member-options]
-displayed on your screen.  Your screen will look as follows:
-
-Type the first member name flink over the current placeholder @{member-name@}.
-Move to the placeholder @{member-type@} and press @key{CTRL/E}.  Press the down
-arrow (V) key to move the pointer to the menu option @{address-declaration@} :
-Address (pointer) datatype declaration and press @key{RETURN}.  Press
-@key{RETURN} again to select the menu option "ADDRESS".  Your screen will look
-as follows:}
-    blink ADDRESS;
-    opcount WORD;
-    optype CHARACTER LENGTH 1;
-    id WORD;
-    operands LONGWORD@footnote{Delete the current placeholder [member-options].
-The cursor is now on the current placeholder [member-declaration].  Follow the
-steps described in the previous paragraph for the blink, opcount, optype, id,
-and operands members shown on each line in the example callout '.  Note the
-differences in syntax required for some of the member names.  Your screen will
-look as follows:} DIMENSION 0:#max_args-1;@footnote{Press @key{CTRL/E} to
-expand the current placeholder [member-options].  Press the down arrow (V) key
-to select the menu option @{dimension-declaration@}.
-
-Press @key{RETURN} again to select the menu option "DIMENSION [lower-bound]
-@{upper-bound@}".  Your screen will look as follows:
-
-Press @key{CTRL/E} to expand the current placeholder [lower-bound].  Expand the
-resulting current placeholder @{bound-specifier@} and type 0 over the resulting
-current placeholder @{expression@}:.  Move to the placeholder @{upper-bound@}
-and press @key{CTRL/E}.  Type #max_args-1; over the resulting current
-placeholder @{expression@}.  Your screen will look as follows:
-
-Move to the optional placeholders [member-options] and [member-declaration]
-and press @key{CTRL/K} to delete each of them.}
-
-END operator;
-
-#opsize = .;@footnote{Expand the current placeholder [statement].  Press the
-down arrow (V) key to move the pointer to the menu option @{local-assignment@}
-and press @key{RETURN}.  Your screen will look as follows:
-
-Type opsize over the current placeholder @{local-symbol@}.  Move to the
-placeholder @{expression@} and press @key{CTRL/E}.  Press the down arrow (V) key
-to move the pointer to the menu option @{offset-location-symbol@} and press
-@key{RETURN}.  Press @key{RETURN} again to select the new menu option
-@{origin-byte-offset-symbol@}.  Your screen will look as follows:}
-
-CONSTANT opr_node_size EQUALS #opsize / 2;@footnote{Expand the current
-placeholder [statement].  Press RETURN to select the menu option
-@{constant-declaration@} displayed at the top of the screen.  Press @key{CTRL/E}
-to expand the current placeholder @{constant-definition@}.  Press @key{RETURN}
-to select the menu option "@{constant-name@} EQUALS @{CONSTANT-expression@}".
-Your screen will look as follows:
-
-Type opr_node_size over the current placeholder @{constant-name@}.  Move to the
-placeholder @{CONSTANT-expression@} and press @key{CTRL/E}.  Press the down
-arrow (V) key to move the pointer to the menu option @{expression@} / 
-@{expression@} and press @key{RETURN}.  Type the expression #opsize over the
-resulting current placeholder @{expression@}.  Move to the next placeholder
-@{expression@} and type the value 2.  Your screen will look as follows:
-
-Move to the three optional placeholders [prefix-declaration],
-[tag-declaration], and [counter-declaration] and delete each of them by
-pressing @key{CTRL/K.}}
-
-ITEM current_node_ptr ADDRESS GLOBAL;@footnote{Expand the current placeholder
-[statement].  Press the down arrow (V) key to move the pointer to the menu
-option @{item-declaration@} and press @key{RETURN}.
-Your screen will look as follows:
-
-Type current_node_ptr over the current placeholder @{item-name@}.  Move to the
-placeholder @{item-data-type@} and press @key{CTRL/E}.  Select the menu option
-@{address-declaration@} and then press @key{RETURN} to select the menu option
-"ADDRESS".  Press @key{CTRL/E} to expand the current placeholder
-[storage-class].  Move to the menu option "GLOBAL" and press @key{RETURN}.
-Press @key{CTRL/K} to delete the current placeholder [item-options].  Move to
-the placeholders [statement] and [module] and press @key{CTRL/K} to delete
-them.}
-
-END_MODULE opr_descriptor;
+END_MODULE opr_descriptor;@sup{27}
 @end example
 @end float
 
-Before starting the tutorial, invoke LSE and create a new OpenSDL source file.
-The initial string, @strong{[module]...;}, appears at the top of the screen.
-Expand the initial string by pressing @key{CTRL/E}, and the following appears
-on your screen:
+The following numbered items describe and display each step.  The numbered
+superscript corresponds to the equivalent numbered items.  Not all steps will
+be followed by a screen capture, some steps are combined for display purposes.
 
-@example
-[copyright-statement]
-MODULE @{module-name@} [ident-string];
-[statement]...;
-END_MODULE [module-name];
-[module]...;
-@end example
+@page
+@enumerate
+@item Type @code{MODULE opr_descriptor IDENT "Version 2.0";} on the first
+line of the OpenSDL file we are creating, then hit the @key{Enter} key.
 
-You may expand the [copyright-statement] placeholder, but for the purposes of
-this tutorial, it has been deleted by pressing CTRL/K.
+The @code{opr_descriptor}, will be used when generating files where the file
+should only be included a single time to prevent a file from being included
+multiple times.  When used in this way, the string written to the
+@emph{identifier} will be converted to all uppercase and an underscore @key{_}
+will be added to the beginning and end of the upcased string.
+
+The value after the @code{IDENT} keyword must always be enclosed in
+double-quote characters (@key{"}).  Your screen will look as follows:
+
+@float Figure, Module Statement File
+@image{ModuleStatement,5.6in,,,.jpg}
+@end float
+
+@page
+@item Insert another new-line by hitting the @key{Enter} key.  Then type in
+@code{/* define constants and node structure for operators} anh hit the
+@key{Enter} key.
+
+This line contains one of the three comment formats.  Comments starting with a
+brace (@key{@{} will @strong{not} be written to the output file.  Comments
+starting with a forward-slash followed by an asterics @key{/*} will be written
+to the output file as a line comment formatted for the output language.  The
+third comment fornat is the block comment, see for more information about
+comments in the OpenSDL language in sections @ref{Local Comment} and
+@ref{Output Comment}.  
+Your screen will look as follows:
+
+@float Figure, Output Comment File
+@image{OutputComment,5.6in,,,.jpg}
+@end float
+
+@page
+@item Insert another new-line, and now we are going to defined a local
+variable to be used later on in this example.  Local variable name always
+starts with a hash-symbol (@key{#}), followed by alpha-numeric characters, and
+is case-sensitive.  Now type in @code{#max_args = 10;} (don't forget the
+semicolon at the end).  Your screen will look as follows:
+
+@float Figure, Local Variable File
+@image{LocalVariable,5.6in,,,.jpg}
+@end float
+
+@page
+@item Now we are going to define a set of constants that start from a
+specific value to be assigned to the first constant and then incremented by
+another value to be assigned to each of the following constant definitions.
+Type @code{CONSTANT}, with a trailing space character.  Your screen will look
+as follows:
+
+@float Figure, Constant Start File
+@image{ConstantStart,5.6in,,,.jpg}
+@end float
+
+@page
+@item Now we need to defined a set of constants to be defined.  This is a comma
+separater list enclosed in an open parenthesis @key{(} and close parenthesis
+@key{)}. Type in @code{(fixed_binary, floating, char, untyped)}, with a
+trailing space character.  Your screen will look as follows:
+
+@float Figure, Constant List File
+@image{ConstantList,5.6in,,,.jpg}
+@end float
+
+@page
+@item Now we add the value to be associated with the first constant to be
+defined.  Type in @code{EQUALS 1}, followed by a space character.  Your screen
+will look as follows:
+
+@float Figure, Constant First File
+@image{ConstantFirst,5.6in,,,.jpg}
+@end float
+
+@page
+@item Finally we add the value to be used to increment the remaining constants
+to be defined.  Type in @code{INCREMENT 1;}, making sure the semi-colon has
+been included, then hit the @key{Enter} key.
+
+@float Figure, Constant Last File
+@image{ConstantRest,5.6in,,,.jpg}
+@end float
+
+@page
+@item Next we are going to enter an AGGREGATE definition.  Start by typing in
+@code{AGGREGATE} with a trailing space character.  Your screen will look as
+follows:
+
+@float Figure, Aggregate Start File
+@image{AggregateStart,5.6in,,,.jpg}
+@end float
+
+@page
+@item Now type in @code{operator}, with a trailing space character.
+
+@item Next type in @code{STRUCTURE}, entering a @key{Enter} key.
+
+@item Add any space or tab characters to keep the code looking clean, then type
+in @code{PREFIX}, followed by a trailing space.
+
+@item Type @code{"opr_"} followed by a semi-colon (@key{;}) and @key{Enter}
+key.  Your screen will look as follows:
+
+@float Figure, Aggregate More File
+@image{AggregateMore,5.6in,,,.jpg}
+@end float
+
+@page
+@item Type the first member name @code{flink}, followed by a space character.
+
+@item Now type in @code{ADDRESS;}, not forgetting to include the semi-colon
+@key{;} at the end.  Type the @key{Enter} key.  Your screen will look as
+follows:
+
+@float Figure, Aggregate Member File
+@image{AggregateMember,5.6in,,,.jpg}
+@end float
+
+@page
+@item Follow the steps described in the previous step for the @code{blink},
+@code{opcount}, @code{optype}, and @code{id} members
+shown on each line in the example callout.  Note the differences in syntax
+required for some of the member names.  Your screen will look as follows:
+
+@float Figure, Aggregate Middle File
+@image{AggregateMiddle,5.6in,,,.jpg}
+@end float
+
+@page
+@item Now we are going to add the last member in this particular definition.
+Type in @code{operands LONGWORD} followed by a space character.
+
+@item Next type in @code{DIMENSION} followed by a space character.  Your screen
+will look as follows:
+
+@float Figure, Aggregate Nearly Done File
+@image{AggregateNear,5.6in,,,.jpg}
+@end float
+
+@page
+@item Now we will defined the lower and upper bounds for the @code{DIMENSION}
+definition.  For languages that do not have a lower bound, the range is
+adjusted to be consistent with the particular language, and still have the
+exact same number of entries.  Type in @code{0:#max_args-1;}, not forgetting
+the semi-colon at the end.  Hit the @key{Enter} key (deleting any characters
+inserted by the text editor, if added).  Your screen will look as follows:
+
+@float Figure, Aggregate Last File
+@image{AggregateLast,5.6in,,,.jpg}
+@end float
+
+@page
+@item Finally, we are going to close off the @code{AGGREGATE} definition.  Type
+in @code{END operator;} and type the @key{Enter} key.  Make sure the @emph{id}
+specified on the @code{AGGREGATE} statement matches the one on the @code{END},
+keeping the case the same.  @strong{Note}: Putting the @emph{id} on the
+@code{END} statement is optional, but if specified, must match.  Your screen
+will look as follows:
+
+@float Figure, Aggregate End File
+@image{AggregateEnd,5.6in,,,.jpg}
+@end float
+
+@page
+@item Again type the @key{Enter} key.  Next we are going to define another
+local variable to contain a value representing the current offset within a
+@code{AGGREGATE} definition.  Type @code{#opsize = .;}, again makine sure to
+include the semi-colon character.  Type the @key{Enter} key again.  Your screen
+will look as follows:
+
+@float Figure, Offset File
+@image{Offset,5.6in,,,.jpg}
+@end float
+
+@page
+@item Because local variables are not written to the output file, if we want
+the offset values, we need to defined a @code{CONSTANT} value.  To do this we
+start by typing in @code{CONSTANT} followed by a space character.
+
+@item Type @code{opr_node_size} followed by a space character.
+
+@item Type @code{EQUALS #opsize}, which does not have to be followed by a space
+character.  We do so hear for clarity.
+
+@item Type @code{/ 2;}, remembering to include the semi-colon, plus typing the
+@key{Enter} key.  Your screen will look as follows:
+
+@float Figure, Constant Offset File
+@image{ConstantOffset,5.6in,,,.jpg}
+@end float
+
+@page
+@item Now we are going to define a stand alone variable.  Type @code{ITEM}
+followed by a space character.
+
+@item Type @code{current_node_ptr ADDRESS GLOBAL;} followed by the @key{Enter}
+key.  Your screen will look as followes:
+
+@float Figure, Item File
+@image{Item,5.6in,,,.jpg}
+@end float
+
+@page
+@item Lastly, type the @key{Enter} key again and then type
+@code{END_MODULE opr_descriptor;}, making sure the semi-colon is present.  An
+@key{Enter} key can be typed again, but is not required.  Your screen will look
+as follows, with the complete OpenSDL file:
+
+@float Figure, Item File
+@image{Complete,5.6in,,,.jpg}
+@end float
+@end enumerate
+
+You may insert a specific copyright-statement, but for the purposes of
+this tutorial, it is not being shown.
 
 Your resulting screen display should be the OpenSDL source file shown in
-Example 2–1.
+@ref{Creating a Sample OpenSDL Source File}.
 
 @node Compiling Source Code
 @subsection Compiling Source Code
@@ -1906,7 +1921,7 @@ language-dependent.  You can override the default storage class by specifying
 either of the following storage classes:
 
 @itemize @bullet
-@item @strong{Common storage"} is allocated in an external program section
+@item @strong{Common storage} is allocated in an external program section
 (Psect) with the OVR option and is shared by all routines that reference it.
 You declare data in common storage by using the COMMON option on an AGGREGATE
 or ITEM declaration.  For example, the MACRO back end places all declarations in
@@ -2297,8 +2312,8 @@ that follows it.} @tab ASCII value @tab Any ASCII character (see
 OpenSDL treats decimal constants as signed integer longword values.
 
 You can also use a string of up to four characters as a numeric constant by
-enclosing the string in quotation marks (" ").  OpenSDL inserts the ASCII value
-of each character into the byte field corresponding to that character’s
+enclosing the string in quotation marks (" ").  OpenSDL inserts the ASCII
+value of each character into the byte field corresponding to that character's
 position in the string.  If the string you specify has fewer than four
 characters, OpenSDL pads the string with the null character, which has the
 ASCII code of zero.

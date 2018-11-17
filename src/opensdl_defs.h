@@ -675,7 +675,7 @@ typedef struct
     if ((ctx)->condState.top >= (ctx)->condState.bottom)		\
     {									\
 	(ctx)->condState.bottom += SDL_K_COND_STATE_SIZE; 		\
-	(ctx)->condState.state = realloc(				\
+	(ctx)->condState.state = sdl_realloc(				\
 				    (ctx)->condState.state,		\
 				    (ctx)->condState.bottom);		\
     }									\

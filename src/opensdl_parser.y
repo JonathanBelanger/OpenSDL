@@ -66,6 +66,7 @@
 #include <math.h>
 #include "opensdl_lexical.h"
 #include "opensdl_parser.h"
+#include "opensdl_blocks.h"
 #include "opensdl_actions.h"
 #include "opensdl_message.h"
 #include "opensdl_main.h"
@@ -102,7 +103,8 @@ static char *errexit = "-SDL-F-ERREXIT, Error exit\n";
 do								\
 {								\
     uint32_t	status = (funct);				\
-    if (status != SDL_NORMAL)					\
+								\
+    if (SDL_GET_SEVERITY(status) != SDL_K_SUCCESS)		\
     {								\
 	char 	*_msgTxt;					\
 								\
@@ -110,7 +112,7 @@ do								\
 	    (sdl_get_message(msgVec, &_msgTxt) == SDL_NORMAL))	\
 	{							\
 	    fprintf(stderr, "%s\n", _msgTxt);			\
-	    free(_msgTxt);					\
+	    sdl_free(_msgTxt);					\
 	}							\
 	else							\
 	{							\
@@ -484,7 +486,7 @@ _v_terminal
 			if (sdl_get_message(msgVec, &msgText) == SDL_NORMAL)
 			{
 			    fprintf(stderr, "%s\n", msgText);
-			    free(msgText);
+			    sdl_free(msgText);
 			}
 			else
 			{
@@ -538,13 +540,13 @@ _v_number
 	| t_variable
 	    { SDL_CALL(sdl_get_local(&context, $1, &$$), @$); }
 	| t_hex
-	    { sscanf($1, "%lx", &$$); free($1); }
+	    { sscanf($1, "%lx", &$$); sdl_free($1); }
 	| t_octal
-	    { sscanf($1, "%lo", &$$); free($1); }
+	    { sscanf($1, "%lo", &$$); sdl_free($1); }
 	| t_binary
 	    { $$ = sdl_bin2int($1); }
 	| t_ascii
-	    { $$ = (__int64_t) $1[0]; free($1); }
+	    { $$ = (__int64_t) $1[0]; sdl_free($1); }
 	| SDL_K_DOT
 	    {
 		$$ = sdl_offset(

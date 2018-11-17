@@ -59,6 +59,7 @@
  *				IFSYMBOL is specified in the input file.  A
  *				value of zero turns off the symbol and a
  *				non-zero value turns it on.
+ *		-t		Trace memory allocations and deallocations.
  *		-v		Verbose information during processing.  By
  *				default this is turned off.
  *		-V		Display the version information for the OpenSDL
@@ -82,6 +83,7 @@
 #include "opensdl_defs.h"
 #include "opensdl_parser.h"
 #include "opensdl_lexical.h"
+#include "opensdl_blocks.h"
 #include "opensdl_actions.h"
 #include "opensdl_lang.h"
 #include "opensdl_message.h"
@@ -94,6 +96,8 @@ extern SDL_QUEUE	literal;
 
 void			*scanner = NULL;
 bool			trace;
+bool			traceMemory;
+bool			listing;
 int			_verbose;
 
 #define SDL_K_STARS	0
@@ -157,7 +161,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg)
 	if (sdl_get_message(msgVec, &msgText) == SDL_NORMAL)
 	{
 	    fprintf(stderr, "%s\n", msgText);
-	    free(msgText);
+	    sdl_free(msgText);
 	}
     }
     return;
@@ -372,7 +376,7 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    jj = strlen(path) - 1;
 			    while ((jj > 0) && (path[jj - 1] != '/'))
 				jj--;
-			    context->copyrightFile = calloc(1, jj + 14);
+			    context->copyrightFile = sdl_calloc(1, jj + 14);
 			    strncpy(context->copyrightFile, path, jj);
 			    strcpy(
 				&context->copyrightFile[jj],
@@ -445,7 +449,7 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 					context->langSpec[lang] = true;
 					if (*ptr == '=')
 					    context->outFileName[lang] =
-						strdup(&ptr[1]);
+						sdl_strdup(&ptr[1]);
 					langSet = true;
 				    }
 				    else
@@ -479,7 +483,9 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			}
 		    }
 		    else if (strncmp(argv[ii], "-list", 4) == 0)
-		    {	/* ignore for now */	}
+		    {
+			listing = true;
+		    }
 		    else
 		    {
 			retVal = SDL_INVQUAL;
@@ -538,8 +544,9 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			context->suppressPrefix = false;
 			context->suppressTag = false;
 		    }
-		    else if ((strcmp(argv[ii], "-nolist") != 0) &&
-			     (strcmp(argv[ii], "-nomodule") != 0) &&
+		    else if (strcmp(argv[ii], "-nolist") != 0)
+			listing = false;
+		    else if ((strcmp(argv[ii], "-nomodule") != 0) &&
 		    	     (strcmp(argv[ii], "-noparse") != 0))
 		    {
 			retVal = SDL_INVQUAL;
@@ -638,7 +645,7 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 				    if (list->listUsed >= list->listSize)
 				    {
 					list->listSize++;
-					list->symbols = realloc(
+					list->symbols = sdl_realloc(
 						    list->symbols,
 						    (sizeof(SDL_SYMBOL) *
 						     list->listSize));
@@ -670,6 +677,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    }
 		    break;
 
+		    /*
+		     * t, display memory tracing information.
+		     */
+		case 't':
+		    traceMemory = true;
+		    break;
+
 		/*
 		 * v, display verbose tracing information.
 		 */
@@ -695,7 +709,7 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 	    }
 	}
 	else if (context->inputFile == NULL)
-	    context->inputFile = strdup(argv[ii++]);
+	    context->inputFile = sdl_strdup(argv[ii++]);
 	else
 	{
 	    retVal = SDL_INVQUAL;
@@ -761,7 +775,14 @@ int main(int argc, char *argv[])
      * Turn off tracing
      */
     trace = false;
+    traceMemory = false;
     _verbose = 0;
+
+    /*
+     * Turn off generating a list file, by default.  It may get set when
+     * parsing the command line arguments.
+     */
+    listing = false;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -816,10 +837,23 @@ int main(int argc, char *argv[])
     context.languages[1].langVal = -1;
 
     /*
+     * Parse out the command line arguments.
+     */
+    status = _sdl_parse_args(argc, argv, &context);
+    if ((status != SDL_NORMAL) && (status != SDL_ERREXIT))
+    {
+	status = sdl_get_message(msgVec, &msgTxt);
+	if (status == SDL_NORMAL)
+	    fprintf(stderr, errFmt, msgTxt);
+	sdl_free(msgTxt);
+	return(-1);
+    }
+
+    /*
      * Initialize the parsing states.
      */
     context.state = Initial;
-    context.condState.state = calloc(
+    context.condState.state = sdl_calloc(
 				SDL_K_COND_STATE_SIZE,
 				sizeof(SDL_COND_STATES));
     context.condState.state[0] = CondNone;
@@ -841,19 +875,6 @@ int main(int argc, char *argv[])
     context.enums.nextID = SDL_K_ENUM_MIN;
     SDL_Q_INIT(&context.entries);
 
-    /*
-     * Parse out the command line arguments.
-     */
-    status = _sdl_parse_args(argc, argv, &context);
-    if ((status != SDL_NORMAL) && (status != SDL_ERREXIT))
-    {
-	status = sdl_get_message(msgVec, &msgTxt);
-	if (status == SDL_NORMAL)
-	    fprintf(stderr, errFmt, msgTxt);
-	free(msgTxt);
-	return(-1);
-    }
-
     if (context.inputFile == NULL)
     {
 	status = sdl_set_message(
@@ -864,7 +885,7 @@ int main(int argc, char *argv[])
 	    status = sdl_get_message(msgVec, &msgTxt);
 	if (status == SDL_NORMAL)
 	    fprintf(stderr, errFmt, msgTxt);
-	free(msgTxt);
+	sdl_free(msgTxt);
 	return(-1);
     }
 
@@ -883,7 +904,7 @@ int main(int argc, char *argv[])
 	    status = sdl_get_message(msgVec, &msgTxt);
 	if (status == SDL_NORMAL)
 	    fprintf(stderr, errFmt, msgTxt);
-	free(msgTxt);
+	sdl_free(msgTxt);
 	return(-1);
     }
 
@@ -919,7 +940,7 @@ int main(int argc, char *argv[])
 	}
 	if (msgTxt != NULL)
 	{
-	    free(msgTxt);
+	    sdl_free(msgTxt);
 	    return(-1);
 	}
     }
@@ -942,7 +963,7 @@ int main(int argc, char *argv[])
 	     * line.  NOTE: We may need to truncate the name to fit the field
 	     * we have for it (32 characters lone).
 	     */
-	    context.outFileName[ii] = strdup(context.inputFile);
+	    context.outFileName[ii] = sdl_strdup(context.inputFile);
 
 	    /*
 	     * Go find the last '.' in the file name, this will be where the
@@ -986,7 +1007,7 @@ int main(int argc, char *argv[])
 		    status = sdl_get_message(msgVec, &msgTxt);
 		if (status == SDL_NORMAL)
 		    fprintf(stderr, errFmt, msgTxt);
-		free(msgTxt);
+		sdl_free(msgTxt);
 		return(-1);
 	    }
 	    else if (context.header == true)
@@ -1053,7 +1074,7 @@ int main(int argc, char *argv[])
 				status = sdl_get_message(msgVec, &msgTxt);
 				if (status == SDL_NORMAL)
 				    fprintf(stderr, errFmt, msgTxt);
-				free(msgTxt);
+				sdl_free(msgTxt);
 				return(-1);
 			    }
 			}
@@ -1064,7 +1085,7 @@ int main(int argc, char *argv[])
 			    status = sdl_get_message(msgVec, &msgTxt);
 			    if (status == SDL_NORMAL)
 				fprintf(stderr, errFmt, msgTxt);
-			    free(msgTxt);
+			    sdl_free(msgTxt);
 			    return(-1);
 			}
 		    }
@@ -1073,7 +1094,7 @@ int main(int argc, char *argv[])
 			status = sdl_get_message(msgVec, &msgTxt);
 			if (status == SDL_NORMAL)
 			    fprintf(stderr, errFmt, msgTxt);
-			free(msgTxt);
+			sdl_free(msgTxt);
 			return(-1);
 		    }
 		}
@@ -1082,7 +1103,7 @@ int main(int argc, char *argv[])
 		    status = sdl_get_message(msgVec, &msgTxt);
 		    if (status == SDL_NORMAL)
 			fprintf(stderr, errFmt, msgTxt);
-		    free(msgTxt);
+		    sdl_free(msgTxt);
 		    return(-1);
 		}
 	    }
@@ -1135,7 +1156,7 @@ int main(int argc, char *argv[])
 	if ((context.langSpec[ii] == true) && (context.outFP[ii] != NULL))
 	    fclose(context.outFP[ii]);
 	if (context.outFileName[ii] != NULL)
-	    free(context.outFileName[ii]);
+	    sdl_free(context.outFileName[ii]);
     }
 
     /*
@@ -1148,12 +1169,12 @@ int main(int argc, char *argv[])
      * Clean-up memory.
      */
     for (ii =0; ii < context.langCondList.listUsed; ii++)
-	free(context.langCondList.lang);
+	sdl_free(context.langCondList.lang);
     for (ii = 0; ii < context.symbCondList.listUsed; ii++)
-	free(context.symbCondList.symbols->symbol);
+	sdl_free(context.symbCondList.symbols->symbol);
     if (context.symbCondList.symbols != NULL)
-	free(context.symbCondList.symbols);
-    free(context.inputFile);
+	sdl_free(context.symbCondList.symbols);
+    sdl_free(context.inputFile);
 
     /*
      * Return back to the caller.

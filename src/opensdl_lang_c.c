@@ -33,6 +33,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "opensdl_defs.h"
+#include "opensdl_blocks.h"
 #include "opensdl_lang.h"
 #include "opensdl_utility.h"
 #include "opensdl_message.h"
@@ -712,7 +713,7 @@ uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
      */
     if (retVal == SDL_NORMAL)
     {
-	char	*moduleName = strdup(context->module);
+	char	*moduleName = sdl_strdup(context->module);
 
 	strupr(moduleName);
 	if (fprintf(
@@ -729,7 +730,7 @@ uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
 			errno) != SDL_NORMAL)
 		retVal = SDL_ERREXIT;
 	}
-	free(moduleName);
+	sdl_free(moduleName);
     }
 
     /*
@@ -1020,7 +1021,7 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
     }
 
     if (freeMe == true)
-	free(type);
+	sdl_free(type);
 
     /*
      * Return the results of this call back to the caller.
@@ -1562,9 +1563,9 @@ uint32_t sdl_c_aggregate(
      * Deallocate any allocated memory.
      */
     if (name != NULL)
-	free(name);
+	sdl_free(name);
     if (spaces != NULL)
-	free(spaces);
+	sdl_free(spaces);
 
     /*
      * Return the results of this call back to the caller.
@@ -1653,7 +1654,7 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 		retVal = SDL_ERREXIT;
 	}
 	if ((freeMe == true) && (type != NULL))
-	    free(type);
+	    sdl_free(type);
     }
 
     /*
@@ -1688,7 +1689,7 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
 	if (param->name != NULL)
 	    outLen += sprintf(&outBuf[outLen], param->name);
 	if ((freeMe == true) && (type != NULL))
-	    free(type);
+	    sdl_free(type);
 
 	/*
 	 * Move to the next parameter, if there is one.
@@ -1912,7 +1913,7 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 			errno) != SDL_NORMAL)
 		retVal = SDL_ERREXIT;
 	}
-	free(name);
+	sdl_free(name);
     }
     else
     {
@@ -2086,7 +2087,7 @@ static char *_sdl_c_generate_name(
      * it.
      */
     len += strlen(name);
-    retVal = calloc(1, len);
+    retVal = sdl_calloc(1, len);
     len = 0;
     if (prefix != NULL)
     {
@@ -2247,7 +2248,7 @@ static char *_sdl_c_leading_spaces(int depth)
     /*
      * Allocate enough memory for the return string.
      */
-    retVal = calloc(1, (tabs + remaining + 1));
+    retVal = sdl_calloc(1, (tabs + remaining + 1));
     if (retVal != NULL)
     {
 

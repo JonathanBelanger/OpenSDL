@@ -32,9 +32,12 @@
 #include <ctype.h>
 #include "opensdl_defs.h"
 #include "opensdl_parser.h"
+#include "opensdl_blocks.h"
 #include "opensdl_utility.h"
 #include "opensdl_actions.h"
+#include "opensdl_message.h"
 
+extern SDL_MSG_VECTOR	msgVec[];
 }
 
 %option bison-bridge
@@ -110,12 +113,14 @@ static bool _sdl_push_file(char *newFileName);
 static bool _sdl_pop_file(void);
 static bool _sdl_push_start_state(void);
 static int _sdl_pop_start_state(void);
+void dump_string(char *string, int len);
 
 /*
  * These are external declarations for variables defined outside of this file.
  */
 extern void		*scanner;
 extern bool		trace;
+extern bool		listing;
 #define YY_USER_ACTION 							\
 {									\
     int length = yyget_leng(scanner);					\
@@ -132,6 +137,11 @@ extern bool		trace;
 	else								\
 	    yylloc->last_column++;					\
     }									\
+    if ((listing == true) &&						\
+        (yy_act != 5) &&						\
+        (yy_act != 9) &&						\
+        (yy_act != 131))						\
+	dump_string(yytext, 0);						\
 }
 
 %}
@@ -154,8 +164,9 @@ INCLUDE			{
 <ST_INCL>.|\n		{
 			    fprintf(
 				stderr,
-				"%4d bad include line\n",
-				yylineno);
+				"%%SDL-F-UNDEFFIL, Unable to open include "
+				"file [Line %d]\n",
+				yyget_lineno(scanner));
 			    yyterminate();
 			}
 <*><<EOF>>		{
@@ -174,20 +185,14 @@ LITERAL[ \t\v\f\n\r]*[;] {
 			    return(SDL_K_LITERAL);
 			}
 <ST_LIT>.*\n		{
-			    int		len = yyget_leng(scanner);
+			    int		ii, len = yyget_leng(scanner);
 			    char	*ptr, *yycopy;
 			    int		retVal = t_literal_string;
 
 			    /*
-			     * Make a duplication of yytext.
+			     * Make a duplication of yytext, and upcase it.
 			     */
-			    yycopy = strdup(yytext);
-
-			    /*
-			     * Upcase the entire string.
-			     */
-			    for (ptr = yycopy; *ptr != '\0'; ptr++);
-				*ptr = toupper(*ptr);
+			    yycopy = strupr(sdl_strdup(yytext));
 
 			    /*
 			     * Look for the uppercase END_LITERAL in the copy
@@ -252,17 +257,19 @@ LITERAL[ \t\v\f\n\r]*[;] {
 				     */
 				    if ((done == false) && (*ptr2 == ';'))
 				    {
-					int	ii;
-
 					_sdl_end_literal = false;
 					ptr = ptr2 + 1;
 					BEGIN(_sdl_pop_start_state());
 					retVal = SDL_K_END_LITERAL;
 					for (ii = 0; ii < _sdl_lit_idx; ii++)
 					{
-					    free(_sdl_lit_lines[ii]);
+					    sdl_free(_sdl_lit_lines[ii]);
 					    _sdl_lit_lines[ii] = NULL;
 					}
+					if (listing == true)
+					    dump_string(
+						yycopy,
+						(int) (ptr - yycopy));
 				    }
 
 				    /*
@@ -274,6 +281,8 @@ LITERAL[ \t\v\f\n\r]*[;] {
 				    {
 					_sdl_end_literal = true;
 					_sdl_lit_lines[_sdl_lit_idx++] = yycopy;
+					if (listing == true)
+					    dump_string(yycopy, 0);
 					ptr = yycopy = NULL;
 				    }
 
@@ -287,20 +296,22 @@ LITERAL[ \t\v\f\n\r]*[;] {
 				    else
 				    {
 					char *newyy;
-					int ii, catLen = len;
+					int catLen = len;
 
 					_sdl_end_literal = false;
 					for (ii = 0; ii < _sdl_lit_idx; ii++)
 					    catLen += strlen(_sdl_lit_lines[ii]);
-					newyy = calloc(1, len);
+					newyy = sdl_calloc(1, len);
 					for (ii = 0; ii < _sdl_lit_idx; ii++)
 					{
 					    strcat(newyy, _sdl_lit_lines[ii]);
-					    free(_sdl_lit_lines[ii]);
+					    sdl_free(_sdl_lit_lines[ii]);
 					    _sdl_lit_lines[ii] = NULL;
 					}
 					strcat(newyy, yycopy);
-					free(yycopy);
+					if (listing == true)
+					    dump_string(yycopy, 0);
+					sdl_free(yycopy);
 					yycopy = newyy;
 					len = catLen;
 					ptr = &yycopy[len];
@@ -318,6 +329,8 @@ LITERAL[ \t\v\f\n\r]*[;] {
 				    len--;
 				    while (&yycopy[len] != (ptr - 1))
 				    {
+					if (yycopy[len] == '\n')
+					    yylloc->last_line--;
 					unput(yycopy[len--]);
 				    }
 
@@ -326,6 +339,14 @@ LITERAL[ \t\v\f\n\r]*[;] {
 				     * where the last unput byte was located.
 				     */
 				    yycopy[len + 1] = '\0';
+				    len = strlen(yycopy);
+				    for (ii = 0; ii < len; ii++)
+				    {
+					if (yycopy[ii] == '\n')
+					    yylloc->last_column = 1;
+					else
+					    yylloc->last_column++;
+				    }
 				}
 			    }
 
@@ -338,7 +359,7 @@ LITERAL[ \t\v\f\n\r]*[;] {
 			    if (yycopy != NULL)
 			    {
 				if (retVal == SDL_K_END_LITERAL)
-				    free(yycopy);
+				    sdl_free(yycopy);
 				else
 				    yylval->tval = yycopy;
 				return(retVal);
@@ -370,7 +391,7 @@ LITERAL[ \t\v\f\n\r]*[;] {
 			     * We have just a single name, so just duplicate
 			     * it.
 			     */
-			    yylval->tval = strdup(yytext);
+			    yylval->tval = sdl_strdup(yytext);
 
 			    /*
 			     * Change the start state to one for parsing the
@@ -422,13 +443,16 @@ LITERAL[ \t\v\f\n\r]*[;] {
 			    /*
 			     * Make a copy of the name string.
 			     */
-			     yylval->tval = strdup(yytext);
+			     yylval->tval = sdl_strdup(yytext);
 
 			    /*
 			     * Put the close parenthesis back onto the input
 			     * stream.
 			     */
 			    unput(c);
+			    yylloc->last_column--;
+			    if (listing == true)
+				dump_string(yytext, yyget_leng(scanner)-1);
 
 			    /*
 			     * Return the value indicating that we have
@@ -622,7 +646,7 @@ VOID			{ return(SDL_K_VOID); }
 
 <*>{Quoted_string}	{
 			    yytext = sdl_unquote_str(yytext);
-			    yylval->tval = strdup(yytext);
+			    yylval->tval = sdl_strdup(yytext);
 			    if ((YY_START == ST_AGGR) &&
 				(_sdl_aggregate_started == false))
 				return(t_aggr_str);
@@ -630,7 +654,7 @@ VOID			{ return(SDL_K_VOID); }
 				return(t_string);
 			}
 <*>{Names}		{
-			    yylval->tval = strdup(yytext);
+			    yylval->tval = sdl_strdup(yytext);
 			    if ((YY_START == ST_AGGR) &&
 				(_sdl_aggregate_started == false))
 				return(t_aggr_name);
@@ -638,18 +662,18 @@ VOID			{ return(SDL_K_VOID); }
 				return(t_name);
 			}
 <*>"#"{Names}		{
-			    yylval->tval = strdup(yytext);
+			    yylval->tval = sdl_strdup(yytext);
 			    return(t_variable);
 			}
 <INITIAL,ST_AGGR>{Output_comment} {
-			    yylval->tval = strdup(yytext);
+			    yylval->tval = sdl_strdup(yytext);
 			    return(t_line_comment);
 			}
 <INITIAL,ST_AGGR>{Block_comment} {
 			    char	*ptr, *yycopy;
 			    int		ii;
 
-			    yycopy = strdup(yytext);
+			    yycopy = sdl_strdup(yytext);
 
 			    /*
 			     * Try and locate "/-" in the text.
@@ -695,7 +719,11 @@ VOID			{ return(SDL_K_VOID); }
 				 * did.
 				 */
 				yylval->tval = yycopy;
+				if (listing == true)
+				    dump_string(yycopy, 0);
 			    }
+			    else if (listing == true)
+				dump_string(yytext, 0);
 			    return(t_block_comment);
 			}
 <*>{Local_comment}	{ /* eat local comments... */ }
@@ -709,27 +737,27 @@ VOID			{ return(SDL_K_VOID); }
 			    return(v_int);
 			}
 <*>"%"X[0-9a-fA-F]{1,16} {
-			    yylval->tval = strdup(&yytext[2]);
+			    yylval->tval = sdl_strdup(&yytext[2]);
 			    return(t_hex);
 			}
 <*>[0]X[0-9a-fA-F]{1,16} {
-			    yylval->tval = strdup(&yytext[2]);
+			    yylval->tval = sdl_strdup(&yytext[2]);
 			    return(t_hex);
 			}
 <*>"%"O[0-7]{1,22}	{
-			    yylval->tval = strdup(&yytext[2]);
+			    yylval->tval = sdl_strdup(&yytext[2]);
 			    return(t_octal);
 			}
 <*>[0][0-7]{1,22}	{
-			    yylval->tval = strdup(&yytext[1]);
+			    yylval->tval = sdl_strdup(&yytext[1]);
 			    return(t_octal);
 			}
 <*>"%"B[0-1]{1,64}	{
-			    yylval->tval = strdup(&yytext[2]);
+			    yylval->tval = sdl_strdup(&yytext[2]);
 			    return(t_binary);
 			}
 <*>"%"A[\x20-\x7E]	{
-			    yylval->tval = strdup(&yytext[2]);
+			    yylval->tval = sdl_strdup(&yytext[2]);
 			    return(t_ascii);
 			}
 <*>"%"A[0-9]{3}		{
@@ -737,11 +765,55 @@ VOID			{ return(SDL_K_VOID); }
 			    return(v_int);
 			}
 <*>"%"A[0-9a-fA-F]{2}	{
-			    yylval->tval = strdup(&yytext[2]);
+			    yylval->tval = sdl_strdup(&yytext[2]);
 			    return(t_hex);
 			}
 <*>\r|\n		{  /* swallow new-line and carriage-return */ }
 %%
+
+void dump_string(char *string, int len)
+{
+   char	outBuf[80];
+   int outLen;
+   int	myLen = (len == 0) ? strlen(string) : len;
+   int	ii, start, end, rem;
+   bool	done = false;
+
+   start = 0;
+   end = (myLen > 16) ? 16 : myLen;
+   rem = end % 16;
+   if (rem != 0)
+	rem = 16 - rem;
+   while (done == false)
+   {
+   	done = (end == myLen);
+   	outLen = 0;
+	for (ii = start; ii < end; ii++)
+	    outLen += sprintf(&outBuf[outLen], "%02x ", string[ii]);
+	for (ii = 0; ii < rem; ii++)
+	    outLen += sprintf(&outBuf[outLen], "   ");
+	outLen += sprintf(&outBuf[outLen], "\t: '");
+	for (ii = start; ii < end; ii++)
+	{
+	    if ((isalnum(string[ii]) != 0) ||
+		(ispunct(string[ii]) != 0) ||
+		(string[ii] == ' '))
+	    	outLen += sprintf(&outBuf[outLen], "%c", string[ii]);
+	    else
+		outLen += sprintf(&outBuf[outLen], ".");
+	}
+	fprintf(stderr, "%s'\n", outBuf);
+	start = end;
+	if ((end + 16) > myLen)
+	    end = myLen;
+	else
+	    end += 16;
+	rem = end % 16;
+	if (rem != 0)
+	    rem = 16 - rem;
+   }
+   return;
+}
 
 /*
  * _sdl_push_file
@@ -766,7 +838,7 @@ VOID			{ return(SDL_K_VOID); }
 static bool _sdl_push_file(char *newFileName)
 {
     FILE		*fp = fopen(newFileName, "r");
-    SDL_FILE_LIST	*entry = calloc(1, sizeof(SDL_FILE_LIST));
+    SDL_FILE_LIST	*entry = sdl_calloc(1, sizeof(SDL_FILE_LIST));
     bool		retVal = true;
 
     /*
@@ -781,12 +853,44 @@ static bool _sdl_push_file(char *newFileName)
      */
     if (fp == NULL)
     {
-	perror(newFileName);
+    	uint32_t status;
+
+	status = SDL_UNDEFFIL;
+	if (sdl_set_message(
+			msgVec,
+			2,
+			status,
+			newFileName,
+			yyget_lineno(scanner),
+			errno) == SDL_NORMAL)
+	{
+	    char *msgText;
+
+	    if (sdl_get_message(msgVec, &msgText) == SDL_NORMAL)
+	    {
+		fprintf(stderr, "%s\n", msgText);
+		sdl_free(msgText);
+	    }
+	    else
+		fprintf(
+			stderr,
+			"%%SDL-F-ABORT, Fatal internal error. Unable "
+			    "to continue execution\n");
+			
+	}
+	else
+	    fprintf(
+		stderr,
+		"%%SDL-F-ABORT, Fatal internal error. Unable to continue "
+		    "execution\n");
 	retVal = false;
     }
     if ((entry == NULL) && (retVal == true))
     {
- 	perror("malloc");
+	fprintf(
+		stderr,
+		"%%SDL-F-ABORT, Fatal internal error. Unable to continue "
+		    "execution\n-SYSTEM-E-ENOMEM, Not enough space\n");
  	exit(1);
     }
 
@@ -814,7 +918,7 @@ static bool _sdl_push_file(char *newFileName)
 	 */
 	entry->bufferState = yy_create_buffer(fp, YY_BUF_SIZE, scanner);
 	entry->fp = fp;
-	entry->fileName = strdup(newFileName);
+	entry->fileName = sdl_strdup(newFileName);
 	yy_switch_to_buffer(entry->bufferState, scanner);
 	yyset_lineno(1, scanner);
 	currentFileName = newFileName;
@@ -873,8 +977,8 @@ static bool _sdl_pop_file(void)
 	 * previous one, then free up current one.
 	 */
 	prev = entry->previous;
-	free(entry->fileName);
-	free(entry);
+	sdl_free(entry->fileName);
+	sdl_free(entry);
 
 	/*
 	 * If there is no previous entry, then return an error.  Otherwise,
@@ -932,7 +1036,7 @@ static bool _sdl_push_start_state(void)
      */
     if (index < 0)
     {
-	int	*newStack = calloc((_sdl_state_size + 1), sizeof(int));
+	int	*newStack = sdl_calloc((_sdl_state_size + 1), sizeof(int));
 
 	if (newStack != NULL)
 	{
@@ -941,13 +1045,16 @@ static bool _sdl_push_start_state(void)
 	    _sdl_state_size++;
 	    for (ii = 1; ii < _sdl_state_size; ii++)
 		newStack[ii] = _sdl_start_state[ii - 1];
-	    free(_sdl_start_state);
+	    sdl_free(_sdl_start_state);
 	    _sdl_start_state = newStack;
 	    index = 0;
 	}
 	else
 	{
-	    perror("calloc");
+	    fprintf(
+		stderr,
+		"%%SDL-F-ABORT, Fatal internal error. Unable to continue "
+		    "execution\n-SYSTEM-E-ENOMEM, Not enough space\n");
 	    retVal = false;
  	}
     }

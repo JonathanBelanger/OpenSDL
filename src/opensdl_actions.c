@@ -39,6 +39,7 @@
 #include <math.h>
 #include <complex.h>
 #include "opensdl_defs.h"
+#include "opensdl_blocks.h"
 #include "opensdl_actions.h"
 #include "opensdl_lang.h"
 #include "opensdl_utility.h"
@@ -306,7 +307,7 @@ uint32_t sdl_comment_line(
     /*
      * Return the results of this call back to the caller.
      */
-    free(comment);
+    sdl_free(comment);
     return(retVal);
 }
 
@@ -465,7 +466,7 @@ uint32_t sdl_comment_block(
     /*
      * Return the results of this call back to the caller.
      */
-    free(comment);
+    sdl_free(comment);
     return(retVal);
 }
 
@@ -491,7 +492,9 @@ uint32_t sdl_comment_block(
  *  None.
  *
  * Return Value
- *  SDL_NORMAL:		Normal Successful Completion.
+ *  SDL_NORMAL:		Normal Successful Completion, nothing action performed.
+ *  SDL_CREATED:	Normal Successful Completion, local created.
+ *  SDL_NOTCREATED:	Normal Successful Completion, local not created.
  *  SDL_ABORT:		An unexpected error occurred.
  *  SDL_ERREXIT:	Error exit.
  */
@@ -501,7 +504,7 @@ uint32_t sdl_set_local(
 		int64_t value,
 		SDL_YYLTYPE *loc)
 {
-    int	retVal = SDL_NORMAL;
+    uint32_t	retVal = SDL_NORMAL;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -537,10 +540,11 @@ uint32_t sdl_set_local(
 	    {
 		local->id = name;
 		SDL_INSQUE(&context->locals, &local->header.queue);
+		retVal = SDL_CREATED;
 	    }
 	    else
 	    {
-		free(name);
+		sdl_free(name);
 		retVal = SDL_ABORT;
 		if (sdl_set_message(
 				msgVec,
@@ -550,6 +554,8 @@ uint32_t sdl_set_local(
 		    retVal = SDL_ERREXIT;
 	    }
 	}
+	else
+	    retVal = SDL_NOTCREATED;
 
 	/*
 	 * If we still have a success, then set the value.
@@ -1019,10 +1025,10 @@ uint32_t sdl_module_end(
     /*
      * Reset the module-name and ident-string to zero length.
      */
-    free(context->module);
+    sdl_free(context->module);
     context->module = NULL;
     if (context->ident != NULL)
-	free(context->ident);
+	sdl_free(context->ident);
     context->ident = NULL;
 
     /*
@@ -1110,11 +1116,11 @@ uint32_t sdl_literal(
 				retVal,
 				ENOMEM) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
-	    free(line);
+	    sdl_free(line);
 	}
     }
     else
-	free(line);
+	sdl_free(line);
 
     /*
      * Return the results of this call back to the caller.
@@ -1295,12 +1301,12 @@ uint32_t sdl_declare(
 				retVal,
 				ENOMEM) != SDL_NORMAL)
 		    retVal = SDL_ERREXIT;
-		free(name);
+		sdl_free(name);
 	    }
 	}
     }
     else
-	free(name);
+	sdl_free(name);
 
     /*
      * Return the results of this call back to the caller.
@@ -1462,11 +1468,11 @@ uint32_t sdl_item(
 				retVal,
 				ENOMEM) != SDL_NORMAL)
 		retVal = SDL_ERREXIT;
-	    free(name);
+	    sdl_free(name);
 	}
     }
     else
-	free(name);
+	sdl_free(name);
 
     /*
      * Return the results of this call back to the caller.
@@ -1702,7 +1708,7 @@ uint32_t sdl_constant(
 	}
     }
     else if (valueStr != NULL)
-	free(valueStr);
+	sdl_free(valueStr);
 
     /*
      * Return the results of this call back to the caller.
@@ -1755,8 +1761,8 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
     int64_t		radix = SDL_K_RADIX_DEF;
     int			datatype = SDL_K_TYPE_CONST;
     int			size = context->wordSize;
+    uint32_t		localCreated = SDL_NOTCREATED;
     bool		incrementPresent = false;
-    bool		localCreated = false;
     bool		typeDef = false;
 
     /*
@@ -1796,7 +1802,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 					    context,
 					    counter,
 					    value,
-					    loc) < 0;
+					    loc);
 		    break;
 
 		case TypeName:
@@ -1912,7 +1918,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 		    }
 		    else
 		    {
-			free(myEnum);
+			sdl_free(myEnum);
 			myEnum = NULL;
 			retVal = SDL_ABORT;
 			if (sdl_set_message(
@@ -2047,7 +2053,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 			}
 			if (freeTag == true)
 			{
-			    free(tag);
+			    sdl_free(tag);
 			    tag = NULL;
 			}
 		    }
@@ -2071,7 +2077,7 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
 		    (counter != NULL) &&
 		    (prevValue != value))
 		{
-		    retVal = sdl_set_local(context, counter, value, loc);
+		    (void) sdl_set_local(context, counter, value, loc);
 		    prevValue = value;
 		}
 		if (incrementPresent == true)
@@ -2093,17 +2099,17 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
      * Deallocate all the memory.
      */
     if (id != NULL)
-	free(id);
+	sdl_free(id);
     if (prefix != NULL)
-	free(prefix);
+	sdl_free(prefix);
     if (tag != NULL)
-	free(tag);
-    if ((counter != NULL) && (localCreated == false))
-	free(counter);
+	sdl_free(tag);
+    if ((counter != NULL) && (localCreated != SDL_CREATED))
+	sdl_free(counter);
     if (typeName != NULL)
-	free(typeName);
+	sdl_free(typeName);
     if (enumName != NULL)
-	free(enumName);
+	sdl_free(enumName);
 
     /*
      * Return the results of this call back to the caller.
@@ -2413,7 +2419,7 @@ uint32_t sdl_aggregate_member(
 			if ((myAggr != NULL) && (myMember == NULL))
 			    myAggr->basedPtrName = context->options[ii].string;
 			else
-			    free(context->options[ii].string);
+			    sdl_free(context->options[ii].string);
 			context->options[ii].string = NULL;
 			break;
 
@@ -2421,17 +2427,17 @@ uint32_t sdl_aggregate_member(
 			if ((mySubAggr != NULL) && (myMember == NULL))
 			{
 			    if (mySubAggr->marker != NULL)
-				free(mySubAggr->marker);
+				sdl_free(mySubAggr->marker);
 			    mySubAggr->marker = context->options[ii].string;
 			}
 			else if (myMember == NULL)
 			{
 			    if (myAggr->marker != NULL)
-				free(myAggr->marker);
+				sdl_free(myAggr->marker);
 			    myAggr->marker = context->options[ii].string;
 			}
 			else
-			    free(context->options[ii].string);
+			    sdl_free(context->options[ii].string);
 			context->options[ii].string = NULL;
 			break;
 
@@ -2439,7 +2445,7 @@ uint32_t sdl_aggregate_member(
 			if ((myAggr != NULL) && (myMember == NULL))
 			    myAggr->origin.id = context->options[ii].string;
 			else
-			    free(context->options[ii].string);
+			    sdl_free(context->options[ii].string);
 			context->options[ii].string = NULL;
 			break;
 
@@ -2447,19 +2453,19 @@ uint32_t sdl_aggregate_member(
 			if (myMember != NULL)
 			{
 			    if (myMember->item.prefix != NULL)
-				free(myMember->item.prefix);
+				sdl_free(myMember->item.prefix);
 			    myMember->item.prefix = context->options[ii].string;
 			}
 			else if (mySubAggr != NULL)
 			{
 			    if (mySubAggr->prefix != NULL)
-				free(mySubAggr->prefix);
+				sdl_free(mySubAggr->prefix);
 			    mySubAggr->prefix = context->options[ii].string;
 			}
 			else
 			{
 			    if (myAggr->prefix != NULL)
-				free(myAggr->prefix);
+				sdl_free(myAggr->prefix);
 			    myAggr->prefix = context->options[ii].string;
 			}
 			context->options[ii].string = NULL;
@@ -2469,20 +2475,20 @@ uint32_t sdl_aggregate_member(
 			if (myMember != NULL)
 			{
 			    if (myMember->item.tag != NULL)
-				free(myMember->item.tag);
+				sdl_free(myMember->item.tag);
 			    myMember->item.tag = context->options[ii].string;
 			    myMember->item.tagSet = true;
 			}
 			else if (mySubAggr != NULL)
 			{
 			    if (mySubAggr->tag != NULL)
-				free(mySubAggr->tag);
+				sdl_free(mySubAggr->tag);
 			    mySubAggr->tag = context->options[ii].string;
 			}
 			else
 			{
 			    if (myAggr->tag != NULL)
-				free(myAggr->tag);
+				sdl_free(myAggr->tag);
 			    myAggr->tag = context->options[ii].string;
 			}
 			context->options[ii].string = NULL;
@@ -2621,19 +2627,19 @@ uint32_t sdl_aggregate_member(
 			{
 			    if (myAggr->prefix != NULL)
 				myMember->subaggr.prefix =
-					strdup(myAggr->prefix);
+					sdl_strdup(myAggr->prefix);
 			    if (myAggr->marker != NULL)
 				myMember->subaggr.marker =
-					strdup(myAggr->marker);
+					sdl_strdup(myAggr->marker);
 			}
 			else
 			{
 			    if (mySubAggr->prefix != NULL)
 				myMember->subaggr.prefix =\
-				    strdup(mySubAggr->prefix);
+				    sdl_strdup(mySubAggr->prefix);
 			    if (mySubAggr->marker != NULL)
 				myMember->subaggr.marker =
-				    strdup(mySubAggr->marker);
+				    sdl_strdup(mySubAggr->marker);
 			}
 			myMember->subaggr.tag = _sdl_get_tag(
 							context,
@@ -2653,7 +2659,7 @@ uint32_t sdl_aggregate_member(
 		    default:
 			if (datatype == SDL_K_TYPE_COMMENT)
 			{
-			    myMember->comment.comment = strdup(name);
+			    myMember->comment.comment = sdl_strdup(name);
 			    myMember->comment.endComment = endComment;
 			    myMember->comment.lineComment = lineComment;
 			    myMember->comment.middleComment = middleComment;
@@ -2783,11 +2789,12 @@ uint32_t sdl_aggregate_member(
 			    int		tagDatatype = datatype;
 
 			    if ((myAggr != NULL) && (myAggr->prefix != NULL))
-				myMember->item.prefix = strdup(myAggr->prefix);
+				myMember->item.prefix =
+					sdl_strdup(myAggr->prefix);
 			    else if ((mySubAggr != NULL) &&
 				     (mySubAggr->prefix != NULL))
 				myMember->item.prefix =
-					strdup(mySubAggr->prefix);
+					sdl_strdup(mySubAggr->prefix);
 			    switch (datatype)
 			    {
 				case SDL_K_TYPE_BITFLD_B:
@@ -2999,7 +3006,7 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc)
 			    myMember->item.prefix =
 				    context->options[ii].string;
 			else
-			    free(context->options[ii].string);
+			    sdl_free(context->options[ii].string);
 			context->options[ii].string = NULL;
 			break;
 
@@ -3007,7 +3014,7 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc)
 			if (myMember != NULL)
 			    myMember->item.tag = context->options[ii].string;
 			else
-			    free(context->options[ii].string);
+			    sdl_free(context->options[ii].string);
 			context->options[ii].string = NULL;
 			break;
 
@@ -3365,7 +3372,7 @@ uint32_t sdl_add_parameter(
 
 	    context->parameterSize += SDL_K_OPTIONS_INCR;
 	    size = context->parameterSize * sizeof(SDL_PARAMETER *);
-	    context->parameters = realloc(context->parameters, size);
+	    context->parameters = sdl_realloc(context->parameters, size);
 	}
 
 	if (context->parameters != NULL)
@@ -3850,7 +3857,7 @@ uint32_t sdl_conditional(
     /*
      * Return the results of this call back to the caller.
      */
-    free(expr);
+    sdl_free(expr);
     return (retVal);
 }
 
@@ -3901,7 +3908,7 @@ uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, SDL_YYLTYPE *loc)
 	    if (context->langCondList.listUsed ==
 		context->langCondList.listSize)
 	    {
-		context->langCondList.lang = realloc(
+		context->langCondList.lang = sdl_realloc(
 					    context->langCondList.lang,
 					    ++context->langCondList.listSize);
 	    }
@@ -3934,7 +3941,7 @@ uint32_t sdl_add_language(SDL_CONTEXT *context, char *langStr, SDL_YYLTYPE *loc)
     /*
      * Return the results of this call back to the caller.
      */
-    free(langStr);
+    sdl_free(langStr);
     return (retVal);
 }
 
@@ -4209,10 +4216,10 @@ static char *_sdl_get_tag(
 	 * tag for this type.
 	 */
 	if (datatype == SDL_K_TYPE_CONST)
-	    retVal = strdup(_defaultTag[SDL_K_TYPE_CONST]);
+	    retVal = sdl_strdup(_defaultTag[SDL_K_TYPE_CONST]);
 	else if ((datatype >= SDL_K_BASE_TYPE_MIN) &&
 		 (datatype <= SDL_K_BASE_TYPE_MAX))
-	    retVal = strdup(_defaultTag[datatype]);
+	    retVal = sdl_strdup(_defaultTag[datatype]);
 	else
 	{
 
@@ -4232,7 +4239,7 @@ static char *_sdl_get_tag(
 		if (myDeclare != NULL)
 		{
 		    if (strlen(myDeclare->tag) > 0)
-			retVal = strdup(myDeclare->tag);
+			retVal = sdl_strdup(myDeclare->tag);
 		    else
 			retVal = _sdl_get_tag(
 			        context,
@@ -4241,7 +4248,7 @@ static char *_sdl_get_tag(
 			        lower);
 		}
 		else
-		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
+		    retVal = sdl_strdup(_defaultTag[SDL_K_TYPE_ANY]);
 	    }
 	    else if ((datatype >= SDL_K_ITEM_MIN) &&
 		     (datatype <= SDL_K_ITEM_MAX))
@@ -4251,7 +4258,7 @@ static char *_sdl_get_tag(
 		if (myItem != NULL)
 		{
 		    if (strlen(myItem->tag) > 0)
-			retVal = strdup(myItem->tag);
+			retVal = sdl_strdup(myItem->tag);
 		    else
 			retVal = _sdl_get_tag(
 			        context,
@@ -4260,7 +4267,7 @@ static char *_sdl_get_tag(
 			        lower);
 		}
 		else
-		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
+		    retVal = sdl_strdup(_defaultTag[SDL_K_TYPE_ANY]);
 	    }
 	    else if ((datatype >= SDL_K_AGGREGATE_MIN) &&
 		     (datatype <= SDL_K_AGGREGATE_MAX))
@@ -4271,7 +4278,7 @@ static char *_sdl_get_tag(
 		if (myAggregate != NULL)
 		{
 		    if (strlen(myAggregate->tag) > 0)
-			retVal = strdup(myAggregate->tag);
+			retVal = sdl_strdup(myAggregate->tag);
 		    else
 			retVal = _sdl_get_tag(
 					context,
@@ -4280,7 +4287,7 @@ static char *_sdl_get_tag(
 					lower);
 		}
 		else
-		    retVal = strdup(_defaultTag[SDL_K_TYPE_ANY]);
+		    retVal = sdl_strdup(_defaultTag[SDL_K_TYPE_ANY]);
 	    }
 	}
 	if (lower == true)
@@ -4379,18 +4386,18 @@ static SDL_CONSTANT *_sdl_create_constant(
      */
     if (retVal != NULL)
     {
-	retVal->id = strdup(id);
+	retVal->id = sdl_strdup(id);
 	if (prefix != NULL)
-	    retVal->prefix = strdup(prefix);
+	    retVal->prefix = sdl_strdup(prefix);
 	else
 	    retVal->prefix = NULL;
-	retVal->tag = strdup(tag);
+	retVal->tag = sdl_strdup(tag);
 	if (comment != NULL)
-	    retVal->comment = strdup(comment);
+	    retVal->comment = sdl_strdup(comment);
 	else
 	    retVal->comment = NULL;
 	if (typeName != NULL)
-	    retVal->typeName = strdup(typeName);
+	    retVal->typeName = sdl_strdup(typeName);
 	else
 	    retVal->typeName = NULL;
 	retVal->radix = radix;
@@ -4520,12 +4527,12 @@ static SDL_ENUMERATE *_sdl_create_enum(
     if (retVal != NULL)
     {
 	SDL_Q_INIT(&retVal->members);
-	retVal->id = strdup(id);
+	retVal->id = sdl_strdup(id);
 	if (prefix != NULL)
-	    retVal->prefix = strdup(prefix);
+	    retVal->prefix = sdl_strdup(prefix);
 	else
 	    retVal->prefix = NULL;
-	retVal->tag = strdup(tag);
+	retVal->tag = sdl_strdup(tag);
 	retVal->typeDef = typeDef;
 	retVal->size = sdl_sizeof(context, SDL_K_TYPE_ENUM);
 	retVal->typeID = context->enums.nextID++;
@@ -4630,7 +4637,7 @@ static void _sdl_reset_options(SDL_CONTEXT *context)
 	     (context->options[ii].option == Tag) ||
 	     (context->options[ii].option == TypeName)) &&
 	    (context->options[ii].string != NULL))
-	    free(context->options[ii].string);
+	    sdl_free(context->options[ii].string);
 
     /*
      * Reset the option index back to the beginning.
@@ -5271,10 +5278,10 @@ static void _sdl_fill_bitfield(
 
     memcpy(filler, member, sizeof(SDL_MEMBERS));
     sprintf(idBuf, "filler_%03d", number);
-    filler->item.id = strdup(idBuf);
+    filler->item.id = sdl_strdup(idBuf);
     if (member->item.prefix != NULL)
-	filler->item.prefix = strdup(member->item.prefix);
-    filler->item.tag = strdup(member->item.tag);
+	filler->item.prefix = sdl_strdup(member->item.prefix);
+    filler->item.tag = sdl_strdup(member->item.tag);
     filler->item.length = bits;
     filler->item.mask = false;
     filler->item.bitOffset = member->item.bitOffset + 1;
@@ -5559,9 +5566,9 @@ static int64_t _sdl_aggregate_size(
 		    filler->item.alignment = alignment;
 		    filler->item.parentAlignment = true;
 		    sprintf(idBuf, "filler_%03d", context->fillerCount++);
-		    filler->item.id = strdup(idBuf);
+		    filler->item.id = sdl_strdup(idBuf);
 		    if (prefix != NULL)
-			filler->item.prefix = strdup(prefix);
+			filler->item.prefix = sdl_strdup(prefix);
 		    filler->item.tag = _sdl_get_tag(
 						context,
 						NULL,

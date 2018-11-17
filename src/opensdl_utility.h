@@ -62,12 +62,6 @@ bool sdl_all_lower(const char *str);
 #define SDL_M_TRIM	(SDL_M_LEAD | SDL_M_TRAIL)
 void sdl_trim_str(char *str, int type);
 int64_t *sdl_increment(int64_t value);
-
-void *sdl_allocate_block(
-		SDL_BLOCK_ID blockID,
-		SDL_HEADER *parent,
-		SDL_YYLTYPE *loc);
-void sdl_deallocate_block(SDL_HEADER *block);
 int64_t sdl_sizeof(SDL_CONTEXT *context, int item);
 bool sdl_isUnsigned(SDL_CONTEXT *context, int64_t *datatype);
 bool sdl_isItem(SDL_MEMBERS *member);

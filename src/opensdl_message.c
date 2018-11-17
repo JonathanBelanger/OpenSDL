@@ -30,6 +30,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include "opensdl_defs.h"
+#include "opensdl_blocks.h"
 #include "opensdl_message.h"
 
 #define SDL_LOCAL_MSG_LEN	256
@@ -120,6 +122,8 @@ static SDL_MSG_ARRAY sdlmsg[] =
     {"INVCONDST", "Unknown condition state [Line %d]", 0, 1},
     {"INVQUAL", "Invalid qualifier, %.*s, specified on command line", 1, 0},
     {"PARSEERR", "%.*s", 1, 0},
+    {"CREATED", "Normal successful completion, local variable created", 0, 0},
+    {"NOTCREATED", "Normal successful completion, local variable not created", 0, 0},
     {"", "", 0, 0}
 };
 
@@ -403,7 +407,7 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
     SDL_MSG_FAO		*fao;
     char		*rtnMsgStr = NULL;
     char		*msgFmt;
-    char		*ptr, *string, *facStr, *symbol;
+    char		*ptr, *string, *facStr, *symbol, mySeverity;
     char		localMsgStr[SDL_LOCAL_MSG_LEN];
     int			ii;
     uint32_t		retVal = SDL_NORMAL;
@@ -433,6 +437,7 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 		symbol = sdlmsg[msgIdx->msgCode.msg_no- SDL_MSG_BASE].msgSymb;
 		msgFmt = sdlmsg[msgIdx->msgCode.msg_no - SDL_MSG_BASE].msgText;
 		facStr = facilityName[SDL_K_FAC_SDL];
+		mySeverity = severity[msgIdx->msgCode.severity];
 		break;
 
 	    case SYSTEM_K_FACILITY:
@@ -442,6 +447,7 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 		    symbol = "EUKNOWN";
 		msgFmt = strerror(msgIdx->msgCode.msg_no);
 		facStr = facilityName[SDL_K_FAC_SYS];
+		mySeverity = severity[2];	/* Error */
 		break;
 
 	    default:
@@ -495,7 +501,7 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 	if (msgRemLen < 0)
 	{
 	    msgStrSize += SDL_LOCAL_MSG_LEN;
-	    rtnMsgStr = realloc(rtnMsgStr, msgStrSize);
+	    rtnMsgStr = sdl_realloc(rtnMsgStr, msgStrSize);
 	    *msgStr = rtnMsgStr;
 	}
 
@@ -508,7 +514,7 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
 			    "%c%s-%c-%s, %s\n",
 			    first,
 			    facStr,
-			    severity[msgIdx->msgCode.severity],
+			    mySeverity,
 			    symbol,
 			    localMsgStr);
 	else

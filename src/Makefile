@@ -42,7 +42,8 @@ LDFLAGS		=
 SDLDEFS		= $(SRC)/opensdl_defs.h		\
 		  $(BIN)/opensdl_lexical.h	\
 		  $(BIN)/opensdl_parser.h
-OBJS		= $(BIN)/opensdl_actions.o 	\
+OBJS		= $(BIN)/opensdl_blocks.o	\
+		  $(BIN)/opensdl_actions.o 	\
 		  $(BIN)/opensdl_utility.o	\
 		  $(BIN)/opensdl_lang_c.o 	\
 		  $(BIN)/opensdl_message.o	\
@@ -67,6 +68,9 @@ $(BIN)/opensdl_lexical.c $(BIN)/opensdl_lexical.h : $(SRC)/opensdl_lexical.l
 	flex $(LFLAGS) -o $(BIN)/opensdl_lexical.c --header-file=$(BIN)/opensdl_lexical.h $<
 
 $(BIN)/opensdl_lexical.o : $(BIN)/opensdl_lexical.c $(BIN)/opensdl_lexical.h
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+$(BIN)/opensdl_blocks.o : $(SRC)/opensdl_blocks.c $(SDLDEFS)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 $(BIN)/opensdl_actions.o : $(SRC)/opensdl_actions.c $(SDLDEFS)

@@ -30,11 +30,11 @@
 #define SYSTEM_K_FACILITY	0
 #define SDL_K_FACILITY		186
 
-#define SDL_GET_SEVERITY(msg)	((msg)->severity)
-#define SDL_GET_MESSAGE(msg)	((msg)->msg_no)
-#define SDL_GET_FACILITY(msg)	((msg)->fac_no)
-#define SDL_GET_INHIBIT(msg)	((msg)->inhib_msg)
-#define SDL_GET_CONTROL(msg)	((msg)->control)
+#define SDL_GET_SEVERITY(msg)	(((SDL_MESSAGE) (msg)).severity)
+#define SDL_GET_MESSAGE(msg)	(((SDL_MESSAGE) (msg)).msg_no)
+#define SDL_GET_FACILITY(msg)	(((SDL_MESSAGE) (msg)).fac_no)
+#define SDL_GET_INHIBIT(msg)	(((SDL_MESSAGE) (msg)).inhib_msg)
+#define SDL_GET_CONTROL(msg)	(((SDL_MESSAGE) (msg)).control)
 
 #define SDL_K_WARNING	0
 #define SDL_K_SUCCESS	1
@@ -46,6 +46,8 @@
  * Successful SDL Error.
  */
 #define SDL_NORMAL		0x00ba0001
+#define SDL_CREATED		0x00ba0281
+#define SDL_NOTCREATED		0x00ba0289
 
 /*
  * Fatal SDL Errors.

@@ -121,6 +121,8 @@ void dump_string(char *string, int len);
 extern void		*scanner;
 extern bool		trace;
 extern bool		listing;
+extern FILE		*listingFP;
+
 #define YY_USER_ACTION 							\
 {									\
     int length = yyget_leng(scanner);					\

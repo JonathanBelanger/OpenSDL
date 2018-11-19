@@ -98,6 +98,7 @@ void			*scanner = NULL;
 bool			trace;
 bool			traceMemory;
 bool			listing;
+FILE			*listingFP = NULL;
 int			_verbose;
 
 #define SDL_K_STARS	0
@@ -484,7 +485,22 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    }
 		    else if (strncmp(argv[ii], "-list", 4) == 0)
 		    {
-			listing = true;
+			if (listing == false)
+			{
+			    listing = true;
+			    if (argv[ii][5] == ':')
+				context->listingFileName =
+						sdl_strdup(&argv[ii][6]);
+			}
+			else
+			{
+			    retVal = SDL_DUPLISTQUAL;
+			    if (sdl_set_message(
+						msgVec,
+						1,
+						retVal) != SDL_NORMAL)
+				retVal = SDL_ERREXIT;
+			}
 		    }
 		    else
 		    {
@@ -766,7 +782,6 @@ int main(int argc, char *argv[])
     FILE	*cfp = NULL;
     FILE	*fp;
     char	*msgTxt = NULL;
-    struct tm	*timeInfo;
     time_t	localTime;
     uint32_t	status;
     int		ii, jj;
@@ -796,7 +811,7 @@ int main(int argc, char *argv[])
      * Get the current time as the start time.
      */
     localTime = time(NULL);
-    timeInfo = localtime(&localTime);
+    context.runTimeInfo = localtime(&localTime);
 
     /*
      * Initialize the parsing context.
@@ -958,38 +973,49 @@ int main(int argc, char *argv[])
 	if (context.langSpec[ii] == true)
 	{
 
-	    /*
-	     * First we need to copy the filename specified on the command
-	     * line.  NOTE: We may need to truncate the name to fit the field
-	     * we have for it (32 characters lone).
-	     */
-	    context.outFileName[ii] = sdl_strdup(context.inputFile);
-
-	    /*
-	     * Go find the last '.' in the file name, this will be where the
-	     * file extension starts.
-	     */
-	    for (jj = strlen(context.outFileName[ii]); jj >= 0; jj--)
+	    if (context.outFileName[ii] == NULL)
 	    {
-		if (context.outFileName[ii][jj] == '.')
+		bool	addDot = false;
+
+		/*
+		 * Go find the last '.' in the file name, this will be where
+		 * the file extension starts.
+		 */
+		for (jj = strlen(context.inputFile); jj >= 0; jj--)
 		{
-		    jj++;
-		    break;
+		    if (context.inputFile[ii][jj] == '.')
+		    {
+			jj++;
+			break;
+		    }
 		}
+
+		/*
+		 * If we ended up at the beginning of the file, then there was
+		 * no file extension specified.  Use the whole filename.
+		 */
+		if (jj <= 0)
+		{
+		    jj = strlen(context.inputFile[ii]);
+		    addDot = true;
+		}
+
+		/*
+		 * Now allocate a buffer large enough for the file name,
+		 * extension, and null terminator.
+		 */
+		context->outFileName[ii] =
+				sdl_calloc(jj + strlen(_extensions[ii]) + 2);
+
+		/*
+		 * Copy the extension for this language after the last '.' (or
+		 * the one just added).
+		 */
+		strncpy(context.outFileName[ii], context->inputFile, jj);
+		if (addDot == true)
+		    context.outFileName[ii][jj++] = '.';
+		strcpy(&context.outFileName[ii][jj], _extensions[ii]);
 	    }
-
-	    /*
-	     * If we ended up at the beginning of the file, then there was no
-	     * file extension specified.  Use the whole filename.
-	     */
-	    if (jj <= 0)
-		jj = strlen(context.outFileName[ii]);
-
-	    /*
-	     * Copy the extension for this language after the last '.' (or the
-	     * one just added).
-	     */
-	    strcpy(&context.outFileName[ii][jj], _extensions[ii]);
 
 	    /*
 	     * Try and open the file for this language.  If it fails, we are
@@ -1027,27 +1053,25 @@ int main(int argc, char *argv[])
 		     */
 		    if ((*_outputFuncs[ii][SDL_K_CREATED])(
 				context.outFP[ii],
-				timeInfo) == SDL_NORMAL)
+				context.runTimeInfo) == SDL_NORMAL)
 		    {
-			char		*path = realpath(context.inputFile, NULL);
 			struct stat	fileStats;
-			_Bool		freePath = false;
 
-			if (path == NULL)
-			    path = context.inputFile;
-			else
-			    freePath = true;
-			if (stat(path, &fileStats) != 0)
+			context.inputPath = realpath(context.inputFile, NULL);
+			if (context.inputPath == NULL)
+			    context.inputPath = strdup(context.inputFile);
+			if (stat(context.inputPath, &fileStats) != 0)
 			{
-			    timeInfo->tm_year = -42;
-			    timeInfo->tm_mon = 10;
-			    timeInfo->tm_mday = 17;
-			    timeInfo->tm_hour = 0;
-			    timeInfo->tm_min = 0;
-			    timeInfo->tm_sec = 0;
+			    context.inputTimeInfo = calloc(1, sizeof(struct tm));
+			    context.inputTimeInfo->tm_year = -42;
+			    context.inputTimeInfo->tm_mon = 10;
+			    context.inputTimeInfo->tm_mday = 17;
+			    context.inputTimeInfo->tm_hour = 0;
+			    context.inputTimeInfo->tm_min = 0;
+			    context.inputTimeInfo->tm_sec = 0;
 			}
 			else
-			    timeInfo = localtime(&fileStats.st_mtime);
+			    context.inputTimeInfo = localtime(&fileStats.st_mtime);
 
 			/*
 			 * OK, if we put in the row of information about
@@ -1056,11 +1080,9 @@ int main(int argc, char *argv[])
 			 */
 			if ((*_outputFuncs[ii][SDL_K_FILEINFO])(
 					context.outFP[ii],
-					timeInfo,
-					path) == SDL_NORMAL)
+					context.inputTimeInfo,
+					context.inputPath) == SDL_NORMAL)
 			{
-			    if (freePath == true)
-				free(path);
 
 			    /*
 			     * Finally, if we get here, we just need to output
@@ -1080,8 +1102,6 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-			    if (freePath == true)
-				free(path);
 			    status = sdl_get_message(msgVec, &msgTxt);
 			    if (status == SDL_NORMAL)
 				fprintf(stderr, errFmt, msgTxt);
@@ -1120,11 +1140,46 @@ int main(int argc, char *argv[])
      */
     if (cfp != NULL)
     {
+	bool	deferListing = listing;
+
+	listing = false;
 	yylex_init(&scanner);
 	yyset_debug(_verbose, scanner);
 	yyset_in(cfp, scanner);
 	yyparse(scanner);
 	yylex_destroy(scanner);
+	listing = deferListing;
+    }
+
+    /*
+     * If we are being asked to create a listing file, then do so now.
+     */
+    if (listing == true)
+    {
+
+	/*
+	 * If the listing file name was not specified by the user, then
+	 * generate one from the input file, using '.lis' as the file
+	 * extension.
+	 */
+	if (context.listingFileName == NULL)
+	{
+	    for (ii = strlen(context->inputFile); ii >= 0; ii--)
+	    {
+		if (context->inputFile[ii] == '.')
+		    break;
+	    }
+	    if (ii <= 0)
+		ii = strlen(context.inputFile);
+	    context.listingFileName = sdl_calloc(ii + 5, 1);
+	    strncpy(context.listingFileName, context.inputFile, ii);
+	    strcpy(&context->listingFileName[ii], ".lis");
+	}
+
+	/*
+	 * Before we begin parsing the input file, open the listing file.
+	 */
+	listingFP = sdl_open_listing(&context);
     }
 
     /*
@@ -1147,6 +1202,16 @@ int main(int argc, char *argv[])
      * All done parsing, do the clean-up.
      */
     yylex_destroy(scanner);
+
+    /*
+     * If were asked to create a listing file, then close it now.
+     */
+    if (listing == true)
+    {
+	sdl_close_listing(&context);
+	listingFP = NULL;
+	listing = false;
+    }
 
     /*
      * Go close all the files.
@@ -1174,7 +1239,14 @@ int main(int argc, char *argv[])
 	sdl_free(context.symbCondList.symbols->symbol);
     if (context.symbCondList.symbols != NULL)
 	sdl_free(context.symbCondList.symbols);
-    sdl_free(context.inputFile);
+    if (context.inputFile != NULL)
+	sdl_free(context.inputFile);
+    if (context.inputPath != NULL)
+	free(context.inputPath);
+    if (context.runTimeInfo != NULL)
+	free(context.runTimeInfo);
+    if (context.inputTimeInfo != NULL)
+	free(context.inputTimeInfo);
 
     /*
      * Return back to the caller.

@@ -745,9 +745,14 @@ typedef struct
     char 		*ident;
     char 		*module;
     char		*copyrightFile;
+    char		*listingFileName;
     char		*inputFile;
+    char		*inputPath;
+    struct tm		*inputTimeInfo;
+    struct tm		*runTimeInfo;
     char		*outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
+    FILE		*listingFP;
     void		*currentAggr;
     bool		langEna[SDL_K_LANG_MAX];
     bool		langSpec[SDL_K_LANG_MAX];

@@ -110,6 +110,7 @@
 #define SDL_INVCONDST		0x00ba026a
 #define SDL_INVQUAL		0x00ba0272
 #define SDL_PARSEERR		0x00ba027a
+#define SDL_DUPLISTQUAL		0x00ba0292
 
 /*
  * Warning SDL Errors.
@@ -199,7 +200,7 @@ typedef struct
 /*
  * Function prototypes.
  */
-uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...);
-uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr);
+uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVector, int msgCnt, ...);
+uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVector, char **msgStr);
 
 #endif	/* _OPENSDL_MESSAGES_H_ */

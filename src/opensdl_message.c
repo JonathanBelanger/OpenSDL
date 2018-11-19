@@ -124,6 +124,7 @@ static SDL_MSG_ARRAY sdlmsg[] =
     {"PARSEERR", "%.*s", 1, 0},
     {"CREATED", "Normal successful completion, local variable created", 0, 0},
     {"NOTCREATED", "Normal successful completion, local variable not created", 0, 0},
+    {"DUPLISTQUAL", "'-list' qualified specified more than once on command line", 0, 0},
     {"", "", 0, 0}
 };
 
@@ -293,7 +294,7 @@ static char severity[] = {'W', 'S', 'E', 'I', 'F'};
  *  arguments.
  *
  * Input Parameters
- *  msgVec:
+ *  msgVector:
  *	A pointer to the message vector, which is large enough to receive all
  *	the values needed to report a complete error.
  *  msgCnt:
@@ -310,10 +311,10 @@ static char severity[] = {'W', 'S', 'E', 'I', 'F'};
  * Return Values:
  *  SDL_NORMAL:	Normal successful completion.
  */
-uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
+uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVector, int msgCnt, ...)
 {
     va_list		ap;
-    SDL_MSG_VECTOR	*msgIdx = msgVec;
+    SDL_MSG_VECTOR	*msgIdx = msgVector;
     SDL_MSG_FAO		*fao;
     char		*str, *ptr;
     int			ii, jj;
@@ -390,7 +391,7 @@ uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
  *  with the message text.
  *
  * Input Parameters
- *  msgVec:
+ *  msgVector:
  *	A pointer to the message vector.
  *
  * Output Parameters:
@@ -401,9 +402,9 @@ uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVec, int msgCnt, ...)
  *  SDL_NORMAL:		Normal successful completion.
  *  SDL_ERREXIT:	Error exit.
  */
-uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVec, char **msgStr)
+uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVector, char **msgStr)
 {
-    SDL_MSG_VECTOR	*msgIdx = msgVec;
+    SDL_MSG_VECTOR	*msgIdx = msgVector;
     SDL_MSG_FAO		*fao;
     char		*rtnMsgStr = NULL;
     char		*msgFmt;

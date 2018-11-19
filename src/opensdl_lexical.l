@@ -727,7 +727,6 @@ VOID			{ return(SDL_K_VOID); }
 			    return(t_block_comment);
 			}
 <*>{Local_comment}	{ /* eat local comments... */ }
-<*>[:space:]+		{ /* eat white spaces... */ }
 <*>"%"D[0-9]{1,20}	{
 			    yylval->ival = strtol(&yytext[2], NULL, 10);
 			    return(v_int);
@@ -768,7 +767,7 @@ VOID			{ return(SDL_K_VOID); }
 			    yylval->tval = sdl_strdup(&yytext[2]);
 			    return(t_hex);
 			}
-<*>\r|\n		{  /* swallow new-line and carriage-return */ }
+<*>.|\r|\n		{  /* eat new-line and carriage-return */ }
 %%
 
 void dump_string(char *string, int len)

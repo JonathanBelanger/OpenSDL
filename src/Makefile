@@ -50,7 +50,7 @@ OBJS		= $(BIN)/opensdl_blocks.o	\
 		  $(BIN)/opensdl_parser.o 	\
 		  $(BIN)/opensdl_lexical.o
 
-debug: CFLAGS += -g -O0
+debug: CFLAGS += -ggdb -O0
 debug: LFLAGS += -d
 debug: YFLAGS += --debug
 debug: all

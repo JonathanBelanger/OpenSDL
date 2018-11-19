@@ -834,7 +834,7 @@ void *sdl_realloc(void *ptr, size_t newSize)
 	    /*
 	     * Free the old buffer, as we no longer need it.
 	     */
-	    sdl_free(oldPtr);
+	    free(oldPtr);
 	    _bytes_deallocated += *oldBufLen;
 	}
 	_bytes_allocated += length;

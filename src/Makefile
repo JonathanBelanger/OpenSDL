@@ -60,7 +60,7 @@ all: $(EXE)/opensdl.exe $(EXE)/copyright.sdl $(EXE)/struct_test.exe
 
 $(BIN)/opensdl_parser.c $(BIN)/opensdl_parser.h : $(SRC)/opensdl_parser.y
 	bison $(YFLAGS) -v --report=lookahead -d -Lc -o $@ $<
-#	rm -f $(BIN)/*.output
+	rm -f $(BIN)/*.output
 
 $(BIN)/opensdl_parser.o : $(BIN)/opensdl_parser.c $(BIN)/opensdl_parser.h $(BIN)/opensdl_lexical.h $(SDLDEFS)
 	$(CC) -c $(CFLAGS) -o $@ $<

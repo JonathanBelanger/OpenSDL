@@ -749,8 +749,6 @@ typedef struct
     char		*listingFileName;
     char		*inputFile;
     char		*inputPath;
-    struct tm		*inputTimeInfo;
-    struct tm		*runTimeInfo;
     char		*outFileName[SDL_K_LANG_MAX];
     FILE		*outFP[SDL_K_LANG_MAX];
     FILE		*listingFP;
@@ -776,6 +774,8 @@ typedef struct
     SDL_YYLTYPE		modStartloc;
     SDL_LANGUAGE_LIST	langCondList;
     SDL_SYMBOL_LIST	symbCondList;
+    struct tm		inputTimeInfo;
+    struct tm		runTimeInfo;
     int64_t		precision;
     int64_t		scale;
     int			aggregateDepth;

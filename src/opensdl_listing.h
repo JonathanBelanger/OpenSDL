@@ -26,9 +26,9 @@
 #ifndef _OPENSDL_LISTING_H_
 #define _OPENSDL_LISTING_H_
 
-FILE *sdl_open_listing(SDL_CONTEXT *context);
+FILE *sdl_open_list(SDL_CONTEXT *context);
 void sdl_write_list(FILE *fp, char *buf, size_t len);
-void sdl_write_err(FILE *fp, SDL_MSG_VECTOR *msgVector);
-void sdl_close_listing(SDL_CONTEXT *context);
+void sdl_write_err(FILE *fp, char *msgText);
+void sdl_close_list(SDL_CONTEXT *context);
 
 #endif /* _OPENSDL_LISTING_H_ */

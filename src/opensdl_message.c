@@ -33,6 +33,7 @@
 #include "opensdl_defs.h"
 #include "opensdl_blocks.h"
 #include "opensdl_message.h"
+#include "opensdl_main.h"
 
 #define SDL_LOCAL_MSG_LEN	256
 
@@ -321,6 +322,12 @@ uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVector, int msgCnt, ...)
     uint32_t		retVal = SDL_NORMAL;
     uint16_t		strCnt, intCnt;
 
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_set_message\n", __FILE__, __LINE__);
+
     va_start(ap, msgCnt);
 
     /*
@@ -420,6 +427,12 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVector, char **msgStr)
     uint16_t		localMsgLen;
     char		first = '%';
     bool		done = false;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (trace == true)
+	printf("%s:%d:sdl_get_message\n", __FILE__, __LINE__);
 
     *msgStr = rtnMsgStr;
 

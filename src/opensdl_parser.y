@@ -69,10 +69,13 @@
 #include "opensdl_blocks.h"
 #include "opensdl_actions.h"
 #include "opensdl_message.h"
+#include "opensdl_listing.h"
 #include "opensdl_main.h"
 
-SDL_CONTEXT			context;
-SDL_QUEUE			literal;
+extern bool 	listing;
+
+SDL_CONTEXT	context;
+SDL_QUEUE	literal;
 
 #define YYLLOC_DEFAULT(_cur, _rhs, _n)				\
 do								\
@@ -111,7 +114,9 @@ do								\
 	if ((status != SDL_ERREXIT) &&				\
 	    (sdl_get_message(msgVec, &_msgTxt) == SDL_NORMAL))	\
 	{							\
-	    fprintf(stderr, "%s\n", _msgTxt);			\
+	    if (listing == true)				\
+		sdl_write_err(context.listingFP, _msgTxt);	\
+	    fprintf(stderr, "%s", _msgTxt);			\
 	    sdl_free(_msgTxt);					\
 	}							\
 	else							\

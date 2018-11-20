@@ -43,8 +43,8 @@
  *		-lang:<lang[=filespec]>	Specifies one of the language options.
  *				At least one needs to be specified on the
  *				command line.
- *		-[no]list	This has not yet been implemented. (nolist is
- *				the default)
+ *		-[no]list	This will cause a listing file to either be or
+ *				not be generated.  No list is the default.
  *		-[no]member	Indicates that every item in an
  *				aggregate should be aligned. (nomember is the
  *				default)
@@ -197,8 +197,8 @@ static void _sdl_usage(void)
     printf("  -lang:<lang[=filespec]>   Specifies one of the language options.\n");
     printf("\t\t\t    At least one needs to be specified on the\n");
     printf("\t\t\t    command line.\n");
-    printf("  -[no]list\t\t    This has not yet been implemented. (nolist is\n");
-    printf("\t\t\t    the default)\n");
+    printf("  -[no]list\t\t    Controls whether a listing file is generated or not.\n");
+    printf("\t\t\t    (no list the default)\n");
     printf("  -[no]member\t\t    Indicates that every item in an\n");
     printf("\t\t\t    aggregate should be aligned. (nomember is the\n");
     printf("\t\t\t    default)\n");
@@ -782,6 +782,7 @@ int main(int argc, char *argv[])
     FILE	*cfp = NULL;
     FILE	*fp;
     char	*msgTxt = NULL;
+    struct tm	*timeInfo;
     time_t	localTime;
     uint32_t	status;
     int		ii, jj;
@@ -811,7 +812,8 @@ int main(int argc, char *argv[])
      * Get the current time as the start time.
      */
     localTime = time(NULL);
-    context.runTimeInfo = localtime(&localTime);
+    timeInfo = localtime(&localTime);
+    memcpy(&context.runTimeInfo, timeInfo, sizeof(struct tm));
 
     /*
      * Initialize the parsing context.
@@ -983,7 +985,7 @@ int main(int argc, char *argv[])
 		 */
 		for (jj = strlen(context.inputFile); jj >= 0; jj--)
 		{
-		    if (context.inputFile[ii] == '.')
+		    if (context.inputFile[jj] == '.')
 		    {
 			jj++;
 			break;
@@ -1062,22 +1064,25 @@ int main(int argc, char *argv[])
 			    context.inputPath = strdup(context.inputFile);
 			if (stat(context.inputPath, &fileStats) != 0)
 			{
-			    context.inputTimeInfo = calloc(1, sizeof(struct tm));
-			    context.inputTimeInfo->tm_year = -42;
-			    context.inputTimeInfo->tm_mon = 10;
-			    context.inputTimeInfo->tm_mday = 17;
-			    context.inputTimeInfo->tm_hour = 0;
-			    context.inputTimeInfo->tm_min = 0;
-			    context.inputTimeInfo->tm_sec = 0;
+			    timeInfo->tm_year = -42;
+			    timeInfo->tm_mon = 10;
+			    timeInfo->tm_mday = 17;
+			    timeInfo->tm_hour = 0;
+			    timeInfo->tm_min = 0;
+			    timeInfo->tm_sec = 0;
 			}
 			else
-			    context.inputTimeInfo = localtime(&fileStats.st_mtime);
+			    timeInfo = localtime(&fileStats.st_mtime);
 
 			/*
 			 * OK, if we put in the row of information about
 			 * OpenSDL, let's put in information about the file we
 			 * are about to parse.
 			 */
+			memcpy(
+			    &context.inputTimeInfo,
+			    timeInfo,
+			    sizeof(struct tm));
 			if ((*_outputFuncs[ii][SDL_K_FILEINFO])(
 					context.outFP[ii],
 					context.inputTimeInfo,
@@ -1179,7 +1184,7 @@ int main(int argc, char *argv[])
 	/*
 	 * Before we begin parsing the input file, open the listing file.
 	 */
-	listingFP = sdl_open_listing(&context);
+	listingFP = sdl_open_list(&context);
     }
 
     /*
@@ -1208,7 +1213,7 @@ int main(int argc, char *argv[])
      */
     if (listing == true)
     {
-	sdl_close_listing(&context);
+	sdl_close_list(&context);
 	listingFP = NULL;
 	listing = false;
     }
@@ -1243,10 +1248,6 @@ int main(int argc, char *argv[])
 	sdl_free(context.inputFile);
     if (context.inputPath != NULL)
 	free(context.inputPath);
-    if (context.runTimeInfo != NULL)
-	free(context.runTimeInfo);
-    if (context.inputTimeInfo != NULL)
-	free(context.inputTimeInfo);
 
     /*
      * Return back to the caller.

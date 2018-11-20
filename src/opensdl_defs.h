@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <time.h>
 #include "opensdl_queue.h"
 
 typedef struct

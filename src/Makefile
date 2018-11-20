@@ -48,7 +48,8 @@ OBJS		= $(BIN)/opensdl_blocks.o	\
 		  $(BIN)/opensdl_lang_c.o 	\
 		  $(BIN)/opensdl_message.o	\
 		  $(BIN)/opensdl_parser.o 	\
-		  $(BIN)/opensdl_lexical.o
+		  $(BIN)/opensdl_lexical.o	\
+		  $(BIN)/opensdl_listing.o
 
 debug: CFLAGS += -ggdb -O0
 debug: LFLAGS += -d
@@ -85,6 +86,9 @@ $(BIN)/opensdl_lang_c.o : $(SRC)/opensdl_lang_c.c $(SDLDEFS)
 $(BIN)/opensdl_message.o : $(SRC)/opensdl_message.c $(SRC)/opensdl_message.h
 	$(CC) -c $(CFLAGS) -o $@ $<
 
+$(BIN)/opensdl_listing.o : $(SRC)/opensdl_listing.c $(SRC)/opensdl_defs.h $(SRC)/opensdl_message.h $(SRC)/opensdl_main.h
+	$(CC) -c $(CFLAGS) -o $@ $<
+
 $(EXE)/opensdl.exe : $(SRC)/opensdl_main.c $(OBJS) $(BIN)/opensdl_parser.h $(BIN)/opensdl_lexical.h $(SDLDEFS)
 	$(CC) $(CFLAGS) -o $@ $< $(OBJS) $(LDFLAGS)
 
@@ -96,4 +100,4 @@ $(EXE)/struct_test.exe : $(TST)/struct_test.c
 
 .PHONY: clean
 clean:
-	rm -f $(BIN)/* $(EXE)/* $(TST)/*.h $(HOME)/*/*.stackdump
+	rm -f $(BIN)/* $(EXE)/* $(TST)/*.h $(HOME)/*/*.stackdump $(HOME)/*/*.lis

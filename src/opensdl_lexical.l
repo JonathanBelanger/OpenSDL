@@ -25,8 +25,8 @@
  *  Initially written.
  *
  *  V01.001	04-OCT-2018	Jonathan D. Belanger
- *	This file has been updated a number of times.  It now utilizes start states
- *	to reduce ambiguity in the Bison grammar file.
+ *  This file has been updated a number of times.  It now utilizes start states
+ *  to reduce ambiguity in the Bison grammar file.
  */
 #include <stdio.h>
 #include <ctype.h>
@@ -36,6 +36,7 @@
 #include "opensdl_utility.h"
 #include "opensdl_actions.h"
 #include "opensdl_message.h"
+#include "opensdl_listing.h"
 
 extern SDL_MSG_VECTOR	msgVec[];
 }
@@ -113,7 +114,6 @@ static bool _sdl_push_file(char *newFileName);
 static bool _sdl_pop_file(void);
 static bool _sdl_push_start_state(void);
 static int _sdl_pop_start_state(void);
-void dump_string(char *string, int len);
 
 /*
  * These are external declarations for variables defined outside of this file.
@@ -143,7 +143,7 @@ extern FILE		*listingFP;
         (yy_act != 5) &&						\
         (yy_act != 9) &&						\
         (yy_act != 131))						\
-	dump_string(yytext, 0);						\
+	sdl_write_list(listingFP, yytext, 0);						\
 }
 
 %}
@@ -269,7 +269,8 @@ LITERAL[ \t\v\f\n\r]*[;] {
 					    _sdl_lit_lines[ii] = NULL;
 					}
 					if (listing == true)
-					    dump_string(
+					    sdl_write_list(
+						listingFP,
 						yycopy,
 						(int) (ptr - yycopy));
 				    }
@@ -284,7 +285,10 @@ LITERAL[ \t\v\f\n\r]*[;] {
 					_sdl_end_literal = true;
 					_sdl_lit_lines[_sdl_lit_idx++] = yycopy;
 					if (listing == true)
-					    dump_string(yycopy, 0);
+					    sdl_write_list(
+						listingFP,
+						yycopy,
+						0);
 					ptr = yycopy = NULL;
 				    }
 
@@ -312,7 +316,10 @@ LITERAL[ \t\v\f\n\r]*[;] {
 					}
 					strcat(newyy, yycopy);
 					if (listing == true)
-					    dump_string(yycopy, 0);
+					    sdl_write_list(
+						listingFP,
+						yycopy,
+						0);
 					sdl_free(yycopy);
 					yycopy = newyy;
 					len = catLen;
@@ -454,7 +461,10 @@ LITERAL[ \t\v\f\n\r]*[;] {
 			    unput(c);
 			    yylloc->last_column--;
 			    if (listing == true)
-				dump_string(yytext, yyget_leng(scanner)-1);
+				sdl_write_list(
+				    listingFP,
+				    yytext,
+				    yyget_leng(scanner)-1);
 
 			    /*
 			     * Return the value indicating that we have
@@ -722,10 +732,10 @@ VOID			{ return(SDL_K_VOID); }
 				 */
 				yylval->tval = yycopy;
 				if (listing == true)
-				    dump_string(yycopy, 0);
+				    sdl_write_list(listingFP, yycopy, 0);
 			    }
 			    else if (listing == true)
-				dump_string(yytext, 0);
+				sdl_write_list(listingFP, yytext, 0);
 			    return(t_block_comment);
 			}
 <*>{Local_comment}	{ /* eat local comments... */ }
@@ -771,50 +781,6 @@ VOID			{ return(SDL_K_VOID); }
 			}
 <*>.|\r|\n		{  /* eat new-line and carriage-return */ }
 %%
-
-void dump_string(char *string, int len)
-{
-   char	outBuf[80];
-   int outLen;
-   int	myLen = (len == 0) ? strlen(string) : len;
-   int	ii, start, end, rem;
-   bool	done = false;
-
-   start = 0;
-   end = (myLen > 16) ? 16 : myLen;
-   rem = end % 16;
-   if (rem != 0)
-	rem = 16 - rem;
-   while (done == false)
-   {
-   	done = (end == myLen);
-   	outLen = 0;
-	for (ii = start; ii < end; ii++)
-	    outLen += sprintf(&outBuf[outLen], "%02x ", string[ii]);
-	for (ii = 0; ii < rem; ii++)
-	    outLen += sprintf(&outBuf[outLen], "   ");
-	outLen += sprintf(&outBuf[outLen], "\t: '");
-	for (ii = start; ii < end; ii++)
-	{
-	    if ((isalnum(string[ii]) != 0) ||
-		(ispunct(string[ii]) != 0) ||
-		(string[ii] == ' '))
-	    	outLen += sprintf(&outBuf[outLen], "%c", string[ii]);
-	    else
-		outLen += sprintf(&outBuf[outLen], ".");
-	}
-	fprintf(stderr, "%s'\n", outBuf);
-	start = end;
-	if ((end + 16) > myLen)
-	    end = myLen;
-	else
-	    end += 16;
-	rem = end % 16;
-	if (rem != 0)
-	    rem = 16 - rem;
-   }
-   return;
-}
 
 /*
  * _sdl_push_file

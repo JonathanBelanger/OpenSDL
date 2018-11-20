@@ -983,7 +983,7 @@ int main(int argc, char *argv[])
 		 */
 		for (jj = strlen(context.inputFile); jj >= 0; jj--)
 		{
-		    if (context.inputFile[ii][jj] == '.')
+		    if (context.inputFile[ii] == '.')
 		    {
 			jj++;
 			break;
@@ -996,7 +996,7 @@ int main(int argc, char *argv[])
 		 */
 		if (jj <= 0)
 		{
-		    jj = strlen(context.inputFile[ii]);
+		    jj = strlen(context.inputFile);
 		    addDot = true;
 		}
 
@@ -1004,14 +1004,14 @@ int main(int argc, char *argv[])
 		 * Now allocate a buffer large enough for the file name,
 		 * extension, and null terminator.
 		 */
-		context->outFileName[ii] =
-				sdl_calloc(jj + strlen(_extensions[ii]) + 2);
+		context.outFileName[ii] =
+				sdl_calloc(jj + strlen(_extensions[ii]) + 2, 1);
 
 		/*
 		 * Copy the extension for this language after the last '.' (or
 		 * the one just added).
 		 */
-		strncpy(context.outFileName[ii], context->inputFile, jj);
+		strncpy(context.outFileName[ii], context.inputFile, jj);
 		if (addDot == true)
 		    context.outFileName[ii][jj++] = '.';
 		strcpy(&context.outFileName[ii][jj], _extensions[ii]);
@@ -1164,16 +1164,16 @@ int main(int argc, char *argv[])
 	 */
 	if (context.listingFileName == NULL)
 	{
-	    for (ii = strlen(context->inputFile); ii >= 0; ii--)
+	    for (ii = strlen(context.inputFile); ii >= 0; ii--)
 	    {
-		if (context->inputFile[ii] == '.')
+		if (context.inputFile[ii] == '.')
 		    break;
 	    }
 	    if (ii <= 0)
 		ii = strlen(context.inputFile);
 	    context.listingFileName = sdl_calloc(ii + 5, 1);
 	    strncpy(context.listingFileName, context.inputFile, ii);
-	    strcpy(&context->listingFileName[ii], ".lis");
+	    strcpy(&context.listingFileName[ii], ".lis");
 	}
 
 	/*

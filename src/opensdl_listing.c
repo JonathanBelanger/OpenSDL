@@ -42,11 +42,13 @@
  * Local variables used while generating a listing file.
  */
 #define SDL_PAGE_WIDTH	132
+#define SDL_PAGE_LENGTH	66
 typedef char		SDL_HEADER_DEF[SDL_PAGE_WIDTH + 1];
 static SDL_HEADER_DEF	sdl_listing_header[2];
 static char		xBuf[SDL_PAGE_WIDTH + 1];
 static int		xBufLoc = 0;
 static uint32_t		listLine = 1;
+static uint32_t		pageLine = 1;
 static uint32_t		pageNo = 1;
 
 /*
@@ -123,6 +125,10 @@ FILE *sdl_open_listing(SDL_CONTEXT *context)
  *  buf:
  *	A pointer to the buffer of characters to be written out to the listing
  *	file.
+ *  len:
+ *	A value indicating the size of the buf parameter.  When this is set to
+ *	0, then get it from the strlen call.  Otherwise, we have a buffer that
+ *	may not be null terminated, so don't assume it is.
  *
  * Output Parameters:
  *  None.
@@ -130,8 +136,78 @@ FILE *sdl_open_listing(SDL_CONTEXT *context)
  * Return Values:
  *  None.
  */
-void sdl_write_list(FILE *fp, char *buf)
+void sdl_write_list(FILE *fp, char *buf, size_t len)
 {
+    int		ii;
+    size_t	myLen = (len == 0) ? strlen(buf) : len;
+
+    /*
+     * If we are on the first line of a page, then display the listing headers.
+     */
+    if (pageLine == 1)
+    {
+	if (listLine > 1)
+	    fprintf(fp, "\f");
+	fprintf(fp, "%s%4d\n", sdl_listing_header[0], pageNo);
+	pageLine++;
+	fprintf(fp, "%s\n", sdl_listing_header[1]);
+	pageLine++;
+    }
+
+    /*
+     * Scan through the buffer, outputting lines as we go.  NOTE: We may end up
+     * with a partial output line.  If this is the case, then we'll be called
+     * again with more to output.
+     */
+    for (ii = 0; ii < myLen; ii++)
+    {
+
+	/*
+	 * If we are starting a new line, then insert the line number.
+	 */
+	if (xBufLoc == 0)
+	    xBufLoc = sprintf(xBuf, "%7d ", listLine);
+
+	/*
+	 * If the character is a carriage-return, then just ignore it.
+	 */
+	if (buf[ii] == '\r')
+	    continue;
+
+	/*
+	 * If the character is a new-line, then null-terminate the output
+	 * buffer and output the line.
+	 */
+	if (buf[ii] == '\n')
+	{
+	    xBuf[xBufLoc] = '\0';
+	    fprintf(fp, "%s\n", xBuf);
+	    listLine++;
+	    pageLine++;
+	    xBufLoc = 0;
+	    continue;
+	}
+
+	/*
+	 * If the character is a form-feed, or we have exceeded the number of
+	 * lines in a page, then insert a form-feed and reset the pageLine.
+	 */
+	if ((buf[ii] == '\f') || (pageLine > SDL_PAGE_LENGTH))
+	{
+	    xBuf[xBufLoc] = '\0';
+	    fprintf(fp, "%s\f", xBuf);
+	    xBuf[xBufLoc++] = ' ';
+	    pageLine = 1;
+	    continue;
+	}
+
+	/*
+	 * We have just a regular character.  If there is room, then add it to
+	 * the output buffer.  Otherwise, just swallow it.
+	 */
+	if (xBufLoc < SDL_PAGE_WIDTH)
+	    xBuf[xBufLoc++] = buf[ii];
+    }
 
     /*
      * Return back to the caller.
@@ -161,7 +237,7 @@ void sdl_write_list(FILE *fp, char *buf)
  * Return Values:
  *  None.
  */
-void sdl_write_list(FILE *fp, SDL_MSG_VECTOR *msgVector)
+void sdl_write_err(FILE *fp, SDL_MSG_VECTOR *msgVector)
 {
 
     /*
@@ -187,11 +263,20 @@ void sdl_write_list(FILE *fp, SDL_MSG_VECTOR *msgVector)
  * Return Values:
  *  None.
  */
-void sdl_close_listing(SDL_CONTEXT *)
+void sdl_close_listing(SDL_CONTEXT *context)
 {
 
     /*
-     * All we need to do is close the file, if it was opened.
+     * If there is anything in the output buffer, write it out now.
+     */
+    if (xBufLoc > 0)
+    {
+	xBuf[xBufLoc] = '\0';
+	fprintf(context->listingFP, "%s\n", xBuf);
+    }
+
+    /*
+     * All that is left to do is close the file, if it was opened.
      */
     if (context->listingFP != NULL)
     {

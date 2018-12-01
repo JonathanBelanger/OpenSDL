@@ -48,7 +48,7 @@ static int		messagesIndex = 0;
 static int		messagesSize = 0;
 #define SDL_PAGE_WIDTH	132
 #define SDL_PAGE_LENGTH	66
-#define SDL_PAGE_LOC	123
+#define SDL_PAGE_LOC	122
 typedef char		SDL_HEADER_DEF[SDL_PAGE_WIDTH + 1];
 static SDL_HEADER_DEF	sdl_listing_header[2];
 static char		xBuf[SDL_PAGE_WIDTH + 1];

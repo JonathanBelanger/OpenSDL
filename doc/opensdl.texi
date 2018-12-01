@@ -37,10 +37,8 @@ and the OpenSDL translator.}
 @multitable @columnfractions .40 .60
 @item @strong{Revision/Update Information}: @tab This revised manual supersedes
 HP and VAX SDL (Structure Definition Language) Version 3.2.
-
 @item @strong{Operating System and Version}: @tab @value{OS} @value{OSVERSION}
 or later
-
 @item @strong{Software Version}: @tab OpenSDL Version @value{VERSION}
 @end multitable
 
@@ -512,7 +510,7 @@ extension.
 @image{FileOpen,6in,,,.jpg}
 @end float
 
-@quotation NOTE
+@quotation Note
 If you are unable to access OpenSDL or Notepad++, contact your system manager
 to ensure that they are installed on your system.
 @end quotation
@@ -827,460 +825,205 @@ Your resulting screen display should be the OpenSDL source file shown in
 @node Compiling Source Code
 @subsection Compiling Source Code
 
-You can compile your source code, review compilation errors, and view your
-output file without leaving the editing session by using the LSE command
-COMPILE with the SDL command and the /LIST qualifier.  If you enter only the
-COMPILE command, a DCL command that invokes the OpenSDL compiler is issued in a
-subprocess.  For example:
+Compiling source code is very straightforward.  You use the command qualifiers
+to read in the input file and generate one or more output files.  At a minimum
+the command line consists of the following:
 
-@example
-LSE> COMPILE
+@enumerate
+@item The @command{opensdl} command.
+@item One output language (e.g. @command{-lang:cc}).
+@item The input file @file{test.sdl}. 
+@end enumerate
 
-STARTING COMPILATION: SDL/PARSE/LIST USER.SDL
-COMPILATION OF BUFFER USER.SDL COMPLETED
-@end example
+When compiling an input file, as errors are detected, the are displayed to
+stderr.  Additionally, the @command{-list} qualifier can be specified to
+generate a listing file, where the same errors will be displayed at the line
+where the error was detected.
 
-The compiler generates a .LIS file of compile-time diagnostic information that
-you can review by entering the following command:
-
-@command{LSE> GOTO FILE USER.LIS}
-
-You have the option of entering split-screen mode first by typing the LSE
-command CHANGE WINDOW_MODE and then the GOTO FILE USER.LIS command.  This allows
-you to view and compare your compilation errors in one window and then return
-to the other window to correct your source code.
-
-To generate an output file from within LSE, you must use the COMPILE command
-with the SDL command as follows:
-
-@example
-LSE> COMPILE SDL/LIST/LANG=BASIC
-
-STARTING COMPILATION: SDL/LIST/LANG=BASIC USER.SDL
-COMPILATION OF BUFFER USER.SDL COMPLETED
-@end example
-
-You can then view your output file from within LSE by issuing the following
-command:
-
-@command{LSE> GOTO FILE USER.BAS}
-
-LSE supports all of the OpenSDL compiler’s command qualifiers as well as
-user-supplied command procedures.  You can specify DCL qualifiers, such as
-/LIBRARY, when invoking the compiler from LSE.
+@quotation Note
+The line numbers displayed within the error message text may not be exactly the
+line of code in a listing file where the message will be written.  The error
+message text will refer to the first line of a multiline statement, where this
+same text will be written immediately after the line of code that actually
+caused the condition to be detected.@*
+@*
+A single line of code can generate multiple errors, the errors will be
+displayed in the order inwhich they were detected.
+@end quotation
 
 @ref{Processing an OpenSDL Source File} describes how to process an OpenSDL
 source file using the SDL command and all its qualifiers.
 
-@quotation NOTE
-OpenSDL does not support the LSE command REVIEW.  The OpenSDL-generated .LIS
-file, which you can view from within LSE, gives you the capability to review
-compilation errors.
-@end quotation
-
 @node Processing an OpenSDL Source File
 @section Processing an OpenSDL Source File
 
-The SDL command invokes the OpenSDL translator from DCL command level to
-produce output files for one or more target languages.  The SDL command has the
-following format:
+The @command{opensdl} command invokes the OpenSDL translator from the command
+line to produce output files for one or more target languages.  The
+@command{opensdl} command has the following format:
 
-@command{SDL[/qualifier[...]] file-spec[/qualifier[...]],...}
-
-@ref{Compiling Source Code} describes how the SDL command and all its
-qualifiers can be entered from within LSE when used with the LSE command
-COMPILE.
+@command{opensdl [-qualifier[...]] file-spec[-qualifier[...]],...}
 
 Command Parameter
 @file{file-spec,...}
 Specifies one or more OpenSDL source files to be translated.  A file
 specification must specify a file name; if it does not include a file type,
-OpenSDL uses the default file type .SDL.  You can specify multiple input files,
-separated by commas.  OpenSDL translates each source file individually and
-creates separate output files for each.  Wildcards are not allowed in the file
-specification.
+OpenSDL uses the default file type @file{.sdl}.  You can specify one a single
+input file.
 
 Command Qualifiers
-Command qualifiers may be specified following the SDL command, or they may be
-used to qualify individual file specifications.  @ref{OpenSDL Command
-Qualifiers and Their Defaults} lists all the optional SDL command qualifiers
-and their defaults.
+Command qualifiers may be specified following the @command{open} command.
+@ref{OpenSDL Command Qualifiers and Their Defaults} lists all the optional 
+@command{opensdl} command qualifiers and their defaults.
 
 @float Table, OpenSDL Command Qualifiers and Their Defaults
 @multitable @columnfractions .4 .6
 @headitem Qualifier @tab Default
-@item /ALIGNMENT @tab No alignment
-@item /ALPHA_AXP @tab /ALPHA_AXP on Alpha and IA64 systems
-@item /B64 @tab none
-@item /BACKEND_OPTION @tab none
-@item /[NO]CHECK_ALIGNMENT @tab /NOCHECK_ALIGNMENT
-@item /[NO]COMMENTS @tab /COMMENTS
-@item /[NO]COPYRIGHT @tab /NOCOPYRIGHT
-@item /[NO]C_DEVELOPMENT @tab /NOC_DEVELOPMENT
-@item /[NO]DUMP[=file-spec] @tab /NODUMP
-@item /[NO]GLOBAL_DEFINITION @tab /NOGLOBAL_DEFINITION
-@item /[NO]HEADER @tab /HEADER
-@item /LANGUAGES=(language[=file-spec],...) @tab No languages
-@item /[NO]LIST @tab /NOLIST (interactive)
-@item @tab /LIST (batch)
-@item /[NO]MEMBER_ALIGN @tab /NOMEMBER_ALIGN
-@item /[NO]MODULE @tab /MODULE
-@item /[NO]PARSE[=file-spec] @tab /PARSE
-@item [/NO]PLI_DEVELOPMENT @tab /NOPLI_DEVELOPMENT
-@item /[NO]SUBFIELDS @tab /NOSUBFIELDS
-@item /[NO]SUPPRESS @tab /NOSUBFIELDS
-@item /SYMBOLS @tab No symbols
-@item /VAX @tab /VAX on VAX systems
-@item /[NO]VMS_DEVELOPMENT @tab /NOVMS_DEVELOPMENT
+@item @command{-align} @tab No alignment
+@item @command{-32} or @command{-64} @tab @command{-64}
+@item @command{-[no]check} @tab @command{-nocheck}
+@item @command{-[no]comments} @tab @command{-comments}
+@item @command{-[no]copy} @tab @command{-nocopy}
+@item @command{-[no]header} @tab @command{-header}
+@item @command{-help} @tab Do not display help information.
+@item @command{-lang} @tab No languages
+@item @command{-[no]list} @tab @command{-nolist}
+@item @command{-[no]member} @tab @command{-nomember}
+@item @command{-[no]supress} @tab @command{/nosupress}
+@item @command{-symbol} @tab No symbols
+@item @command{-t} @tab No trace memory allocations/deallocations
+@item @command{-v} @tab No verbose output
+@item @command{-V} @tab Don't display OpenSDL version information.
 @end multitable
 @end float
 
-/ALIGNMENT=value@*
+@command{-align=value}@*
 The assumed alignment.  Integer value greater than zero.  If specified,
 diagnostic messages are emitted for data items that do not fall on the assumed
 alignment.
 
-/ALPHA_AXP@*
-Note the following:
+@command{-32} or @command{-64}@*
+The number of bits the represent a @code{LONGWORD}.
 
-@itemize @bullet
-@item The size of certain data types (HARDWARE_ADDRESS, INTEGER_HW,
-HARDWARE_INTEGER, POINTER_HW) is 8 bytes if /ALPHA_AXP is specified and 4 bytes
-otherwise.
-
-@item BITFIELDs can have 64 bits if /ALPHA_AXP is specified and only 32 bits
-otherwise.
-
-@item BASIC defines the data type HUGE as BASIC$HFLOAT_AXP if /ALPHA_AXP is
-specified and as HFLOAT otherwise and HUGE_COMPLEX as
-BASIC$H_FLOATING_COMPLEX_AXP if /ALPHA_AXP is specified and as
-BASIC$H_FLOATING_COMPLEX otherwise.
-
-@item CC writes alignment pragmas to the output file only if /ALPHA_AXP is
-specified.
-
-@item CC generates 64-bit pointers only if /ALPHA_AXP is specified.
-
-@item CC generates QUADWORD data types as __int64 if /ALPHA_AXP is specified
-and as int[2] otherwise.
-@end itemize
-
-/[NO]B64@*
-This qualifier is only valid for the languages BLISS and BLISSF.
-The default extension for the output file is .R64 if /B64 is specified and .R32
-otherwise.  The word size used in BITFIELDs is 64 bits if /B64 is specified and
-32 bits otherwise.  The name used for conditional compilation changes from
-BLISS or BLISSF to BLISS64 or BLISSF64, respectively.
-You cannot specify the qualifiers /B64 and /VAX together.
-
-/[NO]BACKEND_OPTION=@{language=language-option@}@*
-@{(language=language-option,...)@}
-The qualifier accepts a list of languages and a value for every language.  The
-syntax of the value is backend-specific.
-
-At the moment, only the CC backend supports this qualifier.  It accepts the
-value INT64_FOR_QUAD, which indicates that the SDL quadword data type is always
-mapped to the C __int64_t data type.  This is done on 64 bit-systems only (i.e.
-Alpha and IA64), not on VAX systems, since there is no __int64_t data type on
-VAX systems.
-
-/[NO]CHECK_ALIGNMENT@*
+@command{-[no]check}@*
 If specified, diagnostic messages are emitted for data items that do not fall
 on their natural alignment.
 
-/[NO]COMMENTS@*
+@command{-[no]comments}@*
 Controls whether output comments are included in the output file.  For more
-compact target language representation, use the /NOCOMMENTS qualifier to save
-file space.  The default is /COMMENTS.
+compact target language representation, use the -nocomments qualifier to save
+file space.  The default is @command{-comments}.
 
-/[NO]COPYRIGHT@*
+@command{-[no]copy}@*
 Controls whether a standard copyright header is produced in the output file.
-The /COPYRIGHT qualifier causes the OpenSDL translator to precede the output
-with a comment containing the standard Hewlett-Packard copyright claim.  The
-default is /NOCOPYRIGHT.
+The @command{-copy} qualifier causes the OpenSDL translator to precede the
+output with a comment containing the copyright claim as specified in the
+@file{copyright.sdl} file.  The default is @command{-nocopy}.
 
-/[NO]C_DEVELOPMENT@*
-Only used by the CC backend.
-
-If an input file contains more than one module, C generates one .h file per
-module if either /C_DEVELOPMENT or /VMS_DEVELOPMENT is specified and one file
-containing all the modules otherwise.
-
-C defines a macro with all lowercase characters to equal the same name in all
-uppercase characters for every entry node if either /C_DEVELOPMENT or
-/VMS_DEVELOPMENT is specified.
-
-C creates function prototypes if either /C_DEVELOPMENT or /VMS_DEVELOPMENT is
-specified (although the ones generated with /VMS_DEVELOPMENT only contain
-"__unknown_params").
-
-C generates most definitions twice if /C_DEVELOPMENT is specified, separated
-with "#ifdef __NEW_STARLET" ...  "else" ...  "endif".  The "__NEW_STARLET"
-definitions contain complete function prototypes, the "OLD" definitions only
-"__unknown_params".  Also, the definitions of structs and unions are different.
-
-The __member_alignment pragmas are only generated if both /ALPHA_AXP and
-/C_ DEVELOPMENT are specified.
-
-C generates "if !defined(__VAXC)" for special cases if /C_DEVELOPMENT or
-/VMS_DEVELOPMENT is specified, otherwise "ifdef _ _cplusplus" is generated.
-
-C generates "#ifndef __<module-name>_LOADED" ...  if /C_DEVELOPMENT or
-/VMS_DEVELOPMENT is specified.
-
-C generates "__required_pointer_size" pragmas if either /VMS_DEVELOPMENT or
-both /C_DEVELOPMENT and /ALPHA_AXP are specified.
-
-Together with the /ALPHA_AXP qualifier and the /VMS_DEVELOPMENT qualifier this
-qualifier influences the definition of certain data types and the generation of
-certain pragmas, e.g.  the data type QUADWORD is defined as __int64_t if
-/ALPHA_AXP is specified and /VMS_DEVELOPMENT and not /C_DEVELOPMENT, and as
-int[2] otherwise, and the HARDWARE_ADDRESS and POINTER_HW data types are
-defined as __int64_t if /ALPHA_AXP and neither /C_DEVELOPMENT nor
-/VMS_DEVELOPMENT are specified and as int[2] if /ALPHA_AXP is not specified,
-and are not defined if /ALPHA_AXP and one of the qualifiers /C_DEVELOPMENT or
-/VMS_DEVELOPMENT is specified.
-
-/[NO]DUMP [=file-spec]@*
-Controls whether the OpenSDL intermediate code is displayed on your screen.  If
-you specify the /DUMP qualifier with a file specification, the output is sent
-to the specified file.  The default is /NODUMP.
-
-/[NO]GLOBAL_DEFINITION@*
-Controls whether an item or aggregate declared with the GLOBAL option generates
-a declaration indicating that the value of the global data item is defined in
-this module.  In some languages, this qualifier has no effect; see the
-individual language translation summaries in Appendix B and online examples of
-language output files as a result of processing the OpenSDL source file
-EXAMPLE.SDL in SDL$EXAMPLES.
-
-By default, global definitions are not generated; the GLOBAL option designates
-global data whose value is defined elsewhere.
-
-/[NO]HEADER@*
+@command{-[no]header}@*
 Controls whether a header containing the date and the source file name is
-included at the beginning of the output file.  The default is /HEADER.
+included at the beginning of the output file.  The default is
+@command{-headear}.
 
-/LANGUAGES=@{language[=file-spec]@}@*
+@command{-help}@*
+Controls whether the help/usage information is specified to standard output.
+
+@command{-lang:@{language[=file-spec]@}}@*
 @{(language[=file-spec],...)@}
-Specifies one or more of the language options listed in @ref{OpenSDL Language
-Options and File Types} for which the OpenSDL translator is to produce one or
-more source output files.  By default, OpenSDL writes output files into separate
-files in the current default directory.  The default file name for each output
+Specifies a single language option listed in @ref{OpenSDL Language
+Options and File Types} for which the OpenSDL translator is to produce a source
+output file.  By default, OpenSDL writes output files into separate files in the
+current default directory/folder.  The default file name for each output
 file is taken from the file name of the corresponding source file and the
-default target file type for each language name.
+default target file type for each language name.  Multiple @command{-lang}
+qualifiers can be specified on the command line, but each language should only
+be specified once.
 
 @float Table, OpenSDL Output Language Options and File Types
 @multitable @columnfractions .33 33 .34
 @headitem Language @tab Option @tab Target File Type
-@item Ada @tab /LANGUAGES=ADA @tab .ADA
-@item BASIC @tab /LANGUAGES=BASIC @tab .BAS
-@item BLISS @tab /LANGUAGES=BLISS @tab .R32, .R64
-@item @tab /LANGUAGES=BLISSF @tab .R32, .R64@footnote{The BLISSF back end
-generates BLISS FIELDSETS for OpenSDL aggregates.}
-@item @tab /LANGUAGES=BLISS64 @tab .R64@footnote{The BLISS64 back end
-generates the same code as the BLISS backend when the /B64 qualifier has been
-specified.}
-@item C/C++ @tab /LANGUAGES=CC @tab .H
-@item OpenVMS DCL @tab /LANGUAGES=DCL @tab .COM
-@item DATATRIEVE @tab /LANGUAGES=DTR @tab .DTR
-@item FORTRAN @tab /LANGUAGES=FORTRAN @tab .FOR
-@item MACRO @tab /LANGUAGES=MACRO @tab .MAR
-@item Pascal @tab /LANGUAGES=PASCAL @tab .PAS
-@item Kednos PL/I @tab /LANGUAGES=PLI @tab .PLI
-@item SDML @tab /LANGUAGES=SMDL @tab.SDML
-@item DECTPU @tab /LANGUAGES=TPU @tab .TPU
-@item UIL @tab /LANGUAGES=UIL @tab .UIL
+@item C/C++ @tab @command{-lang:cc} @tab .h
 @end multitable
 @end float
-
-OpenSDL builds the language image name by concatenating the prefix SDL to the
-language option specified on the SDL command.  For example, if you specify\
-/LANGUAGE=FORTRAN, OpenSDL searches for and activates the SDL$FORTRAN.EXE back
-end.  You may abbreviate most language options, but OpenSDL uses the first
-image it finds that matches the generated file specification.  For example, if
-you wish to invoke the BLISSF back end instead of the BLISS back end, you must
-specify /LANGUAGE=BLISSF.
-
-The /LANGUAGE qualifier also allows you to override the default output file
-specification for one or more language output files.  You can specify a language
+@*
+The @command{-lang} qualifier also allows you to override the default output
+file specification for a language output files.  You can specify a language
 option followed by the destination file specification for that language.  You
 must separate the language from the destination file specification with an
-equal sign (=) and separate specifications for different languages with commas.
+equal sign (=).
 
-/[NO]LIST@*
+@command{-[no]list}@*
 Controls whether a listing file is produced.
 
-If the SDL command is executed from interactive mode, /NOLIST is the default.
-If the SDL command is executed from batch mode, /LIST is the default.
+The @command{-list} qualifier causes the OpenSDL translator to produce a
+listing file with numbered lines of source code and descriptions of any
+compilation errors.  The listing file has the same name as the related source
+file and a file type of @file{.lis}.
 
-The /LIST qualifier causes the OpenSDL translator to produce a listing file
-with numbered lines of source code and descriptions of any compilation errors.
-The listing file has the same name as the related source file and a file type
-of .LIS.
-
-/[NO]MEMBER_ALIGN@*
+@command{-[no]member}@*
 Specifies that every item in aggregates should be aligned.  This is the same as
-specifying ALIGN on all aggregates.
+specifying @code{ALIGN} on all aggregates.
 
-/[NO]MODULE@*
-Controls whether an Ada package or a Pascal module is generated in the output
-file.  The default is /MODULE.  The /[NO]MODULE qualifier affects only the
-Pascal and  Ada languages.
+@command{-[no]module}@*
+Controls whether a module is generated in the output file for the relevant
+output language.  The default is @command{-module}.
 
-/[NO]PARSE [=file-spec]@*
-Controls whether OpenSDL reads or writes an OpenSDL intermediate file.  An OpenSDL
-intermediate file contains OpenSDL source code that has already been parsed
-using the SDL/PARSE command.  The default file type for the OpenSDL intermediate
-file is .SDI.
-
-The intermediate file produced as a result of the SDL/PARSE command can later
-be used instead of OpenSDL source code as input to the back end.  This is done
-using the SDL/NOPARSE command.  When this qualifier appears in an SDL command
-line, the input file specification is assumed to be that of an SDL intermediate
-file with a default file type of .SDI.  Examples 4 and 5 at the end of this
-section show the uses of the /[NO]PARSE qualifiers.
-
-/[NO]PLI_DEVELOPMENT@*
-Only used by the PLI backend.
-This qualifier specifies the definition of certain data types, e.g.  most
-integral data types are defined as fixed binary (n) if /PLI_DEVELOPMENT is
-specified and as bit(n) aligned otherwise.
-
-In addition, the type names of certain parameters are changed, e.g.  "ASTADR" to
-"entry value" and "MASK_BYTE" to "bit (8) aligned".
-
-Default parameters that are not optional are marked as "optional" if
-/PLI_DEVELOPMENT is specified
-
-/[NO]SUBFIELDS@*
-When this qualifier is given, the BLISSF backend handles subfields of members
-declared with a named type differently.
-
-/SUPPRESS =@{suppress-option@}@*
-@{(suppress-option,...)@}@*
-The /SUPPRESS qualifier has the following format:
-@command{SDL /SUPPRESS=(PREFIXES, TAGS)}
+@command{-suppress:@{suppress-option@}}@*
+@command{          @{(suppress-option,...)@}}@*
+The @command{-supress} qualifier has the following format:
+@command{opensdl -suppress=(prefix,tag)}
 
 Note the following:
 
 @itemize @bullet
-@item The suppress-options can be either PREFIXES or TAGS.
+@item The suppress-options can be either @command{prefix} or @command{tag}.
 
 @item The qualifier may appear anywhere in the command line where a qualifier
 is valid.
 
-@item Output in all languages in that compilation is affected.  It is not
-possible to make the qualifier position-dependent (CDU constraint).
+@item Output in all languages in that compilation is affected.
 
-@item Either PREFIXES or TAGS, or both, may be included in the list.
+@item Either @command{prefix} or @command{tag}, or both, may be included in the
+list (with no spaces between when specifying both).
 
 @item If both prefixes and tags are suppressed, the connecting underscore is
 also suppressed.
 
-@item The effect on the intermediate tree is as though null prefixes and/or
-tags had been specified throughout the source.  There are therefore no changes
-to the back ends.
+@item The effect is as though null prefixes and/or tags had been specified
+throughout the source.
 @end itemize
 
-/SYMBOLS=@{symbol=value@}@*
-@{(symbol=value,...)@}
+@command{-symbol:@{symbol=value@}}@*
 It is possible to specify symbols and values which can be used in the IFSYMBOL
-statement (kind of conditional compilation).
-See IFSYMBOL.
+statement (kind of conditional compilation).  Multiple @command{-symbol}
+qualifiers can be specified on the command line.  If the same symbol is
+specified more than ones, then the last one will be in effect.
+See @code{IFSYMBOL}.
 
-/VAX@*
-For modules, FORTRAN writes the following comment to the output file:
-!DEC$ OPTIONS/ALIGN=(RECORDS=PACKED,COMMONS=PACKED)/NOWARN
+@command{-t}@*
+Specifies that the OpenSDL Utility should display memory allocations and
+deallocations used by the tool as it processes the input file and generates the
+output file(s).
 
-CC generates ‘‘double’’ as return type for functions if the actual return type
-is quadword and /VAX but not /VMS_DEVELOPMENT is specified.
+@command{-v}@*
+Specifies that the OpenSDL Utility should generate verbose messages to both
+standard output and standard error as it processes the input file and generates
+the output file(s).  This can be used to debug issues with the utility.
 
-You cannot specify the qualifiers /ALPHA_AXP and /VAX together.  You cannot
-specify the qualifiers /B64 and /VAX together.
-
-/[NO]VMS_DEVELOPMENT@*
-Modifies the behavior of certain OpenSDL back ends so that the generated output
-files conform to specific VMS development standards.
-
-Ada defines the data types QUADWORD and INTEGER_QUAD as INTEGER_64 if
-/ALPHA_AXP and /VMS_DEVELOPMENT is specified and as UNSIGEND_QUADWORD
-otherwise.
-
-For BLISS and BLISSF, the /VMS_DEVELOPMENT qualifier causes ENTRY declarations
-to generate KEYWORD macros in the output (.R32) file and defines routines as
-‘‘external routine routine-name : novalue’’ otherwise.
-
-BLISS’ and BLISSF’s generation of certain ‘‘literal’’s for the sizes of
-structures or unions depends on this qualifier.
-The following rules apply when the /VMS_DEVELOPMENT qualifier is specified for 
-BLISSF output:
-
-@itemize @bullet
-@item User fill fields are ignored.
-@item Nested structures are ignored.
-@item Macros are generated instead of fields for certain level one items.
-@end itemize
-
-CC handles user fill depending on /VMS_DEVELOPMENT.
-
-CC handles references to aggregates within typedef’d aggregates different when
-/VMS_DEVELOPMENT is specified.
-
-For MACRO, the /VMS_DEVELOPMENT qualifier causes the VMS macros $EQU, $DEF,
-$DEFINI, and $DEFEND to be generated in the output (.MAR) file.
-
-For Pascal, the /VMS_DEVELOPMENT qualifier causes "$TYPE" to be appended to the
-names of structures and unions in the output (.PAS) file.
-The following rules apply when the /VMS_DEVELOPMENT qualifier is specified for
-Pascal output:
-
-@itemize @bullet
-@item ‘‘read node’’ modules are prefixed with ‘‘PASCAL$’’.
-@item The generation of certain fill fields is suppressed.
-@item ‘‘$TYPE’’ is appended to data types that have no ‘‘$’’ in their name.
-@item An error message is emitted if a complex data type is encountered.
-@item The type ‘‘$DEFPTR’’ is generated for user data types instead of the
-actual data type.
-@end itemize
-
-The following rules apply when the /VMS_DEVELOPMENT qualifier is specified for 
-Kednos PL/I output:
-
-@itemize @bullet
-@item UNSIGNED BYTE,UNSIGNED WORD, and UNSIGNED LONGWORD yield FIXED
-BINARY(7), FIXED BINARY(15), and FIXED BINARY(31), respectively.
-@item Special VMS TYPENAME values are recognized.
-@item DEFAULT n for n<>0 generates OPTIONAL.
-@end itemize
-
-The default is /NOVMS_DEVELOPMENT.
+@command{-V}@*
+Specifies that the OpenSDL Utility should display the version information for
+the utility to standard output.
 
 Examples
 
-The following are examples and descriptions of the SDL command.
+The following are examples and descriptions of the @command{opensdl} command.
 @enumerate
-@item @command{$ SDL BLOCKNODE/LANGUAGE=(PLI=PLI$:[PL1.PSRC],CC=C$:[C.CSRC])}@*
-OpenSDL translates the declarations in BLOCKNODE.SDL to Kednos PL/I and C,
-writes the Kednos PL/I output to PLI$:[PL1.PSRC]BLOCKNODE.PLI, and writes the
-C output to C$:[C.CSRC]BLOCKNODE.H.
+@item @command{$ opensdl blocknode.sdl -lang:cc=../block_node.h)}@*
+OpenSDL translates the declarations in @file{blocknode.sdl} to C/C++ and
+writes the C/C++ output to @file{block_node.h} in the parent directory/folder.
 
-@item @command{$ SDL VTREE.SRC/LANGUAGE=(PLI=[PLI.PSRC])}@*
-OpenSDL translates the declarations in VTREE.SRC and writes the Kednos PL/I
-output to [PLI.PSRC]VTREE.PLI.
-
-@item @command{$ SDL/LANGUAGE=(MACRO,BLISS) IODEF,SSDEF}@*
-OpenSDL translates the declarations in IODEF.SDL and SSDEF.SDL and writes the
-output to IODEF.MAR, IODEF.R32, SSDEF.MAR, and SSDEF.R32.
-
-@item @command{$ SDL/PARSE=INTER TEST)}@*
-OpenSDL translates the declarations in the source file TEST.SDL and writes the
-output to a OpenSDL intermediate file called INTER.SDI.
-
-@item @command{$ SDL/NOPARSE/LANG=(MACRO,BLISS) INTER}@*
-OpenSDL translates the declarations that have already been parsed by the
-OpenSDL front end in INTER.SDI and writes the output to INTER.MAR and
-INTER.R32.
+@item @command{$ opensdl -list -lang:cc iodef.src}@*
+OpenSDL translates the declarations in iodef.src and writes the output to
+iodef.h, while also generating the list file iodef.lis
 @end enumerate
 
 @node OpenSDL Language Elements
@@ -1302,9 +1045,8 @@ not OpenSDL language elements (@ref{Local Comments} through
 @ref{Include Statement}):
 
 @itemize @bullet
-@item Local and output comments
+@item Local and output (line and Block) comments
 @item INCLUDE statement
-@item READ statement
 @item Conditional compilation
 @item Text pass-through
 @item DECLARE statement
@@ -1314,7 +1056,8 @@ The space, tab, or carriage return character delimits the language elements,
 and a semicolon (;) terminates each declaration.  In MODULE and AGGREGATE
 declarations, the semicolon also terminates separate parts of the declaration.
 
-Appendix B shows language translation summaries of all the OpenSDL language elements.
+Appendix B shows language translation summaries of all the OpenSDL language
+elements.
 
 @section Names
 An OpenSDL name can be either a user-specified local symbol name that is not
@@ -1330,19 +1073,18 @@ underscore (_).  Specifying a name is subject to the following rules:
 @item Source program identifiers that are reserved OpenSDL keywords or that
 contain invalid  SDL characters must be enclosed in quotation marks (" ").
 (For more information on reserved OpenSDL keywords, @ref{Keywords}).
-@item OpenSDL passes all source program identifiers to the output file in the same
-case in which they are defined.
+@item OpenSDL passes all source program identifiers to the output file in the
+same case in which they are defined.
 @end enumerate
 
 @subsection Local Symbol Names
 A local symbol name is known only within an OpenSDL source file and cannot be
 translated directly to the output file.  A local symbol name can be assigned a
-value anywhere within a source file, but must begin with the pound sign
-(#).  A local symbol is declared when it is first assigned a value.  This
-value can be any valid expression (@ref{Expressions}).  If you reference a
-local symbol before assigning it a value, OpenSDL displays an error message and
-does not produce an output file.  A local symbol assignment has the following
-syntax:
+value anywhere within a source file, but must begin with the pound sign (#).
+A local symbol is declared when it is first assigned a value.  This value can
+be any valid expression (@ref{Expressions}).  If you reference a local symbol
+before assigning it a value, OpenSDL displays an error message and does not
+produce an output file.  A local symbol assignment has the following syntax:
 
 @code{#local-name = expression;}
 
@@ -1350,9 +1092,9 @@ syntax:
 Is any valid OpenSDL name.
 
 expression@*
-Is any valid OpenSDL expression resulting in a longword integer value.
-Signed integer longword data types are described in @ref{Integer Data Types}.
-The following are examples of local symbol assignments:
+Is any valid OpenSDL expression resulting in a longword integer value.  Signed
+integer longword data types are described in @ref{Integer Data Types}.  The
+following are examples of local symbol assignments:
 
 @example
 #max_args = 255;
@@ -1371,9 +1113,9 @@ member names, and ENTRY parameter names that are passed to the output file.
 Optional user-specified prefixes and tags can be appended to these identifiers.
 If a prefix is specified without a tag, OpenSDL concatenates a default tag
 (corresponding to the data type) to the identifier in the output file.
-(@ref{PREFIX, MARKER, and TAG keywords} describes the PREFIX and TAG keyword
-options.) The identifier block_node_size in the following example names the
-CONSTANT declaration:
+(@ref{PREFIX, MARKER, and TAG keywords} describes the PREFIX. MARKER and TAG
+keyword options.) The identifier block_node_size in the following example names
+the CONSTANT declaration:
 
 @code{CONSTANT block_node_size EQUALS #max_args + #counter;}
 
@@ -1401,15 +1143,6 @@ Reserved OpenSDL keywords are used to specify the following:
 @item Arrays (@ref{DIMENSION Keyword})
 @item Datatypes (@ref{Data Type Keywords})
 @end itemize
-You can use keywords as identifiers if they are enclosed in quotation marks
-(" ").  For example:
-
-ITEM "length" LONGWORD;
-
-This declaration produces the identifier length, which names this particular
-ITEM declaration.  The length identifier is a reserved OpenSDL keyword that is
-typically used to specify the length of a bit-string or character-string data
-type (@ref{BITFIELD Data Type} and @ref{CHARACTER Data Type}).
 
 Reserved OpenSDL keywords can be entered in either upper- or lowercase letters,
 but they cannot be truncated.
@@ -1426,15 +1159,15 @@ defines the keywords for the declarations described in detail in Chapter 4.
 @float Table, Keywords That Identify or End Declarations
 @multitable @columnfractions .3 .7
 @headitem Keyword @tab Definition
-@item AGGREGATE @tab Declaration that produces a structure or union body
-@item CONSTANT @tab Declaration of a named constant
-@item END @tab Delimiter for the end of an aggregate body
-@item END_MODULE @tab Delimiter for the end of a module
-@item ENTRY @tab Declaration of an entry
-@item ITEM @tab Declaration of an item
 @item MODULE @tab Declaration of a module
+@item END_MODULE @tab Delimiter for the end of a module
+@item CONSTANT @tab Declaration of a named constant
+@item ITEM @tab Declaration of an item
+@item AGGREGATE @tab Declaration that produces a structure or union body
 @item STRUCTURE @tab Declaration that is a type of aggregate or subaggregate
 @item UNION @tab Declaration that is a type of aggregate or subaggregate
+@item END @tab Delimiter for the end of an aggregate body
+@item ENTRY @tab Declaration of an entry
 @end multitable
 @end float
 
@@ -1533,20 +1266,16 @@ incremental values
 aggregate member names and named constants; see @ref{PREFIX, MARKER, and TAG
 Keywords}
 
+@item RADIX @tab Optional keyword used to indicate how a constant should be
+written in the output file; see @ref{RADIX Keyword}
+
 @item TAG @tab Optional keyword used to override the default OpenVMS code
 assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX,
 MARKER, and TAG Keywords}
 
-@item TYPENAME @tab Optional keyword used only by the Ada and Kednos PL/I back
-ends to specify a user-defined data type name; see @ref{User-Specified TYPENAME
+@item TYPENAME @tab Optional keyword not currently used, but may be introduced
+when Ada or PL/I back-ends are developed; see @ref{User-Specified TYPENAME
 Kewyword}
-
-@item RADIX @tab Optional keyword used to indicate how a constant value should
-be written out tot he output file.  It can have one of three possible values.
-These values are:
-@item @tab DEC --- for Decimal
-@item @tab OCT --- for Octal
-@item @tab DEC --- for Hexadecimal
 @end multitable
 @end float
 
@@ -1732,10 +1461,20 @@ when the TAG option is not specified on an aggregate member.
 @item LONGWORD [UNSIGNED] @tab L
 @item QUADWORD @tab Q
 @item OCTAWORD @tab O
-@item T_FLOATING @tab F
-@item S_FLOATING @tab D
-@item T_FLOATING COMPLEX @tab FC
-@item S_FLOATING COMPLEX @tab DC
+@item F_FLOATING @tab F
+@item D_FLOATING @tab D
+@item G_FLOATING @tab G
+@item H_FLOATING @tab H
+@item T_FLOATING @tab T
+@item S_FLOATING @tab S
+@item X_FLOATING @tab X
+@item F_FLOATING COMPLEX @tab FC
+@item D_FLOATING COMPLEX @tab DC
+@item G_FLOATING COMPLEX @tab GC
+@item G_FLOATING COMPLEX @tab HC
+@item T_FLOATING COMPLEX @tab TC
+@item S_FLOATING COMPLEX @tab SC
+@item X_FLOATING COMPLEX @tab XC
 @item DECIMAL @tab P
 @item BITFIELD @tab V for BITFIELD offset
 @item @tab S for BITFIELD size@footnote{Identifiers with size and mask (if
@@ -1815,7 +1554,34 @@ CONSTANT (abc,def,ghi) EQUALS 0 INCREMENT 1
     TAG "";
 @end example
 
-This declaration results in the names new_abc, new_def, and new_ghi.
+This declaration results in the names @code{new_abc}, @code{new_def}, and
+@code{new_ghi}.
+
+@subsubsection RADIX Keyword
+The RADIX keyword can be used to indicate how a constant value should
+be written out to the output file.  It can have one of three possible values.
+
+@itemize bullet
+@item @strong{@code{DEC}} --- for Decimal
+@item @strong{@code{OCT}} --- for Octal 
+@item @strong{@code{DEC}} --- for Hexadecimal
+@end itemize
+
+For example:
+@example
+CONSTANT MyConst EQUALS 42 RADIX HEX;
+@end example
+
+will generate the following C code header file:
+
+@example
+#define MyConst 0x2a
+@end example
+
+@quotation Note
+When a @code{BITMASK} has the optional @code{MASK} keyword, constant values are
+generated using the @code{RADIX HEX} keywords.
+@end quotation
 
 @subsubsection Alignment Keywords
 Both the ALIGN and BASEALIGN keywords can ensure that items are properly
@@ -2112,7 +1878,7 @@ ENTRY sys$abc PARAMETER (ANY);
 The BITFIELD keyword specifies a bit field variable that must be a member of an
 AGGREGATE declaration.  The BITFIELD data type has the following syntax:
 
-@code{BITFIELD [LENGTH n] [MASK] [SIGNED]}@*
+@code{BITFIELD [LENGTH n] [MASK] [SIGNED] [RADIX x];}@*
 
 [LENGTH n]
 Is any valid OpenSDL expression giving the number of bits in the bitfield.  If
@@ -2124,6 +1890,10 @@ constant bit mask representing the bits defined in this field.
 
 [SIGNED]
 Is a keyword specifying that OpenSDL treat the output as a signed field.
+
+[RADIX x]
+Is a keyword where 'x' is one of @code{DEC}, @code{OCT}, or @code{HEX}.
+
 Bitfields must be AGGREGATE declaration members.  They cannot be scalar items,
 objects of ADDRESS declarations, parameters, or return data types of entries.
 The following is an example of the BITFIELD keyword used in an AGGREGATE
@@ -2201,8 +1971,13 @@ type keywords to specify any of the four COMPLEX data types.  The COMPLEX data
 types have the following syntax:
 
 @example
+F_FLOATING COMPLEX
+D_FLOATING COMPLEX
+G_FLOATING COMPLEX
+H_FLOATING COMPLEX
 T_FLOATING COMPLEX
 S_FLOATING COMPLEX
+X_FLOATING COMPLEX
 @end example
 
 The following is an example of the T_FLOATING COMPLEX data type used in an ITEM
@@ -2232,19 +2007,31 @@ two of which are fractional:
 
 @subsubsection Floating-Point Data Types
 
-The floating-point keywords, T_FLOATING, and S_FLOATING, declare storage units
-for single-, and double-floating-point data, respectively.
-The floating-point data types have the following syntax:
+The floating-point keywords, F_FLOATING, D_FLOATING, G_FLOATING, H_FLOATING,
+T_FLOATING, S_FLOATING, and X_FLOATING, declare storage units for single-,
+double-, and long-double-floating-point data, respectively.  The floating-point
+data types have the following syntax:
 
 @example
+F_FLOATING --- same as T_FLOATING
+D_FLOATING --- same as S_FLOATING
+G_FLOATING --- same as S_FLOATING
+H_FLOATING --- same as X_FLOATING
 T_FLOATING
 S_FLOATING
+X_FLOATING
 @end example
 
 The following is an example of the T_FLOATING data type used in an ITEM
 declaration:
 
 @code{ITEM foo T_FLOATING;}
+
+@quotation Note
+F_FLOATING, D_FLOATING, G_FLOATING, and H_FLOATING are defined for backward
+compatibility.  There is no attempt to support the handling of floating-point
+values that are encoded using the VAX formats.
+@end quotation
 
 @ref{COMPLEX Data Types} describes COMPLEX data types.
 
@@ -2368,20 +2155,27 @@ which appears in the context of an AGGREGATE declaration:
 @section Local Comments
 
 A comment that is local to the OpenSDL source file is not written to the output
-file.  Local comments begin with the left brace (@{) and extend to the end of
-the line.  They can appear anywhere within the source file (not necessarily
-within a module) where white space (a space, tab, or carriage return) is
-allowed.  The following is an example of a local comment:
+file.  Local comments begin with the left brace (@code{@{}) and extend to the
+end of the line.  They can appear anywhere within the source file (not
+necessarily within a module) where white space (a space, tab, or carriage
+return) is allowed.  The following is an example of a local comment:
 
-@{Assigning the value 255 to #max_args.
+@example
+@{ Assigning the value 255 to #max_args.
+@end example
 
 @section Output Comments
 
-Comments appearing on lines by themselves are typically written to the output
-file as separate comment lines.  Comments appearing at the end of a line are
-output at the end of the corresponding target source line, if possible.
+There are two types of output comments, Line Comments and Block Comments.
 
-Output comments begin with a slash and an asterisk (/*) and terminate at the
+@subsection Line Comments
+
+Line comments appearing on lines by themselves are typically written to the
+output file as separate comment lines.  Line comments appearing at the end of a
+line are output at the end of the corresponding target source line, if
+possible.
+
+Line comments begin with a slash and an asterisk (/*) and terminate at the
 end of the current line.  They can appear in the following contexts:
 @itemize @bullet
 @item Outside MODULE declarations
@@ -2400,9 +2194,11 @@ CONSTANT declarations
 
 The following is an example of an output comment:
 
-@code{/* Get Job/Process Information System Service.}
+@example
+/* Get Job/Process Information System Service.
+@end example
 
-@section Block Comments
+@subsection Block Comments
 
 Block comments are those that appear as a large multi-line comment and are
 written to the output file as multiple comment lines.
@@ -2413,11 +2209,15 @@ double slash (//) will be prefixed with a middle comment (if the target
 language supports it).  These comments can appear anywhere Output Comments can
 appear.
 
-The following is an example of a block comment:
+The following are two examples of a block comments:
 
 @example
 /+
 // Get Job/Process Information System Service.
+/-
+
+/+
+ Copyright 2018.
 /-
 @end example
 
@@ -2440,20 +2240,6 @@ file and reads the statements in the included file.  When it reaches the end of
 the included file, OpenSDL resumes translation with the source statement
 immediately following the INCLUDE statement.
 
-@section READ Statement
-
-The READ statement allows a .SDI intermediate file to be included in an SDL
-source, without causing it to be emitted to the output stream.  Apart from these
-two differences, its operation is similar to INCLUDE.
-
-The READ statement allows previously-compiled definitions, such as constants
-and user-defined types, to be used by the current compilation, without
-affecting the language output.
-
-The READ statement has the following syntax:
-
-@code{READ "file-spec" ;}
-
 @section Conditional SDL Compilation
 
 @subsection Conditional SDL Compilation using the IFLANGUAGE statement
@@ -2465,7 +2251,7 @@ not.
 The syntax for conditional compilation has the format:
 
 @example
-IFLANGUAGE language-name [ language-name ...  ]
+IFLANGUAGE language-name [ language-name ...  ] ;
     .
     .
     .
@@ -2505,7 +2291,7 @@ output is being generated for Pascal, Ada, or FORTRAN.  For other languages, SDL
 does not generate a translation of the ITEM statement.
 
 @example
-IFLANGUAGE PASCAL ADA FORTRAN ;
+IFLANGUAGE PASCAL ADA FORTRAN;
     ITEM foo LONGWORD;
 END_IFLANGUAGE PASCAL ADA FORTRAN;
 @end example
@@ -2521,11 +2307,11 @@ IFSYMBOL symbol-name ;
     .
     .
     .
-@{ ELSE_IFSYMBOL symbol-name ;
+[ ELSE_IFSYMBOL symbol-name ;
     .
     .
     .
-@}
+]
 [ELSE ;
     .
     .
@@ -2559,7 +2345,7 @@ ELSE;
 END_IFSYMBOL;
 @end example
 
-@command{$ SDL/LANG=<LANGUAGE>/SYMBOLS=(S1=0,S2=0,S3=0) <FILE-SPEC>}
+@command{$ opensdl -lang:cc -symbol=s1:0 -symbol:s2=0 -symbol=s3:0 <file-spec>}
 
 produces
 
@@ -2567,7 +2353,7 @@ produces
 <sdl code 4>
 @end example
 
-@command{$ SDL/LANG=<LANGUAGE>/SYMBOLS=(S1=1,S2=0,S3=0) <FILE-SPEC>}
+@command{$ opensdl -lang:cc -symbol=s1:1 -symbol:s2=0 -symbol=s3:0 <file-spec>}
 
 produces
 
@@ -2576,7 +2362,7 @@ produces
 <sdl code 4>
 @end example
 
-@command{$ SDL/LANG=<LANGUAGE>/SYMBOLS=(S1=1,S2=1,S3=x) <FILE-SPEC>}
+@command{$ opensdl -lang:cc -symbol=s1:1 -symbol:s2=1 -symbol=s3:0 <file-spec>}
 
 produces
 
@@ -2585,7 +2371,7 @@ produces
 <sdl code 2>
 @end example
 
-@command{$ SDL/LANG=<LANGUAGE>/SYMBOLS=(S1=1,S2=0,S3=1) <FILE-SPEC>}
+@command{$ opensdl -lang:cc -symbol=s1:1 -symbol:s2=0 -symbol=s3:1 <file-spec>}
 
 produces
 
@@ -2598,8 +2384,8 @@ produces
 
 Text pass-through allows literal text to be passed through to the output
 language file without translation.  It is normally used in conjunction with
-conditional compilation for a specific target language.  The purpose is to allow
-language-specific constructs, which cannot be represented in SDL, to be
+conditional compilation for a specific target language.  The purpose is to
+allow language-specific constructs, which cannot be represented in SDL, to be
 emitted.
 
 The syntax for text pass-through is:
@@ -2632,6 +2418,15 @@ LITERAL
 END_LITERAL
 END_IFLANGUAGE CC
 @end example
+
+Literal text within an @code{AGGREGATE} that contains a member definition, will
+not be taking into account when calculating offsets.  It is recommended to use
+conditional compilation @ref{Conditional SDL Compilation} around text
+pass-through and include a local variable @ref{Local Symbol Names} to account
+for the added offset and then add this local variable when using the offset
+after the text pass-through.  Also, do not forget to define the local variable
+set to zero when the conditional code is not included, so that there an error
+message will not be generated as the result of the missing variable.
 
 @section DECLARE Statement
 
@@ -2684,9 +2479,9 @@ that the correct default tag letter, if required, can be output.)
 explicitly or implicitly), but any subsequent declaration must match the first.
 
 @item The default tag letter for the unknown variable being sized is derived
-from the type specified in the SIZEOF clause.  If you use an expression in place
-of a data type to reserve a fixed number of bytes, the default tag letter is T.
-You may override the default tag by using an explicit TAG option.
+from the type specified in the SIZEOF clause.  If you use an expression in
+place of a data type to reserve a fixed number of bytes, the default tag letter
+is T.  You may override the default tag by using an explicit TAG option.
 
 @item SIZEOF clauses cannot be nested.
 
@@ -2771,8 +2566,8 @@ tree tree_storage[1000];
 forest region[4];
 @end example
 
-Note that the SIZEOF information is discarded by C, but is used by other
-languages, such as MACRO.
+Note that the SIZEOF information is discarded by C, but is used in offset
+calculations.
 
 @node OpenSDL Declarations
 @chapter OpenSDL Declarations

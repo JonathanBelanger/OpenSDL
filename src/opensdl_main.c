@@ -52,7 +52,7 @@
  *				(module is the default)
  *		-[no]parse	This has not yet been implemented. (parse is
  *				the default)
- *		-[no]supress:prefix|tag
+ *		-[no]suppress[:prefix|tag]
  *				Suppress outputting symbols with a prefix, tag,
  *				or both. (nosupress is the default).
  *		-symbol:<symbol=value>	Used in conditional compilation where
@@ -206,7 +206,7 @@ static void _sdl_usage(void)
     printf("\t\t\t    (module is the default)\n");
     printf("  -[no]parse\t\t    This has not yet been implemented. (parse is\n");
     printf("\t\t\t    the default)\n");
-    printf("  -[no]supress:prefix|tag   Suppress outputting symbols with a prefix, tag,\n");
+    printf("  -[no]suppress[:prefix[,tag]] Suppress outputting symbols with a prefix, tag,\n");
     printf("\t\t\t    or both. (nosupress is the default).\n");
     printf("  -symbol:<symbol=value>    Used in conditional compilation where\n");
     printf("\t\t\t    IFSYMBOL is specified in the input file.  A\n");
@@ -583,7 +583,7 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    break;
 
 		/*
-		 * suppress:[prefix][,tag], suppress usage or prefix and/or tag
+		 * suppress[:prefix][,tag], suppress usage or prefix and/or tag
 		 * symbol:<symbol>=<value>, symbol used in conditionals
 		 */
 		case 's':
@@ -615,7 +615,10 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    }
 			}
 			else
-			    retVal = SDL_INVQUAL;
+			{
+			    context->suppressPrefix = true;
+			    context->suppressTag= true;
+			}
 		    }
 		    else if (strncmp(argv[ii], "-symbol", 6) == 0)
 		    {

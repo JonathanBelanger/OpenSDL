@@ -498,8 +498,8 @@ source code.  @ref{Getting Started with OpenSDL} provides a tutorial to get you
 started using a text editor to write OpenSDL source code.  @ref{Compiling
 Source Code} describes how to compile your source code.
 
-@ref{Processing an OpenSDL Source File} describes the SDL command and the uses
-of the SDL command qualifiers.
+@ref{Processing an OpenSDL Source File} describes the OpenSDL command and the
+uses of the OpenSDL command qualifiers.
 
 @section Creating an OpenSDL Source File with Notepad++
 
@@ -852,7 +852,7 @@ displayed in the order inwhich they were detected.
 @end quotation
 
 @ref{Processing an OpenSDL Source File} describes how to process an OpenSDL
-source file using the SDL command and all its qualifiers.
+source file using the OpenSDL command and all its qualifiers.
 
 @node Processing an OpenSDL Source File
 @section Processing an OpenSDL Source File
@@ -888,7 +888,7 @@ Command qualifiers may be specified following the @command{open} command.
 @item @command{-lang} @tab No languages
 @item @command{-[no]list} @tab @command{-nolist}
 @item @command{-[no]member} @tab @command{-nomember}
-@item @command{-[no]supress} @tab @command{/nosupress}
+@item @command{-[no]suppress} @tab @command{-nosuppress}
 @item @command{-symbol} @tab No symbols
 @item @command{-t} @tab No trace memory allocations/deallocations
 @item @command{-v} @tab No verbose output
@@ -917,7 +917,7 @@ file space.  The default is @command{-comments}.
 Controls whether a standard copyright header is produced in the output file.
 The @command{-copy} qualifier causes the OpenSDL translator to precede the
 output with a comment containing the copyright claim as specified in the
-@file{copyright.sdl} file.  The default is @command{-nocopy}.
+@file{/usr/lib/opensdl/copyright.sdl} file.  The default is @command{-nocopy}.
 
 @command{-[no]header}@*
 Controls whether a header containing the date and the source file name is
@@ -970,7 +970,7 @@ output language.  The default is @command{-module}.
 @command{-suppress:@{suppress-option@}}@*
 @command{          @{(suppress-option,...)@}}@*
 The @command{-supress} qualifier has the following format:
-@command{opensdl -suppress=(prefix,tag)}
+@command{opensdl -suppress=prefix,tag}
 
 Note the following:
 
@@ -1071,7 +1071,7 @@ underscore (_).  Specifying a name is subject to the following rules:
 @item Source program identifiers must begin with an alphabetic character
 (A-Z, a-z), a dollar sign ($), or an underscore (_).
 @item Source program identifiers that are reserved OpenSDL keywords or that
-contain invalid  SDL characters must be enclosed in quotation marks (" ").
+contain invalid  OpenSDL characters must be enclosed in quotation marks (" ").
 (For more information on reserved OpenSDL keywords, @ref{Keywords}).
 @item OpenSDL passes all source program identifiers to the output file in the
 same case in which they are defined.
@@ -1322,7 +1322,7 @@ the parameter may or may not appear in the sequence of parameters using the
 entry point name
 
 @item TYPENAME @tab Optional parameter description keyword used only by the Ada
-and Kednos PL/I back ends to specify a user-defined data type name; see
+and PL/I back ends to specify a user-defined data type name; see
 @ref{User-Specified TYPENAME Keyword}
 @end multitable
 
@@ -1359,16 +1359,16 @@ modifier keyword
 @subsubsection User-Specified TYPENAME keyword
 The TYPENAME keyword is used to specify a data type name that is not an OpenSDL
 data type.  Depending on which back end is specified, this name may or may not
-override the OpenSDL data type.  The Ada and Kednos PL/I back ends use these
-data type names as parameter data types, as return value data types, and as
-CONSTANT declaration data types.
+override the OpenSDL data type.  The Ada and PL/I back ends use these data type
+names as parameter data types, as return value data types, and as CONSTANT
+declaration data types.
 
 The TYPENAME keyword has the following syntax:
 TYPENAME name
 The Ada language translation (as a result of processing the OpenSDL source file
-EXAMPLE.SDL in SDL$EXAMPLES) shows an example of the TYPENAME keyword.  The
-following is an example of the TYPENAME keyword on each of the parameters in
-an ENTRY declaration:
+@file{/usr/lib/opensdl/example/example.sdl}) shows an example of the TYPENAME
+keyword.  The following is an example of the TYPENAME keyword on each of the
+parameters in an ENTRY declaration:
 @example
 ENTRY SYS$FAO
     ALIAS $FAO
@@ -1382,10 +1382,10 @@ ENTRY SYS$FAO
 @subsubsection PREFIX, MARKER, and TAG Keywords
 User-defined prefixes, markers, and tags are optional character strings that
 help to uniquely identify the names associated with a particular facility or
-system.  When the /SUPPRESS qualifier is specified on the command line, the
-inclusion of prefixes and/or tags on output symbol names is suppressed.  See
-@ref{Processing an OpenSDL Source File} for a description of the /SUPPRESS
-qualifier.
+system.  When the @command{-suppress} qualifier is specified on the command
+line, the inclusion of prefixes and/or tags on output symbol names is
+suppressed.  See @ref{Processing an OpenSDL Source File} for a description of
+the @command{-suppress} qualifier.
 
 PREFIX Keyword
 The PREFIX option may be specified on an AGGREGATE, subaggregate, CONSTANT, or
@@ -1523,8 +1523,8 @@ In the previous example, the member name "typename" is enclosed in quotation
 marks because it is an OpenSDL keyword.
 
 The previous declaration produces the
-following names, with the prefix opr$ and default tags, in the Kednos PL/I
-output file:
+following names, with the prefix opr$ and default tags, in the PL/I output
+file:
 
 @example
 %replace opr$k_fixed_bin_ by 0;
@@ -1540,9 +1540,9 @@ dcl 1 operator based,
 @end example
 
 The name opr$v_fill_0 in the previous list is the result of a BITFIELD
-declaration that SDL supplied because the subaggregate did not end on a byte
-boundary.  The name (opr$v_fill_0) ensures that the next aggregate begins on a
-byte boundary.  @ref{Forcing Data Alignment} describes data alignment in
+declaration that OpenSDL supplied because the subaggregate did not end on a
+byte boundary.  The name (opr$v_fill_0) ensures that the next aggregate begins
+on a byte boundary.  @ref{Forcing Data Alignment} describes data alignment in
 detail.  OpenSDL uses default codes followed by an underscore (_) for the tag
 portion of a prefix when the TAG option is not specified.  You can override the
 default OpenVMS codes by specifying a tag, which may be null (" ").  For
@@ -1671,8 +1671,8 @@ storage for scalar items and aggregates.  In general, declarations produce a
 template describing data for which the compiler allocates storage dynamically
 at run time, rather than at compile time.  This type of storage is the default
 and is specified using the BASED option in some languages, although the default
-storage class option is language-dependent.  The Kednos PL/I back end generates
-the BASED storage class option, which has the following syntax:
+storage class option is language-dependent.  The PL/I back end generates the
+BASED storage class option, which has the following syntax:
 
 @code{BASED (pointer-name)}
 
@@ -1698,16 +1698,10 @@ values.
 value is defined elsewhere.  You declare global data by using the GLOBAL option
 on an AGGREGATE or ITEM declaration.
 
-For some languages, the /GLOBALDEF qualifier on the SDL command affects the
-operation of the GLOBAL option.  When this qualifier is used, GLOBAL generates a
-reference to global data whose value is defined in this module.  You can see the
-effect of /GLOBALDEF for each output language by processing the OpenSDL source
-file EXAMPLE.SDL in SDL$EXAMPLES.
-
 @item @strong{TYPEDEF} behaves like a storage class.  In C, examples of storage
 classes are static, globaldef/ref, extern, etc.  Syntactically, you can replace
 a ‘static’ in any declaration with ‘typedef’ and have it compiled.  Storage
-classes (including TYPEDEF) are mutually exclusive in an SDL declaration.
+classes (including TYPEDEF) are mutually exclusive in an OpenSDL declaration.
 
 Example of C type definition:
 @example
@@ -1733,11 +1727,11 @@ If COMMON and GLOBAL appear together in a declaration, a DUPCONATT (duplicate
 or conflicting attributes) error is given.  The COMMON, GLOBAL and TYPEDEF
 storage classes are mutually exclusive.
 
-@subsubsection SDL Storage Classes and Typedef Syntax
-Explicit SDL Storage classes are COMMON and GLOBAL.  To maintain orthogonal
+@subsubsection OpenSDL Storage Classes and Typedef Syntax
+Explicit OpenSDL Storage classes are COMMON and GLOBAL.  To maintain orthogonal
 syntax, TYPEDEF is permitted wherever COMMON and GLOBAL are permitted.
 
-The Storage class definition in SDL is included as an option on an ITEM or
+The Storage class definition in OpenSDL is included as an option on an ITEM or
 AGGREGATE declaration.  This means that an AGGREGATE TYPEDEF for the preceding
 example would be:
 
@@ -1750,7 +1744,7 @@ END ;
 
 @subsubsection Data Types
 In most cases it is possible to refer to a user-defined Data Type where a
-standard built-in SDL Data Type (BYTE, LONGWORD etc.) can be referenced.
+standard built-in OpenSDL Data Type (BYTE, LONGWORD etc.) can be referenced.
 Reference to the type MyStruct defined in the preceding example is made as
 follows:
 
@@ -1810,7 +1804,8 @@ an AGGREGATE or ITEM declaration.  This restriction ensures that there is no
 interlanguage conflict in an array declaration.
 
 You can see how OpenSDL translates the DIMENSION option for each output
-language by processing the OpenSDL source file EXAMPLE.SDL in SDL$EXAMPLES.
+language by processing the OpenSDL source file
+@file{/usr/lib/opensdl/examples/example.sdl}.
 
 @subsection Data Type Keywords
 
@@ -2129,17 +2124,17 @@ y is negative, the value of x is shifted y places to the right
 declarations:
 
 @itemize @bullet
-@item The period (.) represents the current byte offset from the origin in an 
-AGGREGATE declaration.  If the ORIGIN option is specified, the value of the
-period is equal to the byte offset from the member specified using the ORIGIN
-option.
+@item The period (@code{.}) represents the current byte offset from the origin
+in an  AGGREGATE declaration.  If the ORIGIN option is specified, the value of
+the period is equal to the byte offset from the member specified using the
+ORIGIN option.
 
-@item The colon (:) represents the current byte offset relative to the first
-member in an AGGREGATE declaration.  The value is not affected by the presence
-of an ORIGIN option.
+@item The colon (@code{:}) represents the current byte offset relative to the
+first member in an AGGREGATE declaration.  The value is not affected by the
+presence of an ORIGIN option.
 
-@item The circumflex (^) represents the current bit offset relative to the most
-recently declared aggregate or byte-aligned element.
+@item The circumflex (@code{^}) represents the current bit offset relative to
+the most recently declared aggregate or byte-aligned element.
 @ref{Using Offset Symbols} describes the use of offset symbols in AGGREGATE
 declarations in more detail.
 @end itemize
@@ -2240,13 +2235,13 @@ file and reads the statements in the included file.  When it reaches the end of
 the included file, OpenSDL resumes translation with the source statement
 immediately following the INCLUDE statement.
 
-@section Conditional SDL Compilation
+@section Conditional OpenSDL Compilation
 
-@subsection Conditional SDL Compilation using the IFLANGUAGE statement
+@subsection Conditional OpenSDL Compilation using the IFLANGUAGE statement
 
-This feature allows a section of SDL source code to be conditionally compiled,
-depending on whether output is being generated for a particular language or
-not.
+This feature allows a section of OpenSDL source code to be conditionally
+compiled, depending on whether output is being generated for a particular
+language or not.
 
 The syntax for conditional compilation has the format:
 
@@ -2277,8 +2272,8 @@ need not necessarily appear in the same order.
 @item Language names may not be abbreviated.
 
 @item The validity of language names is not checked.  This is in keeping with
-the philosophy of SDL that new back ends may be added without changes to the
-front end.
+the philosophy of OpenSDL that new back ends may be added without changes to
+the front end.
 
 @item A comment on the same line as the IF_LANGUAGE statement is only output
 for languages which satisfy the condition.  A comment on the same line as the
@@ -2286,9 +2281,9 @@ END_IFLANGUAGE statement is always output, as this is considered to be outside
 the body of the conditional.
 @end itemize
 
-In the following example, SDL generates a translation of the ITEM statement if
-output is being generated for Pascal, Ada, or FORTRAN.  For other languages, SDL
-does not generate a translation of the ITEM statement.
+In the following example, OpenSDL generates a translation of the ITEM statement
+if output is being generated for Pascal, Ada, or FORTRAN.  For other languages,
+OpenSDL does not generate a translation of the ITEM statement.
 
 @example
 IFLANGUAGE PASCAL ADA FORTRAN;
@@ -2296,9 +2291,9 @@ IFLANGUAGE PASCAL ADA FORTRAN;
 END_IFLANGUAGE PASCAL ADA FORTRAN;
 @end example
 
-@subsection Conditional SDL Compilation using the IFSYMBOL statement
+@subsection Conditional OpenSDL Compilation using the IFSYMBOL statement
 
-This feature allows a section of SDL source code to be conditionally compiled,
+This feature allows a section of OpenSDL source code to be conditionally compiled,
 depending on symbols specified with the command line qualifier /SYMBOLS.
 The syntax for conditional compilation has the format:
 
@@ -2385,8 +2380,8 @@ produces
 Text pass-through allows literal text to be passed through to the output
 language file without translation.  It is normally used in conjunction with
 conditional compilation for a specific target language.  The purpose is to
-allow language-specific constructs, which cannot be represented in SDL, to be
-emitted.
+allow language-specific constructs, which cannot be represented in OpenSDL, to
+be emitted.
 
 The syntax for text pass-through is:
 
@@ -2421,7 +2416,7 @@ END_IFLANGUAGE CC
 
 Literal text within an @code{AGGREGATE} that contains a member definition, will
 not be taking into account when calculating offsets.  It is recommended to use
-conditional compilation @ref{Conditional SDL Compilation} around text
+conditional compilation @ref{Conditional OpenSDL Compilation} around text
 pass-through and include a local variable @ref{Local Symbol Names} to account
 for the added offset and then add this local variable when using the offset
 after the text pass-through.  Also, do not forget to define the local variable
@@ -2431,13 +2426,13 @@ message will not be generated as the result of the missing variable.
 @section DECLARE Statement
 
 The DECLARE statement allows you to declare a data item of a type that you
-define, which may be unknown in the current SDL compilation.  When you use
+define, which may be unknown in the current OpenSDL compilation.  When you use
 DECLARE, the type is made known when the target language source is compiled.
 
 The DECLARE statement uses the SIZEOF clause to allow you to specify the size
 of the user-defined data type being declared.  The parameter you specify in the
-SIZEOF clause may be a built-in SDL data type, a user-defined type defined in
-the current SDL compilation, or an expression.
+SIZEOF clause may be a built-in OpenSDL data type, a user-defined type defined
+in the current OpenSDL compilation, or an expression.
 
 The DECLARE statement has the following syntax:
 
@@ -2456,9 +2451,9 @@ in several ways, as shown, to indicate the size of the user-defined type being
 declared.
 
 data-type@*
-Represents either a built-in SDL data type, a user-defined type that is known
-at SDL compile time, or a data type that has been sized by a previous SIZEOF
-clause.
+Represents either a built-in OpenSDL data type, a user-defined type that is
+known at OpenSDL compile time, or a data type that has been sized by a previous
+SIZEOF clause.
 
 user-type@*
 Represents a user-defined data type.
@@ -2472,8 +2467,8 @@ an expression, always enclose it in parentheses, as shown in this syntax.
 Notes:
 @enumerate
 @item DECLARE identifies the size of the data type when included in an
-AGGREGATE declaration.  (SDL needs to know its equivalent predefined type so
-that the correct default tag letter, if required, can be output.)
+AGGREGATE declaration.  (OpenSDL needs to know its equivalent predefined type
+so that the correct default tag letter, if required, can be output.)
 
 @item You may declare a user-defined data type more than once (either
 explicitly or implicitly), but any subsequent declaration must match the first.
@@ -2510,14 +2505,14 @@ However, the following statement generates an error message:
 
 A database contains information on a number of forests in a region, each of
 which contains a number of different types of trees.  The definition of the tree
-structure is held in a different SDL file from the other definitions.  When the
-second SDL file is compiled, the composition of the tree structure is unknown —
-the definitions will only come together when the output files are included in a
-compilation in the target language.  The following shows the two SDL files and
-the corresponding output in C.
+structure is held in a different OpenSDL file from the other definitions.  When
+the second OpenSDL file is compiled, the composition of the tree structure is
+unknown --- the definitions will only come together when the output files are
+included in a compilation in the target language.  The following shows the two
+OpenSDL files and the corresponding output in C.
 
 @*
-@strong{TREE1.SDL:}@*
+@strong{tree1.sdl:}@*
 @example
 AGGREGATE tree STRUCTURE TYPEDEF;
     flink ADDRESS (tree);
@@ -2527,7 +2522,7 @@ AGGREGATE tree STRUCTURE TYPEDEF;
 END;
 @end example
 
-@strong{TREE2.SDL:}@*
+@strong{tree2.sdl:}@*
 @example
 DECLARE tree SIZEOF (16);
 AGGREGATE forest STRUCTURE TYPEDEF;
@@ -2541,7 +2536,7 @@ ITEM tree_storage tree DIMENSION 1000;
 ITEM region forest DIMENSION 4; @{No SIZEOF, since ’forest’ defined here @}
 @end example
 
-@strong{TREE1.H:}@*
+@strong{tree1.h:}@*
 @example
 typedef struct _tree
 @{
@@ -2552,7 +2547,7 @@ typedef struct _tree
 @} tree;
 @end example
 
-@strong{TREE2.H:}@*
+@strong{tree2.h:}@*
 @example
 typedef struct _forest
 @{
@@ -2588,23 +2583,24 @@ Chapter 3.  The output generated by each OpenSDL declaration depends on which
 back end is used for the translation.
 
 Online examples of output files for each language are available by processing
-the OpenSDL source file EXAMPLE.SDL in SDL$EXAMPLES.  Appendix B provides
-translation summaries for each output language.
+the OpenSDL source file @file{/usr/lib/opensdl/examples/example.sdl.  Appendix
+B provides translation summaries for each output language.
 
 MODULE Declaration
 
-The following sections describe the function and format of a MODULE declaration.
+The following sections describe the function and format of a MODULE
+declaration.
 
 @section MODULE Description
 
 A MODULE declaration groups all related symbols and data structures.  All
 declarations (other than local symbol assignments and local and output
-comments) must occur within a module, which is delimited by the MODULE and
-END_MODULE keywords.  An OpenSDL source file may contain multiple MODULE
-declarations, but modules may not be nested.  You must specify a module name on
-the MODULE declaration; this name corresponds to the name of a macro or module
-in a given output language.  (@ref{Names} describes the syntax for names.) For
-example:
+comments) must occur within a module, which is delimited by the @code{MODULE}
+and @code{END_MODULE} keywords.  An OpenSDL source file may contain multiple
+MODULE declarations, but modules may not be nested.  You must specify a module
+name on the MODULE declaration; this name corresponds to the name of a macro or
+module in a given output language.  (@ref{Names} describes the syntax for
+names.) For example:
 
 @code{MODULE $modef;}
 
@@ -2684,9 +2680,13 @@ An ITEM declaration has the following syntax:
 ITEM item-name @{ data-type @}         [ COMMON ]
                @{ user-type sizeopt @} [ GLOBAL ]
                                        [ TYPEDEF ]
+
                                        [ BASEALIGN basealign-option ]
+
                                        [ DIMENSION [ lbound: ] hbound ]
+
                                        [ PREFIX prefix-string ]
+
                                        [ TAG tag-string ];
 @end example
 
@@ -2835,7 +2835,7 @@ declaration to become an implicit union declaration.  An implicit union
 declaration has these features:
 
 @itemize @bullet
-@item Gives SDL the ability to detect subfield overflow without the need to 
+@item Gives OpenSDL the ability to detect subfield overflow without the need to 
 define extraneous STRUCTURE and UNION declaration names.
 @item Makes user-defined fill fields unnecessary.  This feature is most useful
 for data structures containing substructures that are required to begin at
@@ -2899,8 +2899,8 @@ DCL 1 A BASED ,
      2 last_item fixed binary(15);
 @end example
 
-The OpenSDL source file EXAMPLE.SDL in SDL$EXAMPLES shows an example of an
-implicit union declaration.
+The OpenSDL source file @file{/usr/lib/opensdl/examples/example.sdl} shows an
+example of an implicit union declaration.
 
 @subsection Implicit Union Declarations with the Optional DIMENSION Keyword
 
@@ -2920,8 +2920,8 @@ of the type specified by the structure type.
 
 The fid structure is a three-word field that can be addressed as a single field
 or by each individual word so that it is easily defined in OpenSDL as
-represented above.  The following is the Kednos PL/I translation for the OpenSDL
-source code in the previous example:
+represented above.  The following is the Kednos PL/I translation for the
+OpenSDL source code in the previous example:
 
 @example
 DCL 1 fill_0 union BASED ,
@@ -2967,8 +2967,8 @@ END;
 This declaration defines the origin of the structure nodes to be at the member
 qflink, so you may address flink and blink as negative offsets from qflink.
 Specifying an origin does not change the values of the current bit and byte
-offset symbols (^ and :).  These are always calculated as being relative to the
-beginning of the aggregate.
+offset symbols (@code{^} and @code{:}).  These are always calculated as being
+relative to the beginning of the aggregate.
 
 @subsection Forcing Data Alignment
 
@@ -3061,7 +3061,7 @@ example are shown in the following table.
 
 @subsection Using Offset Symbols
 
-The period (.) represents the current byte offset from the origin in an
+The period (@code{.}) represents the current byte offset from the origin in an
 AGGREGATE declaration.  If the ORIGIN option is specified, the value of the
 period is equal to the byte offset from the member specified using the ORIGIN
 option.  The current byte offset is useful for capturing the size of an
@@ -3069,12 +3069,12 @@ aggregate or a portion of it.  For example, in the declaration of a
 variable-length data structure, you can capture the size of the fixed-length
 portion.
 
-The colon (:) represents the current byte offset relative to the first member
-in an AGGREGATE declaration.  The value is not affected by the presence of an
-ORIGIN option.
+The colon (@code{:}) represents the current byte offset relative to the first
+member in an AGGREGATE declaration.  The value is not affected by the presence
+of an ORIGIN option.
 
-The circumflex (^) represents the current bit offset relative to the most
-recently declared aggregate or byte-aligned element.
+The circumflex (@code{^}) represents the current bit offset relative to the
+most recently declared aggregate or byte-aligned element.
 
 The following example shows the use of the byte offset symbols.
 
@@ -3119,14 +3119,21 @@ AGGREGATE aggregate-name @{ STRUCTURE @} [ data-type ]
                                          [ GLOBAL ]
                                          [ TYPEDEF ]
                                          [ BASED pointer-name ]
+
                                          [ ALIGN ]
                                          [ NOALIGN ]
                                          [ BASEALIGN basealign-option ]
+
                                          [ DIMENSION [ lbound: ] hbound ]
+
                                          [ MARKER marker-string ]
+
                                          [ PREFIX prefix-string ]
+
                                          [ TAG tag-string ]
+
                                          [ ORIGIN member-name ]
+
                                          [ FILL ];
     aggregate-body
         .
@@ -3194,7 +3201,7 @@ marks (" ") and may be null.
 
 [PREFIX prefix-string]@*
 Specifies the prefix used in forming the names of aggregate members.  It may be
-any valid  SDL name with 0 to 32 characters, may or may not be enclosed in
+any valid OpenSDL name with 0 to 32 characters, may or may not be enclosed in
 quotation marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG
 Keywords}).
 
@@ -3215,9 +3222,13 @@ have the following syntax:
 member-name @{ data-type @}         [ ALIGN ]
             @{ aggregate-name @}    [ NOALIGN ]
             @{ user-type sizeopt @} [ BASEALIGN basealign-option ]
+
                                     [ DIMENSION [ lbound: ] hbound ]
+
                                     [ PREFIX prefix-string ]
+
                                     [ TAG tag-string ]
+
                                     [ FILL ];
 @end example
 
@@ -3361,7 +3372,7 @@ CONSTANT (
 When OpenSDL assigns incremental values, it loops until values are assigned to
 all the names in a list.  If there is no INCREMENT clause, the increment value
 is 0; thus, the same initial value is assigned to all the names.  If names are
-omitted from a comma-delimited list, SDL reserves the numbers that would be
+omitted from a comma-delimited list, OpenSDL reserves the numbers that would be
 assigned to names in those positions.  This lets you reserve numeric values for
 later assignment of names.  For example:
 
@@ -3456,19 +3467,31 @@ A CONSTANT declaration has the following syntax:
 CONSTANT constant-name constant-class
     constant-class = @{ EQUALS expression numeric-options @}
                      @{ EQUALS STRING string string-options @}
+
     numeric-options = [ PREFIX prefix-string ]
+
                       [ TAG tag-string ]
+
                       [ COUNTER #local-name ]
+
                       [ TYPENAME type-name ]
+
                       [ RADIX radix-name ];
+
     string-options =  [ PREFIX prefix-string ]
+
                       [ TAG tag-string ] ;
 
 CONSTANT (constant-name,...) EQUALS expression
+
                       [ INCREMENT expression ]
+
                       [ PREFIX prefix-string ]
+
                       [ TAG tag-string ]
+
                       [ COUNTER #local-name ]
+
                       [ TYPENAME type-name ];
 
 CONSTANT (constant-name,...) EQUALS expression,
@@ -3529,10 +3552,10 @@ the EQUALS expression.
 
 [INCREMENT expression]@*
 Specifies the value to be added to the EQUALS expression for each iteration of
-OpenSDL’s generation of named CONSTANT declarations.  It must be a valid OpenSDL
-integer expression.  OpenSDL assigns the value of the EQUALS expression to the
-first constant name; the value of the INCREMENT expression is added to the
-EQUALS expression and assigned to the next constant name.
+OpenSDL’s generation of named CONSTANT declarations.  It must be a valid
+OpenSDL integer expression.  OpenSDL assigns the value of the EQUALS expression
+to the first constant name; the value of the INCREMENT expression is added to
+the EQUALS expression and assigned to the next constant name.
 
 @unnumberedsec ENTRY Declaration
 
@@ -3568,10 +3591,15 @@ An ENTRY declaration has the following syntax:
 
 @example
 ENTRY entry-name [ ALIAS internal-name ]
+
                  [ PARAMETER (param-desc,...) ]
+
                  [ LINKAGE link-name ];
+
                  [ VARIABLE ]
+
                  [ RETURNS return-data-type [ NAMED param-name ] ]
+
                  [ TYPENAME type-name ];
 @end example
 
@@ -3695,10 +3723,9 @@ Error: An address item is pointing to an aggregate that is not based.
 User Action: Change the storage class of the aggregate to BASED.
 
 BADNODETYPE, internal node type is unknown for language language-name
-Warning: A language backend has encountered a node type in the parsed SDL input
-that reflects an SDL element which the language does not support.  For example,
-OpenVMS DCL does not support aggregates or entries, only constants.
-User Action: Depending on your needs, ignore the warning or change the SDL
+Warning: A language backend has encountered a node type in the parsed OpenSDL
+input that reflects an OpenSDL element which the language does not support.
+User Action: Depending on your needs, ignore the warning or change the OpenSDL
 input file.
 
 BASEALIGN, Invalid expression with BASEALIGN option.  Value must be in range 0
@@ -3708,7 +3735,7 @@ Error: The value for the /BASEALIGN qualifier is smaller than 0 or larger than
 User Action: Use a value in the range [0 ...  124].
 
 BUGCHECK, Internal consistency failure [Line n] - please submit a bug report
-Fatal: SDL has detected an internal error or inconsistency.
+Fatal: OpenSDL has detected an internal error or inconsistency.
 User Action: Please submit a bug report to Technical Languages and Environments
 (TL&E).
 
@@ -3737,7 +3764,7 @@ FIXUP, Temporary hardcoded list used to discriminate for MEMBER "member-name"
 Informational: From the comment in the SDLADA backend:
 This is informational, with the first line otherwise being identical to a
 warning, to aid diagnosing problems where someone makes a copy of a construct
-on our hardcoded list without changing SDL.
+on our hardcoded list without changing OpenSDL.
 This message is issued together with the DIMENSIONSTAR diagnostic.
 User Action: See DIMENSIONSTAR.
 
@@ -3766,7 +3793,7 @@ completely defined.
 User Action: Remove the reference and invoke OpenSDL again.
 
 INFILOPN, Unable to open input file file-spec
-Fatal: SDL cannot locate or open the SDL source file.
+Fatal: OpenSDL cannot locate or open the OpenSDL source file.
 User Action: Verify that you correctly specified the name of the source file.
 
 INFILSDI, File format error reading intermediate file file-spec.  Possible version
@@ -3776,8 +3803,8 @@ User Action: Check the spelling of the file name, existence and protection of
 the file.
 
 INTOVF, Integer overflow in expression [Line n]
-Error: Evaluation of an SDL expression resulted in a value that does not fit in
-a longword.
+Error: Evaluation of an OpenSDL expression resulted in a value that does not
+fit in a longword.
 User Action: Correct the expression.
 
 INVALIGN, Illegal value for /ALIGNMENT qualifier in command line
@@ -3801,8 +3828,8 @@ User Action: Use a constant expression.
 
 INVFLDSIZ, Item item-name has bit field or offset length greater than 32 [Line
 n]
-Error: SDL cannot generate bit fields larger than 32 bits or cannot generate
-the proper bit mask.
+Error: OpenSDL cannot generate bit fields larger than 32 bits or cannot
+generate the proper bit mask.
 User Action: Verify the BITFIELD declaration and correct it.  If the BITFIELD
 declaration occurs within an aggregate and you specify the MASK option, verify
 that the bit offset of the start of the declaration plus the bit field size
@@ -3820,12 +3847,12 @@ context.
 User Action: Correct or relocate the item name.
 
 INVOUT, Invalid attributes for output language language [Line n]
-Error: An SDL construct or data type is invalid for the specified target
+Error: An OpenSDL construct or data type is invalid for the specified target
 language.
 User Action: Determine whether you specified the data type or OpenSDL
 declaration correctly, or whether you may be requesting language output that
-you do not require.  Either correct the declaration or reissue the SDL command
-so that the indicated language output routine does not execute.
+you do not require.  Either correct the declaration or reissue the OpenSDL
+command so that the indicated language output routine does not execute.
 
 INVPARMTYP, Invalid parameter type for language language [Line n]
 Error: A parameter specification is illegal for the specified language.
@@ -3837,9 +3864,9 @@ Error: Required parameters must not follow optional parameters.
 User Action: Correct the error and invoke OpenSDL again.
 
 INVSHRIMG, Shareable image not found specified-language
-Error: SDL cannot find the image to support the specified language.
+Error: OpenSDL cannot find the image to support the specified language.
 User Action: Verify that the language image is located in the appropriate area. 
-SDL searches for the image in SYS$SHARE.  Language support images are of the
+OpenSDL searches for the image in SYS$SHARE.  Language support images are of the
 form SDL$language.EXE, where language is an identifying character string for
 the language.  For example, the FORTRAN back end is SDL$FORTRAN.EXE, and the
 MACRO back end is SDL$MACRO.EXE.
@@ -3877,7 +3904,7 @@ User Action: Add the missing language to the END_IFLANGUAGE statement or remove
 all languages from the END_IFLANGUAGE statement.
 
 LISFILOPN, Unable to open listing file file-spec
-Error: SDL cannot open the indicated listing file.
+Error: OpenSDL cannot open the indicated listing file.
 User Action: Verify that you have write access to the directory to which the
 OpenSDL listing file is directed.
 
@@ -3923,8 +3950,8 @@ User Action: Remove the MASK option, or make the integer field big enough so
 that it can hold all values for the MASK.
 
 NOOUTPUT, No language output produced
-Warning: There were too many errors, or fatal errors, which prevented SDL from
-generating any output files.
+Warning: There were too many errors, or fatal errors, which prevented OpenSDL
+from generating any output files.
 User Action: Correct the errors indicated by the accompanying messages.
 
 NULLSTRUC, Null structure structure-name has no members [Line n]
@@ -3939,7 +3966,7 @@ Warning: The offset or origin cannot be calculated.
 User Action: Correct the error and invoke OpenSDL again.
 
 OUTFILOPN, Unable to open output file file-spec
-Error: SDL cannot locate or open an SDL output file.
+Error: OpenSDL cannot locate or open an OpenSDL output file.
 User Action: Verify that you correctly specified the name of the source file.
 
 POSSCIRC, Possible circular definition for type ???-nod$t_naked-??? [Line n]
@@ -3959,7 +3986,7 @@ Error: The SIZEOF clause is not allowed in this context.
 User Action: Remove the SIZEOF clause.
 
 SIZEREDEF, Size or type of item item-name redefined [Line n]
-Error: SDL has detected a redefinition of the size or data type of the
+Error: OpenSDL has detected a redefinition of the size or data type of the
 specified item.
 User Action: Remove the clause causing the redefinition.
 
@@ -3980,14 +4007,14 @@ not been defined using the /SYMBOLS qualifier.
 User Action: Define the symbol using the /SYMBOLS qualifier.
 
 SYMTABOVR, Symbol table overflow
-Fatal: SDL exceeded its symbol table space.
+Fatal: OpenSDL exceeded its symbol table space.
 User Action: Reduce the size or complexity of the OpenSDL source file; if
 possible, separate the file into several different files or modules.
 
 SYNTAXERR, Syntax error [Line n]
-Error: The SDL translator detected a syntax error.  This message is accompanied
-by a message indicating the type of error and tells you what type of token or
-keyword SDL expected but did not find.
+Error: The OpenSDL translator detected a syntax error.  This message is
+accompanied by a message indicating the type of error and tells you what type
+of token or keyword OpenSDL expected but did not find.
 User Action: Determine the syntax error from the accompanying message and
 correct it.
 
@@ -4044,7 +4071,7 @@ Warning: A warning message has been issued.
 User Action: Output can be compiled, but the results may be unexpected.
 
 ZERODIV, Zero divide in expression [Line n]
-Error: An expression specified in an SDL declaration resulted in a
+Error: An expression specified in an OpenSDL declaration resulted in a
 divide-by-zero exception condition.
 User Action: Verify the expression and correct it.
 
@@ -4125,8 +4152,8 @@ expression of the form type’NULL_PARAMETER.  If mode is OUT (or
 IN OUT), an additional parameter specification is generated to
 allow for use as an output parameter.  An appropriate entry for
 FIRST_OPTIONAL_PARAMETER is generated.
-@item TYPENAME type-name @tab Specifies a non-SDL keyword data type to be used
-as the parameter type.
+@item TYPENAME type-name @tab Specifies a non-OpenSDL keyword data type to be
+used as the parameter type.
 @item RETURNS return-data-type @tab The first parameter in the parameter list
 is the return parameter.  A comment of the form ’-- return value’ is placed
 beside the return parameter.
@@ -4136,8 +4163,8 @@ IMPORT_VALUED_PROCEDURE argument list that receives the return value.
 @item ALIAS internal-name @tab The internal-name is used instead of the entry
 name as the identifier associated with the entry point.
 @item LINKAGE n/a
-@item TYPENAME type-name Specifies a non-SDL keyword data type to be used as
-the entry type.
+@item TYPENAME type-name Specifies a non-OpenSDL keyword data type to be used
+as the entry type.
 @item STRUCTURE @tab An Ada record type is generated as well as a record
 representation clause and an initialization constant for the record.  If
 any substructures exist, the record types for those structures are
@@ -4492,7 +4519,7 @@ description).
 @item S_FLOATING COMPLEX @tab BASIC$S_FLOATING_COMPLEX
 @item DECIMAL PRECISION (p,q) @tab DECIMAL (p,q)
 @item BITFIELD @tab type name_bits ! COMMENT ADDED
-@item @tab BY SDL name_bits contains bits name1 through name2
+@item @tab BY OpenSDL name_bits contains bits name1 through name2
 @item LENGTH n @tab n is used in computing size (type) of name_bits field.
 @item MASK @tab DECLARE LONG CONSTANT prefix$m_name = x’mask-value’
 @item SIGNED @tab n/a
@@ -4519,7 +4546,7 @@ description).
 @item TYPEDEF @tab For an ITEM, a record definition is generated.  For an
 AGGREGATE, the behavior is as though TYPEDEF had not been specified.
 @item DIMENSION [lbound:]hbound @tab type name (lbound to hbound); if lbound
-was not specified in SDL, lbound is 1 in the BASIC output
+was not specified in OpenSDL, lbound is 1 in the BASIC output
 @item ORIGIN member-name @tab n/a
 @end multitable
 
@@ -5241,7 +5268,7 @@ The MACRO output routine always generates a size variable for bitfields,
 aggregates, arrays, and character strings, using the tag S_ preceding the
 output identifier.
 
-The /VMS_DEVELOPMENT qualifier on the SDL command produces special forms of
+The /VMS_DEVELOPMENT qualifier on the OpenSDL command produces special forms of
 macros for entry point declarations.
 
 @quotation Note
@@ -5593,10 +5620,10 @@ input to software manuals.
 
 For every AGGREGATE STRUCT files named aggregate-name_PIC.SDML and
 aggregate-name_TBL.SDML are generated.  Those files also include the constants
-defined in the SDL file before the AGGREGATE.
+defined in the OpenSDL file before the AGGREGATE.
 
 AGGREGATE UNIONs and ITEMs are written into files named PICFILE.DAT and
-TBLFILE.DAT.  If an SDL file contains more than one ITEM or UNION, multiple
+TBLFILE.DAT.  If an OpenSDL file contains more than one ITEM or UNION, multiple
 versions of PICFILE.DAT and TBLFILE.DATE will be written.
 
 ‘‘PIC’’ files contain drawings, where every member of an AGGREGATE is drawn

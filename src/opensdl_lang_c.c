@@ -75,12 +75,12 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 	{"int",		"unsigned int"}	/* INTEGER 64-bit */
     },
     {					/*  8 */
-	{"int32_t",	"uint64_t"},	/* INTEGER_HW 32-bit */
-	{"int32_t",	"uint64_t"}	/* INTEGER_HW 64-bit */
+	{"int32_t",	"uint32_t"},	/* INTEGER_HW 32-bit */
+	{"int64_t",	"uint64_t"}	/* INTEGER_HW 64-bit */
     },
     {					/*  9 */
-	{"int32_t",	"uint64_t"},	/* HARDWARE_INTEGER 32-bit */
-	{"int32_t",	"uint64_t"}	/* HARDWARE_INTEGER 64-bit */
+	{"int32_t",	"uint32_t"},	/* HARDWARE_INTEGER 32-bit */
+	{"int64_t",	"uint64_t"}	/* HARDWARE_INTEGER 64-bit */
     },
     {					/* 10 */
 	{"int64_t",	"uint64_t"},	/* QUADWORD 32-bit */
@@ -203,12 +203,12 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 	{"uint64_t",	"uint64_t"}	/* ADDRESS_QUAD 64-bit */
     },
     {					/* 40 */
-	{"uint32_t",	"uint64_t"},	/* ADDRESS_HW 32-bit */
-	{"uint32_t",	"uint64_t"}	/* ADDRESS_HW 64-bit */
+	{"uint32_t",	"uint32_t"},	/* ADDRESS_HW 32-bit */
+	{"uint64_t",	"uint64_t"}	/* ADDRESS_HW 64-bit */
     },
     {					/* 41 */
-	{"uint32_t",	"uint64_t"},	/* HARDWARE_ADDRESS 32-bit */
-	{"uint32_t",	"uint64_t"}	/* HARDWARE_ADDRESS 64-bit */
+	{"uint32_t",	"uint32_t"},	/* HARDWARE_ADDRESS 32-bit */
+	{"uint64_t",	"uint64_t"}	/* HARDWARE_ADDRESS 64-bit */
     },
     {					/* 42 */
 	{NULL,		NULL},		/* POINTER 32-bit */
@@ -223,8 +223,8 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 	{"uint64_t",	"uint64_t"}	/* POINTER_QUAD 64-bit */
     },
     {					/* 45 */
-	{"uint32_t",	"uint64_t"},	/* POINTER_HW 32-bit */
-	{"uint32_t",	"uint64_t"}	/* POINTER_HW 64-bit */
+	{"uint32_t",	"uint32_t"},	/* POINTER_HW 32-bit */
+	{"uint64_t",	"uint64_t"}	/* POINTER_HW 64-bit */
     },
     {					/* 46 */
 	{"void",	"void"},	/* ANY 32-bit */

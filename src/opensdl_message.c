@@ -43,89 +43,516 @@
 #define SDL_MSG_BASE	0
 static SDL_MSG_ARRAY sdlmsg[] =
 {
-    {"NORMAL", "Normal successful completion", 0, 0},
-    {"SYNTABOVR", "Symbol table overflow", 0, 0},
-    {"ABORT", "Fatal internal error. Unable to continue execution", 0, 0},
-    {"INFILOPN", "Unable to open input file %.*s" , 1, 0},
-    {"BUGCHECK", "Internal consistency failure [Line %d] - please submit a bug report", 0, 1},
-    {"REVCHECK", "Front-end / back-end version mismatch.  Check installation.", 0, 0},
-    {"ERREXIT", "Error exit", 0, 0},
-    {"INVSHRIMG", "Output language not known %.*s", 1, 0},
-    {"NULLSTRUCT", "Null structure %.*s has no members [Line %d]", 1, 1},
-    {"DUPCONATT", "Item %.*s has duplicate or conflicting attributes [Line %d]", 1, 1},
-    {"INVFLDSIZ", "Item %.*s has bitfield length or offset greater than, 3},2 [Line %d]", 1, 1},
-    {"UNDEFSYM", "Undefined local symbol %.*s used in expression [Line %d]", 1, 1},
-    {"UNDEFCON", "Undefined constant name %.*s used in expression [Line %d]", 1, 1},
-    {"UNDEFUSER", "Undefined user type name %.*s referenced [Line %d]", 1, 1},
-    {"INVDECL", "Invalid DECLARE for type %.*s [Line %d]", 1, 1},
-    {"UNDEFFIL", "Unable to open include file %.*s [Line %d]", 1, 1},
-    {"UNDEFORG", "Definition of ORIGIN name %.*s not found in aggregate [Line %d]", 1, 1},
-    {"INVOUT", "Invalid attributes for output language %.*s [Line %d]", 1, 1},
-    {"TOLOVF", "Token exceeds maximum size of %.*s [Line %d]", 1, 1},
-    {"OUTFILOPN", "Unable to open output file %.*s", 1, 0},
-    {"SYNTAXERR", "Syntax error [Line %d]", 0, 1},
-    {"INTOVF", "Integer overflow in expression [Line %d]", 0, 1},
-    {"ZERODIV", "Zero divide in expression [Line %d]", 0, 1},
-    {"BYTSIZ", "Aggregate %.*s must be integral byte size [Line %d]", 1, 1},
-    {"TOOMANYFIELDS", "Structure %.*s has too many fields [Line %d]", 1, 1},
-    {"INVUNKLEN", "Unknown length attribute valid only for parameter type [Line %d]", 0, 1},
-    {"SIZEREFDEF", "Size or type of item %.*s redefined [Line %d]", 1, 1},
-    {"SIZEQUAL", "Item %.*s, an aggregate, cannot be qualified by SIZEOF [Line %d]", 1, 1},
-    {"SIZENEST", "Illegal nesting of SIZEOF clauses (Item %.*s) [Line %d]", 1, 1},
-    {"STRINGCONST", "String constant %.*s used in arithmetic expression [Line %d]", 1, 1},
-    {"INVNAME", "Item name is invalid", 0, 0},
-    {"ILLFORWREF", "Illegal forward reference for output language %.*s [Line %d]", 1, 1},
-    {"INVSYMDEF", "Invalid symbol %.*s specified in -symbol qualifier", 1, 0},
-    {"SYMALRDEF", "Symbol %.*s was already defined in command line", 1, 0},
-    {"INVALIGN", "Illegal value for -align qualifier in command line", 0, 0},
-    {"INFILSDI", "File format error reading intermediate file %.*s.  Possible version mismatch", 1, 0},
-    {"INFBITFLD", "Invalid bitfield %.*s -- bitfields must be aggregate members [Line %d]", 1, 1},
-    {"ADROBJBAS", "Address object %.*s must have based storage class [Line %d]", 1, 1},
-    {"INCDEFSTRUCT", "Incompletely defined structure -- %.*s [Line %d]", 1, 1},
-    {"MULTDEFSYM", "Multiply defined symbol -- %.*s [Line %d]", 1, 1},
-    {"INVPARMTYP", "Invalid parameter type for language %.*s [Line %d]", 1, 1},
-    {"INVEXPR", "Invalid expression -- cannot be resolved to a constant as required, %.*s [Line %d]", 1, 1},
-    {"INVLISTOPT", "Invalid use of LIST attribute -- LIST may only appear on the last parameter.  %.*s [Line %d]", 1, 1},
-    {"BASEALIGN", "Invalid expression with BASEALIGN option.  Value must be in range 0 to 124. %.*s [Line %d]", 1, 1},
-    {"LISFILOPN", "Unable to open listing file %.*s", 1, 0},
-    {"NOOUTPUT", "No language output produced", 0, 0},
-    {"ZEROLEN", "Item %.*s has 0 or negative length [Line %d]", 1, 1},
-    {"MATCHEND", "End name does not match declaration name %.*s [Line %d]", 1, 1},
-    {"WARNEXIT", "Warning exit", 0, 0},
-    {"TYPNAM", "Aggregate type name not supported [Line %d]", 0, 1},
-    {"INVREQPARAM", "Required parameter encountered after optional parameter %.*s", 1, 0},
-    {"NAMTRUNC", "Generated name too long - truncated to 64 characters %.*s", 1, 0},
-    {"TYPNOTSUP", "Output language does not support data type %.*s [Line %d]", 1, 1},
-    {"IMMCTR32", "Cannot pass values larger than 32 bits by immediate mechanism [Line %d]", 0, 1},
-    {"IDENTGTR31", "SDL-generated identifier longer than 31 characters exceeds capacity of %.*s compiler [Line %d]", 1, 1},
-    {"LANGDUP", "Language name %.*s appears more than once in list [Line %d]", 1, 1},
-    {"LANGMATCH", "Language %.*s does not appear in list of matching IF statement [Line %d]", 1, 1},
-    {"LANGMISS", "Language %.*s in list of matching IF statement missing from END list [Line %d]", 1, 1},
-    {"UNALIGNED", "%.*s does not align on its natural boundary [Line %d]", 1, 1},
-    {"FILLNEGLEN", "Fill item %.*s has a negative length [Line %d]", 1, 1},
-    {"OFFSETEXPR", "Offset or origin relative expression involves a forward or circular reference. %.*s [Line %d]", 1, 1},
-    {"SYMNOTDEF", "Symbol %.*s was not defined in command line, value zero assumed [Line %d]", 1, 1},
-    {"NEGORIGIN", "Aggregate %.*s has a negative origin - negative offset elements will be ignored [Line %d]", 1, 1},
-    {"FILLZEROLEN", "Fill item %.*s has a zero length [Line %d]", 1, 1},
-    {"BADNODETYPE", "internal node type is unknown for language %.*s", 1, 0},
-    {"DIMENSIONSTAR", "DIMENSION * for MEMBER \"%.*s\" has no known discriminant [Line %d]", 1, 1},
-    {"FIXUP", "temporary hard-coded list used to discriminate for MEMBER \"%.*s\" [Line %d]", 1, 1},
-    {"POSSCIRC", "possible circular definition for type %.*s [Line %d]", 1, 1},
-    {"DUPLANG", "Language name %.*s appears more than once on command line", 1, 0},
-    {"NOINPFIL", "No input file specified", 0, 0},
-    {"NOCOPYFIL", "No copyright input file", 0, 0},
-    {"INVACTSTA", "Invalid action for internal state [Line %d]", 0, 1},
-    {"UNKRADIX", "Unknown radix %d [Line %d]", 0, 2},
-    {"UNKCONSTTYP", "Unknown constant type %d [Line %d]", 0, 2},
-    {"INVAGGRNAM", "Invalid or no aggregate name specified", 0, 0},
-    {"INVENUMNAM", "Invalid or no enumeration name specified [Line %d]", 0, 0},
-    {"UNKOPTION", "Unknown option specified [Line %d]", 0, 1},
-    {"INVCONDST", "Unknown condition state [Line %d]", 0, 1},
-    {"INVQUAL", "Invalid qualifier, %.*s, specified on command line", 1, 0},
-    {"PARSEERR", "%.*s", 1, 0},
-    {"CREATED", "Normal successful completion, local variable created", 0, 0},
-    {"NOTCREATED", "Normal successful completion, local variable not created", 0, 0},
-    {"DUPLISTQUAL", "'-list' qualified specified more than once on command line", 0, 0},
+    {
+	"NORMAL", "Normal successful completion",
+	0,
+	0
+    },
+    {
+	"SYNTABOVR",
+	"Symbol table overflow",
+	0,
+	0
+    },
+    {
+	"ABORT",
+	"Fatal internal error. Unable to continue execution",
+	0,
+	0
+    },
+    {
+	"INFILOPN",
+	"Unable to open input file %.*s" ,
+	1,
+	0
+    },
+    {
+	"BUGCHECK",
+	"Internal consistency failure [Line %d] - please submit a bug report",
+	0,
+	1
+    },
+    {
+	"REVCHECK",
+	"Front-end / back-end version mismatch.  Check installation.",
+	0,
+	0
+    },
+    {
+	"ERREXIT",
+	"Error exit",
+	0,
+	0
+    },
+    {
+	"INVSHRIMG",
+	"Output language not known %.*s",
+	1,
+	0
+    },
+    {
+	"NULLSTRUCT",
+	"Null structure %.*s has no members [Line %d]",
+	1,
+	1
+    },
+    {
+	"DUPCONATT",
+	"Item %.*s has duplicate or conflicting attributes [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVFLDSIZ",
+	"Item %.*s has bitfield length or offset greater than, 32 or 64 [Line "
+	    "%d]",
+	1,
+	1},
+    {
+	"UNDEFSYM",
+	"Undefined local symbol %.*s used in expression [Line %d]",
+	1,
+	1
+    },
+    {
+	"UNDEFCON",
+	"Undefined constant name %.*s used in expression [Line %d]",
+	1,
+	1
+    },
+    {
+	"UNDEFUSER",
+	"Undefined user type name %.*s referenced [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVDECL",
+	"Invalid DECLARE for type %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"UNDEFFIL",
+	"Unable to open include file %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"UNDEFORG",
+	"Definition of ORIGIN name %.*s not found in aggregate [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVOUT",
+	"Invalid attributes for output language %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"TOKVF",
+	"Token exceeds maximum size of %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"OUTFILOPN",
+	"Unable to open output file %.*s",
+	1,
+	0
+    },
+    {
+	"SYNTAXERR",
+	"Syntax error [Line %d]",
+	0,
+	1
+    },
+    {
+	"INTOVF",
+	"Integer overflow in expression [Line %d]",
+	0,
+	1
+    },
+    {
+	"ZERODIV",
+	"Zero divide in expression [Line %d]",
+	0,
+	1
+    },
+    {
+	"BYTSIZ",
+	"Aggregate %.*s must be integral byte size [Line %d]",
+	1,
+	1
+    },
+    {
+	"TOOMANYFIELDS",
+	"Structure %.*s has too many fields [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVUNKLEN",
+	"Unknown length attribute valid only for parameter type [Line %d]",
+	0,
+	1
+    },
+    {
+	"SIZEREFDEF",
+	"Size or type of item %.*s redefined [Line %d]",
+	1,
+	1
+    },
+    {
+	"SIZEQUAL",
+	"Item %.*s, an aggregate, cannot be qualified by SIZEOF [Line %d]",
+	1,
+	1
+    },
+    {
+	"SIZENEST",
+	"Illegal nesting of SIZEOF clauses (Item %.*s) [Line %d]",
+	1,
+	1
+    },
+    {
+	"STRINGCONST",
+	"String constant %.*s used in arithmetic expression [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVNAME",
+	"Item name is invalid",
+	0,
+	0
+    },
+    {
+	"ILLFORWREF",
+	"Illegal forward reference for output language %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVSYMDEF",
+	"Invalid symbol %.*s specified in -symbol qualifier",
+	1,
+	0
+    },
+    {
+	"SYMALRDEF",
+	"Symbol %.*s was already defined in command line",
+	1,
+	0
+    },
+    {
+	"INVALIGN",
+	"Illegal value for -align qualifier in command line",
+	0,
+	0
+    },
+    {
+	"INFILSDI",
+	"File format error reading intermediate file %.*s.  Possible version "
+	    "mismatch",
+	1,
+	0
+    },
+    {
+	"INVBITFLD",
+	"Invalid bitfield %.*s -- bitfields must be aggregate members [Line "
+	    "%d]",
+	1,
+	1
+    },
+    {
+	"ADROBJBAS",
+	"Address object %.*s must have based storage class [Line %d]",
+	1,
+	1
+    },
+    {
+	"INCDEFSTRUCT",
+	"Incompletely defined structure -- %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"MULTDEFSYM",
+	"Multiply defined symbol -- %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVPARMTYP",
+	"Invalid parameter type for language %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVEXPR",
+	"Invalid expression -- cannot be resolved to a constant as required, "
+	    "%.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"INVLISTOPT",
+	"Invalid use of LIST attribute -- LIST may only appear on the last "
+	    "parameter.  %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"BASEALIGN",
+	"Invalid expression with BASEALIGN option.  Value must be in range 0 "
+	    "to 124. %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"LISFILOPN",
+	"Unable to open listing file %.*s",
+	1,
+	0
+    },
+    {
+	"NOOUTPUT",
+	"No language output produced",
+	0,
+	0
+    },
+    {
+	"ZEROLEN",
+	"Item %.*s has 0 or negative length [Line %d]",
+	1,
+	1
+    },
+    {
+	"MATCHEND",
+	"End name does not match declaration name %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"WARNEXIT",
+	"Warning exit",
+	0,
+	0
+    },
+    {
+	"TYPNAM",
+	"Aggregate type name not supported [Line %d]",
+	0,
+	1
+    },
+    {
+	"INVREQPARAM",
+	"Required parameter encountered after optional parameter %.*s",
+	1,
+	0
+    },
+    {
+	"NAMTRUNC",
+	"Generated name too long - truncated to 64 characters %.*s",
+	1,
+	0
+    },
+    {
+	"TYPNOTSUP",
+	"Output language does not support data type %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"IMMGTR32",
+	"Cannot pass values larger than 32 bits by immediate mechanism [Line "
+	    "%d]",
+	0,
+	1
+    },
+    {
+	"IDENTGTR31",
+	"SDL-generated identifier longer than 31 characters exceeds capacity "
+	    "of %.*s compiler [Line %d]",
+	1,
+	1
+    },
+    {
+	"LANGDUP",
+	"Language name %.*s appears more than once in list [Line %d]",
+	1,
+	1
+    },
+    {
+	"LANGMATCH",
+	"Language %.*s does not appear in list of matching IF statement [Line "
+	    "%d]",
+	1,
+	1
+    },
+    {
+	"LANGMISS",
+	"Language %.*s in list of matching IF statement missing from END list "
+	    "[Line %d]",
+	1,
+	1
+    },
+    {
+	"UNALIGNED",
+	"%.*s does not align on its natural boundary [Line %d]",
+	1,
+	1
+    },
+    {
+	"FILLNEGLEN",
+	"Fill item %.*s has a negative length [Line %d]",
+	1,
+	1
+    },
+    {
+	"OFFSETEXPR",
+	"Offset or origin relative expression involves a forward or circular "
+	    "reference. %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"SYMNOTDEF",
+	"Symbol %.*s was not defined in command line, value zero assumed "
+	    "[Line %d]",
+	1,
+	1
+    },
+    {
+	"NEGORIGIN",
+	"Aggregate %.*s has a negative origin - negative offset elements will "
+	    "be ignored [Line %d]",
+	1,
+	1
+    },
+    {
+	"FILLZEROLEN",
+	"Fill item %.*s has a zero length [Line %d]",
+	1,
+	1
+    },
+    {
+	"BADNODETYPE",
+	"internal node type is unknown for language %.*s",
+	1,
+	0
+    },
+    {
+	"DIMENSIONSTAR",
+	"DIMENSION * for MEMBER \"%.*s\" has no known discriminant [Line %d]",
+	1,
+	1
+    },
+    {
+	"FIXUP",
+	"temporary hard-coded list used to discriminate for MEMBER \"%.*s\" "
+	    "[Line %d]",
+	1,
+	1
+    },
+    {
+	"POSSCIRC",
+	"possible circular definition for type %.*s [Line %d]",
+	1,
+	1
+    },
+    {
+	"DUPLANG",
+	"Language name %.*s appears more than once on the command line",
+	1,
+	0
+    },
+    {
+	"NOINPFIL",
+	"No input file specified",
+	0,
+	0
+    },
+    {
+	"NOCOPYFIL",
+	"No copyright input file",
+	0,
+	0
+    },
+    {
+	"INVACTSTA",
+	"Invalid action for internal state [Line %d]",
+	0,
+	1
+    },
+    {
+	"UNKRADIX",
+	"Unknown radix %d [Line %d]",
+	0,
+	2
+    },
+    {
+	"UNKCONSTTYP",
+	"Unknown constant type %d [Line %d]",
+	0,
+	2
+    },
+    {
+	"INVAGGRNAM",
+	"Invalid or no aggregate name specified",
+	0,
+	0
+    },
+    {
+	"INVENUMNAM",
+	"Invalid or no enumeration name specified [Line %d]",
+	0,
+	1
+    },
+    {
+	"UNKOPTION",
+	"Unknown option specified [Line %d]",
+	0,
+	1
+    },
+    {
+	"INVCONDST",
+	"Invalid condition state [Line %d]",
+	0,
+	1
+    },
+    {
+	"INVQUAL",
+	"Invalid qualifier, %.*s, specified on the command line",
+	1,
+	0
+    },
+    {
+	"PARSEERR",
+	"Parse error, %.*s, detected",
+	1,
+	0
+    },
+    {
+	"CREATED",
+	"Normal successful completion, local variable created",
+	0,
+	0
+    },
+    {
+	"NOTCREATED",
+	"Normal successful completion, local variable not created",
+	0,
+	0
+    },
+    {
+	"DUPLISTQUAL",
+	"'-list' qualifier specified more than once on the command line",
+	0,
+	0
+    },
     {"", "", 0, 0}
 };
 

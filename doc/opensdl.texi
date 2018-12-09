@@ -143,6 +143,8 @@ If OpenSDL is installed on your system, an online example of an OpenSDL source
 file is contained in @file{example.sdl} in the public directory/folder
 @file{/usr/lib/opensdl/examples}.
 
+@page
+
 @unnumberedsec Conventions
 
 The following conventions are used in this document.
@@ -185,6 +187,8 @@ refer to a term used in a code example.
 
 If OpenSDL is installed on your system, an online copy of this manual is
 contained in the @file{/usr/lib/opensdl/doc} folder.
+
+@page
 
 @unnumberedsec Summary of Technical Changes
 
@@ -571,8 +575,7 @@ entered.
 
 As you step through the tutorial, refer to @ref{Entering Source Code}
 for specifies about entering source code in a text editor.  You can also access
-online help by typing @command{opensdl -help} at the @command{$} prompt.
-
+online help by typing @command{opensdl -help} at the command-line prompt.
 
 @float Example, Creating a Sample OpenSDL Source File
 @example
@@ -632,8 +635,8 @@ brace (@key{@{} will @strong{not} be written to the output file.  Comments
 starting with a forward-slash followed by an asterics @key{/*} will be written
 to the output file as a line comment formatted for the output language.  The
 third comment fornat is the block comment, see for more information about
-comments in the OpenSDL language in sections @ref{Local Comment} and
-@ref{Output Comment}.  
+comments in the OpenSDL language in sections @ref{Local Comments} and
+@ref{Output Comments}.  
 Your screen will look as follows:
 
 @float Figure, Output Comment File
@@ -908,22 +911,26 @@ alignment.
 @command{-32} or @command{-64}@*
 The number of bits the represent a @code{LONGWORD}.
 
-@command{-[no]check}@*
+@command{-check}@*
+@command{-nocheck}@*
 If specified, diagnostic messages are emitted for data items that do not fall
 on their natural alignment.
 
-@command{-[no]comments}@*
+@command{-comments}@*
+@command{-nocomments}@*
 Controls whether output comments are included in the output file.  For more
 compact target language representation, use the -nocomments qualifier to save
 file space.  The default is @command{-comments}.
 
-@command{-[no]copy}@*
+@command{-copy}@*
+@command{-nocopy}@*
 Controls whether a standard copyright header is produced in the output file.
 The @command{-copy} qualifier causes the OpenSDL translator to precede the
 output with a comment containing the copyright claim as specified in the
 @file{/usr/lib/opensdl/copyright.sdl} file.  The default is @command{-nocopy}.
 
-@command{-[no]header}@*
+@command{-header}@*
+@command{-noheader}@*
 Controls whether a header containing the date and the source file name is
 included at the beginning of the output file.  The default is
 @command{-headear}.
@@ -933,10 +940,10 @@ Controls whether the help/usage information is specified to standard output.
 
 @command{-lang:@{language[=file-spec]@}}@*
 @{(language[=file-spec],...)@}
-Specifies a single language option listed in @ref{OpenSDL Language
+Specifies a single language option listed in @ref{OpenSDL Output Language
 Options and File Types} for which the OpenSDL translator is to produce a source
-output file.  By default, OpenSDL writes output files into separate files in the
-current default directory/folder.  The default file name for each output
+output file.  By default, OpenSDL writes output files into separate files in
+the current default directory/folder.  The default file name for each output
 file is taken from the file name of the corresponding source file and the
 default target file type for each language name.  Multiple @command{-lang}
 qualifiers can be specified on the command line, but each language should only
@@ -955,7 +962,8 @@ option followed by the destination file specification for that language.  You
 must separate the language from the destination file specification with an
 equal sign (=).
 
-@command{-[no]list}@*
+@command{-list[:file-spec]}@*
+@command{-nolist}@*
 Controls whether a listing file is produced.
 
 The @command{-list} qualifier causes the OpenSDL translator to produce a
@@ -963,16 +971,18 @@ listing file with numbered lines of source code and descriptions of any
 compilation errors.  The listing file has the same name as the related source
 file and a file type of @file{.lis}.
 
-@command{-[no]member}@*
+@command{-member}@*
+@command{-nomember}@*
 Specifies that every item in aggregates should be aligned.  This is the same as
 specifying @code{ALIGN} on all aggregates.
 
-@command{-[no]module}@*
+@command{-module}@*
+@command{-nomodule}@*
 Controls whether a module is generated in the output file for the relevant
 output language.  The default is @command{-module}.
 
 @command{-suppress:@{suppress-option@}}@*
-@command{          @{(suppress-option,...)@}}@*
+@command{@ @ @ @ @ @ @ @ @ @ @{(suppress-option,...)@}}@*
 The @command{-supress} qualifier has the following format:
 @command{opensdl -suppress=prefix,tag}
 
@@ -1046,7 +1056,7 @@ program identifiers
 
 The following can also be used within a MODULE declaration; although they are
 not OpenSDL language elements (@ref{Local Comments} through
-@ref{Include Statement}):
+@ref{INCLUDE Statement}):
 
 @itemize @bullet
 @item Local and output (line and Block) comments
@@ -1063,7 +1073,9 @@ declarations, the semicolon also terminates separate parts of the declaration.
 Appendix B shows language translation summaries of all the OpenSDL language
 elements.
 
+@node Names
 @section Names
+
 An OpenSDL name can be either a user-specified local symbol name that is not
 translated to the output file or a user-specified source program identifier
 that is translated to the output file.  Names are composed of upper- and
@@ -1076,11 +1088,13 @@ underscore (_).  Specifying a name is subject to the following rules:
 (A-Z, a-z), a dollar sign ($), or an underscore (_).
 @item Source program identifiers that are reserved OpenSDL keywords or that
 contain invalid  OpenSDL characters must be enclosed in quotation marks (" ").
-(For more information on reserved OpenSDL keywords, @ref{Keywords}).
+(For more information on reserved OpenSDL keywords, @ref{Keywords Used in
+Declarations}).
 @item OpenSDL passes all source program identifiers to the output file in the
 same case in which they are defined.
 @end enumerate
 
+@node Local Symbol Names
 @subsection Local Symbol Names
 A local symbol name is known only within an OpenSDL source file and cannot be
 translated directly to the output file.  A local symbol name can be assigned a
@@ -1117,7 +1131,7 @@ member names, and ENTRY parameter names that are passed to the output file.
 Optional user-specified prefixes and tags can be appended to these identifiers.
 If a prefix is specified without a tag, OpenSDL concatenates a default tag
 (corresponding to the data type) to the identifier in the output file.
-(@ref{PREFIX, MARKER, and TAG keywords} describes the PREFIX. MARKER and TAG
+(@ref{PREFIX MARKER and TAG Keywords} describes the PREFIX. MARKER and TAG
 keyword options.) The identifier block_node_size in the following example names
 the CONSTANT declaration:
 
@@ -1136,12 +1150,16 @@ keyword typically used to specify the length of a bit-string or
 character-string data type (see @ref{BITFIELD Data Type} and
 @ref{CHARACTER Data Type}).
 
+@page
+
+@node Keywords Used in Declarations
 @section Keywords
+
 Reserved OpenSDL keywords are used to specify the following:
 @itemize @bullet
 @item Declarations (@ref{Declaration Keywords})
 @item Declaration modifiers (@ref{Declaration Modifier Keywords})
-@item Prefixes, markers, and tags (@ref{PREFIX, MARKER, and TAG Keywords})
+@item Prefixes, markers, and tags (@ref{PREFIX MARKER and TAG Keywords})
 @item Alignment (@ref{Alignment Keywords})
 @item Storage classes (@ref{Storage Class Keywords})
 @item Arrays (@ref{DIMENSION Keyword})
@@ -1204,18 +1222,18 @@ MODULE declaration to the output file
 @item BASEALIGN
 
 @item COMMON and GLOBAL @tab Optional keywords used to specify common and
-global storage; see @ref{Stgorage Class Keywords}
+global storage; see @ref{Storage Class Keywords}
 
 @item DIMENSION @tab Optional keyword used to specify that the ITEM declaration
 is an array; see @ref{DIMENSION Keyword}
 
 @item PREFIX @tab Optional keyword used to concatenate a user-defined prefix to
 ITEM names, AGGREGATE member names, and named constants; see
-@ref{PREFIX, MARKER, and TAG Keywords}
+@ref{PREFIX MARKER and TAG Keywords}
 
 @item TAG @tab Optional keyword used to override the default OpenVMS code
-assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX,
-MARKER, and TAG Keywords}
+assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX
+MARKER and TAG Keywords}
 @end multitable
 @end float
 
@@ -1239,18 +1257,18 @@ aggregate or member occurs only as a fill to force byte alignment on the
 following member or aggregate, respectively.
 
 @item MARKER @tab Optional keyword used to assign a user-defined prefix to the
-aggregate name; see @ref{PREFIX, MARKER, and TAG Keywords}
+aggregate name; see @ref{PREFIX MARKER and TAG Keywords}
 
 @item ORIGIN @tab Optional keyword used to define the beginning of an aggregate
 with respect to an aggregate member
 
 @item PREFIX @tab Optional keyword used to concatenate a user-defined prefix to
-AGGREGATE member names, ITEM names, and named constants; see @ref{PREFIX,
-MARKER, and TAG Keywords}
+AGGREGATE member names, ITEM names, and named constants; see @ref{PREFIX
+MARKER and TAG Keywords}
 
 @item TAG @tab Optional keyword used to override the default OpenVMS code
-assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX,
-MARKER, and TAG Keywords}
+assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX
+MARKER and TAG Keywords}
 @end multitable
 @end float
 
@@ -1271,19 +1289,19 @@ indicate the definition of a string constant.
 incremental values
 
 @item PREFIX @tab Optional keyword used to concatenate a user-defined prefix to
-aggregate member names and named constants; see @ref{PREFIX, MARKER, and TAG
+aggregate member names and named constants; see @ref{PREFIX MARKER and TAG
 Keywords}
 
 @item RADIX @tab Optional keyword used to indicate how a constant should be
 written in the output file; see @ref{RADIX Keyword}
 
 @item TAG @tab Optional keyword used to override the default OpenVMS code
-assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX,
-MARKER, and TAG Keywords}
+assigned to a name and to assign a user-defined tag instead; see @ref{PREFIX
+MARKER and TAG Keywords}
 
 @item TYPENAME @tab Optional keyword not currently used, but may be introduced
-when Ada or PL/I back-ends are developed; see @ref{User-Specified TYPENAME
-Kewyword}
+when Ada or PL/I back-ends are developed; see @ref{User Specified TYPENAME
+Keyword}
 @end multitable
 @end float
 
@@ -1293,16 +1311,18 @@ Kewyword}
 
 @float Table, ENTRY Declaration
 @multitable @columnfractions .25 .75
-@headitem Parameter Passing Mechanism @tab Description
+@headitem Parameter Passing@*Mechanism @tab Description
 @item REFERENCE @tab Optional parameter-passing mechanism keyword used to
 specify that a parameter must be passed BY REFERENCE; REFERENCE is the default
 
 @item VALUE @tab Optional parameter-passing mechanism keyword used to specify
 that the parameter must be passed BY immediate VALUE
 @end multitable
+@end float
 
+@float Table, PARAMETER Declaration
 @multitable @columnfractions .25 .75
-@headitem Parameter Mode Keywords @tab Description
+@headitem Parameter@*Mode Keywords @tab Description
 @item IN @tab Parameter description keyword used to indicate that a parameter
 is an input parameter; can be used with OUT to indicate that the parameter is
 both an input and an output parameter; IN is the default
@@ -1311,9 +1331,13 @@ both an input and an output parameter; IN is the default
 is an output parameter; can be used with IN to indicate that the parameter is
 both an input and an output parameter
 @end multitable
+@end float
 
+@page
+
+@float Table, PARAMETER Modifiers
 @multitable @columnfractions .25 .75
-@headitem Other Parameter Modifier @tab Description
+@headitem Other Parameter@*Modifier @tab Description
 @item DEFAULT @tab Optional parameter description keyword used to specify a
 default parameter value
 
@@ -1333,11 +1357,13 @@ entry point name
 
 @item TYPENAME @tab Optional parameter description keyword used only by the Ada
 and PL/I back ends to specify a user-defined data type name; see
-@ref{User-Specified TYPENAME Keyword}
+@ref{User Specified TYPENAME Keyword}
 @end multitable
+@end float
 
+@float Table, RETURN Value Keywords
 @multitable @columnfractions .25 .75
-@headitem Entry Return Value Keywords @tab Description
+@headitem Entry Return Value@*Keywords @tab Description
 @item NAMED @tab Optional keyword used to specify the name of the parameter (in
 an Ada IMPORT_VALUED_PROCEDURE) into which the return value is returned
 
@@ -1346,11 +1372,13 @@ the external entry
 
 @item TYPENAME @tab Optional keyword used only by the Ada and Kednos PL/I back
 ends to specify a user-defined name that is the data type returned by the
-external entry; see @ref{User-Specified TYPENAME Keyword}
+external entry; see @ref{User Specified TYPENAME Keyword}
 @end multitable
+@end float
 
+@float Table, ENTRY Description Keywords
 @multitable @columnfractions .25 .75
-@headitem Entry Description Keywords @tab Description
+@headitem Entry Description@*Keywords @tab Description
 @item ALIAS @tab Optional keyword used to indicate an alternate internal name
 that can be used to designate the entry point
 
@@ -1366,19 +1394,24 @@ modifier keyword
 @end multitable
 @end float
 
+@node User Specified TYPENAME Keyword
 @subsubsection User-Specified TYPENAME keyword
+
 The TYPENAME keyword is used to specify a data type name that is not an OpenSDL
 data type.  Depending on which back end is specified, this name may or may not
 override the OpenSDL data type.  The Ada and PL/I back ends use these data type
 names as parameter data types, as return value data types, and as CONSTANT
 declaration data types.
 
-The TYPENAME keyword has the following syntax:
-TYPENAME name
+The TYPENAME keyword has the following syntax:@*
+
+@code{TYPENAME name}@*
+
 The Ada language translation (as a result of processing the OpenSDL source file
 @file{/usr/lib/opensdl/example/example.sdl}) shows an example of the TYPENAME
 keyword.  The following is an example of the TYPENAME keyword on each of the
 parameters in an ENTRY declaration:
+
 @example
 ENTRY SYS$FAO
     ALIAS $FAO
@@ -1389,6 +1422,7 @@ ENTRY SYS$FAO
     RETURNS LONGWORD TYPENAME CONDVALU;
 @end example
 
+@node PREFIX MARKER and TAG Keywords
 @subsubsection PREFIX, MARKER, and TAG Keywords
 User-defined prefixes, markers, and tags are optional character strings that
 help to uniquely identify the names associated with a particular facility or
@@ -1397,7 +1431,8 @@ line, the inclusion of prefixes and/or tags on output symbol names is
 suppressed.  See @ref{Processing an OpenSDL Source File} for a description of
 the @command{-suppress} qualifier.
 
-PREFIX Keyword
+@subsubheading PREFIX Keyword
+
 The PREFIX option may be specified on an AGGREGATE, subaggregate, CONSTANT, or
 ITEM declaration to cause OpenSDL to concatenate a user-specified prefix and
 the name specified in the declaration.
@@ -1407,9 +1442,9 @@ the name of each member or named constant declared within the aggregate.  The
 name of the aggregate itself is not altered by the use of the PREFIX option.
 The PREFIX option has the following syntax:
 
-@code{PREFIX prefix-string}
+@code{PREFIX prefix-string}@*
 
-prefix-string
+@strong{prefix-string}@*
 Is a 0- to 32-character string that can be any valid OpenSDL identifier.
 If you specify the PREFIX option, OpenSDL constructs the identifier of each
 member by concatenating the prefix, a tag, an underscore, and the member name.
@@ -1421,17 +1456,19 @@ subaggregate.  Otherwise, if no prefix is specified for the subaggregate, all
 subaggregate members are assigned the same prefix as that specified on the
 level-1 aggregate.
 
-MARKER Keyword
+@subsubheading MARKER Keyword
+
 You can use the MARKER keyword to assign a user-defined prefix to the aggregate
 name.  The MARKER option has the following syntax:
 
-@code{MARKER marker-string}
+@code{MARKER marker-string}@*
 
-marker-string
+@strong{marker-string}@*
 Is a 0- to 32-character string that can be any valid OpenSDL name that may or
 may not be enclosed in quotation marks (" ") and may be null.
 
-TAG Keyword
+@subsubheading TAG Keyword
+
 The TAG option overrides the default tags that OpenSDL uses in forming
 identifiers.  You can specify tags for CONSTANT, ITEM, and AGGREGATE
 declarations and aggregate members.
@@ -1440,9 +1477,9 @@ example, a tag you supply in an AGGREGATE declaration affects only the
 aggregate name; if you wish to change all the tags in an aggregate, you must do
 it on a member-by-member basis.  The TAG option has the following syntax:
 
-@code{TAG tag-string}
+@code{TAG tag-string}@*
 
-tag-string
+@strong{tag-string}@*
 Is a 0- to 32-character string specifying the tag to use in forming the name.
 If the TAG option is not specified, OpenSDL uses a default code based on the
 data type of the name.
@@ -1567,11 +1604,12 @@ CONSTANT (abc,def,ghi) EQUALS 0 INCREMENT 1
 This declaration results in the names @code{new_abc}, @code{new_def}, and
 @code{new_ghi}.
 
+@node RADIX Keyword
 @subsubsection RADIX Keyword
 The RADIX keyword can be used to indicate how a constant value should
 be written out to the output file.  It can have one of three possible values.
 
-@itemize bullet
+@itemize @bullet
 @item @strong{@code{DEC}} --- for Decimal
 @item @strong{@code{OCT}} --- for Octal 
 @item @strong{@code{DEC}} --- for Hexadecimal
@@ -1593,6 +1631,7 @@ When a @code{BITMASK} has the optional @code{MASK} keyword, constant values are
 generated using the @code{RADIX HEX} keywords.
 @end quotation
 
+@node Alignment Keywords
 @subsubsection Alignment Keywords
 Both the ALIGN and BASEALIGN keywords can ensure that items are properly
 aligned.  The BASEALIGN keyword takes an argument, which specifies the
@@ -1674,6 +1713,7 @@ have a size of 8 (23).
 
 @code{ITEM MyItem LONGWORD UNSIGNED BASEALIGN (3);}
 
+@node Storage Class Keywords
 @subsubsection Storage Class Keywords
 
 Storage class refers to the way in which the target language compiler allocates
@@ -1700,9 +1740,7 @@ either of the following storage classes:
 @item @strong{Common storage} is allocated in an external program section
 (Psect) with the OVR option and is shared by all routines that reference it.
 You declare data in common storage by using the COMMON option on an AGGREGATE
-or ITEM declaration.  For example, the MACRO back end places all declarations in
-an absolute program section by default and associates the names with the offset
-values.
+or ITEM declaration.
 
 @item @strong{Global storage} represents data in a global storage location whose
 value is defined elsewhere.  You declare global data by using the GLOBAL option
@@ -1760,6 +1798,7 @@ follows:
 
 @code{ITEM foo MyStruct ;}
 
+@node DIMENSION Keyword
 @subsubsection DIMENSION Keyword
 
 You can apply a dimension to AGGREGATE (as well as members of aggregates and
@@ -1817,14 +1856,15 @@ You can see how OpenSDL translates the DIMENSION option for each output
 language by processing the OpenSDL source file
 @file{/usr/lib/opensdl/examples/example.sdl}.
 
+@node Data Type Keywords
 @subsection Data Type Keywords
 
 Data type keywords specify the data types of scalar objects, which can be
-declared as members of aggregates or as individual items.  Data type keywords are
-also used to describe the data types of parameters, as well as the return value
-of an ENTRY.  They can also be used in an AGGREGATE declaration to generate an
-implicit union.  The data type declaration also specifies, either implicitly or
-explicitly, the size of a member.
+declared as members of aggregates or as individual items.  Data type keywords
+are also used to describe the data types of parameters, as well as the return
+value of an ENTRY.  They can also be used in an AGGREGATE declaration to
+generate an implicit union.  The data type declaration also specifies, either
+implicitly or explicitly, the size of a member.
 
 The following sections describe the data types and the keywords you use to
 specify them.
@@ -1879,6 +1919,7 @@ Specifies that the parameter can be of any data type.
 The following is an example of the use of the ANY data type:
 ENTRY sys$abc PARAMETER (ANY);
 
+@node BITFIELD Data Type
 @subsubsection BITFIELD Data Type
 The BITFIELD keyword specifies a bit field variable that must be a member of an
 AGGREGATE declaration.  The BITFIELD data type has the following syntax:
@@ -1917,7 +1958,7 @@ a constant mask whose value is 1.  Because the PREFIX option is specified for
 this aggregate, the source output file identifiers produced for this
 declaration are tst$v_resolved and tst$m_resolved, where the tag v_ indicates
 the bitfield variable and the tag m_ indicates the mask.  Prefixes and tags are
-described in more detail in @ref{PREFIX, MARKER, and TAK Keywords}.
+described in more detail in @ref{PREFIX MARKER and TAG Keywords}.
 
 @subsubsection BOOLEAN Data Type
 
@@ -1934,6 +1975,7 @@ The following is an example of the BOOLEAN keyword used in an ITEM declaration:
 
 @code{ITEM true BOOLEAN;}
 
+@node CHARACTER Data Type
 @subsubsection CHARACTER Data Type
 
 The CHARACTER keyword declares a character string of a given length.  The
@@ -1970,7 +2012,9 @@ AGGREGATE msg_buffer STRUCTURE;
 END;
 @end example
 
+@node COMPLEX Data Types
 @subsubsection COMPLEX Data Types
+
 The COMPLEX keyword immediately follows any of the four floating-point data
 type keywords to specify any of the four COMPLEX data types.  The COMPLEX data
 types have the following syntax:
@@ -1990,7 +2034,7 @@ declaration:
 
 @code{ITEM foo T_FLOATING COMPLEX;}
 
-@ref{Floating-Point Data Types} describes floating-point data types.
+@ref{Floating Point Data Types} describes floating-point data types.
 
 @subsubsection DECIMAL Data Type
 The DECIMAL keyword specifies a packed decimal data type and the size of the
@@ -2010,7 +2054,8 @@ two of which are fractional:
 
 @code{ITEM percentage DECIMAL PRECISION (3,2);}
 
-@subsubsection Floating-Point Data Types
+@node Floating Point Data Types
+@subsubsection Floating Point Data Types
 
 The floating-point keywords, F_FLOATING, D_FLOATING, G_FLOATING, H_FLOATING,
 T_FLOATING, S_FLOATING, and X_FLOATING, declare storage units for single-,
@@ -2040,6 +2085,7 @@ values that are encoded using the VAX formats.
 
 @ref{COMPLEX Data Types} describes COMPLEX data types.
 
+@node Integer Data Types
 @subsubsection Integer Data Types
 The keywords BYTE, WORD, LONGWORD, QUADWORD, and OCTAWORD declare storage units
 of 8, 16, 32, 64, and 128 bits, respectively, to represent signed integer data.
@@ -2082,6 +2128,7 @@ ITEM foo LONGWORD UNSIGNED;
 ITEM bar BYTE;
 @end example
 
+@node Expressions
 @section Expressions
 
 An OpenSDL expression evaluates to an arithmetic value and can consist of any of
@@ -2134,7 +2181,7 @@ y is negative, the value of x is shifted y places to the right
 @item Offset symbols are used in expressions specified in AGGREGATE
 declarations:
 
-@itemize @bullet
+@itemize @minus
 @item The period (@code{.}) represents the current byte offset from the origin
 in an  AGGREGATE declaration.  If the ORIGIN option is specified, the value of
 the period is equal to the byte offset from the member specified using the
@@ -2158,6 +2205,7 @@ which appears in the context of an AGGREGATE declaration:
 @code{CONSTANT foo EQUALS %Ag + 72 / (#abc * boo + .);}
 @end itemize
 
+@node Local Comments
 @section Local Comments
 
 A comment that is local to the OpenSDL source file is not written to the output
@@ -2170,6 +2218,7 @@ return) is allowed.  The following is an example of a local comment:
 @{ Assigning the value 255 to #max_args.
 @end example
 
+@node Output Comments
 @section Output Comments
 
 There are two types of output comments, Line Comments and Block Comments.
@@ -2227,6 +2276,7 @@ The following are two examples of a block comments:
 /-
 @end example
 
+@node INCLUDE Statement
 @section INCLUDE Statement
 
 The INCLUDE statement specifies that the contents of an external file are to be
@@ -2246,6 +2296,7 @@ file and reads the statements in the included file.  When it reaches the end of
 the included file, OpenSDL resumes translation with the source statement
 immediately following the INCLUDE statement.
 
+@node Conditional OpenSDL Compilation
 @section Conditional OpenSDL Compilation
 
 @subsection Conditional OpenSDL Compilation using the IFLANGUAGE statement
@@ -2434,6 +2485,7 @@ after the text pass-through.  Also, do not forget to define the local variable
 set to zero when the conditional code is not included, so that there an error
 message will not be generated as the result of the missing variable.
 
+@node DECLARE Statement
 @section DECLARE Statement
 
 The DECLARE statement allows you to declare a data item of a type that you
@@ -2629,6 +2681,8 @@ particularly useful if you place more than one MODULE declaration in the same
 OpenSDL source file.  The module name is case-sensitive and must match exactly
 (in case) the name specified on the MODULE declaration.
 
+@page
+
 @section MODULE Format
 A MODULE declaration has the following syntax:
 
@@ -2641,15 +2695,15 @@ MODULE module-name [ IDENT "ident-string" ];
 END_MODULE [ module-name ];
 @end example
 
-MODULE module-name@*
+@strong{MODULE module-name}@*
 Specifies any valid OpenSDL identifier you want to use to identify the module.
 
-[IDENT "ident-string"]@*
+@strong{[IDENT "ident-string"]}@*
 Specifies any valid OpenSDL identifier, or a string of any characters, that
 must be enclosed in quotation marks (" ") and that either further identifies
 the module or is a version number.
 
-[module-body]@*
+@strong{[module-body]}@*
 Is one or more of the following:
 @itemize @bullet
 @item ITEM declaration
@@ -2666,9 +2720,11 @@ Is one or more of the following:
 @item LITERAL construct
 @end itemize
 
-END_MODULE [module-name]
+@strong{END_MODULE [module-name]}@*
 Marks the end of the MODULE declaration.  The module-name, if specified, must
 match the name on the most recently specified MODULE declaration.
+
+@page
 
 @unnumberedsec ITEM Declaration
 
@@ -2709,7 +2765,7 @@ Is any valid OpenSDL data type (see @ref{Data Type Keywords}).
 
 user_type sizeopt@*
 Is a user-defined data type using the DECLARE statement’s SIZEOF clause, shown
-and described in @ref{Declare Statement}.
+and described in @ref{DECLARE Statement}.
 
 [COMMON]@*
 [GLOBAL]@*
@@ -2731,20 +2787,21 @@ represent lower and upper bounds of the array, respectively (see
 [PREFIX prefix-string]@*
 Specifies a user-defined prefix that becomes part of the identifier.  It can be
 any valid OpenSDL name with 0 to 32 characters, may or may not be enclosed in
-quotation marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG
+quotation marks (" ") and may be null (see @ref{PREFIX MARKER and TAG
 Keywords}.
 
 [TAG tag-string]@*
 Specifies the user-defined tag that follows the prefix used in forming the
 identifier.  It can be any valid OpenSDL name with 0 to 32 alphabetic or numeric
 characters; the tag must be enclosed in quotation marks (" ") if it begins with
-a numeric character (see @ref{PREFIX, MARKER, and TAG Keywords}.
+a numeric character (see @ref{PREFIX MARKER and TAG Keywords}.
 
 @unnumberedsec AGGREGATE Declaration
 
 The following sections describe the function and format of AGGREGATE and
 subaggregate declarations.
 
+@node AGGREGATE Description
 @section AGGREGATE Description
 
 An AGGREGATE declaration defines nonscalar items and dimensional arrays of
@@ -2980,6 +3037,7 @@ Specifying an origin does not change the values of the current bit and byte
 offset symbols (@code{^} and @code{:}).  These are always calculated as being
 relative to the beginning of the aggregate.
 
+@node Forcing Data Alignment
 @subsection Forcing Data Alignment
 
 OpenSDL forces all AGGREGATE and subaggregate declarations to begin on byte
@@ -3069,6 +3127,7 @@ example are shown in the following table.
 @item dcb$v_fill_1 @tab 2
 @end multitable
 
+@node Using Offset Symbols
 @subsection Using Offset Symbols
 
 The period (@code{.}) represents the current byte offset from the origin in an
@@ -3157,11 +3216,11 @@ Specifies any valid OpenSDL name used to identify the aggregate.
 
 @{STRUCTURE@}@*
 @{UNION@}@*
-Is the type of aggregate (see @ref{Aggregate Description}).
+Is the type of aggregate (see @ref{AGGREGATE Description}).
 
 [data-type]@*
 If specified, causes the AGGREGATE declaration to become an implicit union
-declaration (see @ref{Aggregate Description}).
+declaration (see @ref{AGGREGATE Description}).
 
 [COMMON]@*
 [GLOBAL]@*
@@ -3212,14 +3271,14 @@ marks (" ") and may be null.
 [PREFIX prefix-string]@*
 Specifies the prefix used in forming the names of aggregate members.  It may be
 any valid OpenSDL name with 0 to 32 characters, may or may not be enclosed in
-quotation marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG
+quotation marks (" ") and may be null (see @ref{PREFIX MARKER and TAG
 Keywords}).
 
 [TAG tag-string]@*
 Specifies the tag used to form the aggregate name.  The tag is appended to the
 prefix, if a prefix was specified.  It can have 0 to 32 alphabetic or numeric
 characters; the tag must be enclosed in quotation marks (" ") if it begins with
-a numeric character (see @ref{PREFIX, MARKER, and TAG Keywords}).
+a numeric character (see @ref{PREFIX MARKER and TAG Keywords}).
 
 [ORIGIN member-name]@*
 Specifies the name of a member of this aggregate that is to be used as the
@@ -3289,13 +3348,13 @@ hbound represent lower and upper bounds of the array, respectively (see
 Specifies the prefix used to form the member name.  For subaggregates, the
 prefix is used to form the names of subaggregate members.  It may be any valid
 OpenSDL name with 0 to 32 characters, may or may not be enclosed in quotation
-marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG Keywords}).
+marks (" ") and may be null (see @ref{PREFIX MARKER and TAG Keywords}).
 
 [TAG tag-string]@*
 Specifies the tag used to form the member name.  The tag is appended to the
 prefix, if a prefix was specified.  It can have 0 to 32 alphabetic or numeric
 characters; the tag must be enclosed in quotation marks (" ") if it begins with
-a numeric character (see @ref{PREFIX, MARKER, and TAG Keywords}).
+a numeric character (see @ref{PREFIX MARKER and TAG Keywords}).
 
 [FILL]@*
 Indicates that the specified member or aggregate occurs only as a fill to force
@@ -3528,13 +3587,13 @@ Specifies the value to be assigned to the constant.
 [PREFIX prefix-string]@*
 Specifies the prefix used to form the constant name.  It may be any valid
 OpenSDL name with 0 to 32 characters, may or may not be enclosed in quotation
-marks (" ") and may be null (see @ref{PREFIX, MARKER, and TAG Keywords}).
+marks (" ") and may be null (see @ref{PREFIX MARKER and TAG Keywords}).
 
 [TAG tag-string]@*
 Specifies the tag used to form the constant name.  The tag is appended to the
 prefix, if a prefix was specified.  It can have 0 to 32 alphabetic or numeric
 characters; the tag must be enclosed in quotation marks (" ") if it begins with
-a numeric character (see @ref{PREFIX, MARKER, and TAG Keywords}).
+a numeric character (see @ref{PREFIX MARKER and TAG Keywords}).
 
 [COUNTER #local-name]@*
 Specifies the local symbol assigned to the last value that is assigned to a
@@ -3603,6 +3662,7 @@ ENTRY SYS$GETJPI ALIAS $GETJPI PARAMETER (
     ) RETURNS LONGWORD TYPENAME CONDVALU;
 @end example
 
+@node ENTRY Format
 @section ENTRY Format
 
 An ENTRY declaration has the following syntax:

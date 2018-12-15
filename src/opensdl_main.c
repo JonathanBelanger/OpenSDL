@@ -22,47 +22,54 @@
  *
  * USAGE:
  *	$ ./opensdl <input_SDL_file>
- *		-align:<value>	The assumed alignment.  An integer greater than
- *				zero. (No alignment is the default)
+ *		-a, --align:<value>
+ *				The assumed alignment.  A value that is a power
+ *				two and between 0 and 8.  A value of 0 is no
+ *				alignment (the default).
  *		-32|64		The number of bits that represent a longword.
  *				(64 is the default)
- *		-[no]check	Diagnostic messages are generated for items
+ *		-k, --[no]check	Diagnostic messages are generated for items
  *				the do not fall on their natural alignment.
  *				(nocheck is the default)
- *		-[no]comments	Controls whether output comments are
- *				included in the output file(s). (Comments is
- *				the default)
- *		-[no]copy	Controls whether the copyright header is
+ *		-c, --[no]comments
+ *				Controls whether output comments are included
+ *				in the output file(s). (Comments is the
+ *				default)
+ *		-C, --[no]copy	Controls whether the copyright header is
  *				included in the output file (see copyright.sdl
  *				for what is included). (nocopy is the default)
- *		-[no]header	Controls whether a header containing
- *				the date and the source filename is included at
- *				the beginning of the output file(s). (header is
- *				the default)
- *		-help		Display the usage information.
- *		-lang:<lang[=filespec]>	Specifies one of the language options.
- *				At least one needs to be specified on the
- *				command line.
- *		-[no]list	This will cause a listing file to either be or
- *				not be generated.  No list is the default.
- *		-[no]member	Indicates that every item in an
- *				aggregate should be aligned. (nomember is the
+ *		-H, --[no]header
+ *				Controls whether a header containing the date
+ *				and the source filename is included at the
+ *				beginning of the output file(s). (header is the
  *				default)
- *		-[no]module	This has not yet been implemented.
- *				(module is the default)
- *		-[no]parse	This has not yet been implemented. (parse is
+ *		-h, --help	Display the usage information.
+ *		-l, --lang:<lang[=filespec]>
+ *				Specifies one of the language options.  At
+ *				least one needs to be specified on the command
+ *				line.
+ *		-L, --[no]list	This will cause a listing file to either be or
+ *				not be generated.  No list is the default.
+ *		-m, --[no]member
+ *				Indicates that every item in an aggregate
+ *				should be aligned. (nomember is the default)
+ *		-M, --[no]module
+ *				This has not yet been implemented. (module is
  *				the default)
- *		-[no]suppress[:prefix|tag]
+ *		-p, --[no]parse	This has not yet been implemented. (parse is
+ *				the default)
+ *		-S, --[no]suppress[:prefix|tag]
  *				Suppress outputting symbols with a prefix, tag,
  *				or both. (nosupress is the default).
- *		-symbol:<symbol=value>	Used in conditional compilation where
- *				IFSYMBOL is specified in the input file.  A
- *				value of zero turns off the symbol and a
- *				non-zero value turns it on.
- *		-t		Trace memory allocations and deallocations.
- *		-v		Verbose information during processing.  By
+ *		-s, --symbol:<symbol=value>
+ *				Used in conditional compilation where IFSYMBOL
+ *				is specified in the input file.  A value of
+ *				zero turns off the symbol and a non-zero value
+ *				turns it on.
+ *		-t, --trace	Trace memory allocations and deallocations.
+ *		-v, --verbose	Verbose information during processing.  By
  *				default this is turned off.
- *		-V		Display the version information for the OpenSDL
+ *		-V, --version	Display the version information for the OpenSDL
  *				utility.  By default the version information is
  *				not displayed.
  *
@@ -176,46 +183,51 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg)
 static void _sdl_usage(void)
 {
     printf("Usage: opensdl [options] file...\nOptions:\n");
-    printf("  -align:<value>\t    The assumed alignment.  An integer greater than\n");
-    printf("\t\t\t    zero. (No alignment is the default)\n");
-    printf("  -32|64\t\t    The number of bits that represent a longword.\n");
-    printf("\t\t\t    (64 is the default)\n");
-    printf("  -[no]check\t\t    Diagnostic messages are generated for items\n");
-    printf("\t\t\t    the do not fall on their natural alignment.\n");
-    printf("\t\t\t    (nocheck is the default)\n");
-    printf("  -[no]comments\t\t    Controls whether output comments are\n");
-    printf("\t\t\t    included in the output file(s). (Comments is\n");
-    printf("\t\t\t    the default)\n");
-    printf("  -[no]copy\t\t    Controls whether the copyright header is\n");
-    printf("\t\t\t    included in the output file (see copyright.sdl\n");
-    printf("\t\t\t    for what is included). (nocopy is the default)\n");
-    printf("  -[no]header\t\t    Controls whether a header containing\n");
-    printf("\t\t\t    the date and the source filename is included at\n");
-    printf("\t\t\t    the beginning of the output file(s). (header is\n");
-    printf("\t\t\t    the default)\n");
-    printf("  -help\t\t\t    Displays this usage information.\n");
-    printf("  -lang:<lang[=filespec]>   Specifies one of the language options.\n");
-    printf("\t\t\t    At least one needs to be specified on the\n");
-    printf("\t\t\t    command line.\n");
-    printf("  -[no]list\t\t    Controls whether a listing file is generated or not.\n");
-    printf("\t\t\t    (no list the default)\n");
-    printf("  -[no]member\t\t    Indicates that every item in an\n");
-    printf("\t\t\t    aggregate should be aligned. (nomember is the\n");
-    printf("\t\t\t    default)\n");
-    printf("  -[no]module\t\t    This has not yet been implemented.\n");
-    printf("\t\t\t    (module is the default)\n");
-    printf("  -[no]parse\t\t    This has not yet been implemented. (parse is\n");
-    printf("\t\t\t    the default)\n");
-    printf("  -[no]suppress[:prefix[,tag]] Suppress outputting symbols with a prefix, tag,\n");
-    printf("\t\t\t    or both. (nosupress is the default).\n");
-    printf("  -symbol:<symbol=value>    Used in conditional compilation where\n");
-    printf("\t\t\t    IFSYMBOL is specified in the input file.  A\n");
-    printf("\t\t\t    value of zero turns off the symbol and a\n");
-    printf("\t\t\t    non-zero value turns it on.\n");
-    printf("  -v    Verbose information during processing.  By default this is\n");
-    printf("\t\t\t    turned off.\n");
-    printf("  -V    Display the version information for the OpenSDL utility.\n");
-    printf("\t\t\t    By default the version information is not displayed.\n");
+    printf("  -a, --align:<value>\t\t\tThe assumed alignment.  An integer greater\n");
+    printf("\t\t\t\t\tthan zero. (No alignment is the default)\n");
+    printf("  -32|64\t\t\t\tThe number of bits that represent a\n");
+    printf("\t\t\t\t\tlongword.  (64 is the default)\n");
+    printf("  -k, --[no]check\t\t\tDiagnostic messages are generated for items\n");
+    printf("\t\t\t\t\tthe do not fall on their natural.\n");
+    printf("\t\t\t\t\talignment.  (nocheck is the default)\n");
+    printf("  -c, --[no]comments\t\t\tControls whether output comments are\n");
+    printf("\t\t\t\t\tincluded in the output file(s). (Comments\n");
+    printf("\t\t\t\t\tis the default)\n");
+    printf("  -C, --[no]copy\t\t\tControls whether the copyright header is\n");
+    printf("\t\t\t\t\tincluded in the output file (see\n");
+    printf("\t\t\t\t\tcopyright.sdl for what is included).\n");
+    printf("\t\t\t\t\t(nocopy is the default)\n");
+    printf("  -H, --[no]header\t\t\tControls whether a header containing\n");
+    printf("\t\t\t\t\tthe date and the source filename is\n");
+    printf("\t\t\t\t\tincluded a tthe beginning of the output.\n");
+    printf("\t\t\t\t\tfiles(s).  (header is the default)\n");
+    printf("  -h, --help\t\t\t\tDisplays this usage information.\n");
+    printf("  -l, --lang:<lang[=filespec]>\t\tSpecifies one of the language\n");
+    printf("\t\t\t\t\toptions.  At least one needs to be\n");
+    printf("\t\t\t\t\tspecified on the command line.\n");
+    printf("  -L, --[no]list\t\t\tControls whether a listing file is\n");
+    printf("\t\t\t\t\tgenerated or not.  (no list the default)\n");
+    printf("  -m, --[no]member\t\t\tIndicates that every item in an\n");
+    printf("\t\t\t\t\taggregate should be aligned. (nomember is\n");
+    printf("\t\t\t\t\tthe default)\n");
+    printf("  -M, --[no]module\t\t\tThis has not yet been implemented.\n");
+    printf("\t\t\t\t\t(module is the default)\n");
+    printf("  -p, --[no]parse\t\t\tThis has not yet been implemented. (parse\n");
+    printf("\t\t\t\t\tis the default)\n");
+    printf("  -S, --[no]suppress[:prefix[,tag]]\tSuppress outputting symbols\n");
+    printf("\t\t\t\t\twith a prefix, tag, or both. (nosupress\n");
+    printf("\t\t\t\t\tis the default).\n");
+    printf("  -s, --symbol:<symbol=value>\t\tUsed in conditional compilation where\n");
+    printf("\t\t\t\t\tIFSYMBOL is specified in the input file.\n");
+    printf("\t\t\t\t\tA value of zero turns off the symbol and a\n");
+    printf("\t\t\t\t\tnon-zero value turns it on.\n");
+    printf("  -t, --trace\t\t\t\tTrace memory allocations/deallocations.\n");
+    printf("\t\t\t\t\tBy default this isturned off.\n");
+    printf("  -v, --verbose\t\t\t\tVerbose information during processing.\n");
+    printf("\t\t\t\t\tBy default this isturned off.\n");
+    printf("  -V, --version\t\t\t\tDisplay the version information for the\n");
+    printf("\t\t\t\t\tOpenSDL utility.  By default the version\n");
+    printf("\t\t\t\t\tinformation is not displayed.\n");
 
     /*
      * Return back to the caller.
@@ -250,9 +262,9 @@ static void _sdl_usage(void)
 static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 {
     char	*ptr;
-    int		ii = 1;
+    int		ii = 1, jj, kk;
     uint32_t	retVal = SDL_NORMAL;
-    bool	langSet = false;
+    bool	langSet = false, longArg;
 
     /*
      * Initialize all the defaults.
@@ -277,15 +289,28 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
      */
     while ((ii < argc) && (retVal == SDL_NORMAL))
     {
-	if (argv[ii][0] == '-')
+	if (argv[ii][1] == '-')
 	{
-	    switch (argv[ii][1])
+	    kk = 1;
+	    longArg = true;
+	}
+	else
+	{
+	    kk = 0;
+	    longArg = false;
+	}
+	if (argv[ii][kk] == '-')
+	{
+	    kk++;
+	    switch (argv[ii][kk])
 	    {
 		/*
 		 * 32-bit length for longwords.
 		 */
 		case '3':
-		    if ((argv[ii][2] == '2') && (argv[ii][3] == '\0'))
+		    if ((argv[ii][kk+1] == '2') &&
+			(argv[ii][kk+2] == '\0') &&
+			(longArg == false))
 			context->wordSize = 32;
 		    else
 		    {
@@ -303,7 +328,9 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		 * 64-bit length for longwords.
 		 */
 		case '6':
-		    if ((argv[ii][2] == '4') && (argv[ii][3] == '\0'))
+		    if ((argv[ii][kk+1] == '4') &&
+			(argv[ii][kk+2] == '\0') &&
+			(longArg == false))
 			context->wordSize = 64;
 		    else
 		    {
@@ -318,18 +345,27 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    break;
 
 		/*
-		 * align:<value>, value must be greater than zero.
+		 * [a|align]:<value>, value must be greater than or equal to
+		 * zero.
 		 */
 		case 'a':
-		    if (strncmp(argv[ii], "-align", 5) == 0)
+		    if (((strncmp(argv[ii], "--align", 6) == 0) &&
+			 (longArg == true)) ||
+			((argv[ii][kk+1] == ':') && (longArg == false)))
 		    {
-			if (argv[ii][5] == ':')
+			kk += longArg == true ? 5 : 1;
+			if (argv[ii][kk] == ':')
 			{
 			    context->alignment = strtol(
-						    &argv[ii][6],
+						    &argv[ii][kk+1],
 						    NULL,
 						    10);
-			    if (context->alignment < 0)
+			    if ((context->alignment < 0) ||
+				((context->alignment != 0) &&
+				 (context->alignment != 1) &&
+				 (context->alignment != 2) &&
+				 (context->alignment != 4) &&
+				 (context->alignment != 8)))
 				retVal = SDL_INVALIGN;
 			}
 			else
@@ -357,19 +393,23 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    break;
 
 		/*
-		 * check for member alignment on natural boundaries.
-		 * comments, include comments in output file(s).
-		 * copy, include copyright comment at start of output file(s).
+		 * [k|check] for member alignment on natural boundaries.
+		 * [c|comments], include comments in output.
+		 * [C|copy], include copyright comment at start of output.
 		 */
+		case 'k':
+		case 'C':
 		case 'c':
-		    if (strcmp(argv[ii], "-check") == 0)
+		    if ((strcmp(argv[ii], "--check") == 0) ||
+			(strcmp(argv[ii], "-k") == 0))
 			context->checkAlignment = true;
-		    else if (strcmp(argv[ii], "-comments") == 0)
+		    else if ((strcmp(argv[ii], "--comments") == 0) ||
+			     (strcmp(argv[ii], "-c") == 0))
 			context->commentsOff = false;
-		    else if (strcmp(argv[ii], "-copy") == 0)
+		    else if ((strcmp(argv[ii], "--copy") == 0) ||
+			     (strcmp(argv[ii], "-C") == 0))
 		    {
 			char	*path = realpath(argv[0], NULL);
-			int	jj;
 
 			if (path != NULL)
 			{
@@ -400,13 +440,16 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    break;
 
 		/*
-		 * header, output OpenSDL header information.
-		 * help, display usage information.
+		 * [H|header], output OpenSDL header information.
+		 * [h|help], display usage information.
 		 */
+		case 'H':
 		case 'h':
-		    if (strcmp(argv[ii], "-header") == 0)
+		    if ((strcmp(argv[ii], "--header") == 0) ||
+			(strcmp(argv[ii], "-H") == 0))
 			context->header = true;
-		    else if (strcmp(argv[ii], "-help") == 0)
+		    else if ((strcmp(argv[ii], "--help") == 0) ||
+			     (strcmp(argv[ii], "-h") == 0))
 			_sdl_usage();
 		    else
 		    {
@@ -421,16 +464,22 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    break;
 
 		/*
-		 * lang:<lang>[=<filespec>], specify output language and file.
-		 * list[:<filespec>], generate a listing file.
+		 * [l|lang]:<lang>[=<filespec>], specify output language and
+		 * file.
+		 * [L|list][:<filespec>], generate a listing file.
 		 */
+		case 'L':
 		case 'l':
-		    if (strncmp(argv[ii], "-lang", 4) == 0)
+		    if (((strncmp(argv[ii], "--lang", 6) == 0) &&
+			 (longArg == true)) ||
+			((argv[ii][kk] == 'l') &&
+			 (argv[ii][kk+1] == ':') &&
+			 (longArg == false)))
 		    {
-			if (argv[ii][5] == ':')
+			kk += longArg == true ? 5 : 1;
+			if (argv[ii][kk] == ':')
 			{
-			    int		jj = 0;
-
+			    kk++;
 			    while ((context->languages[jj].langStr != NULL) &&
 				   (context->languages[jj].langVal != -1) &&
 				   (retVal == SDL_NORMAL))
@@ -439,9 +488,9 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 				if (ptr == NULL)
 				    ptr = &argv[ii][strlen(argv[ii])];
 				if (strncasecmp(
-					&argv[ii][6],
+					&argv[ii][kk],
 					context->languages[jj].langStr,
-					(ptr - &argv[ii][6])) == 0)
+					(ptr - &argv[ii][kk])) == 0)
 				{
 				    int	lang = context->languages[jj].langVal;
 
@@ -459,8 +508,8 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 
 					retVal = SDL_DUPLANG;
 					strncpy(lang,
-						&argv[ii][6],
-						(ptr - &argv[ii][6]));
+						&argv[ii][kk],
+						(ptr - &argv[ii][kk]));
 					if (sdl_set_message(
 							msgVec,
 							1,
@@ -483,14 +532,20 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    }
 			}
 		    }
-		    else if (strncmp(argv[ii], "-list", 4) == 0)
+		    else if (((strncmp(argv[ii], "--list", 6) == 0) &&
+			      (longArg == true)) ||
+			     ((argv[ii][kk] == 'L') &&
+			      ((argv[ii][kk+1] == ':') ||
+			       (argv[ii][kk+1] == '\0')) &&
+			      (longArg == false)))
 		    {
+			kk += longArg == true ? 5 : 1;
 			if (listing == false)
 			{
 			    listing = true;
-			    if (argv[ii][5] == ':')
+			    if (argv[ii][kk] == ':')
 				context->listingFileName =
-						sdl_strdup(&argv[ii][6]);
+						sdl_strdup(&argv[ii][kk+1]);
 			}
 			else
 			{
@@ -515,13 +570,16 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    break;
 
 		/*
-		 * member, force member alignment
-		 * module, ?
+		 * [m|member], force member alignment
+		 * [M|module], ?
 		 */
+		case 'M':
 		case 'm':
-		    if (strncasecmp(argv[ii], "-member", 6) == 0)
+		    if ((strcmp(argv[ii], "--member") == 0) ||
+			(strcmp(argv[ii], "-m") == 0))
 			context->memberAlign = true;
-		    else if (strncasecmp(argv[ii], "-module", 7) != 0)
+		    else if ((strcmp(argv[ii], "--module") != 0) ||
+			     (strcmp(argv[ii], "-M") != 0))
 		    {
 			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
@@ -545,25 +603,25 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		 * nosuppress, don't suppress prefix or tag.
 		 */
 		case 'n':
-		    if (strcmp(argv[ii], "-nocheck") == 0)
+		    if (strcmp(argv[ii], "--nocheck") == 0)
 			context->checkAlignment = false;
-		    else if (strcmp(argv[ii], "-nocomments") == 0)
+		    else if (strcmp(argv[ii], "--nocomments") == 0)
 			context->commentsOff = true;
-		    else if (strcmp(argv[ii], "-nocopy") == 0)
+		    else if (strcmp(argv[ii], "--nocopy") == 0)
 			context->copyright = false;
-		    else if (strcmp(argv[ii], "-noheader") == 0)
+		    else if (strcmp(argv[ii], "--noheader") == 0)
 			context->header = false;
-		    else if (strcmp(argv[ii], "-nomember") == 0)
+		    else if (strcmp(argv[ii], "--nomember") == 0)
 			context->memberAlign = false;
-		    else if (strcmp(argv[ii], "-nosuppress") == 0)
+		    else if (strcmp(argv[ii], "--nosuppress") == 0)
 		    {
 			context->suppressPrefix = false;
 			context->suppressTag = false;
 		    }
-		    else if (strcmp(argv[ii], "-nolist") != 0)
+		    else if (strcmp(argv[ii], "--nolist") != 0)
 			listing = false;
-		    else if ((strcmp(argv[ii], "-nomodule") != 0) &&
-		    	     (strcmp(argv[ii], "-noparse") != 0))
+		    else if ((strcmp(argv[ii], "--nomodule") != 0) &&
+		    	     (strcmp(argv[ii], "--noparse") != 0))
 		    {
 			retVal = SDL_INVQUAL;
 			if (sdl_set_message(
@@ -583,11 +641,13 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    break;
 
 		/*
-		 * suppress[:prefix][,tag], suppress usage or prefix and/or tag
-		 * symbol:<symbol>=<value>, symbol used in conditionals
+		 * [S|suppress][:prefix][,tag], suppress usage or prefix and/or tag
+		 * [s|symbol]:<symbol>=<value>, symbol used in conditionals
 		 */
+		case 'S':
 		case 's':
-		    if (strncmp(argv[ii], "-suppress", 8) == 0)
+		    if ((strncmp(argv[ii], "--suppress", 10) == 0) ||
+			(strncmp(argv[ii], "-S", 2) == 0))
 		    {
 			ptr = strchr(argv[ii], ':');
 			if (ptr != NULL)
@@ -620,7 +680,8 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    context->suppressTag= true;
 			}
 		    }
-		    else if (strncmp(argv[ii], "-symbol", 6) == 0)
+		    else if ((strncmp(argv[ii], "--symbol", 8) == 0) ||
+			     (strncmp(argv[ii], "-s", 2) == 0))
 		    {
 			SDL_SYMBOL_LIST	*list = &context->symbCondList;
 
@@ -646,7 +707,6 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 			    }
 			    if (symbol != NULL)
 			    {
-				int	jj;
 				bool	found = false;
 
 				for (jj = 0;
@@ -697,33 +757,65 @@ static uint32_t _sdl_parse_args(int argc, char *argv[], SDL_CONTEXT *context)
 		    break;
 
 		    /*
-		     * t, display memory tracing information.
+		     * [t|trace], display memory tracing information.
 		     */
 		case 't':
-		    traceMemory = true;
+		    if ((strcmp(argv[ii], "--trace") == 0) ||
+			(strcmp(argv[ii], "-t") == 0))
+			traceMemory = true;
+		    else
+		    {
+			retVal = SDL_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		    break;
 
 		/*
 		 * v, display verbose tracing information.
 		 */
-		case 'v':
-		    trace = true;
-		    _verbose = 1;
-		    break;
-
-		/*
-		 * V, display version information.
-		 */
 		case 'V':
-		    printf(
-			"\nOpenSDL Version %c%d.%d-%d.\n",
-			SDL_K_VERSION_TYPE,
-			SDL_K_VERSION_MAJOR,
-			SDL_K_VERSION_MINOR,
-			SDL_K_VERSION_LEVEL);
+		case 'v':
+		    if ((strcmp(argv[ii], "--verbose") == 0) ||
+			(strcmp(argv[ii], "-v") == 0))
+		    {
+			trace = true;
+			_verbose = 1;
+		    }
+		    else if ((strcmp(argv[ii], "--version") == 0) ||
+			     (strcmp(argv[ii], "-V") == 0))
+		    {
+			printf(
+			    "\nOpenSDL Version %c%d.%d-%d.\n",
+			    SDL_K_VERSION_TYPE,
+			    SDL_K_VERSION_MAJOR,
+			    SDL_K_VERSION_MINOR,
+			    SDL_K_VERSION_LEVEL);
+		    }
+		    else
+		    {
+			retVal = SDL_INVQUAL;
+			if (sdl_set_message(
+					msgVec,
+					1,
+					retVal,
+					argv[ii]) != SDL_NORMAL)
+			    retVal = SDL_ERREXIT;
+		    }
 		    break;
 
 		default:
+		    retVal = SDL_INVQUAL;
+		    if (sdl_set_message(
+				    msgVec,
+				    1,
+				    retVal,
+				    argv[ii]) != SDL_NORMAL)
+			retVal = SDL_ERREXIT;
 		    break;
 	    }
 	}

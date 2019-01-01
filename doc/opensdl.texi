@@ -209,6 +209,9 @@ file now indicates that the file was created by OpenSDL instead of ``VAX'', or
 @item @code{DEFAULT} @tab This clause may now be specified for a parameter of
 an @code{AGGREGATE} type (i.e. @code{STRUCTURE} or @code{UNION}).
 @end multitable
+@cindex AGGREGATE keyword
+@cindex Arrays
+@cindex Asterisk array dimension
 
 @page
 
@@ -290,6 +293,8 @@ expressed in that language.  OpenSDL declarations, described in detail in
 @item Named constants (@code{CONSTANT} declarations)
 @item External entries(@code{ENTRY} declarations)
 @end itemize
+@cindex AGGREGATE keyword
+@cindex Arrays
 
 @ref{OpenSDL Translation Process} shows each step in the OpenSDL translation
 process, and the key following the example describes each step.
@@ -302,6 +307,8 @@ detail.
 @item Create a properly formatted OpenSDL file (@file{.sdl}) containing a 
 @code{MODULE} and @code{END_MODULE}, and one or more @code{CONSTANT},
 @code{ITEM}, or @code{AGGREGATE @dots{}@emph{member}@dots{} END} statements.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @item Process the file created above using the4 @command{opensdl} command,
 noting any errors that may be reported.
@@ -315,6 +322,7 @@ expected.  If not, then make corrections and reprocess the file.
 @item Use the resulting output file(s) within the code they are defined to be
 used.
 @end enumerate
+@caption OpenSDL Translation Process
 @end float
 
 Key to @ref{OpenSDL Translation Process}:
@@ -348,7 +356,6 @@ to familiarize yourself with this example because it shows the source file you
 will be creating in the tutorial in @ref{Getting Started with OpenSDL}.
 
 @comment Example 1.1 --- Example, Sample OpenSDL Source File
-@node Example_1_1
 @float Example, Sample OpenSDL Source File
 @example
 MODULE opr_descriptor IDENT "Version 2.0";@sup{1}
@@ -375,8 +382,13 @@ ITEM current_node_ptr@sup{10} ADDRESS@sup{11} GLOBAL;@sup{12}
 
 END_MODULE opr_descriptor@sup{13};
 @end example
+@caption Sample OpenSDL Source File
 @end float
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
+@cindex Arrays
 
 @enumerate
 @item All OpenSDL declarations are grouped within modules, and you must assign
@@ -399,24 +411,31 @@ constants.  In the example, @code{fixed_binary} will be assigned the value
 @code{1}, @code{floating} will be assigned the value @code{2}, and so on.
 
 @item @code{AGGREGATE} declarations define data structures and their members.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @item When the @code{PREFIX} option and a prefix are specified, OpenSDL
 concatenates the prefix and a data type code to the declared aggregate member
 names in the language output files.  Compare these aggregate member name
 declarations with the C output shown in
 @ref{C Output File for the Sample OpenSDL Source File}.
+@cindex AGGREGATE member
 
 @item Aggregate members are declared using reserved OpenSDL data type keywords.
+@cindex AGGREGATE member
 
 @item An aggregate member or a scalar data item can be declared to be an array
 by specifying the @code{DIMENSION} option.  In this example, the array operands
 has @code{10} elements, with subscripts 0 through 9.
+@cindex Arrays
 
 @item The period (@code{.}) represents the current byte offset within
 an @code{AGGREGATE} declaration.  The local symbol assignment
 @code{#opsize = .;} captures the size of the constant portion of the structure
 operator.  The value of this local symbol is then used in the declaration of
 the constant @code{opr_node_size}.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @item @code{ITEM} declarations, such as the declaration of
 @code{current_node_ptr}, define scalar data items.
@@ -428,6 +447,8 @@ pointer.
 @item The @code{GLOBAL} keyword specifies global storage to override the
 default language storage class for an @code{ITEM} or an @code{AGGREGATE}
 declaration.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @item The @code{END_MODULE} keyword ends a @code{MODULE} declaration; you may
 optionally specify the @code{MODULE} name after the @code{END_MODULE} keyword.
@@ -476,12 +497,14 @@ struct operator
 @};
 #define opr_node_size   14
 void *current_node_ptr __attribute__ ((aligned));
+@cindex Alignment
 
 #ifdef __cplusplus
 @}
 #endif
 #endif /* _OPR_DESCRIPTOR_ */
 @end smallexample
+@caption C Output File for the Sample OpenSDL Source File
 @end float
 
 @node Creating
@@ -509,6 +532,7 @@ extension.
 
 @float Figure, Opened File
 @image{FileOpen,6in,,,.jpg}
+@caption Openning File
 @end float
 
 @quotation Note
@@ -538,6 +562,7 @@ The identifiers associated with various OpenSDL keywords are case sensitive,
 depending upon the output language.  Within the OpenSDL parser, a lowercase
 @code{AGGREGATE} @emph{ID} will @strong{not} match an uppercase (or camelcase)
 @code{END} @emph{ID}, and will cause a warning message to be displayed.
+@cindex AGGREGATE keyword
 
 Identifiers that are also an OpenSDL keyword can be used, but need to be
 enclosed in double-quotes (@key{"}).  Any leading and trailing spaces will be
@@ -558,6 +583,8 @@ OpenSDL declarations and language elements:
 @item AGGREGATE declaration
 @item ITEM declaration
 @end itemize
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @ref{Creating a Sample OpenSDL Source File} shows the sample OpenSDL source
 file described in @ref{Overview}.  You will be creating this sample source file
@@ -594,8 +621,13 @@ ITEM@sup{25} current_node_ptr ADDRESS GLOBAL@sup{26};
 
 END_MODULE opr_descriptor;@sup{27}
 @end example
+@caption Creating a Sample OpenSDL Source File
 @end float
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
+@cindex Arrays
 
 The following numbered items describe and display each step.  The numbered
 superscript corresponds to the equivalent numbered items.  Not all steps will
@@ -618,6 +650,7 @@ double-quote characters (@key{"}).  Your screen will look as follows:
 
 @float Figure, Module Statement File
 @image{ModuleStatement,5.6in,,,.jpg}
+@caption Module Statement
 @end float
 
 @page
@@ -637,6 +670,7 @@ Your screen will look as follows:
 
 @float Figure, Output Comment File
 @image{OutputComment,5.6in,,,.jpg}
+@caption Output Comment
 @end float
 
 @page
@@ -649,6 +683,7 @@ semicolon at the end).  Your screen will look as follows:
 
 @float Figure, Local Variable File
 @image{LocalVariable,5.6in,,,.jpg}
+@caption Local Variable
 @end float
 
 @page
@@ -661,6 +696,7 @@ as follows:
 
 @float Figure, Constant Start File
 @image{ConstantStart,5.6in,,,.jpg}
+@caption Constant Start
 @end float
 
 @page
@@ -672,6 +708,7 @@ trailing space character.  Your screen will look as follows:
 
 @float Figure, Constant List File
 @image{ConstantList,5.6in,,,.jpg}
+@caption Constant List
 @end float
 
 @page
@@ -682,6 +719,7 @@ will look as follows:
 
 @float Figure, Constant First File
 @image{ConstantFirst,5.6in,,,.jpg}
+@caption Constant First
 @end float
 
 @page
@@ -692,17 +730,20 @@ been included, then hit the @key{Enter} key.
 
 @float Figure, Constant Last File
 @image{ConstantRest,5.6in,,,.jpg}
+@caption Constant Last
 @end float
 
 @page
 
-@item Next we are going to enter an AGGREGATE definition.  Start by typing in
-@code{AGGREGATE} with a trailing space character.  Your screen will look as
-follows:
+@item Next we are going to enter an @code{AGGREGATE} definition.  Start by
+typing in @code{AGGREGATE} with a trailing space character.  Your screen will
+look as follows:
 
 @float Figure, Aggregate Start File
 @image{AggregateStart,5.6in,,,.jpg}
+@caption Aggregate Start
 @end float
+@cindex AGGREGATE keyword
 
 @page
 
@@ -718,7 +759,9 @@ key.  Your screen will look as follows:
 
 @float Figure, Aggregate More File
 @image{AggregateMore,5.6in,,,.jpg}
+@caption More Aggregate Information
 @end float
+@cindex AGGREGATE keyword
 
 @page
 
@@ -731,7 +774,10 @@ follows:
 
 @float Figure, Aggregate Member File
 @image{AggregateMember,5.6in,,,.jpg}
+@caption Aggregate Member
 @end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @page
 
@@ -742,7 +788,10 @@ required for some of the member names.  Your screen will look as follows:
 
 @float Figure, Aggregate Middle File
 @image{AggregateMiddle,5.6in,,,.jpg}
+@caption Aggregate Middle
 @end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @page
 
@@ -754,7 +803,11 @@ will look as follows:
 
 @float Figure, Aggregate Nearly Done File
 @image{AggregateNear,5.6in,,,.jpg}
+@caption Aggregate Almost Done
 @end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
+@cindex Arrays
 
 @page
 
@@ -767,7 +820,10 @@ inserted by the text editor, if added).  Your screen will look as follows:
 
 @float Figure, Aggregate Last File
 @image{AggregateLast,5.6in,,,.jpg}
+@caption Aggregate Last
 @end float
+@cindex AGGREGATE keyword
+@cindex Arrays
 
 @page
 
@@ -780,7 +836,9 @@ will look as follows:
 
 @float Figure, Aggregate End File
 @image{AggregateEnd,5.6in,,,.jpg}
+@caption Aggregate End
 @end float
+@cindex AGGREGATE keyword
 
 @page
 
@@ -792,7 +850,9 @@ will look as follows:
 
 @float Figure, Offset File
 @image{Offset,5.6in,,,.jpg}
+@caption Offset
 @end float
+@cindex AGGREGATE keyword
 
 @page
 
@@ -810,6 +870,7 @@ character.  We do so hear for clarity.
 
 @float Figure, Constant Offset File
 @image{ConstantOffset,5.6in,,,.jpg}
+@caption Constant Offset
 @end float
 
 @page
@@ -821,8 +882,9 @@ followed by a space character.
 key.  Your screen will look as followes:
 @cindex ADDRESS keyword
 
-@float Figure, Item File
+@float Figure, Item First File
 @image{Item,5.6in,,,.jpg}
+@caption Item First
 @end float
 
 @page
@@ -832,8 +894,9 @@ key.  Your screen will look as followes:
 @key{Enter} key can be typed again, but is not required.  Your screen will look
 as follows, with the complete OpenSDL file:
 
-@float Figure, Item File
+@float Figure, Item Last File
 @image{Complete,5.6in,,,.jpg}
+@caption Item Last
 @end float
 @end enumerate
 
@@ -923,6 +986,7 @@ Command qualifiers may be specified following the @command{opensdl} command.
 @item @command{-v, --verbose} @tab No verbose output
 @item @command{-V, --version} @tab Don't display OpenSDL version information.
 @end multitable
+@caption OpenSDL Command Qualifiers and Their Defaults
 @end float
 
 @strong{@command{-a:value}@*
@@ -932,6 +996,8 @@ The assumed alignment.  Integer value greater than zero.  If specified,
 diagnostic messages are emitted for data items that do not fall on the assumed
 alignment.
 @end indentedblock
+@cindex Alignment
+@cindex --align qualifier
 
 @strong{@command{-32} or @command{-64}}
 @indentedblock
@@ -945,6 +1011,7 @@ The number of bits the represent a @code{LONGWORD}.
 If specified, diagnostic messages are emitted for data items that do not fall
 on their natural alignment.
 @end indentedblock
+@cindex Alignment
 
 @strong{@command{-c}@*
 @command{--comments}@*
@@ -998,6 +1065,7 @@ line, but each language should only be specified once.
 @item C/C++ @tab @command{--lang:cc} @tab .h
 @item @tab @command{-l:cc} @tab
 @end multitable
+@caption OpenSDL Output Language Options and File Types
 @end float
 
 The @command{--lang} qualifier also allows you to override the default output
@@ -1026,6 +1094,9 @@ file and a file type of @file{.lis}.
 Specifies that every item in aggregates should be aligned.  This is the same as
 specifying @code{ALIGN} on all aggregates.
 @end indentedblock
+@cindex AGGREGATE member
+@cindex Alignment
+@cindex ALIGN keyword
 
 @strong{@command{-S:@{suppress-option@}}@*
 @command{--suppress:@{suppress-option@}}@*
@@ -1126,6 +1197,7 @@ The space, tab, or carriage return character delimits the language elements,
 and a semicolon (;) terminates each declaration.  In @code{MODULE} and
 @code{AGGREGATE} declarations, the semicolon also terminates separate parts of
 the declaration.
+@cindex AGGREGATE keyword
 
 @ref{Summaries} shows language translation summaries of all the OpenSDL
 language elements.
@@ -1202,6 +1274,8 @@ in the output file.  (@ref{PREFIX MARKER and TAG Keywords} describes the
 @code{PREFIX}. @code{MARKER} and @code{TAG} keyword options.) The identifier
 @code{block_node_size} in the following example names the @code{CONSTANT}
 declaration:
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @example
 CONSTANT block_node_size EQUALS #max_args + #counter;
@@ -1237,6 +1311,9 @@ Reserved OpenSDL keywords are used to specify the following:
 @item Arrays (@ref{DIMENSION Keyword})
 @item Datatypes (@ref{Data Type Keywords})
 @end itemize
+@cindex Alignment
+@cindex Alignment keywords
+@cindex Arrays
 
 Reserved OpenSDL keywords can be entered in either upper- or lowercase letters,
 but they cannot be truncated.
@@ -1265,7 +1342,10 @@ subaggregate
 @item @code{END} @tab Delimiter for the end of an aggregate body
 @item @code{ENTRY} @tab Declaration of an entry
 @end multitable
+@caption Keywords That Identify or End Declarations
 @end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @page
 
@@ -1286,6 +1366,7 @@ in @ref{Declarations}.
 @item @code{IDENT} @tab Optional keyword used to pass information describing
 the @code{MODULE} declaration to the output file
 @end multitable
+@caption MODULE Declaration
 @end float
 
 @subsubheading ITEM Declaration
@@ -1294,6 +1375,9 @@ the @code{MODULE} declaration to the output file
 @headitem Keyword @tab Description
 @item @code{ALIGN},@*@code{NOALIGN},@*@code{BASEALIGN} @tab Optional keywords
 used to specify alignment; see @ref{Alignment Keywords}
+@cindex Alignment
+@cindex Alignment keywords
+@cindex ALIGN keyword
 @item @code{COMMON} and@*@code{GLOBAL} @tab Optional keywords used to specify
 common and global storage; see @ref{Storage Class Keywords}
 @item @code{DIMENSION} @tab Optional keyword used to specify that the
@@ -1301,10 +1385,13 @@ common and global storage; see @ref{Storage Class Keywords}
 @item @code{PREFIX} @tab Optional keyword used to concatenate a user-defined
 prefix to @code{ITEM} names, @code{AGGREGATE} member names, and named
 constants; see @ref{PREFIX MARKER and TAG Keywords}
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 @item @code{TAG} @tab Optional keyword used to override the default OpenSDL
 code assigned to a name and to assign a user-defined tag instead; see
 @ref{PREFIX MARKER and TAG Keywords}
 @end multitable
+@caption Item Declaration
 @end float
 
 @page
@@ -1321,6 +1408,7 @@ Optional keywords used to specify common, global, or based storage, or a
 @item @code{FILL} @tab Optional keyword used to indicate whether the associated
 aggregate or member occurs only as a fill to force byte alignment on the
 following member or aggregate, respectively.
+@cindex Alignment
 @item @code{MARKER} @tab Optional keyword used to assign a user-defined prefix
 to the aggregate name; see @ref{PREFIX MARKER and TAG Keywords}
 @item @code{ORIGIN} @tab Optional keyword used to define the beginning of an
@@ -1332,7 +1420,11 @@ constants; see @ref{PREFIX MARKER and TAG Keywords}
 code assigned to a name and to assign a user-defined tag instead; see
 @ref{PREFIX MARKER and TAG Keywords}
 @end multitable
+@caption AGGREGATE Declaration
 @end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE member
 
 @page
 
@@ -1350,6 +1442,7 @@ incremental values
 @item @code{PREFIX} @tab Optional keyword used to concatenate a user-defined
 prefix to aggregate member names and named constants; see @ref{PREFIX MARKER
 and TAG Keywords}
+@cindex AGGREGATE member
 @item @code{RADIX} @tab Optional keyword used to indicate how a constant should
 be written in the output file; see @ref{RADIX Keyword}
 @item @code{TAG} @tab Optional keyword used to override the default OpenSDL
@@ -1359,6 +1452,7 @@ code assigned to a name and to assign a user-defined tag instead; see
 introduced when Ada or PL/I back-ends are developed; see @ref{User Specified
 @code{TYPENAME} Keyword}
 @end multitable
+@caption CONSTANT Declaration
 @end float
 
 @page
@@ -1374,6 +1468,7 @@ used to specify that a parameter must be passed by reference (address);
 @item @code{VALUE} @tab Optional parameter-passing mechanism keyword used to
 specify that the parameter must be passed BY immediate VALUE
 @end multitable
+@caption ENTRY Declaration
 @end float
 
 @float Table, PARAMETER Declaration
@@ -1387,6 +1482,7 @@ default
 parameter is an output parameter; can be used with @code{IN} to indicate that
 the parameter is both an input and an output parameter
 @end multitable
+@caption PARAMETER Declaration
 @end float
 
 @float Table, PARAMETER Modifiers
@@ -1408,6 +1504,7 @@ using the entry point name
 the Ada and PL/I back ends to specify a user-defined data type name; see
 @ref{User Specified TYPENAME Keyword}
 @end multitable
+@caption PARAMETER Modifiers
 @end float
 
 @page
@@ -1424,6 +1521,7 @@ returned by the external entry
 ends to specify a user-defined name that is the data type returned by the
 external entry; see @ref{User Specified TYPENAME Keyword}
 @end multitable
+@caption RETURN Value Keywords
 @end float
 
 @float Table, ENTRY Description Keywords
@@ -1431,6 +1529,7 @@ external entry; see @ref{User Specified TYPENAME Keyword}
 @headitem Entry Description@*Keywords @tab Description
 @item @code{ALIAS} @tab Optional keyword used to indicate an alternate
 internal name that can be used to designate the entry point
+@cindex ALIAS keyword
 @item @code{LINKAGE} @tab Optional keyword used only by the MACRO back end to
 indicate that a special call macro will be used in the expansion of the entry
 macro
@@ -1440,6 +1539,7 @@ the external entry
 point can be invoked with a variable number of parameters; see also the
 @code{LIST} parameter modifier keyword
 @end multitable
+@caption ENTRY Description Keywords
 @end float
 
 @page
@@ -1480,6 +1580,8 @@ ENTRY SYS$FAO
         LONGWORD VALUE NAMED P1 OPTIONAL LIST TYPENAME VARIES)
     RETURNS LONGWORD TYPENAME CONDVALU;
 @end example
+@cindex ALIAS keyword
+@cindex ALIAS example
 
 @node PREFIX MARKER and TAG Keywords
 @subsubsection PREFIX, MARKER, and TAG Keywords
@@ -1495,11 +1597,14 @@ the @command{--suppress} qualifier.
 The @code{PREFIX} option may be specified on an @code{AGGREGATE}, subaggregate,
 @code{CONSTANT}, or @code{ITEM} declaration to cause OpenSDL to concatenate a
 user-specified prefix and the name specified in the declaration.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 When you specify a prefix for an aggregate, OpenSDL concatenates the prefix and
 the name of each member or named constant declared within the aggregate.  The
 name of the aggregate itself is not altered by the use of the @code{PREFIX}
 option.  The @code{PREFIX} option has the following syntax:
+@cindex AGGREGATE member
 
 @example
 PREFIX prefix-string
@@ -1544,6 +1649,9 @@ however, affects only the outer-level identifier.  For example, a tag you
 supply in an @code{AGGREGATE} declaration affects only the aggregate name; if
 you wish to change all the tags in an aggregate, you must do it on a
 member-by-member basis.  The @code{TAG} option has the following syntax:
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE member
 
 @example
 TAG tag-string
@@ -1564,6 +1672,7 @@ character in any resulting identifier.
 The following is an example of the @code{PREFIX}, @code{TAG}, and @code{MARKER}
 keywords:
 
+@float Example, PREFIX, MARKER, and TAG Example
 @example
 AGGREGATE operator STRUCTURE MARKER doowop_ PREFIX beebop_ TAG shoo;
     flink ADDRESS;
@@ -1571,6 +1680,10 @@ AGGREGATE operator STRUCTURE MARKER doowop_ PREFIX beebop_ TAG shoo;
 END;
 @end example
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE example
 
 The resulting output using the C/C++ backend is as follows:
 
@@ -1581,6 +1694,8 @@ struct doowop_shoo_operator
     void *beebop_a_blink;
 @};
 @end example
+@caption PREFIX, MARKER, and TAG Example
+@end float
 
 @ref{Default Tags Used by OpenSDL} shows the default tags that OpenSDL uses
 when the TAG option is not specified on an aggregate member.
@@ -1617,7 +1732,9 @@ mask (if @code{MASK} is specified) tags are generated regardless of whether a
 @code{PREFIX} or @code{TAG} option is specified.}
 @item @tab @code{M} for @code{BITFIELD} mask
 @item @code{CHARACTER} @tab @code{T}
-@item @code{ADDRESS} @tab @code{A} @cindex ADDRESS keyword
+@item @code{ADDRESS} @tab @code{A}
+@cindex ADDRESS keyword
+@cindex ADDRESS default tag
 @item @code{BOOLEAN} @tab @code{B}
 @item @code{VOID} @tab @code{Z}
 @item @code{INTEGER} @tab @code{IS}
@@ -1635,11 +1752,15 @@ mask (if @code{MASK} is specified) tags are generated regardless of whether a
 @item @code{STRUCTURE} @tab @code{R}
 @item @code{UNION} @tab @code{R}
 @end multitable
+@caption Default Tags Used by OpenSDL
 @end float
 
 The following example shows the use of a user-specified prefix on an
 @code{AGGREGATE} declaration:
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
+@float Example, PREFIX on AGGREGATE Example
 @example
 AGGREGATE operator STRUCTURE
     PREFIX opr_;
@@ -1652,6 +1773,9 @@ AGGREGATE operator STRUCTURE
     END bits;
 END operator;
 @end example
+@caption PREFIX on AGGREGATE Example
+@end float
+@cindex AGGREGATE example
 
 In the previous example, the member name @code{"typename"} is enclosed in
 quotation marks because it is an OpenSDL keyword.
@@ -1660,6 +1784,7 @@ The previous declaration produces the
 following names, with the prefix opr_ and default tags, in the C/C++ output
 file:
 
+@float Example, PREFIX on AGGREGATE C/C++ Output
 @example
 #define opr_k_fixed_bin_	0
 #define opr_k_float_		1
@@ -1676,6 +1801,8 @@ struct opr_r_operator
     @};
 @};
 @end example
+@caption PREFIX on AGGREGATE C/C++ Output
+@end float
 
 The name opr_v_fill_0 in the previous list is the result of a @code{BITFIELD}
 declaration that OpenSDL supplied because the subaggregate did not end on a
@@ -1685,6 +1812,7 @@ detail.  OpenSDL uses default codes followed by an underscore (_) for the tag
 portion of a prefix when the TAG option is not specified.  You can override the
 default OpenSDL codes by specifying a tag, which may be null ("").  For
 example:
+@cindex Alignment
 
 @example
 CONSTANT (abc,def,ghi) EQUALS 0 INCREMENT 1
@@ -1726,6 +1854,9 @@ generated consistent with the @code{RADIX HEX} keyword.
 
 @node Alignment Keywords
 @subsubsection Alignment Keywords
+@cindex Alignment
+@cindex Alignment keywords
+@cindex ALIGN keyword
 Both the @code{ALIGN} and @code{BASEALIGN} keywords can ensure that items are
 properly aligned.  The @code{BASEALIGN} keyword takes an argument, which
 specifies the alignment, whereas the @code{ALIGN} keyword uses the natural
@@ -1743,6 +1874,14 @@ AGGREGATE MyStruct STRUCTURE ALIGN;
     i2 LONGWORD;
 END;
 @end example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE example
+@cindex AGGREGATE member
+@cindex Alignment
+@cindex Alignment keywords
+@cindex Alignment example
+@cindex ALIGN example
 
 @item If the @code{ALIGN} keyword is included in the definition of a member of
 an aggregate, this member will be aligned, even if the @code{AGGREGATE} itself
@@ -1755,6 +1894,14 @@ AGGREGATE MyStruct STRUCTURE NOALIGN;
     i2 LONGWORD ALIGN;
 END;
 @end example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE example
+@cindex AGGREGATE member
+@cindex Alignment
+@cindex Alignment keywords
+@cindex Alignment example
+@cindex ALIGN example
 
 @item If the @code{NOALIGN} keyword is included in the definition of a member
 of an aggregate, no action will be taken to ensure that this member will be
@@ -1767,6 +1914,14 @@ AGGREGATE MyStruct STRUCTURE ALIGN;
     i2 LONGWORD;
 END;
 @end example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE example
+@cindex AGGREGATE member
+@cindex Alignment
+@cindex Alignment keywords
+@cindex Alignment example
+@cindex ALIGN example
 
 @item If the @code{NOALIGN} keyword is included in the definition of an
 aggregate, no action will be taken to ensure that any member of this aggregate
@@ -1778,6 +1933,12 @@ AGGREGATE MyStruct STRUCTURE NOALIGN;
     i2 LONGWORD;
 END;
 @end example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE example
+@cindex Alignment
+@cindex Alignment keywords
+@cindex Alignment example
 
 @item If the @code{BASEALIGN} keyword is included in the definition of a member
 of an aggregate, this member will be aligned according to the given alignment.
@@ -1789,6 +1950,13 @@ AGGREGATE MyStruct STRUCTURE NOALIGN;
     i2 LONGWORD BASEALIGN(8);
 END;
 @end example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE example
+@cindex AGGREGATE member
+@cindex Alignment
+@cindex Alignment keywords
+@cindex Alignment example
 
 @item If the @code{BASEALIGN} keyword is included in the definition of an
 aggregate or an item, the aggregate or item itself will be padded, so that in
@@ -1802,6 +1970,12 @@ AGGREGATE MyStruct STRUCTURE BASEALIGN (2);
 END;
 @end example
 @end itemize
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE example
+@cindex Alignment
+@cindex Alignment keywords
+@cindex Alignment example
 
 The size of the aggregate will be a multiple of 4 (@math{2@sum{2}}), in this
 case 12, and neither @code{i1} nor @code{i2} will be aligned.  In the following
@@ -1831,6 +2005,8 @@ In languages that support the construct, you can use the @code{BASED}
 pointer-name option on an @code{AGGREGATE} declaration to bind a named pointer
 to that aggregate.  In all target languages, the aggregate resulting from such
 a declaration has the default storage class (@code{BASED}).
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 A subaggregate always acquires the storage class of the aggregate to which it
 belongs.  The default storage class associated with any declaration is
@@ -1842,10 +2018,14 @@ either of the following storage classes:
 (Psect) with the OVR option and is shared by all routines that reference it.
 You declare data in common storage by using the @code{COMMON} option on an
 @code{AGGREGATE} or @code{ITEM} declaration.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @item @strong{Global storage} represents data in a global storage location
 whose value is defined elsewhere.  You declare global data by using the
 @code{GLOBAL} option on an @code{AGGREGATE} or @code{ITEM} declaration.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @item @strong{TYPEDEF} behaves like a storage class.  In C/C++, examples of
 storage classes are @code{static}, @code{globaldef/ref}, @code{extern}, etc.
@@ -1886,6 +2066,8 @@ and @code{GLOBAL} are permitted.
 The Storage class definition in OpenSDL is included as an option on an
 @code{ITEM} or @code{AGGREGATE} declaration.  This means that an
 @code{AGGREGATE TYPEDEF} for the preceding example would be:
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @example
 AGGREGATE MyStruct STRUCTURE TYPEDEF PREFIX jg_;
@@ -1893,6 +2075,7 @@ AGGREGATE MyStruct STRUCTURE TYPEDEF PREFIX jg_;
     i2 LONGWORD;
 END;
 @end example
+@cindex AGGREGATE example
 
 @subsubsection Data Types
 In most cases it is possible to refer to a user-defined Data Type where a
@@ -1915,6 +2098,10 @@ define an array of structures, a structure that contains one or more arrays, or
 an array of structures each of which contains one or more arrays.  The
 @code{DIMENSION} option is valid when specified with any of the data types
 described in @ref{Data Type Keywords} and has the following syntax:
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE member
+@cindex Arrays
 
 @example
 DIMENSION [lbound:]hbound
@@ -1935,6 +2122,7 @@ if @code{lbound} is specified, the highest-numbered element.
 
 The following is an example of the @code{DIMENSION} option specified on an
 @code{AGGREGATE} declaration:
+@cindex AGGREGATE keyword
 
 @example
 AGGREGATE array_info STRUCTURE;
@@ -1949,6 +2137,8 @@ AGGREGATE array_info STRUCTURE;
     END bound;
 END array_info;
 @end example
+@cindex AGGREGATE example
+@cindex AGGREGATE member
 
 The subaggregate bound has eight elements.  Each element consists of the members
 upper, lower, multiplier, and so on.  Because bound is an array, each of its
@@ -1963,11 +2153,13 @@ bound value as follows:
 ITEM node_pointers DIMENSION 0:255 ADDRESS;
 @end example
 @cindex ADDRESS keyword
+@cindex ADDRESS example
 
 This declaration results in a declaration of the array node_pointers, whose low
 bound is 0 and whose high bound is 255.  Only one dimension can be specified for
 an @code{AGGREGATE} or @code{ITEM} declaration.  This restriction ensures that
 there is no interlanguage conflict in an array declaration.
+@cindex AGGREGATE keyword
 
 You can see how OpenSDL translates the @code{DIMENSION} option for each output
 language by processing the OpenSDL source file
@@ -1984,6 +2176,8 @@ are also used to describe the data types of parameters, as well as the return
 value of an @code{ENTRY}.  They can also be used in an @code{AGGREGATE}
 declaration to generate an implicit union.  The data type declaration also
 specifies, either implicitly or explicitly, the size of a member.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 The following sections describe the data types and the keywords you use to
 specify them.
@@ -1994,10 +2188,13 @@ The keywords @code{ADDRESS}, @code{POINTER}, @code{POINTER_LONG},
 data type that is an address, or pointer.  The @code{ADDRESS} data type has the
 following syntax:
 @cindex ADDRESS keyword
+@cindex ADDRESS data type
+@cindex ADDRESS declaration
 
 @example
 pointer-type [ (object-type [ basealign-attribute ] ) ]
 @end example
+@cindex Alignment
 
 @strong{@code{pointer-type}}
 @indentedblock
@@ -2025,6 +2222,8 @@ Object-type is either a built-in object type, like @code{LONGWORD} or
 Here, a @code{BASEALIGN} attribute can be specified, as described in
 @ref{Alignment Keywords}
 @end indentedblock
+@cindex Alignment
+@cindex Alignment keywords
 
 The following is an example of an aggregate with a member of pointer type:
 
@@ -2035,12 +2234,19 @@ AGGREGATE any_node STRUCTURE;
 END;
 @end example
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
+@cindex AGGREGATE member
 
 @subsubsection ANY Data Type
+@cindex ANY keyword
+@cindex ANY data type
 
-The ANY keyword specifies that the parameter being described in an ENTRY
-declaration can be of any data type.  The ANY data type can be used only within
-the context of a parameter description and has the following syntax:
+The @code{ANY} keyword specifies that the parameter being described in an
+@code{ENTRY} declaration can be of any data type.  The @code{ANY} data type can
+be used only within the context of a parameter description and has the
+following syntax:
 
 @example
 ANY
@@ -2049,15 +2255,21 @@ ANY
 @strong{@code{ANY}}
 @indentedblock
 Specifies that the parameter can be of any data type.
-The following is an example of the use of the ANY data type:
+The following is an example of the use of the @code{ANY} data type:
+@example
 ENTRY sys_abc PARAMETER (ANY);
+@end example
 @end indentedblock
+@cindex ANY example
 
 @node BITFIELD Data Type
 @subsubsection BITFIELD Data Type
 The @code{BITFIELD} keyword specifies a bit field variable that must be a
 member of an @code{AGGREGATE} declaration.  The @code{BITFIELD} data type has
 the following syntax:
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE member
 
 @example
 BITFIELD [LENGTH n] [MASK] [SIGNED] [RADIX x];
@@ -2090,7 +2302,9 @@ items, objects of @code{ADDRESS} declarations, parameters, or return data types
 of entries.  The following is an example of the @code{BITFIELD} keyword used in
 an @code{AGGREGATE} declaration that specifies a structure with two bitfield
 members:
-@cindex ADDRESS keyword
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
+@cindex AGGREGATE member
 
 @example
 AGGREGATE flags STRUCTURE PREFIX tst_;
@@ -2098,6 +2312,7 @@ AGGREGATE flags STRUCTURE PREFIX tst_;
     spare_bits BITFIELD LENGTH 5;
 END;
 @end example
+@cindex AGGREGATE example
 
 The declaration of resolved in the previous example results in two declarations
 in the output file: a declaration for the bitfield itself and a declaration of
@@ -2166,6 +2381,8 @@ The following is an example of the @code{CHARACTER} data type used in an
 @code{AGGREGATE} declaration.  The aggregate @code{msg_buffer} contains a
 character-string member named @code{message_text} with a length of 256
 characters.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @example
 AGGREGATE msg_buffer STRUCTURE;
@@ -2173,6 +2390,7 @@ AGGREGATE msg_buffer STRUCTURE;
     severity WORD;
 END;
 @end example
+@cindex AGGREGATE example
 
 @node COMPLEX Data Types
 @subsubsection COMPLEX Data Types
@@ -2318,8 +2536,8 @@ ITEM bar BYTE;
 @node Expressions
 @section Expressions
 
-An OpenSDL expression evaluates to an arithmetic value and can consist of any of
-the following syntax elements:
+An OpenSDL expression evaluates to an arithmetic value and can consist of any
+of the following syntax elements:
 
 @itemize @bullet
 @item Numeric values are, by default, expressed in decimal notation.  You can
@@ -2335,6 +2553,7 @@ following table.
 character that follows it.} @tab ASCII value @tab Any ASCII character (see
 @ref{ASCII})
 @end multitable
+@cindex ASCII value operator
 
 OpenSDL treats decimal constants as signed integer longword values.
 
@@ -2357,6 +2576,7 @@ order of precedence, with the operators of higher precedence listed first.
 @cindex Negate operator
 @item @code{*} @tab Arithmetic multiplication
 @cindex Multiplication operator
+@cindex Asterisk multiplication operator
 @item @code{/} @tab Arithmetic division
 @cindex Division operator
 @item @code{+} @tab Arithmetic addition
@@ -2381,32 +2601,40 @@ shifted @code{y} places to the right
 
 @item Offset symbols are used in expressions specified in @code{AGGREGATE}
 declarations:
+@cindex AGGREGATE keyword
 
 @itemize @minus
 @item The period (@code{.}) represents the current byte offset from the origin
 in an  @code{AGGREGATE} declaration.  If the @code{ORIGIN} option is specified,
 the value of the period is equal to the byte offset from the member specified
 using the @code{ORIGIN} option.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @item The colon (@code{:}) represents the current byte offset relative to the
 first member in an @code{AGGREGATE} declaration.  The value is not affected by
 the presence of an @code{ORIGIN} option.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @item The circumflex (@code{^}) represents the current bit offset relative to
 the most recently declared aggregate or byte-aligned element.
 @ref{Using Offset Symbols} describes the use of offset symbols in
 @code{AGGREGATE} declarations in more detail.
 @end itemize
+@cindex AGGREGATE keyword
 
 @item Parentheses group expressions to define the order of evaluation.
 Expressions within the innermost set of parentheses are evaluated first.
 The following is an example of an expression used in a @code{CONSTANT}
 declaration, which appears in the context of an @code{AGGREGATE} declaration:
+@cindex AGGREGATE keyword
 
 @example
 CONSTANT foo EQUALS %Ag + 72 / (#abc * boo + .);
 @end example
 @cindex Addition operator
+@cindex Asterisk multiplication operator
 @end itemize
 
 @node Local Comments
@@ -2444,6 +2672,8 @@ semicolon terminator(@code{;})
 
 @item On lines by themselves between member, @code{CONSTANT}, @code{ENTRY},
 @code{ITEM}, and @code{AGGREGATE} declarations
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @item Between declarations with in an aggregate
 
@@ -2500,6 +2730,7 @@ declaration, but can appear anywhere else within the module.  If a directory
 is not included in the file specification, the current default directory is
 used.
 @end indentedblock
+@cindex AGGREGATE keyword
 
 When OpenSDL encounters an @code{INCLUDE} statement, it stops reading from the
 current file and reads the statements in the included file.  When it reaches
@@ -2601,6 +2832,7 @@ considered to be outside the body of the conditional.
 
 With the following example:
 
+@float Example, Conditional Compilation Example
 @example
 IFSYMBOL s1;
     <sdl code 1>
@@ -2613,6 +2845,8 @@ ELSE;
     <sdl code 4>
 END_IFSYMBOL;
 @end example
+@caption Conditional Compilation Example
+@end float
 
 @command{$ opensdl --lang:cc --symbol=s1:0 --symbol:s2=0 --symbol=s3:0 <file-spec>}
 
@@ -2696,6 +2930,7 @@ for the added offset and then add this local variable when using the offset
 after the text pass-through.  Also, do not forget to define the local variable
 set to zero when the conditional code is not included, so that there an error
 message will not be generated as the result of the missing variable.
+@cindex AGGREGATE keyword
 
 @node DECLARE Statement
 @section DECLARE Statement
@@ -2756,6 +2991,7 @@ Notes:
 @item @code{DECLARE} identifies the size of the data type when included in an
 @code{AGGREGATE} declaration.  (OpenSDL needs to know its equivalent predefined
 type so that the correct default tag letter, if required, can be output.)
+@cindex AGGREGATE keyword
 
 @item You may declare a user-defined data type more than once (either
 explicitly or implicitly), but any subsequent declaration must match the first.
@@ -2785,6 +3021,7 @@ DECLARE type SIZEOF ADDRESS (CHARACTER);
 ITEM type ADDRESS (bar SIZEOF LONGWORD);
 @end example
 @cindex ADDRESS keyword
+@cindex ADDRESS example
 
 However, the following statement generates an error message:
 
@@ -2813,6 +3050,9 @@ AGGREGATE tree STRUCTURE TYPEDEF;
 END;
 @end example
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 @strong{@file{tree2.sdl}}:
 @example
@@ -2828,6 +3068,9 @@ ITEM tree_storage tree DIMENSION 1000;
 ITEM region forest DIMENSION 4; @{No SIZEOF, since ’forest’ defined here @}
 @end example
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 @strong{@file{tree1.h}}:
 @example
@@ -2870,6 +3113,8 @@ declarations:
 @item @code{CONSTANT} declaration
 @item @code{ENTRY} declaration
 @end itemize
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 OpenSDL declarations are composed of the language elements described in
 @ref{Elements}.  The output generated by each OpenSDL declaration depends on
@@ -2959,6 +3204,8 @@ Is one or more of the following:
 @item @code{LITERAL} construct
 @end itemize
 @end indentedblock
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 @strong{@code{END_MODULE [module-name]}}
 @indentedblock
@@ -3034,6 +3281,8 @@ is either an integer expression in parentheses or the name of a data type.
 @code{BASEALIGN} aligns the item on a multiple of the value of the
 basealign-option.
 @end indentedblock
+@cindex Alignment
+@cindex Alignment keywords
 
 @strong{@code{[ DIMENSION [ lbound: ] hbound ]}}
 @indentedblock
@@ -3060,6 +3309,8 @@ a numeric character (see @ref{PREFIX MARKER and TAG Keywords}.
 @end indentedblock
 
 @heading AGGREGATE Declaration
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 The following sections describe the function and format of @code{AGGREGATE} and
 subaggregate declarations.
@@ -3068,11 +3319,14 @@ subaggregate declarations.
 
 @node AGGREGATE Description
 @section AGGREGATE Description
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 An @code{AGGREGATE} declaration defines nonscalar items and dimensional arrays
 of nonscalar items.  An aggregate must contain at least one member declaration.
 The body of an aggregate can also contain local symbol assignments,
 @code{CONSTANT} declarations, and subaggregate declarations.
+@cindex AGGREGATE member
 
 You must specify a valid aggregate name on the @code{AGGREGATE} declaration.
 For example:
@@ -3085,6 +3339,8 @@ AGGREGATE dcb STRUCTURE;
 END dcb;
 @end example
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE example
 
 You must terminate an @code{AGGREGATE} declaration with the @code{END}
 statement.  You can optionally specify the aggregate name on the @code{END}
@@ -3094,12 +3350,14 @@ case) the name specified on the @code{AGGREGATE} declaration.
 An aggregate that is the target of an @code{ADDRESS} declaration must have the
 default (@code{BASED}) storage class.
 @cindex ADDRESS keyword
+@cindex ADDRESS declaration
 
 @subsection Subaggregate Declaration
 
 Subaggregates are declared using the keyword @code{STRUCTURE} or @code{UNION}.
 For example:
 
+@float Example, Subaggregate Example
 @example
 AGGREGATE tree_node STRUCTURE;
     opcode WORD;
@@ -3121,6 +3379,10 @@ AGGREGATE tree_node STRUCTURE;
     END lang_bits;
 END tree_node;
 @end example
+@caption Subaggregate Example
+@end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 In this example, the structures @code{pli_bits} and @code{c_bits} are both
 subaggregates of the @code{union lang_bits}.  Because @code{lang_bits} is a
@@ -3129,6 +3391,7 @@ subaggregates of the @code{union lang_bits}.  Because @code{lang_bits} is a
 The @code{COMMON}, @code{GLOBAL}, @code{BASED pointer-name}, and @code{ORIGIN}
 options are invalid for a subaggregate.  All other @code{AGGREGATE} options are
 valid.
+@cindex AGGREGATE keyword
 
 @subsection STRUCTURE Declaration
 
@@ -3136,15 +3399,18 @@ valid.
 that are structures.  The members are not overlaid; each member has a unique
 offset from the beginning of the structure, which means that members occupy
 consecutive storage locations.
+@cindex AGGREGATE member
 
 The following shows the syntax of a first-level @code{STRUCTURE} declaration:
 
 @example
 AGGREGATE aggregate-name STRUCTURE [ options ];
 @end example
+@cindex AGGREGATE keyword
 
 The following shows the syntax of a @code{STRUCTURE} declaration as an
 aggregate member, that is, a subaggregate @code{STRUCTURE} declaration:
+@cindex AGGREGATE member
 
 @example
 member-name STRUCTURE [ options ];
@@ -3155,6 +3421,7 @@ member-name STRUCTURE [ options ];
 @code{UNION} declarations produce aggregate or subaggregate declarations that
 are unions.  The first-level members are overlaid, which means that they occupy
 the same storage location.
+@cindex AGGREGATE member
 
 Each first-level member begins at the beginning of the union and, thus, has an
 offset of zero.  A @code{UNION} declaration lets you represent the same storage
@@ -3165,9 +3432,11 @@ The following shows the syntax of a first-level @code{UNION} declaration:
 @example
 AGGREGATE aggregate-name UNION [ options ];
 @end example
+@cindex AGGREGATE keyword
 
 The following shows the syntax of a @code{UNION} declaration as an aggregate
 member, that is, a subaggregate @code{UNION} declaration:
+@cindex AGGREGATE member
 
 @example
 member-name UNION [ options ]
@@ -3178,6 +3447,7 @@ member-name UNION [ options ]
 You may specify data types on an @code{AGGREGATE} declaration to cause the
 @code{AGGREGATE} declaration to become an implicit union declaration.  An
 implicit union declaration has these features:
+@cindex AGGREGATE keyword
 
 @itemize @bullet
 @item Gives OpenSDL the ability to detect subfield overflow without the need to 
@@ -3190,6 +3460,7 @@ fixed offsets.
 The following OpenSDL source code shows the syntax of an implicit union
 (structure B defines the implicit union declaration):
 
+@float Example, Implicit Union Example
 @example
 AGGREGATE A STRUCTURE;
     B STRUCTURE LONGWORD;
@@ -3199,6 +3470,10 @@ AGGREGATE A STRUCTURE;
     last_item WORD;
 END A;
 @end example
+@caption Implicit Union Example
+@end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 This implicit union declaration would be more cumbersome if represented as
 shown in the following @code{STRUCTURE} subaggregate:
@@ -3215,6 +3490,8 @@ AGGREGATE A STRUCTURE;
     last_item WORD;
 END A;
 @end example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 In the previous example, the names @code{X} and @code{Y} become OpenSDL
 generated ‘‘filler’’ names in the implicit union case.
@@ -3254,6 +3531,7 @@ Keyword
 The following is an example of an OpenSDL structure defined with a data type
 and the @code{DIMENSION} keyword:
 
+@float Example, DIMENSION Example
 @example
 AGGREGATE fid STRUCTURE WORD DIMENSION 3;
     first WORD;
@@ -3261,6 +3539,10 @@ AGGREGATE fid STRUCTURE WORD DIMENSION 3;
     third WORD;
 END fid;
 @end example
+@caption DIMENSION Example
+@end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 In the previous example, a single structure is overlaid by an array of elements
 of the type specified by the structure type.
@@ -3270,6 +3552,7 @@ or by each individual word so that it is easily defined in OpenSDL as
 represented above.  The following is the C/C++ translation for the OpenSDL
 source code in the previous example:
 
+@float Example, DIMENSION Output
 @example
 union fid[3]
 @{
@@ -3278,6 +3561,8 @@ union fid[3]
     int16_t third;
 @};
 @end example
+@caption DIMENSION Output
+@end float
 
 The implicit union declaration allows structures to grow without the need to
 modify any trailing fillers.  OpenSDL detects any overflow that may occur if
@@ -3287,6 +3572,7 @@ upper dimension (if any).  If the size of the aggregate is greater than the sum
 of the size of all its members, OpenSDL still translates the declaration.
 However, if the size of the members exceeds the size of the aggregate, OpenSDL
 issues a message that has the following format:
+@cindex AGGREGATE member
 
 @code{%SDL-E-TOOMANYFIELDS, Structure fid has too many fields [Line ?]}
 
@@ -3298,7 +3584,9 @@ declaration to indicate that the origin is located at the beginning of any
 aggregate member.  The resulting declaration forces all aggregate members
 declared before the specified origin to be located at negative offsets from the
 origin.  For example:
+@cindex AGGREGATE member
 
+@float Example, ORIGIN Example
 @example
 AGGREGATE nodes STRUCTURE ORIGIN qflink;
     flink ADDRESS;
@@ -3307,33 +3595,44 @@ AGGREGATE nodes STRUCTURE ORIGIN qflink;
     qblink ADDRESS;
 END;
 @end example
+@caption ORIGIN Example
+@end float
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 This declaration defines the origin of the structure nodes to be at the member
 @code{qflink}, so you may address @code{flink} and @code{blink} as negative
 offsets from @code{qflink}.  Specifying an origin does not change the values of
 the current bit and byte offset symbols (@code{^} and @code{:}).  These are
 always calculated as being relative to the beginning of the aggregate.
+@cindex AGGREGATE member
 
 @node Forcing Data Alignment
 @subsection Forcing Data Alignment
+@cindex Alignment
 
 OpenSDL forces all @code{AGGREGATE} and subaggregate declarations to begin on
 byte boundaries.  Thus, if an aggregate or subaggregate ends with
 @code{BITFIELD} declarations that do not end on byte boundaries, OpenSDL
 ensures that the next aggregate begins on a byte boundary by supplying
 @code{BITFIELD} declarations as fillers, if necessary.
+@cindex AGGREGATE keyword
 
 When OpenSDL adds @code{BITFIELD} declarations, it determines the length
 required and provides a unique name of the form @code{string_V_FILL_n}.  The
 string is the prefix supplied in the @code{AGGREGATE} declaration, or the
 aggregate name if no prefix was supplied.  Within an aggregate, n begins at 0
 and is incremented for each filler required.
+@cindex AGGREGATE keyword
 
 The subaggregate declarations shown in the following example declare filler
 bitfields to force byte alignment at the end of each subaggregate; this
 programming practice makes it unnecessary for OpenSDL to perform the alignment.
+@cindex Alignment
 
+@float Example, Alignment Example
 @example
 AGGREGATE tree_node STRUCTURE;
     opcode WORD;
@@ -3355,11 +3654,17 @@ AGGREGATE tree_node STRUCTURE;
     END lang_bits;
 END tree_node;
 @end example
+@caption Alignment Example
+@end float
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 The current bit offset is set at 0 at the beginning of each aggregate and is
 incremented by the bit lengths of each structure member in the aggregate at
 that level.  In the following example, OpenSDL forces the structure flags to be
 aligned on a byte boundary.
+@cindex AGGREGATE member
+@cindex Alignment
 
 @example
 AGGREGATE dcb STRUCTURE PREFIX dcb_;
@@ -3375,9 +3680,12 @@ AGGREGATE dcb STRUCTURE PREFIX dcb_;
         relo BITFIELD;
     END flags;
 @end example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 The C/C++ translation of the OpenSDL @code{AGGREGATE} declaration in the
 previous example is as follows:
+@cindex AGGREGATE keyword
 
 @example
 struct dcb_r_dcb
@@ -3420,16 +3728,21 @@ the @code{ORIGIN} option.  The current byte offset is useful for capturing the
 size of an aggregate or a portion of it.  For example, in the declaration of a
 variable-length data structure, you can capture the size of the fixed-length
 portion.
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 The colon (@code{:}) represents the current byte offset relative to the first
 member in an @code{AGGREGATE} declaration.  The value is not affected by the
 presence of an @code{ORIGIN} option.
+@cindex AGGREGATE keyword
 
 The circumflex (@code{^}) represents the current bit offset relative to the
 most recently declared aggregate or byte-aligned element.
+@cindex Alignment
 
 The following example shows the use of the byte offset symbols.
 
+@float Example, Byte Offset Symbol Example
 @example
 AGGREGATE operator STRUCTURE PREFIX opr_;
     flink ADDRESS;
@@ -3451,7 +3764,12 @@ END;
 CONSTANT node_size EQUALS #opsize / 2;
 CONSTANT inst_size EQUALS #instruction_size;
 @end example
+@caption Byte Offset Symbol Example
+@end float
 @cindex ADDRESS keyword
+@cindex ADDRESS example
+@cindex AGGREGATE keyword
+@cindex AGGREGATE example
 
 In the previous example, the local symbol @code{#opsize} captures the byte
 offset following the fixed length portion of the structure operator.  This
@@ -3460,8 +3778,11 @@ the size of the constant portion of the structure in words.  The @code{flags}
 structure is byte aligned by the field @code{filler}, which makes use of the
 current bit offset symbol to compute the size of this field.  The
 @code{CONSTANT inst_size} defines the size of the entire structure.
+@cindex Alignment
 
 @section AGGREGATE Format
+@cindex AGGREGATE keyword
+@cindex AGGREGATE declaration
 
 An AGGREGATE declaration has the following syntax:
 
@@ -3523,6 +3844,7 @@ Is the storage class of the aggregate, if other than the default (@code{BASED})
 @code{BASED pointer-name} storage class.
 @end indentedblock
 @cindex ADDRESS keyword
+@cindex ADDRESS declaration
 
 @strong{@code{[ ALIGN ]@*}
 @code{[ NOALIGN ]@*}
@@ -3534,18 +3856,23 @@ keyword ensures that the size of an aggregate is a multiple of the given
 alignment.  The @code{BASEALIGN} keyword therefore takes an argument, which
 specifies the alignment, either an expression in parenthesis or the name of a
 data type.
+@cindex AGGREGATE member
+@cindex Alignment
+@cindex Alignment keywords
 
 For example:
 
 @example
 AGGREGATE MyStruct STRUCTURE ALIGN;
 @end example
+@cindex Alignment example
 
 This aligns every member in the structure.
 
 @example
 AGGREGATE MyStruct STRUCTURE NOALIGN;
 @end example
+@cindex Alignment example
 
 No action will be taken to ensure that the members of the aggregate will be
 aligned.
@@ -3553,6 +3880,7 @@ aligned.
 @example
 AGGREGATE MyStruct STRUCTURE BASEALIGN (8);
 @end example
+@cindex Alignment example
 
 The aggregate will be padded, so that in an array of elements of this
 aggregate, all elements will have a size that is a multiple of the given
@@ -3560,6 +3888,8 @@ alignment (256, 28).  Alignment attributes on aggregates can be partially
 overridden by specifying alignment attributes on the members of the aggregate.
 See also @ref{Alignment Keywords}.
 @end indentedblock
+@cindex Alignment
+@cindex Alignment keywords
 
 @strong{@code{[ DIMENSION [ lbound: ] hbound ]}}
 @indentedblock
@@ -3596,6 +3926,7 @@ a numeric character (see @ref{PREFIX MARKER and TAG Keywords}).
 Specifies the name of a member of this aggregate that is to be used as the
 origin of the aggregate.
 @end indentedblock
+@cindex AGGREGATE member
 
 Member declarations produce declarations of the members of an aggregate and
 have the following syntax:
@@ -3643,10 +3974,13 @@ clause, shown and described in @ref{DECLARE Statement}.
 @indentedblock
 Alignment attributes on a structure can be overridden with alignment attributes
 on a member declaration.  For example:
+@cindex Alignment
+@cindex Alignment keywords
 
 @example
 StructMember1 LONGWORD SIGNED ALIGN;
 @end example
+@cindex Alignment example
 
 This ensures that the member is aligned, even if it is within an aggregate that
 is not aligned.
@@ -3654,18 +3988,22 @@ is not aligned.
 @example
 StructMember1 LONGWORD SIGNED NOALIGN;
 @end example
+@cindex Alignment example
 
 No action will be taken to ensure that this member will be aligned.
 
 @example
 StructMember1 LONGWORD SIGNED BASEALIGN (4)
 @end example
+@cindex Alignment example
 
 Here, @code{StructMember1} will have an offset that is a multiple of 16 (24).
 
 @code{basealign-option} can either be an expression in parentheses or the name
 of a data type.  See also @ref{Alignment Keywords}.
 @end indentedblock
+@cindex Alignment
+@cindex Alignment keywords
 
 @strong{@code{[ DIMENSION [ lbound: ] hbound ]}}
 @indentedblock
@@ -3698,6 +4036,8 @@ byte alignment on the following member or aggregate, respectively.  In some
 languages, filler member and aggregate declarations do not appear in the output
 file.
 @end indentedblock
+@cindex Alignment
+@cindex Alignment keywords
 
 @strong{@code{aggregate-body}}
 @indentedblock
@@ -3709,6 +4049,7 @@ Is one or more of the following:
 @item Local symbol assignment
 @end itemize
 @end indentedblock
+@cindex AGGREGATE member
 
 @strong{@code{END [ aggregate-name ]}}
 @indentedblock
@@ -3999,6 +4340,10 @@ ENTRY SYS$GETJPI ALIAS $GETJPI PARAMETER (
     LONGWORD UNSIGNED VALUE NAMED ASTPRM DEFAULT 0 TYPENAME USERPARM
     ) RETURNS LONGWORD TYPENAME CONDVALU;
 @end example
+@cindex ALIAS keyword
+@cindex ALIAS example
+@cindex ANY keyword
+@cindex ANY example
 
 @node ENTRY Format
 @section ENTRY Format
@@ -4028,6 +4373,7 @@ Specifies any valid OpenSDL name used to name the external entry point.
 @indentedblock
 Specifies an alternate internal name used to designate the entry point.
 @end indentedblock
+@cindex ALIAS keyword
 
 @strong{@code{[ PARAMETER (param-desc,...) ]}}
 @indentedblock
@@ -4088,6 +4434,7 @@ Is the number of elements of an array parameter.  If expression is an asterisk
 (@code{*}), the number of dimensions depends on the dimensions of the actual
 parameter.
 @end indentedblock
+@cindex Asterisk array dimension
 
 @strong{@code{[ DEFAULT constant-value ]}}
 @indentedblock
@@ -4203,10 +4550,13 @@ OpenSDL input file.
 @strong{BASEALIGN, Invalid expression with BASEALIGN option.  Value must be in
 range 0 to 124. <basealign-parameter> [Line n]}
 @indentedblock
-@strong{Error:} The value for the @command{-align} qualifier is smaller than 0
+@strong{Error:} The value for the @command{--align} qualifier is smaller than 0
 or larger than 124.@*
 @strong{User Action:} Use a value in the range [0 ... 124].
 @end indentedblock
+@cindex Alignment
+@cindex --align qualifier
+@cindex Alignment keywords
 
 @strong{BUGCHECK, Internal consistency failure [Line n] - please submit a bug
 report}
@@ -4223,6 +4573,8 @@ long.@*
 @code{FILL} option to correct the size, in bytes, of the indicated
 @code{AGGREGATE}, and invoke OpenSDL again.
 @end indentedblock
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @strong{DIMENSIONSTAR, DIMENSION * for MEMBER <"member-name"> has no known
 discriminant [Line n]}
@@ -4231,6 +4583,7 @@ discriminant [Line n]}
 allowed.@*
 @strong{User Action:} Use fixed values for "DIMENSION" within all aggregate.
 @end indentedblock
+@cindex AGGREGATE member
 
 @strong{DUPCONATT, Item <item-name> has duplicate or conflicting attributes
 [Line n]}
@@ -4288,6 +4641,7 @@ on our hardcoded list without changing OpenSDL.@*
 This message is issued together with the DIMENSIONSTAR diagnostic.@*
 @strong{User Action:} See DIMENSIONSTAR.
 @end indentedblock
+@cindex AGGREGATE member
 
 @strong{IDENTGTR31, SDL-generated identifier longer than 31 characters exceeds
 capacity of <language-name> compiler [Line n]}
@@ -4363,6 +4717,7 @@ please submit a support request.
 missing.@*
 @strong{User Action:} Correct the error, and invoke OpenSDL again.
 @end indentedblock
+@cindex AGGREGATE keyword
 
 @strong{INVALIGN, Illegal value for --align qualifier in command line}
 @indentedblock
@@ -4371,6 +4726,8 @@ number.@*
 @strong{User Action:} Use a positive number as value for the @command{--align}
 qualifier.
 @end indentedblock
+@cindex Alignment
+@cindex --align qualifier
 
 @strong{INVBITFLD, Invalid bitfield <bitfield-name> -- bitfields> must be
 aggregate members [Line n]}
@@ -4380,6 +4737,7 @@ scalar items.@*
 @strong{User Action:} Incorporate the @code{BITFIELD} declaration in an
 aggregate.
 @end indentedblock
+@cindex AGGREGATE member
 
 @strong{INVCONDST, Invalid condition state [Line %d]}
 @indentedblock
@@ -4493,6 +4851,8 @@ Specifying an unknown length for an ITEM or AGGREGATE member is an error.@*
 @strong{User Action:} Remove the LENGTH specification or replace the "*" with a
 valid expression.
 @end indentedblock
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @strong{LANGDUP, Language name <language-name> appears more than once in list
 [Line n]}
@@ -4536,6 +4896,7 @@ delimiter does not match the most recent module name or aggregate name.@*
 illegally nested @code{MODULE} declarations.@*
 This is only a warning message, but it may indicate an error.
 @end indentedblock
+@cindex AGGREGATE keyword
 
 @strong{MULTDEFSYM, Multiply defined symbol -- <symbol-name> [Line n]}
 @indentedblock
@@ -4558,6 +4919,8 @@ offset elements will be ignored [Line n]}
 which is not at the beginning of the aggregate.@*
 @strong{User Action:} Specify the first member of the aggregate as origin.
 @end indentedblock
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @strong{NOCOPYFIL, No copyright input file}
 @indentedblock
@@ -4592,6 +4955,8 @@ members.@*
 @strong{User Action:} Verify that the AGGREGATE or subaggregate declaration is\
 correctly positioned in the file.
 @end indentedblock
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @strong{OFFSETEXPR, Offset or origin relative expression involves a forward or
 circular reference. <member-name> [Line n]}
@@ -4599,6 +4964,7 @@ circular reference. <member-name> [Line n]}
 @strong{Warning:} The offset or origin cannot be calculated.@*
 @strong{User Action:} Correct the error and invoke OpenSDL again.
 @end indentedblock
+@cindex AGGREGATE member
 
 @strong{OUTFILOPN, Unable to open output file <file-spec>}
 @indentedblock
@@ -4706,6 +5072,7 @@ length.@*
 @strong{Warning:} An illegal aggregate name has been used.@*
 @strong{User Action:} Choose another aggregate name.
 @end indentedblock
+@cindex AGGREGATE keyword
 
 @strong{TYPNOTSUP, Output language does not support data type <data-type-name>
 [Line n]}
@@ -4721,9 +5088,12 @@ n]}
 @indentedblock
 @strong{Warning:} A member does not fall on its natural alignment (if
 @command{-check} is present on the command line) or on the alignment specified
-with the @command{-align} qualifier.@*
+with the @command{--align} qualifier.@*
 @strong{User Action:} Check the layout of the aggregate in question.
 @end indentedblock
+@cindex AGGREGATE member
+@cindex Alignment
+@cindex --align qualifier
 
 @strong{UNDEFCON, Undefined constant name <constant-name> used in expression
 [Line n]}
@@ -4747,6 +5117,8 @@ aggregate [Line n]}
 found within the aggregate.@*
 @strong{User Action:} Verify the spelling of the member name.
 @end indentedblock
+@cindex AGGREGATE keyword
+@cindex AGGREGATE member
 
 @strong{UNDEFSYM, Undefined local symbol <symbol-name> used in expression [Line
 n]}
@@ -4852,6 +5224,7 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @item @code{NAMED return-name} @tab n/a
 @item @code{VARIABLE} @tab n/a
 @item @code{ALIAS internal-name} @tab n/a
+@cindex ALIAS keyword
 @item @code{LINKAGE} @tab n/a
 @item @code{TYPENAME type-name} @tab n/a
 @item @code{STRUCTURE} @tab @code{struct}
@@ -4919,6 +5292,7 @@ bits)
 string_text[n];@} name;} where n is the maximum length of the character string
 @item @code{name ADDRESS (object-type)} @tab @code{object-type *name}
 @cindex ADDRESS keyword
+@cindex ADDRESS declaration
 @item @code{name POINTER (object-type)} @tab @code{object-type *name}
 @item @code{name POINTER_LONG (object-type)} @tab @code{uint32_t}
 @item @code{name POINTER_HW (object-type)} @tab @code{uint32_t name} (32-bit)
@@ -4931,6 +5305,7 @@ string_text[n];@} name;} where n is the maximum length of the character string
 @item @code{name user-type-name} @tab @code{user-type-name name}
 @item @code{Default storage class} @tab @code{struct} or @code{union} with
 @code{<member-name>} as the tag, and no declared variable names
+@cindex AGGREGATE member
 @item @code{COMMON storage class} @tab @code{extern attribute}
 @item @code{GLOBAL storage class} @tab n/a
 @item @code{BASED pointer-name} @tab A pointer will be generated for the based
@@ -4942,6 +5317,7 @@ prefixed by an underscore (@code{_}).  Any reference to the structure type
 within the definition (such as for forward and backward linkages) is also
 output with the underscore.  For an @code{ITEM}, the @code{TYPEDEF} keyword is
 generated, followed by the data type of the @code{ITEM}.
+@cindex AGGREGATE keyword
 @item @code{DIMENSION [lbound:]hbound} @tab The declaration specifies an array
 of the number of elements specified with subscripts ranging from 0 to (hbound -
 lbound + 1)
@@ -4951,6 +5327,7 @@ lbound + 1)
 @node ASCII
 @appendix ASCII Character Set
 @cindex Appendix C
+@cindex ASCII character set
 
 The following table shows the ASCII character set referred to in
 @ref{Expressions}.
@@ -5088,6 +5465,7 @@ The following table shows the ASCII character set referred to in
 @end multitable
 
 @page
+@cindex ASCII character set
 
 The following table describes the ASCII character abbreviations used in the previous table.
 

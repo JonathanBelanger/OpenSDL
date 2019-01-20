@@ -1,3 +1,8 @@
+#
+# Left off startint at @cindex Decimal constants
+#
+
+
 \input texinfo    @c -*-texinfo-*-
 @comment $Id@w{$}
 @comment %**start of header
@@ -227,6 +232,7 @@ The following is a summary of new features in OpenSDL Version @value{VERSION}.
 @item User-defined data types @tab OpenSDL provides the @code{TYPEDEF} keyword
 to allow you to define additional data types in some languages.  @code{TYPEDEF}
 behaves like a Storage Class.
+@cindex Data type, typedef
 @item Entry point return types @tab This feature extends the syntax of the
 @code{ENTRY} statement to allow you to specify a user-defined data type as a
 return type.
@@ -263,6 +269,7 @@ The Open Structure Definition Language (OpenSDL) is used to write source
 statements that describe data structures and that can be translated to source
 statements in other languages.  You can include the resulting output files in a
 corresponding target language program for subsequent compilation.
+@cindex Data structures
 
 Because OpenSDL is compiler- and language-independent, it is particularly
 useful for maintaining multilanguage implementations.  For example, you can
@@ -424,6 +431,7 @@ constants.  In the example, @code{fixed_binary} will be assigned the value
 @item @code{AGGREGATE} declarations define data structures and their members.
 @cindex AGGREGATE keyword
 @cindex AGGREGATE declaration
+@cindex Data structures
 
 @item When the @code{PREFIX} option and a prefix are specified, OpenSDL
 concatenates the prefix and a data type code to the declared aggregate member
@@ -431,9 +439,12 @@ names in the language output files.  Compare these aggregate member name
 declarations with the C output shown in
 @ref{C Output File for the Sample OpenSDL Source File}.
 @cindex AGGREGATE member
+@cindex Data type, tag
+@cindex Data type, prefix
 
 @item Aggregate members are declared using reserved OpenSDL data type keywords.
 @cindex AGGREGATE member
+@cindex Data type, aggregate
 
 @item An aggregate member or a scalar data item can be declared to be an array
 by specifying the @code{DIMENSION} option.  In this example, the array operands
@@ -455,6 +466,7 @@ the constant @code{opr_node_size}.
 @item The @code{ADDRESS} keyword specifies a data type that is an address, or
 pointer.
 @cindex ADDRESS keyword
+@cindex Data type, address
 
 @item The @code{GLOBAL} keyword specifies global storage to override the
 default language storage class for an @code{ITEM} or an @code{AGGREGATE}
@@ -1324,6 +1336,7 @@ declaration:
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
 @cindex CONSTANT keyword
+@cindex Data type, tag
 
 @example
 CONSTANT block_node_size EQUALS #max_args + #counter;
@@ -1346,6 +1359,8 @@ character-string data type (see @ref{BITFIELD Data Type} and
 @ref{CHARACTER Data Type}).
 @cindex BITFIELD data type
 @cindex CHARACTER data type
+@cindex Data type, BITFIELD
+@cindex Data type, CHARACTER
 
 @page
 
@@ -1365,6 +1380,7 @@ Reserved OpenSDL keywords are used to specify the following:
 @cindex Alignment
 @cindex Alignment keywords
 @cindex Arrays
+@cindex Data type, keywords
 
 Reserved OpenSDL keywords can be entered in either upper- or lowercase letters,
 but they cannot be truncated.
@@ -1568,6 +1584,8 @@ using the entry point name
 the Ada and PL/I back ends to specify a user-defined data type name; see
 @ref{User Specified TYPENAME Keyword}
 @cindex User specified names
+@cindex Data type, user defined
+@cindex Data type, TYPENAME
 @end multitable
 @caption{PARAMETER Modifiers}
 @end float
@@ -1582,10 +1600,14 @@ parameter (in an Ada IMPORT_VALUED_PROCEDURE) into which the return value is
 returned
 @item @code{RETURNS} @tab Optional keyword used to specify the data type
 returned by the external entry
+@cindex Data type, RETURNS
+
 @item @code{TYPENAME} @tab Optional keyword used only by the Ada and PL/I back
 ends to specify a user-defined name that is the data type returned by the
 external entry; see @ref{User Specified TYPENAME Keyword}
 @cindex User specified names
+@cindex Data type, user defined
+@cindex Data type, TYPENAME
 @end multitable
 @caption{RETURN Value Keywords}
 @end float
@@ -1627,6 +1649,7 @@ may not override the OpenSDL data type.  The Ada and PL/I back ends use these
 data type names as parameter data types, as return value data types, and as
 @code{CONSTANT} declaration data types.
 @cindex CONSTANT declaration
+@cindex Data type, TYPENAME
 
 The @code{TYPENAME} keyword has the following syntax:
 
@@ -1737,6 +1760,7 @@ Is a 0 to 32-character string specifying the tag to use in forming the name.
 If the TAG option is not specified, OpenSDL uses a default code based on the
 data type of the name.
 @end indentedblock
+@cindex Data type, tag
 
 If you specify the @code{TAG} option, OpenSDL appends the tag-string, which may
 be null (" "), and an underscore character (_) to the current prefix-string.  A
@@ -1844,6 +1868,8 @@ mask (if @code{MASK} is specified) tags are generated regardless of whether a
 @end multitable
 @caption{Default Tags Used by OpenSDL}
 @end float
+@cindex Data type, default tags
+@cindex Data type, tag
 
 The following example shows the use of a user-specified prefix on an
 @code{AGGREGATE} declaration:
@@ -2174,6 +2200,8 @@ standard built-in OpenSDL Data Type (BYTE, LONGWORD etc.) can be referenced.
 Reference to the type MyStruct defined in the preceding example is made as
 follows:
 @cindex BYTE keyword
+@cindex Data type, user defined
+@cindex Data type, TYPEDEF
 
 @example
 ITEM foo MyStruct;
@@ -2273,6 +2301,7 @@ specifies, either implicitly or explicitly, the size of a member.
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
 @cindex Implicit Union keyword
+@cindex Data types
 
 The following sections describe the data types and the keywords you use to
 specify them.
@@ -2285,6 +2314,8 @@ following syntax:
 @cindex ADDRESS keyword
 @cindex ADDRESS data type
 @cindex ADDRESS declaration
+@cindex Data type, ADDRESS
+@cindex Data type, pointer
 
 @example
 pointer-type [ (object-type [ basealign-attribute ] ) ]
@@ -2346,6 +2377,7 @@ The @code{ANY} keyword specifies that the parameter being described in an
 @code{ENTRY} declaration can be of any data type.  The @code{ANY} data type can
 be used only within the context of a parameter description and has the
 following syntax:
+@cindex Data type, ANY
 
 @example
 ANY
@@ -2372,6 +2404,7 @@ the following syntax:
 @cindex BITFIELD keyword
 @cindex BITFIELD declaration
 @cindex BITFIELD data type
+@cindex Data type, BITFIELD
 
 @example
 BITFIELD [LENGTH n] [MASK] [SIGNED] [RADIX x];
@@ -2412,6 +2445,7 @@ members:
 @cindex BITFIELD keyword
 @cindex BITFIELD data type
 @cindex BITFIELD declaration
+@cindex Data type, BITFIELD
 
 @example
 AGGREGATE flags STRUCTURE PREFIX tst_;
@@ -2436,6 +2470,8 @@ the mask.  Prefixes and tags are described in more detail in
 The @code{BOOLEAN} keyword specifies a Boolean data type that is a one-byte
 field that can have one of two values, 0 or 1.  The @code{BOOLEAN} data type
 has the following syntax:
+@cindex BOOLEAN data type
+@cindex Data type, BOOLEAN
 
 @example
 BOOLEAN
@@ -2454,10 +2490,12 @@ ITEM true BOOLEAN;
 @end example
 @cindex BOOLEAN keyword
 @cindex BOOLEAN data type
+@cindex Data type, BOOLEAN
 
 @node CHARACTER Data Type
 @subsubsection CHARACTER Data Type
 @cindex CHARACTER declarations
+@cindex Data type, CHARACTER
 
 The @code{CHARACTER} keyword declares a character string of a given length.
 The @code{CHARACTER} data type has the following syntax:
@@ -2495,6 +2533,8 @@ character-string member named @code{message_text} with a length of 256
 characters.
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
+@cindex CHARACTER data type
+@cindex Data type, CHARACTER
 
 @example
 AGGREGATE msg_buffer STRUCTURE;
@@ -2507,6 +2547,7 @@ END;
 
 @node COMPLEX Data Types
 @subsubsection COMPLEX Data Types
+@cindex Data type, COMPLEX
 
 The @code{COMPLEX} keyword immediately follows any of the four floating-point
 data type keywords to specify any of the seven @code{COMPLEX} data types.  The
@@ -2537,6 +2578,7 @@ ITEM foo T_FLOATING COMPLEX;
 @subsubsection DECIMAL Data Type
 The @code{DECIMAL} keyword specifies a packed decimal data type and the size of
 the data type.  The @code{DECIMAL} data type has the following syntax:
+@cindex Data type, DECIMAL
 
 @example
 DECIMAL PRECISION (precision,scale)
@@ -2560,6 +2602,7 @@ ITEM percentage DECIMAL PRECISION (3,2);
 
 @node Floating Point Data Types
 @subsubsection Floating Point Data Types
+@cindex Data type, floating-point
 
 The floating-point keywords, @code{F_FLOATING}, @code{D_FLOATING},
 @code{G_FLOATING}, @code{H_FLOATING}, @code{T_FLOATING}, @code{S_FLOATING}, and
@@ -2584,6 +2627,13 @@ support these formats, but assumes the format of the underlying operating
 system and hardware.  In order to be able to be backward compatible with
 earlier versions of this software, the following equivalencies have been
 established:
+@cindex Data type, F_FLOATING
+@cindex Data type, D_FLOATING
+@cindex Data type, G_FLOATING
+@cindex Data type, H_FLOATING
+@cindex Data type, T_FLOATING
+@cindex Data type, S_FLOATING
+@cindex Data type, X_FLOATING
 
 @itemize @minus
 @item @code{F_FLOATING} is the same as @code{T_FLOATING}
@@ -2613,6 +2663,12 @@ integer data.
 @cindex QUADWORD keyword
 @cindex QUADWORD data type
 @cindex UNSIGNED keyword
+@cindex Data type, integer
+@cindex Data type, BYTE
+@cindex Data type, WORD
+@cindex Data type, LONGWORD
+@cindex Data type, QUADWORD
+@cindex Data type, OCTAWORD
 
 It is also possible to specify the keyword @code{SIGNED}, which is the default
 if noting is specified.
@@ -2629,6 +2685,13 @@ specified, they are 8 bytes wide.
 @cindex -32 qualifier
 @cindex -64 qualifier
 @cindex Command line qualifiers
+@cindex Data type, INTEGER_BYTE
+@cindex Data type, INTEGER_WORD
+@cindex Data type, INTEGER_LONG
+@cindex Data type, INTEGER_QUAD
+@cindex Data type, INTEGER_HW
+@cindex Data type, INTEGER
+@cindex Data type, HARDWARE_INTEGER
 
 The integer data types have the following syntax:
 
@@ -2651,6 +2714,18 @@ HARDWARE_INTEGER [ UNSIGNED | SIGNED ]
 @cindex QUADWORD keyword
 @cindex QUADWORD data type
 @cindex UNSIGNED keyword
+@cindex Data type, BYTE
+@cindex Data type, INTEGER_BYTE
+@cindex Data type, WORD
+@cindex Data type, INTEGER_WORD
+@cindex Data type, LONGWORD
+@cindex Data type, INTEGER_LONG
+@cindex Data type, INTEGER
+@cindex Data type, QUADWORD
+@cindex Data type, INTEGER_QUAD
+@cindex Data type, OCTAWORD
+@cindex Data type, INTEGER_HW
+@cindex Data type, HARDWARE_INTEGER
 
 The following are examples of the @code{LONGWORD} and @code{BYTE} data types
 used in an @code{ITEM} declaration:
@@ -3097,6 +3172,7 @@ The @code{DECLARE} statement uses the @code{SIZEOF} clause to allow you to
 specify the size of the user-defined data type being declared.  The parameter
 you specify in the @code{SIZEOF} clause may be a built-in OpenSDL data type, a
 user-defined type defined in the current OpenSDL compilation, or an expression.
+@cindex Data type, user defined
 
 The @code{DECLARE} statement has the following syntax:
 
@@ -3145,6 +3221,7 @@ Notes:
 @code{AGGREGATE} declaration.  (OpenSDL needs to know its equivalent predefined
 type so that the correct default tag letter, if required, can be output.)
 @cindex AGGREGATE keyword
+@cindex Data type, user defined
 
 @item You may declare a user-defined data type more than once (either
 explicitly or implicitly), but any subsequent declaration must match the first.
@@ -3154,6 +3231,7 @@ from the type specified in the @code{SIZEOF} clause.  If you use an expression
 in place of a data type to reserve a fixed number of bytes, the default tag
 letter is @code{T}.  You may override the default tag by using an explicit TAG
 option.
+@cindex Data type, tag
 
 @item @code{SIZEOF} clauses cannot be nested.
 
@@ -3298,6 +3376,7 @@ syntax for names.) For example:
 @cindex Output comments
 @cindex Line comments
 @cindex Block comments
+@cindex Data structures
 
 @example
 MODULE _modef;
@@ -3621,6 +3700,7 @@ You may specify data types on an @code{AGGREGATE} declaration to cause the
 implicit union declaration has these features:
 @cindex AGGREGATE keyword
 @cindex Implicit union Declaration
+@cindex Data type, implicit union
 
 @itemize @bullet
 @item Gives OpenSDL the ability to detect subfield overflow without the need to 
@@ -3630,6 +3710,8 @@ for data structures containing substructures that are required to begin at
 fixed offsets.
 @end itemize
 @cindex UNION data type
+@cindex Data structures
+@cindex Data type, UNION
 
 The following OpenSDL source code shows the syntax of an implicit union
 (structure B defines the implicit union declaration):
@@ -3719,6 +3801,7 @@ END fid;
 @end float
 @cindex AGGREGATE keyword
 @cindex AGGREGATE example
+@cindex Data type, implicit union
 
 In the previous example, a single structure is overlaid by an array of elements
 of the type specified by the structure type.
@@ -3749,6 +3832,7 @@ of the size of all its members, OpenSDL still translates the declaration.
 However, if the size of the members exceeds the size of the aggregate, OpenSDL
 issues a message that has the following format:
 @cindex AGGREGATE member
+@cindex Data type, implicit union
 
 @code{%SDL-E-TOOMANYFIELDS, Structure fid has too many fields [Line ?]}
 @cindex Implicit union declaration
@@ -3791,6 +3875,8 @@ always calculated as being relative to the beginning of the aggregate.
 @node Forcing Data Alignment
 @subsection Forcing Data Alignment
 @cindex Alignment
+@cindex Data alignment
+@cindex Forcing data alignment
 
 OpenSDL forces all @code{AGGREGATE} and subaggregate declarations to begin on
 byte boundaries.  Thus, if an aggregate or subaggregate ends with
@@ -4055,6 +4141,7 @@ data type.
 @cindex Alignment
 @cindex Alignment keywords
 @cindex BASEALIGN keyword
+@cindex Data alignment
 
 For example:
 
@@ -5418,6 +5505,7 @@ results of arithmetic operations in the expression, if any.
 
 @node Summaries
 @appendix OpenSDL Language Translation Summaries
+@cindex Data type, summaries
 
 This appendix shows the translation summaries of OpenSDL language elements to
 their corresponding output in each of the following supported languages:
@@ -5428,6 +5516,7 @@ their corresponding output in each of the following supported languages:
 @unnumberedsec C/C++ Translation Summary
 
 The following table shows the OpenSDL to C/C++ language translation summary.
+@cindex Data type, C/C++ summaries
 
 @multitable @columnfractions .45 .55
 @headitem OpenSDL Declaration @tab C/C++ Output

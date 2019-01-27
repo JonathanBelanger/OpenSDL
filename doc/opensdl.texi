@@ -1,8 +1,3 @@
-#
-# Left off startint at @cindex Decimal constants
-#
-
-
 \input texinfo    @c -*-texinfo-*-
 @comment $Id@w{$}
 @comment %**start of header
@@ -217,6 +212,8 @@ an @code{AGGREGATE} type (i.e. @code{STRUCTURE} or @code{UNION}).
 @cindex Arrays
 @cindex Asterisk array dimension
 @cindex UNION keyword
+@cindex DEFAULT keyword
+@cindex DIMENSION keyword
 
 @page
 
@@ -232,7 +229,7 @@ The following is a summary of new features in OpenSDL Version @value{VERSION}.
 @item User-defined data types @tab OpenSDL provides the @code{TYPEDEF} keyword
 to allow you to define additional data types in some languages.  @code{TYPEDEF}
 behaves like a Storage Class.
-@cindex Data type, typedef
+@cindex Data type, TYPEDEF
 @item Entry point return types @tab This feature extends the syntax of the
 @code{ENTRY} statement to allow you to specify a user-defined data type as a
 return type.
@@ -294,10 +291,11 @@ the parsed data to one or more of the OpenSDL ``back-end'' translators.
 Each back end translates only those OpenSDL declarations that can (or need) be
 expressed in that language.  OpenSDL declarations, described in detail in
 @ref{Declarations}, translate to the following types of data items:
+@cindex Declarations
 
 @itemize @bullet
 @item Scalar or dimensioned scalar data items (@code{ITEM} declarations)
-@item Nonscalar data items (@code{AGGREGATE} and subaggregate declarations)
+@item Non-scalar data items (@code{AGGREGATE} and subaggregate declarations)
 @item Named constants (@code{CONSTANT} declarations)
 @item External entries(@code{ENTRY} declarations)
 @end itemize
@@ -402,6 +400,7 @@ END_MODULE opr_descriptor@sup{13};
 @cindex Arrays
 @cindex CHARACTER example
 @cindex CONSTANT example
+@cindex DIMENSION example
 
 @enumerate
 @item All OpenSDL declarations are grouped within modules, and you must assign
@@ -427,6 +426,7 @@ constants.  In the example, @code{fixed_binary} will be assigned the value
 @code{1}, @code{floating} will be assigned the value @code{2}, and so on.
 @cindex CONSTANT keyword
 @cindex CONSTANT declaration
+@cindex Declared output constants
 
 @item @code{AGGREGATE} declarations define data structures and their members.
 @cindex AGGREGATE keyword
@@ -439,17 +439,18 @@ names in the language output files.  Compare these aggregate member name
 declarations with the C output shown in
 @ref{C Output File for the Sample OpenSDL Source File}.
 @cindex AGGREGATE member
-@cindex Data type, tag
-@cindex Data type, prefix
+@cindex Data type, tags
+@cindex Data type, prefixes
 
 @item Aggregate members are declared using reserved OpenSDL data type keywords.
 @cindex AGGREGATE member
-@cindex Data type, aggregate
+@cindex Data type, AGGREGATE
 
 @item An aggregate member or a scalar data item can be declared to be an array
 by specifying the @code{DIMENSION} option.  In this example, the array operands
 has @code{10} elements, with subscripts 0 through 9.
 @cindex Arrays
+@cindex DIMENSION option
 
 @item The period (@code{.}) represents the current byte offset within
 an @code{AGGREGATE} declaration.  The local symbol assignment
@@ -466,7 +467,7 @@ the constant @code{opr_node_size}.
 @item The @code{ADDRESS} keyword specifies a data type that is an address, or
 pointer.
 @cindex ADDRESS keyword
-@cindex Data type, address
+@cindex Data type, ADDRESS
 
 @item The @code{GLOBAL} keyword specifies global storage to override the
 default language storage class for an @code{ITEM} or an @code{AGGREGATE}
@@ -485,6 +486,7 @@ output file that results from translation of the OpenSDL source file shown in
 @ref{Elements} describes all the OpenSDL language elements, and
 @ref{Declarations} describes the function and format of each of the OpenSDL
 declarations.
+@cindex Declarations
 
 @float Example, C Output File for the Sample OpenSDL Source File
 @smallexample
@@ -653,6 +655,7 @@ END_MODULE opr_descriptor;@sup{27}
 @cindex Arrays
 @cindex CHARACTER example
 @cindex CONSTANT example
+@cindex DIMENSION example
 
 The following numbered items describe and display each step.  The numbered
 superscript corresponds to the equivalent numbered items.  Not all steps will
@@ -835,6 +838,7 @@ will look as follows:
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
 @cindex Arrays
+@cindex DIMENSION keyword
 
 @page
 
@@ -1230,6 +1234,7 @@ OpenSDL translates the declarations in iodef.src and writes the output to
 This chapter describes the function and syntax of the following OpenSDL
 language elements that compose the OpenSDL declarations described in
 @ref{Declarations}:
+@cindex Declarations
 
 @itemize @bullet
 @item User-specified names, which can be either local symbol names or source
@@ -1251,6 +1256,7 @@ they are not OpenSDL language elements (@ref{Local Comments} through
 @end itemize
 @cindex Comments
 @cindex Conditional compilation
+@cindex DECLARE statement
 
 The space, tab, or carriage return character delimits the language elements,
 and a semicolon (;) terminates each declaration.  In @code{MODULE} and
@@ -1285,6 +1291,7 @@ with OpenVMS versions of the software.
 contain invalid  OpenSDL characters must be enclosed in quotation marks (" ").
 (For more information on reserved OpenSDL keywords, @ref{Keywords Used in
 Declarations}).
+@cindex Declarations
 @item OpenSDL passes all source program identifiers to the output file in the
 same case in which they are defined, except where noted.
 @end enumerate
@@ -1366,6 +1373,7 @@ character-string data type (see @ref{BITFIELD Data Type} and
 
 @node Keywords Used in Declarations
 @section Keywords
+@cindex Declaration keywords
 
 Reserved OpenSDL keywords are used to specify the following:
 @itemize @bullet
@@ -1381,6 +1389,7 @@ Reserved OpenSDL keywords are used to specify the following:
 @cindex Alignment keywords
 @cindex Arrays
 @cindex Data type, keywords
+@cindex DIMENSION keyword
 
 Reserved OpenSDL keywords can be entered in either upper- or lowercase letters,
 but they cannot be truncated.
@@ -1390,6 +1399,7 @@ OpenSDL keywords.
 
 @node Declaration Keywords
 @subsection Declaration Keywords
+@cindex Declarations keywords
 
 @ref{Keywords That Identify or End Declarations} alphabetically lists and
 defines the keywords for the declarations described in detail in
@@ -1422,6 +1432,7 @@ subaggregate
 
 @node Declaration Modifier Keywords
 @subsection Declaration Modifier Keywords
+@cindex Declarations modifier keywords
 
 @ref{Keywords That Identify or End Declarations} lists and defines other
 keywords that are used in declarations.  The prefix and tag, storage class, and
@@ -1456,6 +1467,7 @@ common and global storage; see @ref{Storage Class Keywords}
 @cindex COMMON storage class
 @item @code{DIMENSION} @tab Optional keyword used to specify that the
 @code{ITEM} declaration is an array; see @ref{DIMENSION Keyword}
+@cindex DIMENSION keyword
 @item @code{PREFIX} @tab Optional keyword used to concatenate a user-defined
 prefix to @code{ITEM} names, @code{AGGREGATE} member names, and named
 constants; see @ref{PREFIX MARKER and TAG Keywords}
@@ -1480,6 +1492,7 @@ Optional keywords used to specify common, global, or based storage, or a
 @code{TYPEDEF}; see @ref{Storage Class Keywords}
 @item @code{DIMENSION} @tab Optional keyword used to specify that the
 @code{AGGREGATE} declaration is an array; see @ref{DIMENSION Keyword}
+@cindex DIMENSION option
 @item @code{FILL} @tab Optional keyword used to indicate whether the associated
 aggregate or member occurs only as a fill to force byte alignment on the
 following member or aggregate, respectively.
@@ -1570,8 +1583,10 @@ the parameter is both an input and an output parameter
 @headitem Other Parameter@*Modifier @tab Description
 @item @code{DEFAULT} @tab Optional parameter description keyword used to
 specify a default parameter value
+@cindex DEFAULT keyword
 @item @code{DIMENSION} @tab Optional keyword used to specify that the parameter
 is an array; see @ref{DIMENSION Keyword}
+@cindex DIMENSION option
 @item @code{LIST} @tab Optional parameter description keyword used to indicate
 that the routine may be called with one or more parameters of the type being
 described
@@ -1674,6 +1689,7 @@ ENTRY SYS$FAO
 @cindex ALIAS example
 @cindex UNSIGNED example
 @cindex CHARACTER example
+@cindex DEFAULT example
 
 @node PREFIX MARKER and TAG Keywords
 @subsubsection PREFIX, MARKER, and TAG Keywords
@@ -1820,6 +1836,7 @@ when the TAG option is not specified on an aggregate member.
 @cindex UNSIGNED keyword
 @item @code{F_FLOATING} @tab @code{F}
 @item @code{D_FLOATING} @tab @code{D}
+@cindex D_FLOATING keyword
 @item @code{G_FLOATING} @tab @code{G}
 @item @code{H_FLOATING} @tab @code{H}
 @item @code{T_FLOATING} @tab @code{T}
@@ -1834,6 +1851,7 @@ when the TAG option is not specified on an aggregate member.
 @item @code{X_FLOATING COMPLEX} @tab @code{XC}
 @cindex COMPLEX keyword
 @item @code{DECIMAL} @tab @code{P}
+@cindex DECIMAL keyword
 @item @code{BITFIELD} @tab @code{V} for @code{BITFIELD} offset
 @item @tab @code{S} for @code{BITFIELD} size@footnote{Identifiers with size and
 mask (if @code{MASK} is specified) tags are generated regardless of whether a
@@ -2106,6 +2124,7 @@ and is specified using the @code{BASED} option in some languages, although the
 default storage class option is language-dependent.  The back end can
 generate the @code{BASED} storage class option, which has the following
 syntax:
+@cindex Default storage class
 
 @example
 BASED (pointer-name)
@@ -2119,11 +2138,13 @@ to that aggregate.  In all target languages, the aggregate resulting from such
 a declaration has the default storage class (@code{BASED}).
 @cindex AGGREGATE keyword
 @cindex AGGREGATE declaration
+@cindex Default storage class
 
 A subaggregate always acquires the storage class of the aggregate to which it
 belongs.  The default storage class associated with any declaration is
 language-dependent.  You can override the default storage class by specifying
 either of the following storage classes:
+@cindex Default storage class
 
 @itemize @bullet
 @item @strong{Common storage} is allocated in an external program section
@@ -2211,6 +2232,7 @@ ITEM foo MyStruct;
 
 @node DIMENSION Keyword
 @subsubsection DIMENSION Keyword
+@cindex DIMENSION keyword
 
 You can apply a dimension to @code{AGGREGATE} (as well as members of aggregates
 and subaggregates) and @code{ITEM} declarations, which means that you can
@@ -2261,6 +2283,7 @@ END array_info;
 @cindex AGGREGATE member
 @cindex BITFIELD example
 @cindex CONSTANT example
+@cindex DIMENSION example
 
 The subaggregate bound has eight elements.  Each element consists of the members
 upper, lower, multiplier, and so on.  Because bound is an array, each of its
@@ -2274,8 +2297,8 @@ bound value as follows:
 @example
 ITEM node_pointers DIMENSION 0:255 ADDRESS;
 @end example
-@cindex ADDRESS keyword
 @cindex ADDRESS example
+@cindex DIMENSION example
 
 This declaration results in a declaration of the array node_pointers, whose low
 bound is 0 and whose high bound is 255.  Only one dimension can be specified for
@@ -2286,6 +2309,8 @@ there is no interlanguage conflict in an array declaration.
 You can see how OpenSDL translates the @code{DIMENSION} option for each output
 language by processing the OpenSDL source file
 @file{/usr/lib/opensdl/examples/example.sdl}.
+@cindex DIMENSION option
+@cindex DIMENSION example
 
 @page
 
@@ -2300,7 +2325,7 @@ declaration to generate an implicit union.  The data type declaration also
 specifies, either implicitly or explicitly, the size of a member.
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
-@cindex Implicit Union keyword
+@cindex Implicit union keyword
 @cindex Data types
 
 The following sections describe the data types and the keywords you use to
@@ -2315,7 +2340,7 @@ following syntax:
 @cindex ADDRESS data type
 @cindex ADDRESS declaration
 @cindex Data type, ADDRESS
-@cindex Data type, pointer
+@cindex Data type, POINTER
 
 @example
 pointer-type [ (object-type [ basealign-attribute ] ) ]
@@ -2345,6 +2370,7 @@ Object-type is either a built-in object type, like @code{LONGWORD} or
 @code{ANY}, or a user-defined object type, optionally followed by a
 @code{DIMENSION} specification, or an @code{ENTRY} declaration.
 @end indentedblock
+@cindex DIMENSION option
 
 @strong{@code{basealign-attribute}}
 @indentedblock
@@ -2579,10 +2605,14 @@ ITEM foo T_FLOATING COMPLEX;
 The @code{DECIMAL} keyword specifies a packed decimal data type and the size of
 the data type.  The @code{DECIMAL} data type has the following syntax:
 @cindex Data type, DECIMAL
+@cindex DECIMAL data type
+@cindex DECIMAL declaration
+
 
 @example
 DECIMAL PRECISION (precision,scale)
 @end example
+@cindex DECIMAL example
 
 @strong{@code{PRECISION (precision,scale)}}
 @indentedblock
@@ -2599,6 +2629,7 @@ three decimal digits, two of which are fractional:
 @example
 ITEM percentage DECIMAL PRECISION (3,2);
 @end example
+@cindex DECIMAL example
 
 @node Floating Point Data Types
 @subsubsection Floating Point Data Types
@@ -2619,13 +2650,14 @@ T_FLOATING
 S_FLOATING
 X_FLOATING
 @end example
+@cindex D_FLOATING keyword
 
 @quotation Note
 @code{F_FLOATING}, @code{D_FLOATING}, @code{G_FLOATING}, and @code{H_FLOATING}
 are OpenVMS VAX and OpenVMS Alpha floating-point formats.  OpenSDL does not
 support these formats, but assumes the format of the underlying operating
 system and hardware.  In order to be able to be backward compatible with
-earlier versions of this software, the following equivalencies have been
+earlier versions of this software, the following equivalences have been
 established:
 @cindex Data type, F_FLOATING
 @cindex Data type, D_FLOATING
@@ -2634,6 +2666,7 @@ established:
 @cindex Data type, T_FLOATING
 @cindex Data type, S_FLOATING
 @cindex Data type, X_FLOATING
+@cindex D_FLOATING data type
 
 @itemize @minus
 @item @code{F_FLOATING} is the same as @code{T_FLOATING}
@@ -2663,7 +2696,6 @@ integer data.
 @cindex QUADWORD keyword
 @cindex QUADWORD data type
 @cindex UNSIGNED keyword
-@cindex Data type, integer
 @cindex Data type, BYTE
 @cindex Data type, WORD
 @cindex Data type, LONGWORD
@@ -2761,6 +2793,7 @@ character that follows it.} @tab ASCII value @tab Any ASCII character (see
 @cindex ASCII value operator
 
 OpenSDL treats decimal constants as signed integer longword values.
+@cindex Decimal constants
 
 You can also use a string of up to four characters as a numeric constant by
 enclosing the string in quotation marks (" ").  OpenSDL inserts the ASCII
@@ -2850,7 +2883,7 @@ CONSTANT foo EQUALS %Ag + 72 / (#abc * boo + .);
 @node Local Comments
 @section Local Comments
 @cindex Comments
-@cindex Local Comments
+@cindex Local comments
 @cindex Not output comments
 
 A comment that is local to the OpenSDL source file is not written to the output
@@ -3162,6 +3195,7 @@ message will not be generated as the result of the missing variable.
 
 @node DECLARE Statement
 @section DECLARE Statement
+@cindex DECLARE statement
 
 The @code{DECLARE} statement allows you to declare a data item of a type that
 you define, which may be unknown in the current OpenSDL compilation.  When you
@@ -3173,6 +3207,7 @@ specify the size of the user-defined data type being declared.  The parameter
 you specify in the @code{SIZEOF} clause may be a built-in OpenSDL data type, a
 user-defined type defined in the current OpenSDL compilation, or an expression.
 @cindex Data type, user defined
+@cindex DECLARE SIZEOF clause
 
 The @code{DECLARE} statement has the following syntax:
 
@@ -3222,6 +3257,7 @@ Notes:
 type so that the correct default tag letter, if required, can be output.)
 @cindex AGGREGATE keyword
 @cindex Data type, user defined
+@cindex DECLARE statement
 
 @item You may declare a user-defined data type more than once (either
 explicitly or implicitly), but any subsequent declaration must match the first.
@@ -3237,10 +3273,13 @@ option.
 
 @item You cannot qualify a reference to the name of a previously-declared
 aggregate using the @code{SIZEOF} clause.
+@cindex DECLARE SIZEOF clause
 
 @item Although @code{DECLARE} statements and implicit @code{SIZEOF}
 declarations appear in the output tree for use by the back ends, these do not
 result in specific generated code.
+@cindex DECLARE statement
+@cindex DECLARE SIZEOF clause
 
 @item Do not use the @code{SIZEOF} clause for data types that are aggregate
 names.  Also, do not nest @code{SIZEOF} clauses where the syntax would
@@ -3253,6 +3292,8 @@ ITEM type ADDRESS (bar SIZEOF LONGWORD);
 @end example
 @cindex ADDRESS keyword
 @cindex ADDRESS example
+@cindex DECLARE example
+@cindex DECLARE SIZEOF example
 
 However, the following statement generates an error message:
 
@@ -3302,6 +3343,10 @@ ITEM region forest DIMENSION 4; @{No SIZEOF, since ’forest’ defined here @}
 @cindex ADDRESS example
 @cindex AGGREGATE keyword
 @cindex AGGREGATE example
+@cindex DECLARE statement
+@cindex DECLARE example
+@cindex DECLARE SIZEOF example
+@cindex DIMENSION example
 
 @strong{@file{tree1.h}}:
 @example
@@ -3333,6 +3378,7 @@ offset calculations.
 
 @node Declarations
 @chapter OpenSDL Declarations
+@cindex Declarations
 
 This chapter describes the function and format of each of the following OpenSDL
 declarations:
@@ -3446,6 +3492,7 @@ Is one or more of the following:
 @cindex AGGREGATE declaration
 @cindex CONSTANT keyword
 @cindex CONSTANT declaration
+@cindex DECLARE statement
 
 @strong{@code{END_MODULE [module-name]}}
 @indentedblock
@@ -3505,6 +3552,8 @@ Is any valid OpenSDL data type (see @ref{Data Type Keywords}).
 Is a user-defined data type using the @code{DECLARE} statement’s @code{SIZEOF}
 clause, shown and described in @ref{DECLARE Statement}.
 @end indentedblock
+@cindex DECLARE statement
+@cindex DECLARE SIZEOF clause
 
 @strong{@code{[ COMMON ]}@*}
 @strong{@code{[ GLOBAL ]}@*}
@@ -3534,6 +3583,8 @@ indicates the number of elements in the array.  Otherwise, lbound and hbound
 represent lower and upper bounds of the array, respectively (see
 @ref{DIMENSION Keyword}).
 @end indentedblock
+@cindex DIMENSION keyword
+@cindex DIMENSION declaration
 
 @strong{@code{[ PREFIX prefix-string ]}}
 @indentedblock
@@ -3699,7 +3750,7 @@ You may specify data types on an @code{AGGREGATE} declaration to cause the
 @code{AGGREGATE} declaration to become an implicit union declaration.  An
 implicit union declaration has these features:
 @cindex AGGREGATE keyword
-@cindex Implicit union Declaration
+@cindex Implicit union declaration
 @cindex Data type, implicit union
 
 @itemize @bullet
@@ -3788,6 +3839,7 @@ Keyword
 The following is an example of an OpenSDL structure defined with a data type
 and the @code{DIMENSION} keyword:
 @cindex Implicit union declaration
+@cindex DIMENSION keyword
 
 @float Example, DIMENSION Example
 @example
@@ -3799,9 +3851,9 @@ END fid;
 @end example
 @caption{DIMENSION Example}
 @end float
-@cindex AGGREGATE keyword
 @cindex AGGREGATE example
 @cindex Data type, implicit union
+@cindex DIMENSION example
 
 In the previous example, a single structure is overlaid by an array of elements
 of the type specified by the structure type.
@@ -4044,6 +4096,7 @@ CONSTANT inst_size EQUALS #instruction_size;
 @cindex Byte offset symbols example
 @cindex CHARACTER example
 @cindex CONSTANT example
+@cindex DIMENSION example
 
 In the previous example, the local symbol @code{#opsize} captures the byte
 offset following the fixed length portion of the structure operator.  This
@@ -4181,6 +4234,8 @@ Specifies that the aggregate is an array.  If a single value is specified, that
 value indicates the number of elements in the array.  Otherwise, lbound and
 hbound represent lower and upper bounds of the array, respectively.
 @end indentedblock
+@cindex DIMENSION keyword
+@cindex DIMENSION declaration
 
 @strong{@code{[ MARKER marker-string ]}}
 @indentedblock
@@ -4251,6 +4306,8 @@ prefix and tag.
 Is a user-defined variable using the @code{DECLARE} statement’s @code{SIZEOF}
 clause, shown and described in @ref{DECLARE Statement}.
 @end indentedblock
+@cindex DECLARE statement
+@cindex DECLARE SIZEOF clause
 
 @strong{@code{[ ALIGN ]@*}
 @code{[ NOALIGN ]@*}
@@ -4298,6 +4355,8 @@ value indicates the number of elements in the array.  Otherwise, @code{lbound}
 and @code{hbound} represent lower and upper bounds of the array, respectively
 (see @ref{DIMENSION Keyword}).
 @end indentedblock
+@cindex DIMENSION keyword
+@cindex DIMENSION declaration
 
 @strong{@code{[ PREFIX prefix-string ]}}
 @indentedblock
@@ -4644,6 +4703,7 @@ ENTRY SYS$GETJPI ALIAS $GETJPI PARAMETER (
 @cindex QUADWORD example
 @cindex UNSIGNED example
 @cindex CHARACTER example
+@cindex DEFAULT example
 
 @node ENTRY Format
 @section ENTRY Format
@@ -4735,12 +4795,16 @@ Is the number of elements of an array parameter.  If expression is an asterisk
 parameter.
 @end indentedblock
 @cindex Asterisk array dimension
+@cindex DIMENSION keyword
+@cindex DIMENSION declaration
 
 @strong{@code{[ DEFAULT constant-value ]}}
 @indentedblock
 Specifies a default value for a parameter.  In languages supporting this
 option, the omission of an actual parameter is allowed.
 @end indentedblock
+@cindex DEFAULT keyword
+@cindex DEFAULT declaration
 
 @strong{@code{[ TYPENAME type-name ]}}
 @indentedblock
@@ -4803,6 +4867,8 @@ return-data-type = @{ data-type @}
 The argument @code{user-type sizeopt} specifies a user-defined type declared
 using the @code{DECLARE} statement’s @code{SIZEOF} clause, shown and described
 in @ref{DECLARE Statement}.
+@cindex DECLARE statement
+@cindex DECLARE SIZEOF clause
 
 The return type @code{VOID} indicates that the procedure returns no value.
 @end indentedblock
@@ -4886,6 +4952,7 @@ allowed.@*
 @strong{User Action:} Use fixed values for "DIMENSION" within all aggregate.
 @end indentedblock
 @cindex AGGREGATE member
+@cindex DIMENSION keyword
 
 @strong{DUPCONATT, Item <item-name> has duplicate or conflicting attributes
 [Line n]}
@@ -4945,6 +5012,7 @@ This message is issued together with the DIMENSIONSTAR diagnostic.@*
 @strong{User Action:} See DIMENSIONSTAR.
 @end indentedblock
 @cindex AGGREGATE member
+@cindex DIMENSION keyword
 
 @strong{IDENTGTR31, SDL-generated identifier longer than 31 characters exceeds
 capacity of <language-name> compiler [Line n]}
@@ -5056,6 +5124,7 @@ aggregate.
 invalid.@*
 @strong{User Action:} Correct the DECLARE statement, and invoke OpenSDL again.
 @end indentedblock
+@cindex DECLARE statement
 
 @strong{INVENUMNAM, Invalid or no enumeration name specified}
 @indentedblock
@@ -5454,6 +5523,7 @@ and that it appears before its reference in the OpenSDL source file.
 built-in nor a known user defined data type.@*
 @strong{User Action:} Check the spelling of the data type referenced.
 @end indentedblock
+@cindex DECLARE statement
 
 @strong{UNKNCOSTTYP, Unknown constant type <type-value> [Line n]}
 @indentedblock
@@ -5502,6 +5572,7 @@ results of arithmetic operations in the expression, if any.
 @end indentedblock
 @cindex BITFIELD declaration
 @cindex CHARACTER declaration
+@cindex DIMENSION declaration
 
 @node Summaries
 @appendix OpenSDL Language Translation Summaries
@@ -5542,6 +5613,8 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @item @code{VALUE} @tab n/a
 @item @code{REFERENCE} @tab @code{*type}
 @item @code{DEFAULT n} @tab n/a
+@cindex DEFAULT keyword
+@cindex DEFAULT declaration
 @item @code{LIST} @tab n/a
 @item @code{OPTIONAL} @tab n/a
 @item @code{TYPENAME type-name} @tab n/a
@@ -5605,6 +5678,7 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @cindex UNSIGNED keyword
 @item @code{name F_FLOATING} @tab @code{float name}
 @item @code{name D_FLOATING} @tab @code{double float name}
+@cindex D_FLOATING keyword
 @item @code{name G_FLOATING} @tab @code{double float name}
 @item @code{name H_FLOATING} @tab @code{long double float name}
 @item @code{name T_FLOATING} @tab @code{float name}
@@ -5619,6 +5693,7 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @item @code{name X_FLOATING COMPLEX} @tab @code{long double float complex name}
 @cindex COMPLEX keyword
 @item @code{name DECIMAL PRECISION (p,q)} @tab @code{char name [p/2+1]}
+@cindex DECIMAL keyword
 @item @code{name BITFIELD} @tab @code{uint8_t name:1} (bitfields of 1 to 8
 bits)
 @item @tab @code{uint16_t name : 1} (bitfields of 9 to 16 bits)
@@ -5677,6 +5752,8 @@ lbound + 1)
 @cindex BASED keyword
 @cindex BOOLEAN keyword
 @cindex COMMON keyword
+@cindex Default storage class
+@cindex DIMENSION keyword
 
 @node ASCII
 @appendix ASCII Character Set

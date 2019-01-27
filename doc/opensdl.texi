@@ -302,6 +302,7 @@ expressed in that language.  OpenSDL declarations, described in detail in
 @cindex AGGREGATE keyword
 @cindex Arrays
 @cindex CONSTANT keyword
+@cindex ENTRY keyword
 
 @ref{OpenSDL Translation Process} shows each step in the OpenSDL translation
 process, and the key following the example describes each step.
@@ -317,6 +318,8 @@ detail.
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
 @cindex CONSTANT keyword
+@cindex END_MODULE keyword
+@cindex END keyword
 
 @item Process the file created above using the4 @command{opensdl} command,
 noting any errors that may be reported.
@@ -401,6 +404,10 @@ END_MODULE opr_descriptor@sup{13};
 @cindex CHARACTER example
 @cindex CONSTANT example
 @cindex DIMENSION example
+@cindex END_MODULE keyword
+@cindex END keyword
+@cindex EQUALS example
+@cindex EQUALS expression
 
 @enumerate
 @item All OpenSDL declarations are grouped within modules, and you must assign
@@ -477,6 +484,7 @@ declaration.
 
 @item The @code{END_MODULE} keyword ends a @code{MODULE} declaration; you may
 optionally specify the @code{MODULE} name after the @code{END_MODULE} keyword.
+@cindex END_MODULE keyword
 @end enumerate
 
 @ref{C Output File for the Sample OpenSDL Source File} shows the C/C++ language
@@ -588,6 +596,7 @@ depending upon the output language.  Within the OpenSDL parser, a lowercase
 @code{AGGREGATE} @emph{ID} will @strong{not} match an uppercase (or camelcase)
 @code{END} @emph{ID}, and will cause a warning message to be displayed.
 @cindex AGGREGATE keyword
+@cindex END keyword
 
 Identifiers that are also an OpenSDL keyword can be used, but need to be
 enclosed in double-quotes (@key{"}).  Any leading and trailing spaces will be
@@ -656,6 +665,9 @@ END_MODULE opr_descriptor;@sup{27}
 @cindex CHARACTER example
 @cindex CONSTANT example
 @cindex DIMENSION example
+@cindex END_MODULE keyword
+@cindex END keyword
+@cindex EQUALS example
 
 The following numbered items describe and display each step.  The numbered
 superscript corresponds to the equivalent numbered items.  Not all steps will
@@ -1344,11 +1356,14 @@ declaration:
 @cindex AGGREGATE member
 @cindex CONSTANT keyword
 @cindex Data type, tag
+@cindex ENTRY keyword
+@cindex EQUALS keyword
 
 @example
 CONSTANT block_node_size EQUALS #max_args + #counter;
 @end example
 @cindex CONSTANT example
+@cindex EQUALS example
 
 To avoid compilation errors, each reference to a particular OpenSDL identifier
 must be a case sensitive match because an identifier is passed to the output
@@ -1427,6 +1442,9 @@ subaggregate
 @cindex UNION declaration
 @cindex CONSTANT keyword
 @cindex CONSTANT declaration
+@cindex END_MODULE keyword
+@cindex END keyword
+@cindex ENTRY keyword
 
 @page
 
@@ -1547,10 +1565,12 @@ introduced when Ada or PL/I back-ends are developed; see @ref{User Specified
 @end float
 @cindex CONSTANT keyword
 @cindex CONSTANT declaration
+@cindex EQUALS keyword
 
 @page
 
 @subsubheading ENTRY Declaration
+@cindex ENTRY declaration
 
 @float Table, ENTRY Declaration
 @multitable @columnfractions .2 .8
@@ -1644,6 +1664,7 @@ point can be invoked with a variable number of parameters; see also the
 @end multitable
 @caption{ENTRY Description Keywords}
 @end float
+@cindex ENTRY keywords
 
 @page
 
@@ -1690,6 +1711,7 @@ ENTRY SYS$FAO
 @cindex UNSIGNED example
 @cindex CHARACTER example
 @cindex DEFAULT example
+@cindex ENTRY example
 
 @node PREFIX MARKER and TAG Keywords
 @subsubsection PREFIX, MARKER, and TAG Keywords
@@ -1798,6 +1820,7 @@ END;
 @cindex AGGREGATE keyword
 @cindex AGGREGATE declaration
 @cindex AGGREGATE example
+@cindex END keyword
 
 The resulting output using the C/C++ backend is as follows:
 
@@ -1917,6 +1940,8 @@ END operator;
 @cindex BITFIELD example
 @cindex CHARACTER example
 @cindex CONSTANT example
+@cindex END keyword
+@cindex EQUALS example
 
 In the previous example, the member name @code{"typename"} is enclosed in
 quotation marks because it is an OpenSDL keyword.
@@ -1962,6 +1987,7 @@ CONSTANT (abc,def,ghi) EQUALS 0 INCREMENT 1
     TAG "";
 @end example
 @cindex CONSTANT example
+@cindex EQUALS example
 
 This declaration results in the names @code{new_abc}, @code{new_def}, and
 @code{new_ghi}.
@@ -1984,6 +2010,7 @@ For example:
 CONSTANT MyConst EQUALS 42 RADIX HEX;
 @end example
 @cindex CONSTANT example
+@cindex EQUALS example
 
 will generate the following C code header file:
 
@@ -2024,6 +2051,7 @@ END;
 @cindex Alignment example
 @cindex ALIGN example
 @cindex CHARACTER example
+@cindex END keyword
 
 @item If the @code{ALIGN} keyword is included in the definition of a member of
 an aggregate, this member will be aligned, even if the @code{AGGREGATE} itself
@@ -2040,6 +2068,7 @@ END;
 @cindex Alignment example
 @cindex ALIGN example
 @cindex CHARACTER example
+@cindex END keyword
 
 @item If the @code{NOALIGN} keyword is included in the definition of a member
 of an aggregate, no action will be taken to ensure that this member will be
@@ -2056,6 +2085,7 @@ END;
 @cindex Alignment example
 @cindex ALIGN example
 @cindex CHARACTER example
+@cindex END keyword
 
 @item If the @code{NOALIGN} keyword is included in the definition of an
 aggregate, no action will be taken to ensure that any member of this aggregate
@@ -2070,6 +2100,7 @@ END;
 @cindex AGGREGATE example
 @cindex Alignment example
 @cindex CHARACTER example
+@cindex END keyword
 
 @item If the @code{BASEALIGN} keyword is included in the definition of a member
 of an aggregate, this member will be aligned according to the given alignment.
@@ -2085,6 +2116,7 @@ END;
 @cindex Alignment example
 @cindex BASEALIGN example
 @cindex CHARACTER example
+@cindex END keyword
 
 @item If the @code{BASEALIGN} keyword is included in the definition of an
 aggregate or an item, the aggregate or item itself will be padded, so that in
@@ -2102,6 +2134,7 @@ END;
 @cindex Alignment example
 @cindex BASEALIGN example
 @cindex CHARACTER example
+@cindex END keyword
 
 The size of the aggregate will be a multiple of 4 (@math{2@sum{2}}), in this
 case 12, and neither @code{i1} nor @code{i2} will be aligned.  In the following
@@ -2214,6 +2247,7 @@ AGGREGATE MyStruct STRUCTURE TYPEDEF PREFIX jg_;
 END;
 @end example
 @cindex AGGREGATE example
+@cindex END keyword
 
 @subsubsection Data Types
 In most cases it is possible to refer to a user-defined Data Type where a
@@ -2284,6 +2318,7 @@ END array_info;
 @cindex BITFIELD example
 @cindex CONSTANT example
 @cindex DIMENSION example
+@cindex END keyword
 
 The subaggregate bound has eight elements.  Each element consists of the members
 upper, lower, multiplier, and so on.  Because bound is an array, each of its
@@ -2327,6 +2362,7 @@ specifies, either implicitly or explicitly, the size of a member.
 @cindex AGGREGATE member
 @cindex Implicit union keyword
 @cindex Data types
+@cindex ENTRY keyword
 
 The following sections describe the data types and the keywords you use to
 specify them.
@@ -2371,6 +2407,7 @@ Object-type is either a built-in object type, like @code{LONGWORD} or
 @code{DIMENSION} specification, or an @code{ENTRY} declaration.
 @end indentedblock
 @cindex DIMENSION option
+@cindex ENTRY keyword
 
 @strong{@code{basealign-attribute}}
 @indentedblock
@@ -2394,6 +2431,7 @@ END;
 @cindex AGGREGATE keyword
 @cindex AGGREGATE example
 @cindex AGGREGATE member
+@cindex END keyword
 
 @subsubsection ANY Data Type
 @cindex ANY keyword
@@ -2404,6 +2442,7 @@ The @code{ANY} keyword specifies that the parameter being described in an
 be used only within the context of a parameter description and has the
 following syntax:
 @cindex Data type, ANY
+@cindex ENTRY keyword
 
 @example
 ANY
@@ -2418,6 +2457,7 @@ ENTRY sys_abc PARAMETER (ANY);
 @end example
 @end indentedblock
 @cindex ANY example
+@cindex ENTRY example
 
 @node BITFIELD Data Type
 @subsubsection BITFIELD Data Type
@@ -2481,6 +2521,7 @@ END;
 @end example
 @cindex AGGREGATE example
 @cindex BITFIELD example
+@cindex END keyword
 
 The declaration of resolved in the previous example results in two declarations
 in the output file: a declaration for the bitfield itself and a declaration of
@@ -2544,6 +2585,7 @@ ENTRY LIB$ROUTINE PARAMETER(CHARACTER LENGTH * NAMED foo);
 @end example
 @end indentedblock
 @cindex CHARACTER example
+@cindex ENTRY example
 
 @strong{@code{[VARYING]}}
 @indentedblock
@@ -2570,6 +2612,7 @@ END;
 @end example
 @cindex AGGREGATE example
 @cindex CHARACTER example
+@cindex END keyword
 
 @node COMPLEX Data Types
 @subsubsection COMPLEX Data Types
@@ -2841,6 +2884,7 @@ shifted @code{y} places to the right
 @item Offset symbols are used in expressions specified in @code{AGGREGATE}
 declarations:
 @cindex AGGREGATE keyword
+@cindex Expressions
 
 @itemize @minus
 @item The period (@code{.}) represents the current byte offset from the origin
@@ -2872,12 +2916,14 @@ The following is an example of an expression used in a @code{CONSTANT}
 declaration, which appears in the context of an @code{AGGREGATE} declaration:
 @cindex AGGREGATE keyword
 @cindex CONSTANT keyword
+@cindex Expressions
 
 @example
 CONSTANT foo EQUALS %Ag + 72 / (#abc * boo + .);
 @end example
 @cindex Addition operator
 @cindex Asterisk multiplication operator
+@cindex EQUALS example
 @end itemize
 
 @node Local Comments
@@ -2923,6 +2969,7 @@ semicolon terminator(@code{;})
 @code{ITEM}, and @code{AGGREGATE} declarations
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
+@cindex ENTRY keyword
 
 @item Between declarations with in an aggregate
 
@@ -3017,6 +3064,7 @@ IFLANGUAGE language-name [ language-name ...  ] ;
 ]
 END_IFLANGUAGE [ language-name [ language-name ...  ] ] ;
 @end example
+@cindex END_IFLANGUAGE statement
 
 Note the following:
 
@@ -3028,6 +3076,7 @@ Note the following:
 @item The list of language-names on the @code{END_IFLANGUAGE} is optional, but
 if it is included, it must match the list on the @code{IFLANGUAGE} statement.
 The languages need not necessarily appear in the same order.
+@cindex END_IFLANGUAGE statement
 
 @item Language names may not be abbreviated.
 
@@ -3039,6 +3088,7 @@ the front end.
 output for languages which satisfy the condition.  A comment on the same line
 as the @code{END_IFLANGUAGE} statement is always output, as this is considered
 to be outside the body of the conditional.
+@cindex END_IFLANGUAGE statement
 @end itemize
 
 In the following example, OpenSDL generates a translation of the ITEM statement
@@ -3050,6 +3100,7 @@ IFLANGUAGE PASCAL ADA FORTRAN;
     ITEM foo LONGWORD;
 END_IFLANGUAGE PASCAL ADA FORTRAN;
 @end example
+@cindex END_IFLANGUAGE example
 
 @page
 
@@ -3077,6 +3128,8 @@ IFSYMBOL symbol-name ;
 ]
 END_IFSYMBOL ;
 @end example
+@cindex ELSE_IFSYMBOL statement
+@cindex END_IFSYMBOL statement
 
 Note the following:
 @itemize @bullet
@@ -3086,6 +3139,7 @@ Note the following:
 output if this symbol is specified on the command line.  A comment on the same
 line as the @code{END_IFSYMBOL} statement is always output, as this is
 considered to be outside the body of the conditional.
+@cindex END_IFSYMBOL statement
 @end itemize
 
 With the following example:
@@ -3106,6 +3160,8 @@ END_IFSYMBOL;
 @end example
 @caption{Conditional Compilation Example}
 @end float
+@cindex ELSE_IFSYMBOL example
+@cindex END_IFSYMBOL example
 
 @command{$ opensdl --lang:cc --symbol=s1:0 --symbol:s2=0 --symbol=s3:0 <file-spec>}
 
@@ -3159,6 +3215,7 @@ Any number of lines to be passed directly to
 the output stream without translation
 END_LITERAL;
 @end example
+@cindex END_LITERAL keyword
 
 Note the following:
 @itemize @bullet
@@ -3167,6 +3224,7 @@ statement is valid.
 @item The keyword @code{END_LITERAL} terminates a literal construct, and
 therefore cannot be included in a line of literal text.  Any text preceding
 @code{END_LITERAL} on the same line is output as a line of literal text.
+@cindex END_LITERAL keyword
 @end itemize
 
 Literal text is processed identically in all back ends.  The literal text is
@@ -3181,6 +3239,8 @@ LITERAL
 END_LITERAL
 END_IFLANGUAGE CC
 @end example
+@cindex END_LITERAL example
+@cindex END_IFLANGUAGE example
 
 Literal text within an @code{AGGREGATE} that contains a member definition, will
 not be taking into account when calculating offsets.  It is recommended to use
@@ -3325,6 +3385,7 @@ END;
 @cindex ADDRESS example
 @cindex AGGREGATE keyword
 @cindex AGGREGATE example
+@cindex END keyword
 
 @strong{@file{tree2.sdl}}:
 @example
@@ -3347,6 +3408,7 @@ ITEM region forest DIMENSION 4; @{No SIZEOF, since ’forest’ defined here @}
 @cindex DECLARE example
 @cindex DECLARE SIZEOF example
 @cindex DIMENSION example
+@cindex END keyword
 
 @strong{@file{tree1.h}}:
 @example
@@ -3393,6 +3455,7 @@ declarations:
 @cindex AGGREGATE declaration
 @cindex CONSTANT keyword
 @cindex CONSTANT declaration
+@cindex ENTRY declaration
 
 OpenSDL declarations are composed of the language elements described in
 @ref{Elements}.  The output generated by each OpenSDL declaration depends on
@@ -3423,6 +3486,7 @@ syntax for names.) For example:
 @cindex Line comments
 @cindex Block comments
 @cindex Data structures
+@cindex END_MODULE keyword
 
 @example
 MODULE _modef;
@@ -3444,6 +3508,7 @@ this is particularly useful if you place more than one @code{MODULE}
 declaration in the same OpenSDL source file.  The module name is case-sensitive
 and must match exactly (in case) the name specified on the @code{MODULE}
 declaration.
+@cindex END_MODULE keyword
 
 @page
 
@@ -3458,6 +3523,7 @@ MODULE module-name [ IDENT "ident-string" ];
         .
 END_MODULE [ module-name ];
 @end example
+@cindex END_MODULE keyword
 
 @strong{@code{MODULE module-name}}
 @indentedblock
@@ -3493,12 +3559,15 @@ Is one or more of the following:
 @cindex CONSTANT keyword
 @cindex CONSTANT declaration
 @cindex DECLARE statement
+@cindex ENTRY declaration
+@cindex ENTRY keyword
 
 @strong{@code{END_MODULE [module-name]}}
 @indentedblock
 Marks the end of the @code{MODULE} declaration.  The module-name, if specified,
 must match the name on the most recently specified @code{MODULE} declaration.
 @end indentedblock
+@cindex END_MODULE keyword
 
 @page
 
@@ -3636,6 +3705,7 @@ END dcb;
 @cindex ADDRESS example
 @cindex AGGREGATE example
 @cindex CHARACTER example
+@cindex END keyword
 
 You must terminate an @code{AGGREGATE} declaration with the @code{END}
 statement.  You can optionally specify the aggregate name on the @code{END}
@@ -3647,6 +3717,7 @@ default (@code{BASED}) storage class.
 @cindex ADDRESS keyword
 @cindex ADDRESS declaration
 @cindex BASED storage class
+@cindex END keyword
 
 @subsection Subaggregate Declaration
 
@@ -3680,6 +3751,7 @@ END tree_node;
 @cindex AGGREGATE example
 @cindex BITFIELD example
 @cindex UNION example
+@cindex END keyword
 
 In this example, the structures @code{pli_bits} and @code{c_bits} are both
 subaggregates of the @code{union lang_bits}.  Because @code{lang_bits} is a
@@ -3781,6 +3853,7 @@ END A;
 @end float
 @cindex AGGREGATE example
 @cindex BITFIELD example
+@cindex END keyword
 
 This implicit union declaration would be more cumbersome if represented as
 shown in the following @code{STRUCTURE} subaggregate:
@@ -3800,6 +3873,7 @@ END A;
 @cindex AGGREGATE example
 @cindex BITFIELD example
 @cindex UNION example
+@cindex END keyword
 
 In the previous example, the names @code{X} and @code{Y} become OpenSDL
 generated ‘‘filler’’ names in the implicit union case.
@@ -3854,6 +3928,7 @@ END fid;
 @cindex AGGREGATE example
 @cindex Data type, implicit union
 @cindex DIMENSION example
+@cindex END keyword
 
 In the previous example, a single structure is overlaid by an array of elements
 of the type specified by the structure type.
@@ -3914,6 +3989,7 @@ END;
 @cindex ADDRESS example
 @cindex AGGREGATE keyword
 @cindex AGGREGATE example
+@cindex END keyword
 
 This declaration defines the origin of the structure nodes to be at the member
 @code{qflink}, so you may address @code{flink} and @code{blink} as negative
@@ -3978,6 +4054,7 @@ END tree_node;
 @cindex AGGREGATE example
 @cindex BITFIELD example
 @cindex UNION example
+@cindex END keyword
 
 The current bit offset is set at 0 at the beginning of each aggregate and is
 incremented by the bit lengths of each structure member in the aggregate at
@@ -4002,6 +4079,7 @@ AGGREGATE dcb STRUCTURE PREFIX dcb_;
 @end example
 @cindex AGGREGATE example
 @cindex BITFIELD example
+@cindex END keyword
 
 The C/C++ translation of the OpenSDL @code{AGGREGATE} declaration in the
 previous example is as follows:
@@ -4097,6 +4175,8 @@ CONSTANT inst_size EQUALS #instruction_size;
 @cindex CHARACTER example
 @cindex CONSTANT example
 @cindex DIMENSION example
+@cindex END keyword
+@cindex EQUALS example
 
 In the previous example, the local symbol @code{#opsize} captures the byte
 offset following the fixed length portion of the structure operator.  This
@@ -4144,6 +4224,7 @@ AGGREGATE aggregate-name @{ STRUCTURE @} [ data-type ]
         .
 END [ aggregate-name ];
 @end example
+@cindex END keyword
 
 @strong{@code{AGGREGATE aggregate-name}}
 @indentedblock
@@ -4425,6 +4506,8 @@ CONSTANT block_node_size EQUALS 24;
 CONSTANT Strcon EQUALS STRING "This is a string constant" PREFIX Jg_;
 @end example
 @cindex CONSTANT example
+@cindex EQUALS example
+@cindex EQUALS STRING example
 
 The first declaration creates the named constant @code{block_node_size} and
 assigns it the value 24.  The second declaration creates the named string
@@ -4440,6 +4523,7 @@ directly to the output file.  For example, you can define the local symbol
 @example
 #block_size = 24;
 @end example
+@cindex Expressions
 
 A subsequent @code{CONSTANT} declaration may refer to @code{#block_size} and
 use the value 24, as follows:
@@ -4448,10 +4532,13 @@ use the value 24, as follows:
 CONSTANT block_node_size EQUALS #block_size;
 @end example
 @cindex CONSTANT example
+@cindex EQUALS example
 
 @code{CONSTANT} declarations (except string constants) can also be specified in
 a comma-delimited list, as follows:
 @cindex CONSTANT declaration
+@cindex EQUALS example
+@cindex EQUALS keyword
 
 @example
 CONSTANT
@@ -4510,6 +4597,7 @@ CONSTANT (basic,pascal,fortran)
 @end example
 @cindex Addition operator
 @cindex COUNTER example
+@cindex EQUALS example
 
 The following table shows the constant names produced by these two
 declarations.
@@ -4536,6 +4624,7 @@ CONSTANT(
     macro /* MACRO-32
     ) EQUALS 4 INCREMENT 4 PREFIX lang_;
 @end example
+@cindex EQUALS example
 
 @page
 
@@ -4599,6 +4688,7 @@ enclose the list in parentheses.
 @indentedblock
 Specifies the value to be assigned to the constant.
 @end indentedblock
+@cindex EQUALS STRING keyword
 
 @strong{@code{[ PREFIX prefix-string ]}}
 @indentedblock
@@ -4669,6 +4759,7 @@ output language supports enumerations.
 @end indentedblock
 
 @heading ENTRY Declaration
+@cindex ENTRY declaration
 
 The following sections describe the function and format of the @code{ENTRY}
 declaration.
@@ -4704,6 +4795,7 @@ ENTRY SYS$GETJPI ALIAS $GETJPI PARAMETER (
 @cindex UNSIGNED example
 @cindex CHARACTER example
 @cindex DEFAULT example
+@cindex ENTRY example
 
 @node ENTRY Format
 @section ENTRY Format
@@ -4881,6 +4973,10 @@ type.
 
 @node Messages
 @appendix OpenSDL Diagnostic Messages
+@cindex Error messages
+@cindex Informational message
+@cindex Warning messages
+@cindex Fatal messages
 
 This appendix summarizes the OpenSDL diagnostic messages.  All messages
 indicating errors in OpenSDL syntax specify the line number in the OpenSDL
@@ -5243,6 +5339,7 @@ valid expression.
 the name of a language appears twice.@*
 @strong{User Action:} Remove the duplicate language name.
 @end indentedblock
+@cindex END_IFLANGUAGE statement
 
 @strong{LANGMATCH, Language <language-name> does not appear in list of matching
 IF statement [Line n]}
@@ -5252,6 +5349,7 @@ IF statement [Line n]}
 after the corresponding @code{IFLANGUAGE} keyword.@*
 @strong{User Action:} Correct the language list.
 @end indentedblock
+@cindex END_IFLANGUAGE statement
 
 @strong{LANGMISS, Language <language-name> in list of matching IF statement
 missing from END list [Line n]}
@@ -5261,6 +5359,7 @@ from the @code{IFLANGUAGE} statement is missing.@*
 @strong{User Action:} Add the missing language to the @code{END_IFLANGUAGE}
 statement or remove all languages from the @code{END_IFLANGUAGE} statement.
 @end indentedblock
+@cindex END_IFLANGUAGE statement
 
 @strong{LISFILOPN, Unable to open listing file <file-spec>}
 @indentedblock
@@ -5279,6 +5378,8 @@ illegally nested @code{MODULE} declarations.@*
 This is only a warning message, but it may indicate an error.
 @end indentedblock
 @cindex AGGREGATE keyword
+@cindex END keyword
+@cindex END_MODULE keyword
 
 @strong{MULTDEFSYM, Multiply defined symbol -- <symbol-name> [Line n]}
 @indentedblock
@@ -5423,6 +5524,7 @@ zero assumed [Line n]}
 @strong{User Action:} Define the symbol using the @command{--symbol} qualifier.
 @end indentedblock
 @cindex Command line qualifiers
+@cindex ELSE_IFSYMBOL statement
 
 @strong{SYMTABOVR, Symbol table overflow}
 @indentedblock
@@ -5600,10 +5702,14 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @item @code{/-} @tab @code{ */}
 @item @code{CONSTANT} @tab
 @item @code{@ @ @ @ EQUALS n;} @tab @code{#define x n}
+@cindex EQUALS keyword
 @item @code{@ @ @ @ EQUALS STRING "s";} @tab @code{#define x "s"}
+@cindex EQUALS STRING keyword
 @cindex CONSTANT keyword
 @cindex CONSTANT declaration
 @item @code{ENTRY name} @tab @code{return-type name( )}
+@cindex ENTRY keyword
+@cindex ENTRY declaration
 @item @tab @code{return-type name(parameters...)}
 @item @code{PARAMETER (type,...)} @tab @code{type param-name}
 @item @code{ANY} @tab @code{void}

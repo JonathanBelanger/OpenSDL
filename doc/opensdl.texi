@@ -451,7 +451,6 @@ declarations with the C output shown in
 
 @item Aggregate members are declared using reserved OpenSDL data type keywords.
 @cindex AGGREGATE member
-@cindex Data type, AGGREGATE
 
 @item An aggregate member or a scalar data item can be declared to be an array
 by specifying the @code{DIMENSION} option.  In this example, the array operands
@@ -481,6 +480,8 @@ default language storage class for an @code{ITEM} or an @code{AGGREGATE}
 declaration.
 @cindex AGGREGATE keyword
 @cindex AGGREGATE declaration
+@cindex GLOBAL keyword
+@cindex GLOBAL storage class
 
 @item The @code{END_MODULE} keyword ends a @code{MODULE} declaration; you may
 optionally specify the @code{MODULE} name after the @code{END_MODULE} keyword.
@@ -1483,6 +1484,8 @@ used to specify alignment; see @ref{Alignment Keywords}
 common and global storage; see @ref{Storage Class Keywords}
 @cindex COMMON keyword
 @cindex COMMON storage class
+@cindex GLOBAL keyword
+@cindex GLOBAL storage class
 @item @code{DIMENSION} @tab Optional keyword used to specify that the
 @code{ITEM} declaration is an array; see @ref{DIMENSION Keyword}
 @cindex DIMENSION keyword
@@ -1507,6 +1510,7 @@ code assigned to a name and to assign a user-defined tag instead; see
 @item @code{COMMON},@*@code{GLOBAL},@*@code{BASED},@*@code{TYPEDEF} @tab
 Optional keywords used to specify common, global, or based storage, or a
 @cindex COMMON keyword
+@cindex GLOBAL keyword
 @code{TYPEDEF}; see @ref{Storage Class Keywords}
 @item @code{DIMENSION} @tab Optional keyword used to specify that the
 @code{AGGREGATE} declaration is an array; see @ref{DIMENSION Keyword}
@@ -1515,6 +1519,7 @@ Optional keywords used to specify common, global, or based storage, or a
 aggregate or member occurs only as a fill to force byte alignment on the
 following member or aggregate, respectively.
 @cindex Alignment
+@cindex FILL keyword
 @item @code{MARKER} @tab Optional keyword used to assign a user-defined prefix
 to the aggregate name; see @ref{PREFIX MARKER and TAG Keywords}
 @item @code{ORIGIN} @tab Optional keyword used to define the beginning of an
@@ -1532,6 +1537,7 @@ code assigned to a name and to assign a user-defined tag instead; see
 @cindex AGGREGATE declaration
 @cindex AGGREGATE member
 @cindex BASED keyword
+@cindex FILL keyword
 
 @page
 
@@ -1847,6 +1853,7 @@ when the TAG option is not specified on an aggregate member.
 @item @code{BYTE [UNSIGNED]} @tab @code{B}
 @cindex BYTE keyword
 @cindex BYTE data type
+@cindex Data type, BYTE
 @cindex UNSIGNED keyword
 @item @code{WORD [UNSIGNED]} @tab @code{W}
 @cindex UNSIGNED keyword
@@ -1854,24 +1861,67 @@ when the TAG option is not specified on an aggregate member.
 @cindex UNSIGNED keyword
 @item @code{QUADWORD [UNSIGNED]} @tab @code{Q}
 @cindex QUADWORD data type
+@cindex Data type, QUADWORD
 @cindex UNSIGNED keyword
 @item @code{OCTAWORD [UNSIGNED]} @tab @code{O}
 @cindex UNSIGNED keyword
-@item @code{F_FLOATING} @tab @code{F}
 @item @code{D_FLOATING} @tab @code{D}
 @cindex D_FLOATING keyword
+@cindex D_FLOATING data type
+@cindex Data type, D_FLOATING
+@item @code{F_FLOATING} @tab @code{F}
+@cindex F_FLOATING keyword
+@cindex F_FLOATING data type
+@cindex Data type, F_FLOATING
 @item @code{G_FLOATING} @tab @code{G}
+@cindex G_FLOATING keyword
+@cindex G_FLOATING data type
+@cindex Data type, G_FLOATING
 @item @code{H_FLOATING} @tab @code{H}
-@item @code{T_FLOATING} @tab @code{T}
+@cindex H_FLOATING keyword
+@cindex H_FLOATING data type
+@cindex Data type, H_FLOATING
 @item @code{S_FLOATING} @tab @code{S}
+@cindex S_FLOATING keyword
+@cindex S_FLOATING data type
+@cindex Data type, S_FLOATING
+@item @code{T_FLOATING} @tab @code{T}
+@cindex T_FLOATING keyword
+@cindex T_FLOATING data type
+@cindex Data type, _FLOATING
 @item @code{X_FLOATING} @tab @code{X}
-@item @code{F_FLOATING COMPLEX} @tab @code{FC}
+@cindex X_FLOATING keyword
+@cindex X_FLOATING data type
+@cindex Data type, X_FLOATING
+@cindex Floating-point keywords
 @item @code{D_FLOATING COMPLEX} @tab @code{DC}
+@cindex D_FLOATING COMPLEX keyword
+@cindex D_FLOATING COMPLEX data type
+@cindex Data type, D_FLOATING COMPLEX
+@item @code{F_FLOATING COMPLEX} @tab @code{FC}
+@cindex F_FLOATING COMPLEX keyword
+@cindex F_FLOATING COMPLEX data type
+@cindex Data type, F_FLOATING COMPLEX
 @item @code{G_FLOATING COMPLEX} @tab @code{GC}
-@item @code{G_FLOATING COMPLEX} @tab @code{HC}
-@item @code{T_FLOATING COMPLEX} @tab @code{TC}
+@cindex G_FLOATING COMPLEX keyword
+@cindex G_FLOATING COMPLEX data type
+@cindex Data type, G_FLOATING COMPLEX
+@item @code{H_FLOATING COMPLEX} @tab @code{HC}
+@cindex H_FLOATING COMPLEX keyword
+@cindex H_FLOATING COMPLEX data type
+@cindex Data type, H_FLOATING COMPLEX
 @item @code{S_FLOATING COMPLEX} @tab @code{SC}
+@cindex S_FLOATING COMPLEX keyword
+@cindex S_FLOATING COMPLEX data type
+@cindex Data type, S_FLOATING COMPLEX
+@item @code{T_FLOATING COMPLEX} @tab @code{TC}
+@cindex T_FLOATING COMPLEX keyword
+@cindex T_FLOATING COMPLEX data type
+@cindex Data type, T_FLOATING COMPLEX
 @item @code{X_FLOATING COMPLEX} @tab @code{XC}
+@cindex X_FLOATING COMPLEX keyword
+@cindex X_FLOATING COMPLEX data type
+@cindex Data type, X_FLOATING COMPLEX
 @cindex COMPLEX keyword
 @item @code{DECIMAL} @tab @code{P}
 @cindex DECIMAL keyword
@@ -1882,9 +1932,12 @@ mask (if @code{MASK} is specified) tags are generated regardless of whether a
 @item @tab @code{M} for @code{BITFIELD} mask
 @cindex BITFIELD keyword
 @cindex BITFIELD data type
+@cindex Data type, BITFIELD
 @item @code{CHARACTER} @tab @code{T}
 @cindex CHARACTER keyword
 @cindex CHARACTER default tag
+@cindex CHARACTER data type
+@cindex Data type, CHARACTER
 @item @code{ADDRESS} @tab @code{A}
 @cindex ADDRESS keyword
 @cindex ADDRESS default tag
@@ -1906,6 +1959,7 @@ mask (if @code{MASK} is specified) tags are generated regardless of whether a
 @item @code{UNION} @tab @code{R}
 @cindex UNION keyword
 @cindex UNION data type
+@cindex Data type, UNION
 @end multitable
 @caption{Default Tags Used by OpenSDL}
 @end float
@@ -1980,6 +2034,7 @@ default OpenSDL codes by specifying a tag, which may be null ("").  For
 example:
 @cindex Alignment
 @cindex BITFIELD declaration
+@cindex Forcing data alignment
 
 @example
 CONSTANT (abc,def,ghi) EQUALS 0 INCREMENT 1
@@ -2194,6 +2249,7 @@ whose value is defined elsewhere.  You declare global data by using the
 @code{GLOBAL} option on an @code{AGGREGATE} or @code{ITEM} declaration.
 @cindex AGGREGATE keyword
 @cindex AGGREGATE declaration
+@cindex GLOBAL storage class
 
 @item @strong{TYPEDEF} behaves like a storage class.  In C/C++, examples of
 storage classes are @code{static}, @code{globaldef/ref}, @code{extern}, etc.
@@ -2623,15 +2679,28 @@ data type keywords to specify any of the seven @code{COMPLEX} data types.  The
 @code{COMPLEX} data types have the following syntax:
 
 @example
-F_FLOATING COMPLEX
 D_FLOATING COMPLEX
+F_FLOATING COMPLEX
 G_FLOATING COMPLEX
 H_FLOATING COMPLEX
-T_FLOATING COMPLEX
 S_FLOATING COMPLEX
+T_FLOATING COMPLEX
 X_FLOATING COMPLEX
 @end example
 @cindex COMPLEX keyword
+@cindex D_FLOATING_COMPLEX data type
+@cindex F_FLOATING_COMPLEX data type
+@cindex G_FLOATING_COMPLEX data type
+@cindex S_FLOATING_COMPLEX data type
+@cindex T_FLOATING_COMPLEX data type
+@cindex X_FLOATING_COMPLEX data type
+@cindex Data type, D_FLOATING_COMPLEX
+@cindex Data type, F_FLOATING_COMPLEX
+@cindex Data type, G_FLOATING_COMPLEX
+@cindex Data type, H_FLOATING_COMPLEX
+@cindex Data type, S_FLOATING_COMPLEX
+@cindex Data type, T_FLOATING_COMPLEX
+@cindex Data type, X_FLOATING_COMPLEX
 
 The following is an example of the @code{T_FLOATING COMPLEX} data type used in
 an @code{ITEM} declaration:
@@ -2650,12 +2719,13 @@ the data type.  The @code{DECIMAL} data type has the following syntax:
 @cindex Data type, DECIMAL
 @cindex DECIMAL data type
 @cindex DECIMAL declaration
-
+@cindex Data type, DECIMAL
 
 @example
 DECIMAL PRECISION (precision,scale)
 @end example
 @cindex DECIMAL example
+@cindex Fixed-point decimal data
 
 @strong{@code{PRECISION (precision,scale)}}
 @indentedblock
@@ -2663,6 +2733,7 @@ Is the fixed-point decimal member’s precision and scale, respectively.
 Precision is the total number of decimal digits, and scale is the number of
 fractional digits.
 @end indentedblock
+@cindex Fixed-point precision
 
 Both precision and scale must be specified using valid OpenSDL expressions. 
 The following is an example of the @code{DECIMAL} keyword used in an
@@ -2678,22 +2749,43 @@ ITEM percentage DECIMAL PRECISION (3,2);
 @subsubsection Floating Point Data Types
 @cindex Data type, floating-point
 
-The floating-point keywords, @code{F_FLOATING}, @code{D_FLOATING},
-@code{G_FLOATING}, @code{H_FLOATING}, @code{T_FLOATING}, @code{S_FLOATING}, and
+The floating-point keywords, @code{D_FLOATING}, @code{F_FLOATING},
+@code{G_FLOATING}, @code{H_FLOATING}, @code{S_FLOATING}, @code{T_FLOATING}, and
 @code{X_FLOATING}, declare storage units for single, double, and long-double
 floating-point data, respectively.  The floating-point data types have the
 following syntax:
 
 @example
-F_FLOATING
 D_FLOATING
+F_FLOATING
 G_FLOATING
 H_FLOATING
-T_FLOATING
 S_FLOATING
+T_FLOATING
 X_FLOATING
 @end example
 @cindex D_FLOATING keyword
+@cindex F_FLOATING keyword
+@cindex G_FLOATING keyword
+@cindex H_FLOATING keyword
+@cindex S_FLOATING keyword
+@cindex T_FLOATING keyword
+@cindex X_FLOATING keyword
+@cindex D_FLOATING data type
+@cindex F_FLOATING data type
+@cindex G_FLOATING data type
+@cindex H_FLOATING data type
+@cindex S_FLOATING data type
+@cindex T_FLOATING data type
+@cindex X_FLOATING data type
+@cindex Data type, D_FLOATING
+@cindex Data type, F_FLOATING
+@cindex Data type, G_FLOATING
+@cindex Data type, H_FLOATING
+@cindex Data type, S_FLOATING
+@cindex Data type, T_FLOATING
+@cindex Data type, X_FLOATING
+@cindex Floating-point keywords
 
 @quotation Note
 @code{F_FLOATING}, @code{D_FLOATING}, @code{G_FLOATING}, and @code{H_FLOATING}
@@ -2702,14 +2794,21 @@ support these formats, but assumes the format of the underlying operating
 system and hardware.  In order to be able to be backward compatible with
 earlier versions of this software, the following equivalences have been
 established:
-@cindex Data type, F_FLOATING
 @cindex Data type, D_FLOATING
+@cindex Data type, F_FLOATING
 @cindex Data type, G_FLOATING
 @cindex Data type, H_FLOATING
 @cindex Data type, T_FLOATING
 @cindex Data type, S_FLOATING
 @cindex Data type, X_FLOATING
 @cindex D_FLOATING data type
+@cindex F_FLOATING data type
+@cindex G_FLOATING data type
+@cindex H_FLOATING data type
+@cindex S_FLOATING data type
+@cindex T_FLOATING data type
+@cindex X_FLOATING data type
+@cindex Floating-point keywords
 
 @itemize @minus
 @item @code{F_FLOATING} is the same as @code{T_FLOATING}
@@ -2786,8 +2885,28 @@ HARDWARE_INTEGER [ UNSIGNED | SIGNED ]
 @end example
 @cindex BYTE keyword
 @cindex BYTE data type
+@cindex HARDWARE_INTEGER keyword
+@cindex HARDWARE_INTEGER data type
+@cindex INTEGER keyword
+@cindex INTEGER data type
+@cindex INTEGER_BYTE keyword
+@cindex INTEGER_BYTE data type
+@cindex INTEGER_HW keyword
+@cindex INTEGER_HW data type
+@cindex INTEGER_LONG keyword
+@cindex INTEGER_LONG data type
+@cindex INTEGER_QUAD keyword
+@cindex INTEGER_QUAD data type
+@cindex INTEGER_WORD keyword
+@cindex INTEGER_WORD data type
+@cindex LONGWORD keyword
+@cindex LONGWORD data type
+@cindex OCTAWORD keyword
+@cindex OCTAWORD data type
 @cindex QUADWORD keyword
 @cindex QUADWORD data type
+@cindex WORD keyword
+@cindex WORD data type
 @cindex UNSIGNED keyword
 @cindex Data type, BYTE
 @cindex Data type, INTEGER_BYTE
@@ -2804,13 +2923,13 @@ HARDWARE_INTEGER [ UNSIGNED | SIGNED ]
 
 The following are examples of the @code{LONGWORD} and @code{BYTE} data types
 used in an @code{ITEM} declaration:
-@cindex BYTE data type
 
 @example
 ITEM foo LONGWORD UNSIGNED;
 ITEM bar BYTE;
 @end example
 @cindex BYTE example
+@cindex LONGWORD example
 @cindex UNSIGNED example
 
 @node Expressions
@@ -3065,6 +3184,7 @@ IFLANGUAGE language-name [ language-name ...  ] ;
 END_IFLANGUAGE [ language-name [ language-name ...  ] ] ;
 @end example
 @cindex END_IFLANGUAGE statement
+@cindex ELSE statemment
 
 Note the following:
 
@@ -3130,6 +3250,7 @@ END_IFSYMBOL ;
 @end example
 @cindex ELSE_IFSYMBOL statement
 @cindex END_IFSYMBOL statement
+@cindex ELSE statemment
 
 Note the following:
 @itemize @bullet
@@ -3162,6 +3283,7 @@ END_IFSYMBOL;
 @end float
 @cindex ELSE_IFSYMBOL example
 @cindex END_IFSYMBOL example
+@cindex ELSE example
 
 @command{$ opensdl --lang:cc --symbol=s1:0 --symbol:s2=0 --symbol=s3:0 <file-spec>}
 
@@ -3877,6 +3999,7 @@ END A;
 
 In the previous example, the names @code{X} and @code{Y} become OpenSDL
 generated ‘‘filler’’ names in the implicit union case.
+@cindex Fillers
 
 You do not have to define the union @code{X} and the structure @code{Y} if an
 implicit union declaration is used.  By giving the structure @code{Y} a type,
@@ -3960,11 +4083,13 @@ However, if the size of the members exceeds the size of the aggregate, OpenSDL
 issues a message that has the following format:
 @cindex AGGREGATE member
 @cindex Data type, implicit union
+@cindex Fillers
 
 @code{%SDL-E-TOOMANYFIELDS, Structure fid has too many fields [Line ?]}
 @cindex Implicit union declaration
 
 @subsection Forcing Negative Offsets
+@cindex Forcing negative offsets
 
 The default origin of an aggregate is the beginning of the first aggregate
 member.  You may specify the @code{ORIGIN} option on a level-1 @code{AGGREGATE}
@@ -4013,6 +4138,7 @@ ensures that the next aggregate begins on a byte boundary by supplying
 @code{BITFIELD} declarations as fillers, if necessary.
 @cindex AGGREGATE keyword
 @cindex BITFIELD keyword
+@cindex Fillers
 
 When OpenSDL adds @code{BITFIELD} declarations, it determines the length
 required and provides a unique name of the form @code{string_V_FILL_n}.  The
@@ -4021,11 +4147,13 @@ aggregate name if no prefix was supplied.  Within an aggregate, n begins at 0
 and is incremented for each filler required.
 @cindex AGGREGATE keyword
 @cindex BITFIELD keyword
+@cindex Fillers
 
 The subaggregate declarations shown in the following example declare filler
 bitfields to force byte alignment at the end of each subaggregate; this
 programming practice makes it unnecessary for OpenSDL to perform the alignment.
 @cindex Alignment
+@cindex Fillers
 
 @float Example, Alignment Example
 @example
@@ -4186,6 +4314,7 @@ structure is byte aligned by the field @code{filler}, which makes use of the
 current bit offset symbol to compute the size of this field.  The
 @code{CONSTANT inst_size} defines the size of the entire structure.
 @cindex Alignment
+@cindex Fillers
 
 @section AGGREGATE Format
 @cindex AGGREGATE keyword
@@ -4225,6 +4354,7 @@ AGGREGATE aggregate-name @{ STRUCTURE @} [ data-type ]
 END [ aggregate-name ];
 @end example
 @cindex END keyword
+@cindex FILL keyword
 
 @strong{@code{AGGREGATE aggregate-name}}
 @indentedblock
@@ -4464,6 +4594,8 @@ file.
 @end indentedblock
 @cindex Alignment
 @cindex Alignment keywords
+@cindex Fillers
+@cindex FILL keyword
 
 @strong{@code{aggregate-body}}
 @indentedblock
@@ -4988,6 +5120,7 @@ source file at which the error occurred.
 @strong{User Action:} Please report the problem to the GitHub Issues for this
 utility.
 @end indentedblock
+@cindex Fatal errors
 
 @strong{ADROBJBAS, Address object <object-name> must have based storage class
 [Line n]}
@@ -5028,6 +5161,7 @@ report}
 @strong{Fatal:} OpenSDL has detected an internal error or inconsistency.@*
 @strong{User Action:} Please submit a bug report to GitHub Repository.
 @end indentedblock
+@cindex Fatal errors
 
 @strong{BYTSIZ, Aggregate <aggr-name> must be integral byte size [Line n]}
 @indentedblock
@@ -5039,6 +5173,7 @@ long.@*
 @end indentedblock
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
+@cindex FILL keyword
 
 @strong{DIMENSIONSTAR, DIMENSION * for MEMBER <"member-name"> has no known
 discriminant [Line n]}
@@ -5082,6 +5217,7 @@ and invoke OpenSDL again.
 @strong{Fatal:} Previous errors prevent continuation.@*
 @strong{User Action:} Correct the errors and invoke OpenSDL again.
 @end indentedblock
+@cindex Fatal errors
 
 @strong{FILLNEGLEN, Fill item <item-name> has a negative length [Line n]}
 @indentedblock
@@ -5089,6 +5225,7 @@ and invoke OpenSDL again.
 generated output may not be as expected or desired.@*
 @strong{User Action:} Correct the waraning and invoke OpenSDL again.
 @end indentedblock
+@cindex FILL keyword
 
 @strong{FILLZEROLEN, Fill item <item-name> has a zero length [Line n]}
 @indentedblock
@@ -5096,6 +5233,7 @@ generated output may not be as expected or desired.@*
 generated output may not be as expected or desired.@*
 @strong{User Action:} Correct the waraning and invoke OpenSDL again.
 @end indentedblock
+@cindex FILL keyword
 
 @strong{FIXUP, Temporary hardcoded list used to discriminate for MEMBER
 <"member-name"> [Line n]}
@@ -5153,6 +5291,7 @@ been completely defined.@*
 @strong{User Action:} Verify that you correctly specified the name of the
 source file.
 @end indentedblock
+@cindex Fatal errors
 
 @strong{INFILSDI, File format error reading intermediate file file-spec.
 Possible version mismatch}
@@ -5432,6 +5571,7 @@ OpenSDL from generating any output files.@*
 @strong{User Action:} Correct the errors indicated by the accompanying
 messages.
 @end indentedblock
+@cindex Fatal errors
 
 @strong{NULLSTRUC, Null structure <structure-name> has no members [Line n]}
 @indentedblock
@@ -5477,6 +5617,7 @@ frontend.@*
 @strong{User Action:} This error is not emitted by this implementation.  It is
 here for consistency with VSI SDL.
 @end indentedblock
+@cindex Fatal errors
 
 @strong{SIZENEST, Illegal nesting of SIZEOF clauses (Item <item-name>) [Line
 n]}
@@ -5532,6 +5673,7 @@ zero assumed [Line n]}
 @strong{User Action:} Reduce the size or complexity of the OpenSDL source file;
 if possible, separate the file into several different files or modules.
 @end indentedblock
+@cindex Fatal errors
 
 @strong{SYNTAXERR, Syntax error [Line n]}
 @indentedblock
@@ -5736,67 +5878,152 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @item @code{UNION} @tab @code{union}
 @cindex UNION keyword
 @cindex UNION data type
+@cindex Data type, UNION
 @item @code{name BYTE [SIGNED]} @tab @code{int8_t name}
-@cindex BYTE keyword
-@cindex BYTE declaration
 @item @code{name BYTE UNSIGNED} @tab @code{uint8_t name}
 @cindex BYTE keyword
-@cindex BYTE declaration
+@cindex BYTE data type
+@cindex Data type, BYTE
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @code{name INTEGER_BYTE [SIGNED]} @tab @code{int8_t name}
 @item @code{name INTEGER_BYTE UNSIGNED} @tab @code{uint8_t name}
+@cindex INTEGER_BYTE keyword
+@cindex INTEGER_BYTE data type
+@cindex Data type, INTEGER_BYTE
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @code{name WORD [SIGNED]} @tab @code{int16_t int name}
 @item @code{name WORD UNSIGNED} @tab @code{uint16_t int name}
+@cindex WORD keyword
+@cindex WORD data type
+@cindex Data type, WORD
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @code{name INTEGER_WORD [SIGNED]} @tab @code{int16_t int name}
 @item @code{name INTEGER_WORD UNSIGNED} @tab @code{uint16_t int name}
+@cindex INTEGER_WORD keyword
+@cindex INTEGER_WORD data type
+@cindex Data type, INTEGER_WORD
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @code{name LONGWORD [SIGNED]} @tab @code{int32_t name}
 @item @code{name LONGWORD UNSIGNED} @tab @code{uint32_t name}
+@cindex LONGWORD keyword
+@cindex LONGWORD data type
+@cindex Data type, LONGWORD
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @code{name INTEGER_LONG [SIGNED]} @tab @code{int32_t name}
 @item @code{name INTEGER_LONG UNSIGNED} @tab @code{uint32_t name}
+@cindex INTEGER_LONG keyword
+@cindex INTEGER_LONG data type
+@cindex Data type, INTEGER_LONG
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @code{name INTEGER [SIGNED]} @tab @code{int name}
 @item @code{name INTEGER UNSIGNED} @tab @code{unsigned int name}
+@cindex INTEGER keyword
+@cindex INTEGER data type
+@cindex Data type, INTEGER
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @code{name INTEGER_HW [SIGNED]} @tab @code{int32_t name} (32-bit)
 @item @tab @code{int64_t name} (64-bit)
 @item @code{name INTEGER_HW UNSIGNED} @tab @code{uint32_t name} (32-bit)
+@cindex INTEGER_HW keyword
+@cindex INTEGER_HW data type
+@cindex Data type, INTEGER_HW
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @tab @code{uint64_t name} (64-bit)
 @item @code{name HARDWARE_INTEGER [SIGNED]} @tab @code{int32_t name} (32-bit)
 @item @tab @code{int64_t name} (64-bit)
 @item @code{name HARDWARE_INTEGER UNSIGNED} @tab @code{uint32_t name} (32-bit)
+@cindex HARDWARE_INTEGER keyword
+@cindex HARDWARE_INTEGER data type
+@cindex Data type, HARDWARE_INTEGER
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @tab @code{uint64_t name} (64-bit)
 @item @code{name QUADWORD [SIGNED]} @tab @code{int64_t name}
 @item @code{name QUADWORD UNSIGNED} @tab @code{uint64_t name}
-@cindex UNSIGNED keyword
 @cindex QUADWORD keyword
 @cindex QUADWORD data type
+@cindex Data type, QUADWORD
+@cindex SIGNED keyword
+@cindex UNSIGNED keyword
 @item @code{name INTEGER_QUAD [SIGNED]} @tab @code{int64_t name}
 @item @code{name INTEGER_QUAD UNSIGNED} @tab @code{uint64_t name}
+@cindex INTEGER_QUAD keyword
+@cindex INTEGER_QUAD data type
+@cindex Data type, INTEGER_QUAD
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
 @item @code{name OCTAWORD [SIGNED]} @tab @code{__int128_t name}
 @item @code{name OCTAWORD UNSIGNED} @tab @code{__uint128_t name}
+@cindex OCTAWORD keyword
+@cindex OCTAWORD data type
+@cindex Data type, OCTAWORD
+@cindex SIGNED keyword
 @cindex UNSIGNED keyword
-@item @code{name F_FLOATING} @tab @code{float name}
 @item @code{name D_FLOATING} @tab @code{double float name}
 @cindex D_FLOATING keyword
+@cindex D_FLOATING data type
+@cindex Data type, D_FLOATING
+@item @code{name F_FLOATING} @tab @code{float name}
+@cindex F_FLOATING keyword
+@cindex F_FLOATING data type
+@cindex Data type, F_FLOATING
 @item @code{name G_FLOATING} @tab @code{double float name}
+@cindex G_FLOATING keyword
+@cindex G_FLOATING data type
+@cindex Data type, G_FLOATING
 @item @code{name H_FLOATING} @tab @code{long double float name}
-@item @code{name T_FLOATING} @tab @code{float name}
+@cindex H_FLOATING keyword
+@cindex H_FLOATING data type
+@cindex Data type, H_FLOATING
 @item @code{name S_FLOATING} @tab @code{double float name}
+@cindex S_FLOATING keyword
+@cindex S_FLOATING data type
+@cindex Data type, S_FLOATING
+@item @code{name T_FLOATING} @tab @code{float name}
+@cindex T_FLOATING keyword
+@cindex T_FLOATING data type
+@cindex Data type, T_FLOATING
 @item @code{name X_FLOATING} @tab @code{long double float name}
-@item @code{name F_FLOATING COMPLEX} @tab @code{float complex name}
+@cindex X_FLOATING keyword
+@cindex X_FLOATING data type
+@cindex Data type, X_FLOATING
+@cindex Floating-point keywords
 @item @code{name D_FLOATING COMPLEX} @tab @code{double float complex name}
+@cindex D_FLOATING COMPLEX keyword
+@cindex D_FLOATING COMPLEX data type
+@cindex Data type, D_FLOATING COMPLEX
+@item @code{name F_FLOATING COMPLEX} @tab @code{float complex name}
+@cindex F_FLOATING COMPLEX keyword
+@cindex F_FLOATING COMPLEX data type
+@cindex Data type, F_FLOATING COMPLEX
 @item @code{name G_FLOATING COMPLEX} @tab @code{double float complex name}
+@cindex G_FLOATING COMPLEX keyword
+@cindex G_FLOATING COMPLEX data type
+@cindex Data type, G_FLOATING COMPLEX
 @item @code{name H_FLOATING COMPLEX} @tab @code{long double float complex name}
-@item @code{name T_FLOATING COMPLEX} @tab @code{double float complex name}
+@cindex H_FLOATING COMPLEX keyword
+@cindex H_FLOATING COMPLEX data type
+@cindex Data type, H_FLOATING COMPLEX
 @item @code{name S_FLOATING COMPLEX} @tab @code{double float complex name}
+@cindex S_FLOATING COMPLEX keyword
+@cindex S_FLOATING COMPLEX data type
+@cindex Data type, S_FLOATING COMPLEX
+@item @code{name T_FLOATING COMPLEX} @tab @code{float complex name}
+@cindex T_FLOATING COMPLEX keyword
+@cindex T_FLOATING COMPLEX data type
+@cindex Data type, T_FLOATING COMPLEX
 @item @code{name X_FLOATING COMPLEX} @tab @code{long double float complex name}
+@cindex X_FLOATING COMPLEX keyword
+@cindex X_FLOATING COMPLEX data type
+@cindex Data type, X_FLOATING COMPLEX
 @cindex COMPLEX keyword
 @item @code{name DECIMAL PRECISION (p,q)} @tab @code{char name [p/2+1]}
 @cindex DECIMAL keyword

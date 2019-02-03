@@ -165,6 +165,7 @@ items.
 OpenSDL keywords that must be entered as shown.  Names and syntactic elements
 shown in lowercase letters represent user-specified names and identifiers.
 @cindex Identifiers, user specified
+@cindex MODULE keyword
 
 @item @code{arg,@dots{}}
 @tab A comma followed by an ellipsis means that the preceding item may be
@@ -369,6 +370,7 @@ You can specify any or all of the language options on the @command{--lang}
 qualifier, and OpenSDL produces separate output files for each language
 specified.
 @cindex Command line qualifiers
+@cindex Language options
 
 @section Description of a Sample OpenSDL Source File
 
@@ -421,6 +423,7 @@ END_MODULE opr_descriptor@sup{13};
 @cindex IDENT example
 @cindex INCREMENT example
 @cindex ITEM example
+@cindex LENGTH example
 
 @enumerate
 @item All OpenSDL declarations are grouped within modules, and you must assign
@@ -440,6 +443,7 @@ is specified.
 the output file.  Local symbols may be used to express values in declarations.
 For example, the symbol @code{#max_args} is used in the declaration of the
 array operands.
+@cindex Local symbols
 
 @item @code{CONSTANT} declarations produce declarations of named constants.
 When the @code{INCREMENT} option and an increment value are specified, OpenSDL
@@ -482,6 +486,7 @@ the constant @code{opr_node_size}.
 @cindex AGGREGATE keyword
 @cindex AGGREGATE declaration
 @cindex Byte offset symbols
+@cindex Local symbols
 
 @item @code{ITEM} declarations, such as the declaration of
 @code{current_node_ptr}, define scalar data items.
@@ -645,6 +650,7 @@ OpenSDL declarations and language elements:
 @cindex CONSTANT keyword
 @cindex CONSTANT declaration
 @cindex ITEM keyword
+@cindex Local symbols
 
 @ref{Creating a Sample OpenSDL Source File} shows the sample OpenSDL source
 file described in @ref{Overview}.  You will be creating this sample source file
@@ -695,6 +701,7 @@ END_MODULE opr_descriptor;@sup{27}
 @cindex IDENT example
 @cindex INCREMENT example
 @cindex ITEM example
+@cindex LENGTH example
 
 The following numbered items describe and display each step.  The numbered
 superscript corresponds to the equivalent numbered items.  Not all steps will
@@ -735,6 +742,7 @@ comments in the OpenSDL language in sections @ref{Local Comments} and
 @ref{Output Comments}.  
 Your screen will look as follows:
 @cindex Comments
+@cindex Local comments
 
 @float Figure, Output Comment File
 @image{OutputComment,5.6in,,,.jpg}
@@ -748,6 +756,7 @@ variable to be used later on in this example.  Local variable name always
 starts with a hash-symbol (@key{#}), followed by alpha-numeric characters, and
 is case-sensitive.  Now type in @code{#max_args = 10;} (don't forget the
 semicolon at the end).  Your screen will look as follows:
+@cindex Local variables
 
 @float Figure, Local Variable File
 @image{LocalVariable,5.6in,,,.jpg}
@@ -771,7 +780,7 @@ as follows:
 @page
 
 @item Now we need to defined a set of constants to be defined.  This is a comma
-separater list enclosed in an open parenthesis @key{(} and close parenthesis
+separated list enclosed in an open parenthesis @key{(} and close parenthesis
 @key{)}. Type in @code{(fixed_binary, floating, char, untyped)}, with a
 trailing space character.  Your screen will look as follows:
 
@@ -1000,11 +1009,13 @@ stderr.  Additionally, the @command{--list} qualifier can be specified to
 generate a listing file, where the same errors will be displayed at the line
 where the error was detected.
 @cindex Command line qualifiers
+@cindex --list qualifier
+@cindex Listing generation
 
 @quotation Note
 The line numbers displayed within the error message text may not be exactly the
 line of code in a listing file where the message will be written.  The error
-message text will refer to the first line of a multiline statement, where this
+message text will refer to the first line of a multi-line statement, where this
 same text will be written immediately after the line of code that actually
 caused the condition to be detected.
 
@@ -1077,6 +1088,7 @@ Command qualifiers may be specified following the @command{opensdl} command.
 @cindex -L qualifier
 @cindex --list qualifier
 @cindex --nolist qualifier
+@cindex Listing generation
 @item @command{-m, --[no]member} @tab @command{--nomember}
 @cindex -m qualifier
 @cindex --member qualifier
@@ -1207,6 +1219,7 @@ line, but each language should only be specified once.
 @end multitable
 @caption{OpenSDL Output Language Options and File Types}
 @end float
+@cindex Language options
 
 The @command{--lang} qualifier also allows you to override the default output
 file specification for a language output files.  You can specify a language
@@ -1224,6 +1237,7 @@ Controls whether a listing file is produced.
 @cindex -L qualifier
 @cindex --list qualifier
 @cindex --nolist qualifier
+@cindex Listing generation
 
 The @command{--list} qualifier causes the OpenSDL translator to produce a
 listing file with numbered lines of source code and descriptions of any
@@ -1331,6 +1345,7 @@ writes the C/C++ output to @file{block_node.h} in the parent directory/folder.
 OpenSDL translates the declarations in iodef.src and writes the output to
 @file{iodef.h}, while also generating the list file @file{iodef.lis}
 @end enumerate
+@cindex Listing generation
 
 @node Elements
 @chapter OpenSDL Language Elements
@@ -1353,6 +1368,7 @@ The following can also be used within a @code{MODULE} declaration; although
 they are not OpenSDL language elements (@ref{Local Comments} through
 @ref{INCLUDE Statement}):
 @cindex INCLUDE statement
+@cindex Local comments
 
 @itemize @bullet
 @item Local and output, line and block, comments
@@ -1364,6 +1380,7 @@ they are not OpenSDL language elements (@ref{Local Comments} through
 @cindex Comments
 @cindex Conditional compilation
 @cindex DECLARE statement
+@cindex Local comments
 
 The space, tab, or carriage return character delimits the language elements,
 and a semicolon (;) terminates each declaration.  In @code{MODULE} and
@@ -1382,6 +1399,7 @@ translated to the output file or a user-specified source program identifier
 that is translated to the output file.  Names are composed of upper- and
 lowercase letters (A-Z, a-z), numbers (0-9), the dollar sign ($), and the
 underscore (_).  Specifying a name is subject to the following rules:
+@cindex Local symbol
 
 @quotation Note
 The use of the dollar sign ($) in symbol names is not supported by all
@@ -1401,6 +1419,8 @@ contain invalid  OpenSDL characters must be enclosed in quotation marks (" ").
 Declarations}).
 @cindex Identifiers, OpenSDL keywords
 @cindex Declarations
+@cindex Local symbols
+
 @item OpenSDL passes all source program identifiers to the output file in the
 same case in which they are defined, except where noted.
 @cindex Identifiers, user specified
@@ -1415,6 +1435,7 @@ A local symbol is declared when it is first assigned a value.  This value can
 be any valid expression (@ref{Expressions}).  If you reference a local symbol
 before assigning it a value, OpenSDL displays an error message and does not
 produce an output file.  A local symbol assignment has the following syntax:
+@cindex Local symbols
 
 @example
 #local-name = expression;
@@ -1438,6 +1459,7 @@ as shown in the following example:
 @example
 CONSTANT block_node_size EQUALS #max_args + #counter;
 @end example
+@cindex Local symbols example
 
 @subsection Source Program Identifiers
 
@@ -1457,6 +1479,7 @@ declaration:
 @cindex ENTRY keyword
 @cindex EQUALS keyword
 @cindex Identifiers, user specified
+@cindex MARKER keyword
 
 @example
 CONSTANT block_node_size EQUALS #max_args + #counter;
@@ -1506,6 +1529,7 @@ Reserved OpenSDL keywords are used to specify the following:
 @cindex Arrays
 @cindex Data type, keywords
 @cindex DIMENSION keyword
+@cindex MARKER keyword
 
 Reserved OpenSDL keywords can be entered in either upper- or lowercase letters,
 but they cannot be truncated.
@@ -1598,9 +1622,11 @@ prefix to @code{ITEM} names, @code{AGGREGATE} member names, and named
 constants; see @ref{PREFIX MARKER and TAG Keywords}
 @cindex AGGREGATE keyword
 @cindex AGGREGATE member
+@cindex MARKER keyword
 @item @code{TAG} @tab Optional keyword used to override the default OpenSDL
 code assigned to a name and to assign a user-defined tag instead; see
 @ref{PREFIX MARKER and TAG Keywords}
+@cindex MARKER keyword
 @end multitable
 @caption{Item Declaration}
 @end float
@@ -1626,14 +1652,17 @@ following member or aggregate, respectively.
 @cindex FILL keyword
 @item @code{MARKER} @tab Optional keyword used to assign a user-defined prefix
 to the aggregate name; see @ref{PREFIX MARKER and TAG Keywords}
+@cindex MARKER keyword
 @item @code{ORIGIN} @tab Optional keyword used to define the beginning of an
 aggregate with respect to an aggregate member
 @item @code{PREFIX} @tab Optional keyword used to concatenate a user-defined
 prefix to @code{AGGREGATE} member names, @code{ITEM} names, and named
 constants; see @ref{PREFIX MARKER and TAG Keywords}
-@item @code{TAG} @tab Optional keyword used to override the default OpenSDL
+@@cindex MARKER keyword
+item @code{TAG} @tab Optional keyword used to override the default OpenSDL
 code assigned to a name and to assign a user-defined tag instead; see
 @ref{PREFIX MARKER and TAG Keywords}
+@cindex MARKER keyword
 @end multitable
 @caption{AGGREGATE Declaration}
 @end float
@@ -1653,6 +1682,7 @@ code assigned to a name and to assign a user-defined tag instead; see
 @item @code{COUNTER} @tab Optional keyword that saves the last assigned value
 in a local symbol declaration for subsequent use.
 @cindex COUNTER keyword
+@cindex Local symbols
 @item @code{EQUALS} @tab Required keyword used in assigning the value to the
 first named constant @code{STRING} Optional keyword specified immediately after
 @code{EQUALS} to indicate the definition of a string constant.
@@ -1662,12 +1692,14 @@ incremental values
 @item @code{PREFIX} @tab Optional keyword used to concatenate a user-defined
 prefix to aggregate member names and named constants; see @ref{PREFIX MARKER
 and TAG Keywords}
+@cindex MARKER keyword
 @cindex AGGREGATE member
 @item @code{RADIX} @tab Optional keyword used to indicate how a constant should
 be written in the output file; see @ref{RADIX Keyword}
 @item @code{TAG} @tab Optional keyword used to override the default OpenSDL
 code assigned to a name and to assign a user-defined tag instead; see
 @ref{PREFIX MARKER and TAG Keywords}
+@cindex MARKER keyword
 @item @code{TYPENAME} @tab Optional keyword not currently used, but may be
 introduced when Ada or PL/I back-ends are developed; see @ref{User Specified
 @code{TYPENAME} Keyword}
@@ -1722,6 +1754,7 @@ is an array; see @ref{DIMENSION Keyword}
 @item @code{LIST} @tab Optional parameter description keyword used to indicate
 that the routine may be called with one or more parameters of the type being
 described
+@cindex LIST keyword
 @item @code{NAMED} @tab Optional parameter description keyword used only by the
 Ada back end to name the parameter
 @item @code{OPTIONAL} @tab Optional parameter description keyword used to
@@ -1773,6 +1806,7 @@ the external entry
 @item @code{VARIABLE} @tab Optional keyword used to indicate that the entry
 point can be invoked with a variable number of parameters; see also the
 @code{LIST} parameter modifier keyword
+@cindex LIST keyword
 @end multitable
 @caption{ENTRY Description Keywords}
 @end float
@@ -1825,9 +1859,12 @@ ENTRY SYS$FAO
 @cindex DEFAULT example
 @cindex ENTRY example
 @cindex IN keyword
+@cindex LIST example
 
 @node PREFIX MARKER and TAG Keywords
 @subsubsection PREFIX, MARKER, and TAG Keywords
+@cindex MARKER keyword
+
 User-defined prefixes, markers, and tags are optional character strings that
 help to uniquely identify the names associated with a particular facility or
 system.  When the @command{--suppress} qualifier is specified on the command
@@ -1874,6 +1911,7 @@ subaggregate members are assigned the same prefix as that specified on the
 parent aggregate.
 
 @subsubheading MARKER Keyword
+@cindex MARKER keyword
 
 You can use the @code{MARKER} keyword to assign a user-defined prefix to the
 aggregate name.  The @code{MARKER} option has the following syntax:
@@ -1939,6 +1977,7 @@ END;
 @cindex AGGREGATE declaration
 @cindex AGGREGATE example
 @cindex END keyword
+@cindex MARKER example
 
 The resulting output using the C/C++ backend is as follows:
 
@@ -1951,6 +1990,7 @@ struct doowop_shoo_operator
 @end example
 @caption{PREFIX, MARKER, and TAG Example}
 @end float
+@cindex MARKER example
 
 @ref{Default Tags Used by OpenSDL} shows the default tags that OpenSDL uses
 when the TAG option is not specified on an aggregate member.
@@ -2064,6 +2104,7 @@ when the TAG option is not specified on an aggregate member.
 mask (if @code{MASK} is specified) tags are generated regardless of whether a
 @code{PREFIX} or @code{TAG} option is specified.}
 @cindex Identifiers, OpenSDL generated
+@cindex MASK keyword
 @item @tab @code{M} for @code{BITFIELD} mask
 @cindex BITFIELD keyword
 @cindex BITFIELD default tag
@@ -2197,6 +2238,7 @@ END operator;
 @cindex END keyword
 @cindex EQUALS example
 @cindex INCREMENT example
+@cindex LENGTH example
 
 In the previous example, the member name @code{"typename"} is enclosed in
 quotation marks because it is an OpenSDL keyword.
@@ -2282,6 +2324,7 @@ will generate the following C code header file:
 When a @code{BITMASK} has the optional @code{MASK} keyword, constant values are
 generated consistent with the @code{RADIX HEX} keyword.
 @end quotation
+@cindex MASK keyword
 
 @node Alignment Keywords
 @subsubsection Alignment Keywords
@@ -2591,6 +2634,7 @@ END array_info;
 @cindex CONSTANT example
 @cindex DIMENSION example
 @cindex END keyword
+@cindex LENGTH example
 
 The subaggregate bound has eight elements.  Each element consists of the members
 upper, lower, multiplier, and so on.  Because bound is an array, each of its
@@ -2786,6 +2830,7 @@ Is any valid OpenSDL expression giving the number of bits in the bitfield.  If
 no length is specified, OpenSDL uses a default length of 1 bit.
 @end indentedblock
 @cindex BITFIELD declaration
+@cindex LENGTH declaration
 
 @strong{@code{[MASK]}}
 @indentedblock
@@ -2793,6 +2838,7 @@ Is a keyword specifying that OpenSDL generate both a bitfield variable and a
 constant bit mask representing the bits defined in this field.
 @end indentedblock
 @cindex BITFIELD declaration
+@cindex MASK keyword
 
 @strong{@code{[SIGNED]}}
 @indentedblock
@@ -2826,6 +2872,8 @@ END;
 @cindex AGGREGATE example
 @cindex BITFIELD example
 @cindex END keyword
+@cindex LENGTH example
+@cindex MASK example
 
 The declaration of resolved in the previous example results in two declarations
 in the output file: a declaration for the bitfield itself and a declaration of
@@ -2886,6 +2934,7 @@ valid OpenSDL expression.  If no length is specified, OpenSDL uses a default
 length of 1 character.  You can specify a character string of unknown length
 using @code{LENGTH *}.  An unknown length character string can be specified
 only for parameter types.  For example:
+@cindex LENGTH declaration
 
 @example
 ENTRY LIB$ROUTINE PARAMETER(CHARACTER LENGTH * NAMED foo);
@@ -2893,6 +2942,7 @@ ENTRY LIB$ROUTINE PARAMETER(CHARACTER LENGTH * NAMED foo);
 @end indentedblock
 @cindex CHARACTER example
 @cindex ENTRY example
+@cindex LENGTH example
 
 @strong{@code{[VARYING]}}
 @indentedblock
@@ -2920,6 +2970,7 @@ END;
 @cindex AGGREGATE example
 @cindex CHARACTER example
 @cindex END keyword
+@cindex LENGTH example
 
 @node COMPLEX Data Types
 @subsubsection COMPLEX Data Types
@@ -3236,9 +3287,11 @@ ASCII code of zero.
 @item Local symbols and output constants are assigned integer longword values
 that are available within the context (that is, during processing) of the input
 file.
+@cindex Local symbols
 @item Operators perform arithmetic and logical operations on numeric values,
 local symbols, and output constants.  The following table lists the operators in
 order of precedence, with the operators of higher precedence listed first.
+@cindex Local symbols
 
 @multitable @columnfractions .2 .8
 @headitem Operator @tab Meaning
@@ -3350,6 +3403,7 @@ Line comments begin with a slash and an asterisk (@code{/*}) and terminate at
 the end of the current line.  They can appear in the following contexts:
 @itemize @bullet
 @item Outside @code{MODULE} declarations
+@cindex MODULE declaration
 
 @item At the end of a line containing a declaration, that is, following the 
 semicolon terminator(@code{;})
@@ -3656,6 +3710,8 @@ set to zero when the conditional code is not included, so that there an error
 message will not be generated as the result of the missing variable.
 @cindex AGGREGATE keyword
 @cindex Conditional compilation
+@cindex Local variables
+@cindex Local symbols
 
 @node DECLARE Statement
 @section DECLARE Statement
@@ -3864,6 +3920,7 @@ declarations:
 @cindex ENTRY declaration
 @cindex ITEM keyword
 @cindex ITEM declaration
+@cindex MODULE declaration
 
 OpenSDL declarations are composed of the language elements described in
 @ref{Elements}.  The output generated by each OpenSDL declaration depends on
@@ -3875,11 +3932,13 @@ the OpenSDL source file @file{/usr/lib/opensdl/examples/example.sdl}.
 @ref{Summaries} provides translation summaries for each output language.
 
 @heading MODULE Declaration
+@cindex MODULE declaration
 
 The following sections describe the function and format of a @code{MODULE}
 declaration.
 
 @section MODULE Description
+@cindex MODULE description
 
 A @code{MODULE} declaration groups all related symbols and data structures.
 All declarations (other than local symbol assignments and local and output
@@ -3896,10 +3955,14 @@ syntax for names.) For example:
 @cindex Block comments
 @cindex Data structures
 @cindex END_MODULE keyword
+@cindex Local symbols
+@cindex Local variables
+@cindex MODULE declaration
 
 @example
 MODULE _modef;
 @end example
+@cindex MODULE example
 
 This declaration generates the beginning of the declaration for the macro or
 module named @code{_modef}.
@@ -3908,11 +3971,13 @@ You can use the @code{IDENT} option on a @code{MODULE} declaration to pass a
 version number or other information that must be enclosed in quotation marks
 (" ") to the output file.  For example:
 @cindex IDENT keyword
+@cindex MODULE keyword
 
 @example
 MODULE params IDENT "V2.0";
 @end example
 @cindex IDENT example
+@cindex MODULE example
 
 You can optionally specify the module name on the @code{END_MODULE} statement;
 this is particularly useful if you place more than one @code{MODULE}
@@ -3920,6 +3985,7 @@ declaration in the same OpenSDL source file.  The module name is case-sensitive
 and must match exactly (in case) the name specified on the @code{MODULE}
 declaration.
 @cindex END_MODULE keyword
+@cindex MODULE keyword
 
 @page
 
@@ -3941,6 +4007,7 @@ END_MODULE [ module-name ];
 @indentedblock
 Specifies any valid OpenSDL identifier you want to use to identify the module.
 @end indentedblock
+@cindex MODULE declaration
 
 @strong{@code{[IDENT "ident-string"]}}
 @indentedblock
@@ -3978,6 +4045,8 @@ Is one or more of the following:
 @cindex IFSYMBOL statement
 @cindex ITEM keyword
 @cindex ITEM declaraion
+@cindex Local symbols
+@cindex Local comments
 
 @strong{@code{END_MODULE [module-name]}}
 @indentedblock
@@ -4109,6 +4178,7 @@ The body of an aggregate can also contain local symbol assignments,
 @code{CONSTANT} declarations, and subaggregate declarations.
 @cindex AGGREGATE member
 @cindex CONSTANT declaration
+@cindex Local symbols
 
 You must specify a valid aggregate name on the @code{AGGREGATE} declaration.
 For example:
@@ -4170,6 +4240,7 @@ END tree_node;
 @cindex BITFIELD example
 @cindex UNION example
 @cindex END keyword
+@cindex LENGTH example
 
 In this example, the structures @code{pli_bits} and @code{c_bits} are both
 subaggregates of the @code{union lang_bits}.  Because @code{lang_bits} is a
@@ -4272,6 +4343,7 @@ END A;
 @cindex BITFIELD example
 @cindex END keyword
 @cindex Implicit union example
+@cindex LENGTH example
 
 This implicit union declaration would be more cumbersome if represented as
 shown in the following @code{STRUCTURE} subaggregate:
@@ -4292,6 +4364,7 @@ END A;
 @cindex BITFIELD example
 @cindex UNION example
 @cindex END keyword
+@cindex LENGTH example
 
 In the previous example, the names @code{X} and @code{Y} become OpenSDL
 generated ‘‘filler’’ names in the implicit union case.
@@ -4482,6 +4555,7 @@ END tree_node;
 @cindex BITFIELD example
 @cindex UNION example
 @cindex END keyword
+@cindex LENGTH example
 
 The current bit offset is set at 0 at the beginning of each aggregate and is
 incremented by the bit lengths of each structure member in the aggregate at
@@ -4507,6 +4581,7 @@ AGGREGATE dcb STRUCTURE PREFIX dcb_;
 @cindex AGGREGATE example
 @cindex BITFIELD example
 @cindex END keyword
+@cindex LENGTH example
 
 The C/C++ translation of the OpenSDL @code{AGGREGATE} declaration in the
 previous example is as follows:
@@ -4604,6 +4679,7 @@ CONSTANT inst_size EQUALS #instruction_size;
 @cindex DIMENSION example
 @cindex END keyword
 @cindex EQUALS example
+@cindex LENGTH example
 
 In the previous example, the local symbol @code{#opsize} captures the byte
 offset following the fixed length portion of the structure operator.  This
@@ -4614,6 +4690,7 @@ current bit offset symbol to compute the size of this field.  The
 @code{CONSTANT inst_size} defines the size of the entire structure.
 @cindex Alignment
 @cindex Fillers
+@cindex Local symbols
 
 @section AGGREGATE Format
 @cindex AGGREGATE keyword
@@ -4753,6 +4830,7 @@ Specifies the prefix used to form the aggregate name.  It may be any valid
 OpenSDL name with 0 to 32 characters, may or may not be enclosed in quotation
 marks (" ") and may be null.
 @end indentedblock
+@cindex MARKER keyword
 
 @strong{@code{[ PREFIX prefix-string ]}}
 @indentedblock
@@ -4908,6 +4986,7 @@ Is one or more of the following:
 @end indentedblock
 @cindex AGGREGATE member
 @cindex CONSTANT keyword
+@cindex Local symbols
 
 @strong{@code{END [ aggregate-name ]}}
 @indentedblock
@@ -4950,6 +5029,7 @@ difference between declared constants and local symbols: declared constants are
 translated directly to the output file, whereas local symbols are not passed
 directly to the output file.  For example, you can define the local symbol
 @code{#block_size} as follows:
+@cindex Local symbols
 
 @example
 #block_size = 24;
@@ -5024,6 +5104,7 @@ respectively.
 The @code{COUNTER} option saves the last assigned value in a specified local
 symbol for subsequent use.  For example:
 @cindex COUNTER option
+@cindex Local symbols
 
 @example
 CONSTANT (pli,c,bliss,macro)
@@ -5152,6 +5233,8 @@ Specifies the local symbol assigned to the last value that is assigned to a
 constant in the list.
 @end indentedblock
 @cindex COUNTER keyword
+@cindex Local symbols
+@cindex Local variables
 
 @strong{@code{[ TYPENAME type-name ]}}
 @indentedblock
@@ -5362,6 +5445,7 @@ parameters for a call using the entry point name.
 Indicates that the routine may be called with one or more parameters of the
 type being described.  LIST may be specified only for the last parameter.
 @end indentedblock
+@cindex LIST keyword
 
 @quotation NOTE
 All the @code{PARAMETER} options, if specified, must follow the data type or
@@ -5388,6 +5472,7 @@ variable number of parameters and not all corresponding arguments need be
 present in the argument list when the entry point is invoked.  See also the
 description of the LIST parameter option.
 @end indentedblock
+@cindex LIST keyword
 
 @strong{@code{[ RETURNS return-data-type [ NAMED param-name ] ]}}
 @indentedblock
@@ -5529,6 +5614,8 @@ command-line.@*
 and invoke OpenSDL again.
 @end indentedblock
 @cindex Command line qualifiers
+@cindex Listing generation
+@cindex --list qualifier
 
 @strong{ERREXIT, Error exit}
 @indentedblock
@@ -5711,6 +5798,7 @@ using @command{-64}).
 @cindex -64 qualifier
 @cindex BITFIELD declaration
 @cindex Command line qualifiers
+@cindex MASK keyword
 
 @strong{INVLISTOPT, Invalid use of LIST attribute -- LIST may only appear on
 the last parameter.}
@@ -5720,6 +5808,7 @@ entry-name [Line n]
 last.@*
 @strong{User Action:} Remove the @code{LIST} attribute.
 @end indentedblock
+@cindex LIST keyword
 
 @strong{INVNAME, Item name is invalid}
 @indentedblock
@@ -5790,6 +5879,7 @@ valid expression.
 @cindex AGGREGATE member
 @cindex CHARACTER keyword
 @cindex ITEM keyword
+@cindex LENGTH keyword
 
 @strong{LANGDUP, Language name <language-name> appears more than once in list
 [Line n]}
@@ -5829,6 +5919,7 @@ statement or remove all languages from the @code{END_IFLANGUAGE} statement.
 @strong{User Action:} Verify that you have write access to the directory to
 which the OpenSDL listing file is directed.
 @end indentedblock
+@cindex Listing generation
 
 @strong{MATCHEND, End name does not match declaration name <name> [Line n]}
 @indentedblock
@@ -5842,6 +5933,7 @@ This is only a warning message, but it may indicate an error.
 @cindex AGGREGATE keyword
 @cindex END keyword
 @cindex END_MODULE keyword
+@cindex MODULE keyword
 
 @strong{MULTDEFSYM, Multiply defined symbol -- <symbol-name> [Line n]}
 @indentedblock
@@ -6085,6 +6177,7 @@ n]}
 @strong{User Action:} Verify that the local symbol name is spelled correctly
 and that it appears before its reference in the OpenSDL source file.
 @end indentedblock
+@cindex Local symbols
 
 @strong{UNDEFUSER, Undefined user type name <type-name> referenced [Line n]}
 @indentedblock
@@ -6147,6 +6240,7 @@ results of arithmetic operations in the expression, if any.
 @cindex BITFIELD declaration
 @cindex CHARACTER declaration
 @cindex DIMENSION declaration
+@cindex Local symbols
 
 @node Summaries
 @appendix OpenSDL Language Translation Summaries
@@ -6167,6 +6261,7 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @multitable @columnfractions .45 .55
 @headitem OpenSDL Declaration @tab C/C++ Output
 @item MODULE name IDENT string @tab /*** MODULE name IDENT string ***/
+@cindex MODULE keyword
 @cindex IDENT keyword
 @item @tab #include <ctype.h>@*#include <stdint.h>@*#include <stdbool.h>@*
 #include <complex.h>
@@ -6196,6 +6291,7 @@ The following table shows the OpenSDL to C/C++ language translation summary.
 @cindex DEFAULT keyword
 @cindex DEFAULT declaration
 @item @code{LIST} @tab n/a
+@cindex LIST keyword
 @item @code{OPTIONAL} @tab n/a
 @item @code{TYPENAME type-name} @tab n/a
 @item @code{RETURNS return-type} @tab @code{return-type name( )}
@@ -6366,7 +6462,9 @@ bits)
 @item @tab @code{uint64_t name : 1} (bitfields of 33 to 64 bits)
 @item @tab @code{__uint128_t name :1} (bitfields of 65 to 128 bits)
 @item @code{@ @ @ @ LENGTH n} @tab @code{uint8_t name:n}
+@cindex LENGTH keyword
 @item @code{@ @ @ @ MASK} @tab @code{#define <pref>_m_name <hex-value>}
+@cindex MASK keyword
 @item @code{@ @ @ @ SIGNED} @tab @code{int8_t name : 1} (bitfields of 1 to 8 bits)
 @item @tab @code{int16_t name : 1} (bitfields of 9 to 16 bits)
 @item @tab @code{int32_t name : 1} (bitfields of 17 to 32 bits)
@@ -6377,6 +6475,7 @@ bits)
 @item @code{name CHARACTER} @tab @code{char name}
 @item @code{@ @ @ @ LENGTH n} @tab @code{char name[n]}
 @item @code{@ @ @ @ LENGTH *} @tab n/a
+@cindex LENGTH keyword
 @cindex CHARACTER keyword
 @cindex CHARACTER declaration
 @item @code{VARYING} @tab @code{struct @{short string_length; char

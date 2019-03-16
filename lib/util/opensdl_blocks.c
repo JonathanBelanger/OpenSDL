@@ -30,8 +30,8 @@
 #include <string.h>
 #include <ctype.h>
 #include "opensdl_defs.h"
-#include "opensdl_blocks.h"
-#include "opensdl_utility.h"
+#include "lib/util/opensdl_blocks.h"
+#include "lib/util/opensdl_utility.h"
 
 extern bool traceMemory;
 

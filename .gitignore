@@ -58,3 +58,4 @@ exe/
 *.cps
 *.log
 *.toc
+/build/

@@ -32,11 +32,11 @@
 #include <ctype.h>
 #include "opensdl_defs.h"
 #include "opensdl_parser.h"
-#include "opensdl_blocks.h"
-#include "opensdl_utility.h"
-#include "opensdl_actions.h"
-#include "opensdl_message.h"
-#include "opensdl_listing.h"
+#include "lib/util/opensdl_blocks.h"
+#include "lib/util/opensdl_utility.h"
+#include "tool/opensdl_actions.h"
+#include "lib/util/opensdl_message.h"
+#include "tool/opensdl_listing.h"
 
 extern SDL_MSG_VECTOR	msgVec[];
 }

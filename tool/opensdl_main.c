@@ -87,13 +87,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
 #include "opensdl_defs.h"
-#include "opensdl_parser.h"
-#include "opensdl_lexical.h"
-#include "opensdl_blocks.h"
-#include "opensdl_actions.h"
-#include "opensdl_lang.h"
-#include "opensdl_message.h"
+#include "lib/parser/opensdl_parser.h"
+#include "lib/parser/opensdl_lexical.h"
+#include "lib/util/opensdl_blocks.h"
+#include "lib/lang/opensdl_lang.h"
+#include "lib/util/opensdl_message.h"
 
 /*
  * Defines and includes for enable extend trace and logging

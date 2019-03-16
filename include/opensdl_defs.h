@@ -41,7 +41,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
-#include "opensdl_queue.h"
+#include "lib/util/opensdl_queue.h"
 
 typedef struct
 {

@@ -31,9 +31,9 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include "opensdl_defs.h"
-#include "opensdl_blocks.h"
-#include "opensdl_message.h"
-#include "opensdl_main.h"
+#include "lib/util/opensdl_blocks.h"
+#include "lib/util/opensdl_message.h"
+#include "tool/opensdl_main.h"
 
 #define SDL_LOCAL_MSG_LEN	256
 

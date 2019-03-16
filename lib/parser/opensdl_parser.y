@@ -66,11 +66,11 @@
 #include <math.h>
 #include "opensdl_lexical.h"
 #include "opensdl_parser.h"
-#include "opensdl_blocks.h"
-#include "opensdl_actions.h"
-#include "opensdl_message.h"
-#include "opensdl_listing.h"
-#include "opensdl_main.h"
+#include "lib/util/opensdl_blocks.h"
+#include "tool/opensdl_actions.h"
+#include "lib/util/opensdl_message.h"
+#include "tool/opensdl_listing.h"
+#include "tool/opensdl_main.h"
 
 extern bool 	listing;
 

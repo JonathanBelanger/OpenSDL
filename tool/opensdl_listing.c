@@ -35,9 +35,9 @@
 #include <string.h>
 #include <ctype.h>
 #include "opensdl_defs.h"
-#include "opensdl_message.h"
-#include "opensdl_blocks.h"
-#include "opensdl_main.h"
+#include "lib/util/opensdl_message.h"
+#include "lib/util/opensdl_blocks.h"
+#include "tool/opensdl_main.h"
 
 /*
  * Local variables used while generating a listing file.

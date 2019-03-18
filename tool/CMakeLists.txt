@@ -7,7 +7,8 @@ add_executable(opensdl
 target_link_libraries(opensdl PRIVATE
     ${PROJECT_NAME}_util
     ${PROJECT_NAME}_lexical
-    ${PROJECT_NAME}_lang)
+    ${PROJECT_NAME}_lang
+    -largp)
 
 target_include_directories(opensdl PUBLIC
     ${PROJECT_SOURCE_DIR}/include)

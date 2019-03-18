@@ -87,7 +87,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
+#include <argp.h>
 #include "opensdl_defs.h"
 #include "lib/parser/opensdl_parser.h"
 #include "lib/parser/opensdl_lexical.h"
@@ -115,18 +115,19 @@ int _verbose;
 static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
 {
 
-/*
- * For the C/C++ languages.
- */
-{
-    (SDL_FUNC) &sdl_c_commentStars,
-    (SDL_FUNC) &sdl_c_createdByInfo,
-    (SDL_FUNC) &sdl_c_fileInfo,
-    (SDL_FUNC) NULL,
-    (SDL_FUNC) NULL,
-    (SDL_FUNC) NULL,
-    (SDL_FUNC) NULL,
-    (SDL_FUNC) NULL}
+    /*
+     * For the C/C++ languages.
+     */
+    {
+        (SDL_FUNC) &sdl_c_commentStars,
+        (SDL_FUNC) &sdl_c_createdByInfo,
+        (SDL_FUNC) &sdl_c_fileInfo,
+        (SDL_FUNC) NULL,
+        (SDL_FUNC) NULL,
+        (SDL_FUNC) NULL,
+        (SDL_FUNC) NULL,
+        (SDL_FUNC) NULL
+    }
 };
 
 static char *_extensions[] =
@@ -149,6 +150,257 @@ char *sdl_months[] =
     "OCT",
     "NOV",
     "DEC"
+};
+
+/*
+ * argp declarations
+ */
+#define SDL_K_ARG_NOCHECK        1
+#define SDL_K_ARG_NOCOMMENT      2
+#define SDL_K_ARG_B32            3
+#define SDL_K_ARG_NOCOPY         4
+#define SDL_K_ARG_NOHEADER       5
+#define SDL_K_ARG_B64            6
+#define SDL_K_ARG_NOLIST         7
+#define SDL_K_ARG_NOMEMBER       8
+#define SDL_K_ARG_NOMODULE       9
+#define SDL_K_ARG_NOPARSE       10
+#define SDL_K_ARG_NOSUPPRESS    11
+const char *argp_program_version = "OpenSDL V3.4.20181114";
+const char *argp_program_bug_address = "foo@bar.com";
+static char doc[] = "Open Structure Definition Language";
+static char args_doc[] = "[FILENAME]...";
+static struct argp_option options[] =
+{
+    {
+        "align",
+        'a',
+        "value",
+        0,
+        "The assumed alignment.  A value that is a power two and between 0 "
+            "and 8.  A value of 0 is no alignment (the default).",
+        0
+    },
+    {
+        "b32",
+        SDL_K_ARG_B32,
+        0,
+        0,
+        "The number of bits that represent a longword.",
+        0
+    },
+    {
+        "b64",
+        SDL_K_ARG_B64,
+        0,
+        0,
+        "The number of bits that represent a longword. (default)",
+        0
+    },
+    {
+        "check",
+        'k',
+        0,
+        0,
+        "Diagnostic messages are generated for items the do not fall on their "
+            "natural alignment.",
+        0
+    },
+    {
+        "nocheck",
+        SDL_K_ARG_NOCHECK,
+        0,
+        0,
+        "Diagnostic messages are not generated for items the do not fall on "
+            "their natural alignment. (the default)",
+        0
+    },
+    {
+        "comments",
+        'c',
+        0,
+        0,
+        "Output comments are included in the output file(s). (the default)",
+        0
+    },
+    {
+        "nocomments",
+        SDL_K_ARG_NOCOMMENT,
+        0,
+        0,
+        "Output comments are not included in the output file(s).",
+        0
+    },
+    {
+        "copy",
+        'C',
+        0,
+        0,
+        "A copyright header is included in the output file (see copyright.sdl"
+            "for what is included).",
+      0
+    },
+    {
+        "nocopy",
+        SDL_K_ARG_NOCOPY,
+        0,
+        0,
+        "A copyright header is not included in the output file. (the default)",
+        0
+    },
+    {
+        "header",
+        'H',
+        0,
+        0,
+        "A header containing the date and the source filename is included at "
+            "the top of the output file(s). (the default)",
+        0
+    },
+    {
+        "noheader",
+        SDL_K_ARG_NOHEADER,
+        0,
+        0,
+        "A header containing the date and the source filename is not included "
+            "at the top of the output file(s)",
+        0
+    },
+#if 0
+    {
+        "help",
+        'h',
+        0,
+        0,
+        "Display the usage information.",
+        0
+    },
+#endif
+    {
+        "lang",
+        'l',
+        "language[=filespec]",
+        0,
+        "Specifies one of the language options.  At least one needs to be "
+            "specified on the command line.",
+        0
+    },
+    {
+        "list",
+        'L',
+        0,
+        0,
+        "Generate a listing file.",
+        0
+    },
+    {
+        "nolist",
+        SDL_K_ARG_NOLIST,
+        0,
+        0,
+        "Generate a listing file. (the default)",
+        0
+    },
+    {
+        "member",
+        'm',
+        0,
+        0,
+        "Align each item in an aggregate",
+        0
+    },
+    {
+        "nomember",
+        SDL_K_ARG_NOMEMBER,
+        0,
+        0,
+        "Do not align each item in an aggregate. (the default)",
+        0
+    },
+    {
+        "module",
+        'M',
+        0,
+        OPTION_HIDDEN,
+        "This has not yet been implemented. (the default)",
+        0
+    },
+    {
+        "nomodule",
+        SDL_K_ARG_NOMODULE,
+        0,
+        OPTION_HIDDEN,
+        "This has not yet been implemented.",
+        0
+    },
+    {
+        "parse",
+        'p',
+        0,
+        OPTION_HIDDEN,
+        "This has not yet been implemented. (the default)",
+        0
+    },
+    {
+        "noparse",
+        SDL_K_ARG_NOPARSE,
+        0,
+        OPTION_HIDDEN,
+        "This has not yet been implemented.",
+        0
+    },
+    {
+        "suppress",
+        'S',
+        "prefix|tag",
+        OPTION_ARG_OPTIONAL,
+        "Suppress outputting symbols with a prefix, tag, or both.",
+        0
+    },
+    {
+        "nosuppress",
+        SDL_K_ARG_NOSUPPRESS,
+        "prefix|tag",
+        OPTION_ARG_OPTIONAL,
+        "Do not suppress outputting symbols with a prefix, tag, or both."
+            " (the default)",
+        0
+    },
+    {
+        "symbol",
+        's',
+        "symbol=value",
+        0,
+        "Used in conditional compilation where IFSYMBOL is specified in the "
+            "input file.  A value of zero turns off the symbol and a non-zero "
+            "value turns it on.",
+        0
+    },
+    {
+        "trace",
+        't',
+        0,
+        0,
+        "Trace memory allocations and deallocations.",
+        0
+    },
+    {
+        "verbose",
+        'v',
+        0,
+        0,
+        "Verbose information during processing.",
+        0
+    },
+    {
+        "version",
+        'V',
+        0,
+        0,
+        "Display the version information for the OpenSDL utility.",
+        0
+    },
+    { 0 }
 };
 
 /*
@@ -179,7 +431,7 @@ void yyerror(YYLTYPE *locp, yyscan_t *scanner, char const *msg)
     }
     return;
 }
-
+#if 0
 /*
  * usage
  *  This function is called to display the usage information to the user and
@@ -190,7 +442,7 @@ static void _sdl_usage(void)
     printf("Usage: opensdl [options] file...\nOptions:\n");
     printf("  -a, --align:<value>\t\t\tThe assumed alignment.  An integer greater\n");
     printf("\t\t\t\t\tthan zero. (No alignment is the default)\n");
-    printf("  -b32|b64\t\t\t\tThe number of bits that represent a\n");
+    printf("  -b32|-b64\t\t\t\tThe number of bits that represent a\n");
     printf("\t\t\t\t\tlongword.  (64 is the default)\n");
     printf("  -k, --[no]check\t\t\tDiagnostic messages are generated for items\n");
     printf("\t\t\t\t\tthe do not fall on their natural.\n");
@@ -239,6 +491,423 @@ static void _sdl_usage(void)
      */
     return;
 }
+#endif
+static error_t sdl_parse_opt(int key, char *arg, struct argp_state *state)
+{
+    SDL_CONTEXT *context = (SDL_CONTEXT *) state->input;
+    error_t retVal = 0;
+
+    printf("key: ");
+    if ((key < 256) && (isprint(key) != 0))
+        printf("%c", key);
+    else
+        printf("%08x", key);
+    printf(" arg: ");
+    if (arg == NULL)
+        printf("(null)");
+    else
+        printf("%s", arg);
+    printf("\n");
+    switch(key)
+    {
+        case ARGP_KEY_ARG:
+            break;
+
+        case SDL_K_ARG_NOCHECK:
+            context->checkAlignment = false;
+            break;
+
+        case SDL_K_ARG_NOCOMMENT:
+            context->commentsOff = true;
+            break;
+
+        case SDL_K_ARG_B32:
+            context->wordSize = 32;
+            break;
+
+        case SDL_K_ARG_NOCOPY:
+            context->copyright = false;
+            break;
+
+        case SDL_K_ARG_NOHEADER:
+            context->header = false;
+            break;
+
+        case SDL_K_ARG_B64:
+            context->wordSize = 64;
+            break;
+
+        case SDL_K_ARG_NOLIST:
+            listing = false;
+            break;
+
+        case SDL_K_ARG_NOMEMBER:
+            context->memberAlign = false;
+            break;
+
+        case SDL_K_ARG_NOMODULE:
+            sdl_set_message(msgVec, 1, SDL_INVQUAL, "--nomodule");
+            retVal = ARGP_ERR_UNKNOWN;
+            break;
+
+        case SDL_K_ARG_NOPARSE:
+            sdl_set_message(msgVec, 1, SDL_INVQUAL, "--noparse");
+            retVal = ARGP_ERR_UNKNOWN;
+            break;
+
+        case SDL_K_ARG_NOSUPPRESS:
+            context->suppressPrefix = false;
+            context->suppressTag = false;
+            break;
+
+        case 'C':
+            if (arg != NULL)
+            {
+                char *path = realpath(state->argv[0], NULL);
+                int jj;
+
+                if (path != NULL)
+                {
+                    context->copyright = true;
+                    jj = strlen(path) - 1;
+                    while ((jj > 0) && (path[jj - 1] != '/'))
+                    {
+                        jj--;
+                    }
+                    context->copyrightFile = sdl_calloc(1, jj + 14);
+                    strncpy(context->copyrightFile, path, jj);
+                    strcpy(&context->copyrightFile[jj],
+                           "copyright.sdl");
+                    free(path);
+                }
+                else
+                {
+                    retVal = ARGP_ERR_UNKNOWN;
+                }
+            }
+            break;
+
+        case 'H':
+            context->header = true;
+            break;
+
+        case 'L':
+            if (listing == false)
+            {
+                listing = true;
+                if (arg != NULL)
+                {
+                    context->listingFileName = sdl_strdup(&arg[1]);
+                }
+            }
+            else
+            {
+                sdl_set_message(msgVec, 1, SDL_DUPLISTQUAL);
+                retVal = ARGP_ERR_UNKNOWN;
+            }
+            break;
+
+        case 'M':
+            sdl_set_message(msgVec, 1, SDL_INVQUAL, "-M|--module");
+            retVal = ARGP_ERR_UNKNOWN;
+            break;
+
+        case 'S':
+            if (arg != NULL)
+            {
+                char *ptr;
+
+                ptr = strchr(arg, ':');
+                if (ptr != NULL)
+                {
+                    ptr++;
+                    if (strncasecmp(ptr, "prefix", 6) == 0)
+                    {
+                        context->suppressPrefix = true;
+                    }
+                    else if (strncasecmp(ptr, "tag", 3) == 0)
+                    {
+                        context->suppressTag = true;
+                    }
+                    else
+                    {
+                        sdl_set_message(msgVec,
+                                        1,
+                                        SDL_INVQUAL,
+                                        "-S|--suppress");
+                        retVal = ARGP_ERR_UNKNOWN;
+                    }
+                    if (retVal == SDL_NORMAL)
+                    {
+                        ptr = strchr(arg, ',');
+                        if (ptr != NULL)
+                        {
+                            ptr++;
+                            if (strncasecmp(ptr, "prefix", 6) == 0)
+                            {
+                                context->suppressPrefix = true;
+                            }
+                            else if (strncasecmp(ptr, "tag", 3) == 0)
+                            {
+                                context->suppressTag = true;
+                            }
+                            else
+                            {
+                                sdl_set_message(msgVec,
+                                                1,
+                                                SDL_INVQUAL,
+                                                "-S|--suppress");
+                                retVal = ARGP_ERR_UNKNOWN;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    context->suppressPrefix = true;
+                    context->suppressTag = true;
+                }
+            }
+            break;
+
+        case 'V':
+            break;
+
+        case 'a':
+            if (arg != NULL)
+            {
+                context->alignment = strtol(arg, NULL, 10);
+                if ((context->alignment < 0) ||
+                    ((context->alignment != 0) &&
+                     (context->alignment != 1) &&
+                     (context->alignment != 2) &&
+                     (context->alignment != 4) &&
+                     (context->alignment != 8)))
+                {
+                    sdl_set_message(msgVec,
+                                    1,
+                                    SDL_INVALIGN,
+                                    context->alignment);
+                    retVal = ARGP_ERR_UNKNOWN;
+                }
+            }
+            else
+            {
+                sdl_set_message(msgVec, 1, SDL_INVQUAL, "-a|--align");
+                retVal = ARGP_ERR_UNKNOWN;
+            }
+            break;
+
+        case 'c':
+            context->commentsOff = false;
+            break;
+
+        case 'h':
+            _sdl_usage();
+            break;
+
+        case 'k':
+            context->checkAlignment = true;
+            break;
+
+        case 'l':
+            if (arg != NULL)
+            {
+                char *ptr;
+                int jj = 0;
+                bool langSet = false;
+
+                while ((context->languages[jj].langStr != NULL) &&
+                       (context->languages[jj].langVal != -1) &&
+                       (retVal == 0))
+                {
+                    ptr = strchr(arg, '=');
+                    if (ptr == NULL)
+                    {
+                        ptr = &arg[strlen(arg)];
+                    }
+                    if (strncasecmp(arg,
+                            context->languages[jj].langStr,
+                            (ptr - arg)) == 0)
+                    {
+                        int lang = context->languages[jj].langVal;
+
+                        if (context->langSpec[lang] == false)
+                        {
+                            context->langSpec[lang] = true;
+                            if (*ptr == '=')
+                            {
+                                context->outFileName[lang] =
+                                        sdl_strdup(&ptr[1]);
+                            }
+                            langSet = true;
+                        }
+                        else
+                        {
+                            char lang[32];
+
+                            strncpy(lang, arg, (ptr - arg));
+                            sdl_set_message(msgVec, 1, SDL_DUPLANG, lang);
+                            retVal = ARGP_ERR_UNKNOWN;
+                        }
+                    }
+                    jj++;
+                }
+                if ((langSet == false) && (retVal == 0))
+                {
+                    sdl_set_message(msgVec, 1, SDL_INVQUAL, "-l|-lang");
+                    retVal = ARGP_ERR_UNKNOWN;
+                }
+            }
+            break;
+
+        case 'm':
+            context->memberAlign = true;
+            break;
+
+        case 'p':
+            sdl_set_message(msgVec, 1, SDL_INVQUAL, "-p|--parse");
+            retVal = ARGP_ERR_UNKNOWN;
+            break;
+
+        case 's':
+            if (arg != NULL)
+            {
+                SDL_SYMBOL_LIST *list = &context->symbCondList;
+                char *ptr;
+
+                ptr = strchr(arg, ':');
+                if (ptr != NULL)
+                {
+                    char *ptr2 = strchr(arg, '=');
+                    char *symbol;
+                    int value;
+                    bool noValue = false;
+
+                    ptr++;
+                    if (ptr2 == NULL)
+                    {
+                        ptr2 = &arg[strlen(arg)];
+                        noValue = true;
+                    }
+                    symbol = strndup(ptr, (ptr2 - ptr));
+                    if (noValue == false)
+                    {
+                        ptr2++;
+                        value = strtol(ptr2, NULL, 10);
+                    }
+                    if (symbol != NULL)
+                    {
+                        bool found = false;
+                        int jj;
+
+                        for (jj = 0;
+                             ((jj < list->listUsed) &&
+                              (found == false));
+                             jj++)
+                        {
+                            if (strcmp(list->symbols[jj].symbol,
+                                    symbol) == 0)
+                            {
+                                found = true;
+                            }
+                        }
+                        if (found == false)
+                        {
+                            if (list->listUsed >= list->listSize)
+                            {
+                                list->listSize++;
+                                list->symbols = sdl_realloc(
+                                    list->symbols,
+                                    (sizeof(SDL_SYMBOL) *
+                                        list->listSize));
+                            }
+                            list->symbols[list->listUsed].symbol =
+                                symbol;
+                            list->symbols[list->listUsed++].value =
+                                value;
+                        }
+                        else
+                        {
+                            sdl_set_message(msgVec,
+                                            1,
+                                            SDL_SYMALRDEF,
+                                            "-s||--symbol");
+                            retVal = ARGP_ERR_UNKNOWN;
+                        }
+                    }
+                    else
+                    {
+                        sdl_set_message(msgVec,
+                                        1,
+                                        SDL_ABORT,
+                                        "-s||--symbol");
+                        retVal = ARGP_ERR_UNKNOWN;
+                    }
+                }
+                else
+                {
+                    sdl_set_message(msgVec,
+                                    1,
+                                    SDL_INVQUAL,
+                                    "-s||--symbol");
+                    retVal = ARGP_ERR_UNKNOWN;
+                }
+            }
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_INVQUAL,
+                                "-s||--symbol");
+                retVal = ARGP_ERR_UNKNOWN;
+            }
+            break;
+
+        case 't':
+            traceMemory = true;
+            break;
+
+        case 'v':
+            trace = true;
+            _verbose = 1;
+            break;
+
+        case ARGP_KEY_SUCCESS:
+            break;
+
+        case ARGP_KEY_INIT:
+            context->inputFile = NULL;
+            context->symbCondList.symbols = NULL;
+            context->symbCondList.listSize = 0;
+            context->symbCondList.listUsed = 0;
+            context->alignment = 0; /* default to no align */
+            context->wordSize = 64; /* default to 64-bits */
+            context->checkAlignment = false; /* default to no-check */
+            context->commentsOff = false; /* default to comments on */
+            context->copyright = false; /* default to no-copyright */
+            context->header = true; /* default to write out header */
+            context->memberAlign = true; /* default to member alignment */
+            context->suppressPrefix = false; /* default to displaying prefix */
+            context->suppressTag = false; /* default to displaying tag */
+            break;
+
+        case ARGP_KEY_FINI:
+            break;
+
+        default:
+            sdl_set_message(msgVec, 1, SDL_INVQUAL, &key);
+            retVal = ARGP_ERR_UNKNOWN;
+            break;
+    }
+
+    /*
+     * Return back to the caller.
+     */
+    return retVal;
+}
+
+static struct argp argp = {options, sdl_parse_opt, args_doc, doc, 0, 0, 0};
 
 /*
  * _sdl_parse_args
@@ -1010,8 +1679,12 @@ int main(int argc, char *argv[])
     /*
      * Parse out the command line arguments.
      */
+    status = argp_parse(&argp, argc, argv, 0, 0, &context);
+#if 0
     status = _sdl_parse_args(argc, argv, &context);
     if ((status != SDL_NORMAL) && (status != SDL_ERREXIT))
+#endif
+    if (status != 0)
     {
         status = sdl_get_message(msgVec, &msgTxt);
         if (status == SDL_NORMAL)

@@ -26,8 +26,9 @@
 #ifndef _OPENSDL_MAIN_H_
 #define _OPENSDL_MAIN_H_
 
-extern _Bool		trace;
-extern SDL_MSG_VECTOR	msgVec[];
-extern char		*sdl_months[];
+extern _Bool trace;
+extern SDL_MSG_VECTOR msgVec[];
+extern char *sdl_months[];
+extern FILE *listingFP;
 
 #endif /* _OPENSDL_MAIN_H_ */

@@ -21,181 +21,181 @@
  *
  * Revision History:
  *
- *  V01.000	08-OCT-2018	Jonathan D. Belanger
+ *  V01.000    08-OCT-2018    Jonathan D. Belanger
  *  Initially written.
  */
 #ifndef _OPENSDL_MESSAGES_H_
 #define _OPENSDL_MESSAGES_H_
 
-#define SYSTEM_K_FACILITY	0
-#define SDL_K_FACILITY		186
+#define SYSTEM_K_FACILITY       0
+#define SDL_K_FACILITY          186
 
-#define SDL_GET_SEVERITY(msg)	(((SDL_MESSAGE) (msg)).severity)
-#define SDL_GET_MESSAGE(msg)	(((SDL_MESSAGE) (msg)).msg_no)
-#define SDL_GET_FACILITY(msg)	(((SDL_MESSAGE) (msg)).fac_no)
-#define SDL_GET_INHIBIT(msg)	(((SDL_MESSAGE) (msg)).inhib_msg)
-#define SDL_GET_CONTROL(msg)	(((SDL_MESSAGE) (msg)).control)
+#define SDL_GET_SEVERITY(msg)   (((SDL_MESSAGE) (msg)).severity)
+#define SDL_GET_MESSAGE(msg)    (((SDL_MESSAGE) (msg)).msg_no)
+#define SDL_GET_FACILITY(msg)   (((SDL_MESSAGE) (msg)).fac_no)
+#define SDL_GET_INHIBIT(msg)    (((SDL_MESSAGE) (msg)).inhib_msg)
+#define SDL_GET_CONTROL(msg)    (((SDL_MESSAGE) (msg)).control)
 
-#define SDL_K_WARNING	0
-#define SDL_K_SUCCESS	1
-#define SDL_K_ERROR	2
-#define SDL_K_INFO	3
-#define SDL_K_SEVERE	4
+#define SDL_K_WARNING           0
+#define SDL_K_SUCCESS           1
+#define SDL_K_ERROR             2
+#define SDL_K_INFO              3
+#define SDL_K_SEVERE            4
 
 /*
  * Successful SDL Error.
  */
-#define SDL_NORMAL		0x00ba0001
-#define SDL_CREATED		0x00ba0281
-#define SDL_NOTCREATED		0x00ba0289
+#define SDL_NORMAL              0x00ba0001
+#define SDL_CREATED             0x00ba0281
+#define SDL_NOTCREATED          0x00ba0289
 
 /*
  * Fatal SDL Errors.
  */
-#define SDL_SYNTABOVR		0x00ba000c
-#define SDL_ABORT		0x00ba0014
-#define SDL_INFILOPN		0x00ba001c
-#define SDL_BUGCHECK		0x00ba0024
-#define SDL_REVCHECK		0x00ba002c
-#define SDL_ERREXIT		0x00ba0034
-#define SDL_INVACTSTA		0x00ba023c
+#define SDL_SYNTABOVR           0x00ba000c
+#define SDL_ABORT               0x00ba0014
+#define SDL_INFILOPN            0x00ba001c
+#define SDL_BUGCHECK            0x00ba0024
+#define SDL_REVCHECK            0x00ba002c
+#define SDL_ERREXIT             0x00ba0034
+#define SDL_INVACTSTA           0x00ba023c
 
 /*
  * Error SDL Errors.
  */
-#define SDL_INVSHRIMG		0x00ba003a
-#define SDL_NULLSTRUCT		0x00ba0042
-#define SDL_DUPCONATT		0x00ba004a
-#define SDL_INVFLDSIZ		0x00ba0052
-#define SDL_UNDEFSYM		0x00ba005a
-#define SDL_UNDEFCON		0x00ba0062
-#define SDL_UNDEFUSER		0x00ba006a
-#define SDL_INVDECL		0x00ba0072
-#define SDL_UNDEFFIL		0x00ba007a
-#define SDL_UNDEFORG		0x00ba0082
-#define SDL_INVOUT		0x00ba008a
-#define SDL_TOKOVF		0x00ba0092
-#define SDL_OUTFILOPN		0x00ba009a
-#define SDL_SYNTAXERR		0x00ba00a2
-#define SDL_INTOVF		0x00ba00aa
-#define SDL_ZERODIV		0x00ba00b2
-#define SDL_BYTSIZ		0x00ba00ba
-#define SDL_TOOMANYFIELDS	0x00ba00c2
-#define SDL_INVUNKLEN		0x00ba00ca
-#define SDL_SIZEREDEF		0x00ba00d2
-#define SDL_SIZEQUAL		0x00ba00da
-#define SDL_SIZENEST		0x00ba00e2
-#define SDL_STRINGCONST		0x00ba00ea
-#define SDL_INVNAME		0x00ba00f2
-#define SDL_ILLFORWREF		0x00ba00fa
-#define SDL_INVSYMDEF		0x00ba0102
-#define SDL_SYMALRDEF		0x00ba010a
-#define SDL_INVALIGN		0x00ba0112
-#define SDL_INFILSDI		0x00ba011a
-#define SDL_INVBITFLD		0x00ba0122
-#define SDL_ADROBJBAS		0x00ba012a
-#define SDL_INCDEFSTRUCT	0x00ba0132
-#define SDL_MULTDEFSYM		0x00ba013a
-#define SDL_INVPARMTYP		0x00ba0142
-#define SDL_INVEXPR		0x00ba014a
-#define SDL_INVLISTOPT  	0x00ba0152
-#define SDL_BASEALIGN   	0x00ba015a
-#define SDL_NOINPFIL		0x00ba022a
-#define SDL_NOCOPYFIL		0x00ba0232
-#define SDL_UNKRADIX		0x00ba0242
-#define SDL_UNKCONSTTYP		0x00ba024a
-#define SDL_INVAGGRNAM		0x00ba0252
-#define SDL_INVENUMNAM		0x00ba025a
-#define SDL_UNKOPTION		0x00ba0262
-#define SDL_INVCONDST		0x00ba026a
-#define SDL_INVQUAL		0x00ba0272
-#define SDL_PARSEERR		0x00ba027a
-#define SDL_DUPLISTQUAL		0x00ba0292
+#define SDL_INVSHRIMG           0x00ba003a
+#define SDL_NULLSTRUCT          0x00ba0042
+#define SDL_DUPCONATT           0x00ba004a
+#define SDL_INVFLDSIZ           0x00ba0052
+#define SDL_UNDEFSYM            0x00ba005a
+#define SDL_UNDEFCON            0x00ba0062
+#define SDL_UNDEFUSER           0x00ba006a
+#define SDL_INVDECL             0x00ba0072
+#define SDL_UNDEFFIL            0x00ba007a
+#define SDL_UNDEFORG            0x00ba0082
+#define SDL_INVOUT              0x00ba008a
+#define SDL_TOKOVF              0x00ba0092
+#define SDL_OUTFILOPN           0x00ba009a
+#define SDL_SYNTAXERR           0x00ba00a2
+#define SDL_INTOVF              0x00ba00aa
+#define SDL_ZERODIV             0x00ba00b2
+#define SDL_BYTSIZ              0x00ba00ba
+#define SDL_TOOMANYFIELDS       0x00ba00c2
+#define SDL_INVUNKLEN           0x00ba00ca
+#define SDL_SIZEREDEF           0x00ba00d2
+#define SDL_SIZEQUAL            0x00ba00da
+#define SDL_SIZENEST            0x00ba00e2
+#define SDL_STRINGCONST         0x00ba00ea
+#define SDL_INVNAME             0x00ba00f2
+#define SDL_ILLFORWREF          0x00ba00fa
+#define SDL_INVSYMDEF           0x00ba0102
+#define SDL_SYMALRDEF           0x00ba010a
+#define SDL_INVALIGN            0x00ba0112
+#define SDL_INFILSDI            0x00ba011a
+#define SDL_INVBITFLD           0x00ba0122
+#define SDL_ADROBJBAS           0x00ba012a
+#define SDL_INCDEFSTRUCT        0x00ba0132
+#define SDL_MULTDEFSYM          0x00ba013a
+#define SDL_INVPARMTYP          0x00ba0142
+#define SDL_INVEXPR             0x00ba014a
+#define SDL_INVLISTOPT          0x00ba0152
+#define SDL_BASEALIGN           0x00ba015a
+#define SDL_NOINPFIL            0x00ba022a
+#define SDL_NOCOPYFIL           0x00ba0232
+#define SDL_UNKRADIX            0x00ba0242
+#define SDL_UNKCONSTTYP         0x00ba024a
+#define SDL_INVAGGRNAM          0x00ba0252
+#define SDL_INVENUMNAM          0x00ba025a
+#define SDL_UNKOPTION           0x00ba0262
+#define SDL_INVCONDST           0x00ba026a
+#define SDL_INVQUAL             0x00ba0272
+#define SDL_PARSEERR            0x00ba027a
+#define SDL_DUPLISTQUAL         0x00ba0292
 
 /*
  * Warning SDL Errors.
  */
-#define SDL_LISFILOPN		0x00ba0160
-#define SDL_NOOUTPUT		0x00ba0168
-#define SDL_ZEROLEN		0x00ba0170
-#define SDL_MATCHEND		0x00ba0178
-#define SDL_WARNEXIT		0x00ba0180
-#define SDL_TYPNAM		0x00ba0188
-#define SDL_INVREQPARAM		0x00ba0190
-#define SDL_NAMTRUNC		0x00ba0198
-#define SDL_TYPNOTSUP		0x00ba01a0
-#define SDL_IMMGTR32		0x00ba01a8
-#define SDL_IDENTGTR31		0x00ba01b0
-#define SDL_LANGDUP		0x00ba01b8
-#define SDL_LANGMATCH		0x00ba01c0
-#define SDL_LANGMISS		0x00ba01c8
-#define SDL_UNALIGNED		0x00ba01d0
-#define SDL_FILLNEGLEN		0x00ba01d8
-#define SDL_OFFSETEXPR		0x00ba01e0
-#define SDL_SYMNOTDEF		0x00ba01e8
-#define SDL_BADNODETYPE		0x00ba0200
-#define SDL_DIMENSIONSTAR	0x00ba0208
-#define SDL_DUPLANG		0x00ba0220
+#define SDL_LISFILOPN           0x00ba0160
+#define SDL_NOOUTPUT            0x00ba0168
+#define SDL_ZEROLEN             0x00ba0170
+#define SDL_MATCHEND            0x00ba0178
+#define SDL_WARNEXIT            0x00ba0180
+#define SDL_TYPNAM              0x00ba0188
+#define SDL_INVREQPARAM         0x00ba0190
+#define SDL_NAMTRUNC            0x00ba0198
+#define SDL_TYPNOTSUP           0x00ba01a0
+#define SDL_IMMGTR32            0x00ba01a8
+#define SDL_IDENTGTR31          0x00ba01b0
+#define SDL_LANGDUP             0x00ba01b8
+#define SDL_LANGMATCH           0x00ba01c0
+#define SDL_LANGMISS            0x00ba01c8
+#define SDL_UNALIGNED           0x00ba01d0
+#define SDL_FILLNEGLEN          0x00ba01d8
+#define SDL_OFFSETEXPR          0x00ba01e0
+#define SDL_SYMNOTDEF           0x00ba01e8
+#define SDL_BADNODETYPE         0x00ba0200
+#define SDL_DIMENSIONSTAR       0x00ba0208
+#define SDL_DUPLANG             0x00ba0220
 
 /*
  * Informational SDL Errors.
  */
-#define SDL_NEGORIGIN		0x00ba01f3
-#define SDL_FILLZEROLEN		0x00ba01fb
-#define SDL_FIXUP		0x00ba0213
-#define SDL_POSSCIRC		0x00ba021b
+#define SDL_NEGORIGIN           0x00ba01f3
+#define SDL_FILLZEROLEN         0x00ba01fb
+#define SDL_FIXUP               0x00ba0213
+#define SDL_POSSCIRC            0x00ba021b
 
 typedef union
 {
-    uint32_t		msgCode;
+    uint32_t msgCode;
     struct
     {
-	uint32_t	severity : 3;
-	uint32_t	cond_id : 25;
-	uint32_t	inhib_msg: 1;
-	uint32_t	control : 3;
+        uint32_t severity :3;
+        uint32_t cond_id :25;
+        uint32_t inhib_msg :1;
+        uint32_t control :3;
     };
     struct
     {
-	uint32_t	fill_3a : 3;
-	uint32_t	msg_no : 13;
-	uint32_t	fac_no : 12;
-	uint32_t	fill_3b : 4;
+        uint32_t fill_3a :3;
+        uint32_t msg_no :13;
+        uint32_t fac_no :12;
+        uint32_t fill_3b :4;
     };
     struct
     {
-	uint32_t	fill_4a : 3;
-	uint32_t	code : 12;
-	uint32_t	fac_sp : 1;
-	uint32_t	fill_4 : 11;
-	uint32_t	cust_def : 1;
-	uint32_t	fill_4b : 4;
+        uint32_t fill_4a :3;
+        uint32_t code :12;
+        uint32_t fac_sp :1;
+        uint32_t fill_4 :11;
+        uint32_t cust_def :1;
+        uint32_t fill_4b :4;
     };
 } SDL_MESSAGE;
 
 typedef struct
 {
-    char		*msgSymb;
-    char		*msgText;
-    uint16_t		faoStr;
-    uint16_t		faoInt;
+    char *msgSymb;
+    char *msgText;
+    uint16_t faoStr;
+    uint16_t faoInt;
 } SDL_MSG_ARRAY;
 
 typedef struct
 {
-    SDL_MESSAGE		msgCode;
-    uint16_t		faoCount;
-    uint16_t		faoInfo;
+    SDL_MESSAGE msgCode;
+    uint16_t faoCount;
+    uint16_t faoInfo;
 } SDL_MSG_VECTOR;
 
 typedef struct
 {
-    uint8_t		faoType;
-    uint8_t		faoLength;
+    uint8_t faoType;
+    uint8_t faoLength;
 } SDL_MSG_FAO;
 
-#define SDL_MSG_FAO_NUMBER	0
-#define SDL_MSG_FAO_STRING	1
+#define SDL_MSG_FAO_NUMBER    0
+#define SDL_MSG_FAO_STRING    1
 
 /*
  * Function prototypes.
@@ -203,4 +203,4 @@ typedef struct
 uint32_t sdl_set_message(SDL_MSG_VECTOR *msgVector, int msgCnt, ...);
 uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVector, char **msgStr);
 
-#endif	/* _OPENSDL_MESSAGES_H_ */
+#endif    /* _OPENSDL_MESSAGES_H_ */

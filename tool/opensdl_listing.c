@@ -19,14 +19,14 @@
  *  This source file contains the routines to generate a listing file as the
  *  input file is parsed.  There are 4 interface functions:
  *
- *	1) sdl_open_list	- open a new listing file for write
- *	2) sdl_write_list	- write a string of input data to listing file
- *	3) sdl_write_err	- write an error message to the listing file
- *	4) sdl_close_list	- close the listing file
+ *    1) sdl_open_list    - open a new listing file for write
+ *    2) sdl_write_list    - write a string of input data to listing file
+ *    3) sdl_write_err    - write an error message to the listing file
+ *    4) sdl_close_list    - close the listing file
  *
  * Revision History:
  *
- *  V01.000	25-AUG-2018	Jonathan D. Belanger
+ *  V01.000    25-AUG-2018    Jonathan D. Belanger
  *  Initially written.
  */
 #include <errno.h>
@@ -42,20 +42,20 @@
 /*
  * Local variables used while generating a listing file.
  */
-typedef char		*SDL_MESSAGE_TXT;
-static SDL_MESSAGE_TXT	*messages = NULL;
-static int		messagesIndex = 0;
-static int		messagesSize = 0;
-#define SDL_PAGE_WIDTH	132
-#define SDL_PAGE_LENGTH	66
-#define SDL_PAGE_LOC	122
-typedef char		SDL_HEADER_DEF[SDL_PAGE_WIDTH + 1];
-static SDL_HEADER_DEF	sdl_listing_header[2];
-static char		xBuf[SDL_PAGE_WIDTH + 1];
-static int		xBufLoc = 0;
-static uint32_t		listLine = 1;
-static uint32_t		pageLine = 1;
-static uint32_t		pageNo = 1;
+typedef char *SDL_MESSAGE_TXT;
+static SDL_MESSAGE_TXT *messages = NULL;
+static int messagesIndex = 0;
+static int messagesSize = 0;
+#define SDL_PAGE_WIDTH    132
+#define SDL_PAGE_LENGTH    66
+#define SDL_PAGE_LOC    122
+typedef char SDL_HEADER_DEF[SDL_PAGE_WIDTH + 1];
+static SDL_HEADER_DEF sdl_listing_header[2];
+static char xBuf[SDL_PAGE_WIDTH + 1];
+static int xBufLoc = 0;
+static uint32_t listLine = 1;
+static uint32_t pageLine = 1;
+static uint32_t pageNo = 1;
 
 /*
  * Local Prototypes.
@@ -70,31 +70,33 @@ static void _sdl_msg_list(FILE *fp);
  *
  * Input Parameters:
  *  context:
- *	A pointer to the context block where all the information about the
- *	processing of the input file is maintained, as well as the listing
- *	output file.
+ *    A pointer to the context block where all the information about the
+ *    processing of the input file is maintained, as well as the listing
+ *    output file.
  *
  * Output Parameters:
  *  None.
  *
  * Return Values:
- *  NULL:	An error occurred opening the listing file for write.
- *  !NULL:	A pointer to the listing file.
+ *  NULL:           An error occurred opening the listing file for write.
+ *  !NULL:          A pointer to the listing file.
  */
 FILE *sdl_open_list(SDL_CONTEXT *context)
 {
-    FILE	*retVal;
+    FILE *retVal;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_open_list\n", __FILE__, __LINE__);
+    {
+        printf("%s:%d:sdl_open_list\n", __FILE__, __LINE__);
+    }
 
     /*
      * Open the listing file for write.
      */
-    retVal = fopen(context->listingFileName, "w");
+    retVal = fopen(context->argument[ArgListingFile].fileName, "w");
 
     /*
      * If the listing file was successfully opened, then perform some
@@ -102,55 +104,57 @@ FILE *sdl_open_list(SDL_CONTEXT *context)
      */
     if (retVal != NULL)
     {
-	int	ii, len;
+        int ii, len;
 
-	/*
-	 * Save the file pointer for the listing file in the context block.
-	 */
-	context->listingFP = retVal;
+        /*
+         * Save the file pointer for the listing file in the context block.
+         */
+        listingFP = retVal;
 
-	/*
-	 * Initialize the first line for the header written at the start of
-	 * each listing page.  The first line contains the date and time the
-	 * opensdl utility was executed, the name and version of the utility
-	 * itself, and the page number.
-	 */
-	sprintf(sdl_listing_header[0],
-		"%*s%02d-%s-%04d %02d:%02d:%02d OpenSDL %c%d.%d-%d",
-		58,
-		"",
-		context->runTimeInfo.tm_mday,
-		sdl_months[context->runTimeInfo.tm_mon],
-		(1900 + context->runTimeInfo.tm_year),
-		context->runTimeInfo.tm_hour,
-		context->runTimeInfo.tm_min,
-		context->runTimeInfo.tm_sec,
-		SDL_K_VERSION_TYPE,
-		SDL_K_VERSION_MAJOR,
-		SDL_K_VERSION_MINOR,
-		SDL_K_VERSION_LEVEL);
-	len = strlen(sdl_listing_header[0]);
-	for (ii = len; ii < SDL_PAGE_LOC; ii++)
-	    sdl_listing_header[0][ii] = ' ';
-	strcpy(&sdl_listing_header[0][SDL_PAGE_LOC], "Page ");
+        /*
+         * Initialize the first line for the header written at the start of
+         * each listing page.  The first line contains the date and time the
+         * opensdl utility was executed, the name and version of the utility
+         * itself, and the page number.
+         */
+        sprintf(sdl_listing_header[0],
+                "%*s%02d-%s-%04d %02d:%02d:%02d OpenSDL %c%d.%d-%d",
+                58,
+                "",
+                context->runTimeInfo.tm_mday,
+                sdl_months[context->runTimeInfo.tm_mon],
+                (1900 + context->runTimeInfo.tm_year),
+                context->runTimeInfo.tm_hour,
+                context->runTimeInfo.tm_min,
+                context->runTimeInfo.tm_sec,
+                SDL_K_VERSION_TYPE,
+                SDL_K_VERSION_MAJOR,
+                SDL_K_VERSION_MINOR,
+                SDL_K_VERSION_LEVEL);
+        len = strlen(sdl_listing_header[0]);
+        for (ii = len; ii < SDL_PAGE_LOC; ii++)
+        {
+            sdl_listing_header[0][ii] = ' ';
+        }
+        strcpy(&sdl_listing_header[0][SDL_PAGE_LOC], "Page ");
 
-	/*
-	 * Initialize the second line for the header written at the start of
-	 * each listing page.  The second line contains the modify date and
-	 * time for the input file and the fill path of the input file.
-	 */
-	sprintf(sdl_listing_header[1],
-		"%*s%02d-%s-%04d %02d:%02d:%02d %.*s",
-		58,
-		"",
-		context->inputTimeInfo.tm_mday,
-		sdl_months[context->inputTimeInfo.tm_mon],
-		(1900 + context->inputTimeInfo.tm_year),
-		context->inputTimeInfo.tm_hour,
-		context->inputTimeInfo.tm_min,
-		context->inputTimeInfo.tm_sec,
-		53,
-		context->inputPath);
+        /*
+         * Initialize the second line for the header written at the start of
+         * each listing page.  The second line contains the modify date and
+         * time for the input file and the fill path of the input file.
+         */
+        sprintf(sdl_listing_header[1],
+                "%*s%02d-%s-%04d %02d:%02d:%02d %.*s",
+                58,
+                "",
+                context->inputTimeInfo.tm_mday,
+                sdl_months[context->inputTimeInfo.tm_mon],
+                (1900 + context->inputTimeInfo.tm_year),
+                context->inputTimeInfo.tm_hour,
+                context->inputTimeInfo.tm_min,
+                context->inputTimeInfo.tm_sec,
+                53,
+                context->inputPath);
     }
 
     /*
@@ -170,14 +174,14 @@ FILE *sdl_open_list(SDL_CONTEXT *context)
  *
  * Input Parameters:
  *  fp:
- *	The address of the file pointer associated with the listing file.
+ *    The address of the file pointer associated with the listing file.
  *  buf:
- *	A pointer to the buffer of characters to be written out to the listing
- *	file.
+ *    A pointer to the buffer of characters to be written out to the listing
+ *    file.
  *  len:
- *	A value indicating the size of the buf parameter.  When this is set to
- *	0, then get it from the strlen call.  Otherwise, we have a buffer that
- *	may not be null terminated, so don't assume it is.
+ *    A value indicating the size of the buf parameter.  When this is set to
+ *    0, then get it from the strlen call.  Otherwise, we have a buffer that
+ *    may not be null terminated, so don't assume it is.
  *
  * Output Parameters:
  *  None.
@@ -187,14 +191,16 @@ FILE *sdl_open_list(SDL_CONTEXT *context)
  */
 void sdl_write_list(FILE *fp, char *buf, size_t len)
 {
-    int		ii;
-    size_t	myLen = (len == 0) ? strlen(buf) : len;
+    int ii;
+    size_t myLen = (len == 0) ? strlen(buf) : len;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_write_list\n", __FILE__, __LINE__);
+    {
+        printf("%s:%d:sdl_write_list\n", __FILE__, __LINE__);
+    }
 
     /*
      * Scan through the buffer, outputting lines as we go.  NOTE: We may end up
@@ -204,56 +210,66 @@ void sdl_write_list(FILE *fp, char *buf, size_t len)
     for (ii = 0; ii < myLen; ii++)
     {
 
-	/*
-	 * If we are on the first line of a page, then display the listing headers.
-	 */
-	if (pageLine == 1)
-	    _sdl_end_page(fp);
+        /*
+         * If we are on the first line of a page, then display the listing headers.
+         */
+        if (pageLine == 1)
+        {
+            _sdl_end_page(fp);
+        }
 
-	/*
-	 * If we are starting a new line, then insert the line number.
-	 */
-	if (xBufLoc == 0)
-	    xBufLoc = sprintf(xBuf, " %6d ", listLine);
+        /*
+         * If we are starting a new line, then insert the line number.
+         */
+        if (xBufLoc == 0)
+        {
+            xBufLoc = sprintf(xBuf, " %6d ", listLine);
+        }
 
-	/*
-	 * If the character is a carriage-return, then just ignore it.
-	 */
-	if (buf[ii] == '\r')
-	    continue;
+        /*
+         * If the character is a carriage-return, then just ignore it.
+         */
+        if (buf[ii] == '\r')
+        {
+            continue;
+        }
 
-	/*
-	 * If the character is a new-line, then null-terminate the output
-	 * buffer and output the line.
-	 */
-	if (buf[ii] == '\n')
-	{
-	    xBuf[xBufLoc] = '\0';
-	    fprintf(fp, "%s\n", xBuf);
-	    listLine++;
-	    pageLine++;
-	    xBufLoc = 0;
-	    if (messagesIndex > 0)
-		_sdl_msg_list(fp);
-	    continue;
-	}
+        /*
+         * If the character is a new-line, then null-terminate the output
+         * buffer and output the line.
+         */
+        if (buf[ii] == '\n')
+        {
+            xBuf[xBufLoc] = '\0';
+            fprintf(fp, "%s\n", xBuf);
+            listLine++;
+            pageLine++;
+            xBufLoc = 0;
+            if (messagesIndex > 0)
+            {
+                _sdl_msg_list(fp);
+            }
+            continue;
+        }
 
-	/*
-	 * If the character is a form-feed, or we have exceeded the number of
-	 * lines in a page, then insert a form-feed and reset the pageLine.
-	 */
-	if ((buf[ii] == '\f') || (pageLine > SDL_PAGE_LENGTH))
-	{
-	    pageLine = 1;
-	    continue;
-	}
+        /*
+         * If the character is a form-feed, or we have exceeded the number of
+         * lines in a page, then insert a form-feed and reset the pageLine.
+         */
+        if ((buf[ii] == '\f') || (pageLine > SDL_PAGE_LENGTH))
+        {
+            pageLine = 1;
+            continue;
+        }
 
-	/*
-	 * We have just a regular character.  If there is room, then add it to
-	 * the output buffer.  Otherwise, just swallow it.
-	 */
-	if (xBufLoc < SDL_PAGE_WIDTH)
-	    xBuf[xBufLoc++] = buf[ii];
+        /*
+         * We have just a regular character.  If there is room, then add it to
+         * the output buffer.  Otherwise, just swallow it.
+         */
+        if (xBufLoc < SDL_PAGE_WIDTH)
+        {
+            xBuf[xBufLoc++] = buf[ii];
+        }
     }
 
     /*
@@ -273,10 +289,10 @@ void sdl_write_list(FILE *fp, char *buf, size_t len)
  *
  * Input Parameters:
  *  fp:
- *	The address of the file pointer associated with the listing file.
+ *    The address of the file pointer associated with the listing file.
  *  msgText:
- *	A pointer to the string containing all the information needed to
- *	display the error text.
+ *    A pointer to the string containing all the information needed to
+ *    display the error text.
  *
  * Output Parameters:
  *  None.
@@ -291,7 +307,9 @@ void sdl_write_err(FILE *fp, char *msgText)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_write_err\n", __FILE__, __LINE__);
+    {
+        printf("%s:%d:sdl_write_err\n", __FILE__, __LINE__);
+    }
 
     /*
      * If we are in the process of producing a listing line, then store the
@@ -299,11 +317,13 @@ void sdl_write_err(FILE *fp, char *msgText)
      */
     if (messagesIndex >= messagesSize)
     {
-	size_t	size = sizeof(SDL_MESSAGE_TXT) * (messagesSize + 1);
+        size_t    size = sizeof(SDL_MESSAGE_TXT) * (messagesSize + 1);
 
-	messages = sdl_realloc(messages, size);;
-	if (messages != NULL)
-	    messagesSize++;
+        messages = sdl_realloc(messages, size);;
+        if (messages != NULL)
+        {
+            messagesSize++;
+        }
     }
     messages[messagesIndex++] = sdl_strdup(msgText);
 
@@ -312,7 +332,9 @@ void sdl_write_err(FILE *fp, char *msgText)
      * message text now.
      */
     if (xBufLoc <= 8)
-	_sdl_msg_list(fp);
+    {
+        _sdl_msg_list(fp);
+    }
 
     /*
      * Return back to the caller.
@@ -327,9 +349,9 @@ void sdl_write_err(FILE *fp, char *msgText)
  *
  * Input Parameters:
  *  context:
- *	A pointer to the context block where all the information about the
- *	processing of the input file is maintained, as well as the listing
- *	output file.
+ *    A pointer to the context block where all the information about the
+ *    processing of the input file is maintained, as well as the listing
+ *    output file.
  *
  * Output Parameters:
  *  None.
@@ -344,24 +366,26 @@ void sdl_close_list(SDL_CONTEXT *context)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:sdl_close_list\n", __FILE__, __LINE__);
+    {
+        printf("%s:%d:sdl_close_list\n", __FILE__, __LINE__);
+    }
 
     /*
      * If there is anything in the output buffer, write it out now.
      */
     if (xBufLoc > 0)
     {
-	xBuf[xBufLoc] = '\0';
-	fprintf(context->listingFP, "%s\n", xBuf);
+        xBuf[xBufLoc] = '\0';
+        fprintf(listingFP, "%s\n", xBuf);
     }
 
     /*
      * All that is left to do is close the file, if it was opened.
      */
-    if (context->listingFP != NULL)
+    if (listingFP != NULL)
     {
-	fclose(context->listingFP);
-	context->listingFP = NULL;
+        fclose(listingFP);
+        listingFP = NULL;
     }
 
     /*
@@ -376,7 +400,7 @@ void sdl_close_list(SDL_CONTEXT *context)
  *
  * Input Parameters:
  *  fp:
- *	The address of the file pointer associated with the listing file.
+ *    The address of the file pointer associated with the listing file.
  *
  * Output Parameters:
  *  None.
@@ -391,14 +415,18 @@ static void _sdl_end_page(FILE *fp)
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:_sdl_end_page\n", __FILE__, __LINE__);
+    {
+        printf("%s:%d:_sdl_end_page\n", __FILE__, __LINE__);
+    }
 
     /*
      * For the first line of the file, we do not write a form-feed.  All other
      * times, we need a form-feed, so that we can move to the next page.
      */
     if (listLine > 1)
-	fprintf(fp, "\f\n");
+    {
+        fprintf(fp, "\f\n");
+    }
 
     /*
      * Print the header at the top of each page.
@@ -424,7 +452,7 @@ static void _sdl_end_page(FILE *fp)
  *
  * Input Parameters:
  *  fp:
- *	The address of the file pointer associated with the listing file.
+ *    The address of the file pointer associated with the listing file.
  *
  * Output Parameters:
  *  None.
@@ -434,13 +462,15 @@ static void _sdl_end_page(FILE *fp)
  */
 static void _sdl_msg_list(FILE *fp)
 {
-    int		ii, jj, len, pageRoom, msgLines;
+    int ii, jj, len, pageRoom, msgLines;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
     if (trace == true)
-	printf("%s:%d:_sdl_msg_list\n", __FILE__, __LINE__);
+    {
+        printf("%s:%d:_sdl_msg_list\n", __FILE__, __LINE__);
+    }
 
     /*
      * Determine if there is enough room to display the message in it's
@@ -454,46 +484,50 @@ static void _sdl_msg_list(FILE *fp)
     for (ii = 0; ii < messagesIndex; ii++)
     {
 
-	/*
-	 * Get the length of this specific message text.
-	 */
-	len = strlen(messages[ii]);
+        /*
+         * Get the length of this specific message text.
+         */
+        len = strlen(messages[ii]);
 
-	/*
-	 * Determine the number of lines this message occupies by counting the
-	 * new-line characters.
-	 */
-	msgLines = 0;
-	for (jj = 0; jj < len; jj++)
-	    if (messages[ii][jj] == '\n')
-		msgLines++;
+        /*
+         * Determine the number of lines this message occupies by counting the
+         * new-line characters.
+         */
+        msgLines = 0;
+        for (jj = 0; jj < len; jj++)
+        {
+            if (messages[ii][jj] == '\n')
+            {
+                msgLines++;
+            }
+        }
 
-	/*
-	 * If there is not enough room on the current page for the message
-	 * text, then move to the next page.  This will reset the pageLine, so
-	 * we need to recalculate the pageRoom.
-	 */
-	if (pageRoom < msgLines)
-	{
-	    _sdl_end_page(fp);
-	    pageRoom = SDL_PAGE_LENGTH - pageLine + 1;
-	}
+        /*
+         * If there is not enough room on the current page for the message
+         * text, then move to the next page.  This will reset the pageLine, so
+         * we need to recalculate the pageRoom.
+         */
+        if (pageRoom < msgLines)
+        {
+            _sdl_end_page(fp);
+            pageRoom = SDL_PAGE_LENGTH - pageLine + 1;
+        }
 
-	/*
-	 * One way or another, we have enough room for the message, so write it
-	 * out to the listing file, and take into consideration the number of
-	 * lines just written out.
-	 */
-	fprintf(fp, "%s", messages[ii]);
-	pageRoom -= msgLines;
-	pageLine += msgLines;
+        /*
+         * One way or another, we have enough room for the message, so write it
+         * out to the listing file, and take into consideration the number of
+         * lines just written out.
+         */
+        fprintf(fp, "%s", messages[ii]);
+        pageRoom -= msgLines;
+        pageLine += msgLines;
 
-	/*
-	 * We no longer need the memory associated with this message text, so
-	 * return it.
-	 */
-	sdl_free(messages[ii]);
-	messages[ii] = 0;
+        /*
+         * We no longer need the memory associated with this message text, so
+         * return it.
+         */
+        sdl_free(messages[ii]);
+        messages[ii] = 0;
     }
 
     /*

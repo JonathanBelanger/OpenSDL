@@ -43,6 +43,14 @@
 #include <time.h>
 #include "lib/util/opensdl_queue.h"
 
+#ifdef _WIN64
+#define PATH_SEP    '\\'
+#define SO_EXT      "dll"
+#else
+#define PATH_SEP    '/'
+#define SO_EXT      "so"
+#endif
+
 typedef struct
 {
     int first_line;

@@ -111,6 +111,7 @@
 #define SDL_INVQUAL             0x00ba0272
 #define SDL_PARSEERR            0x00ba027a
 #define SDL_DUPLISTQUAL         0x00ba0292
+#define SDL_CONFLDUPLQ          0x00ba029a
 
 /*
  * Warning SDL Errors.

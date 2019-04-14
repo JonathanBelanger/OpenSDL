@@ -346,17 +346,19 @@ static struct argp_option options[] =
     {
         "suppress",
         'S',
-        "prefix|tag",
+        "[prefix[,tag]]",
         OPTION_ARG_OPTIONAL,
-        "Suppress outputting symbols with a prefix, tag, or both.",
+        "Suppress generating symbols with a prefix, tag, or both. Specifying "
+            "--suppress with no argument, will suppress both.",
         0
     },
     {
         "nosuppress",
         SDL_K_ARG_NOSUPPRESS,
-        "prefix|tag",
+        "[prefix[,tag]]",
         OPTION_ARG_OPTIONAL,
-        "Do not suppress outputting symbols with a prefix, tag, or both. "
+        "Do not suppress generating symbols with a prefix, tag, or both. "
+            "Specifying --nosuppress with no argument, will not suppress both."
             "(the default)",
         0
     },
@@ -493,15 +495,16 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
             {
                 args[ArgInputFile].present = true;
                 args[ArgInputFile].fileName = sdl_strdup(arg);
-            }
 
-            /*
-             * TODO: Need to determine what we are going to do about multiple
-             * input files.
-             *
-             * TODO: Check for the accessibility to the input file.  We should
-             * have read access to it.
-             */
+                /*
+                 * We at least need read access to the file.
+                 */
+                if (access(arg, R_OK) != 0)
+                {
+                    sdl_set_message(msgVec, 1, SDL_INFILOPN, arg);
+                    retVal = EACCES;
+                }
+            }
             break;
 
         case SDL_K_ARG_NOCHECK:
@@ -510,11 +513,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgCheckAlignment].present = true;
                 args[ArgCheckAlignment].on = false;
             }
-
-            /*
-             * TODO: Need to determine what we are going to do about multiple
-             * --nocheck or --check qualifiers.
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--check|--nocheck");
+                retVal = EINVAL;
+            }
             break;
 
         case SDL_K_ARG_NOCOMMENT:
@@ -523,11 +529,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgComments].present = true;
                 args[ArgComments].on = false;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --nocomment  or
-             * --comment on command line
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--comment|--nocomment");
+                retVal = EINVAL;
+            }
             break;
 
         case SDL_K_ARG_B32:
@@ -536,11 +545,11 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgWordSize].present = true;
                 args[ArgWordSize].value = 32;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --b32 or --b64 on
-             * command line
-             */
+            else
+            {
+                sdl_set_message(msgVec, 1, SDL_CONFLDUPLQ, "--b32|--b64");
+                retVal = EINVAL;
+            }
             break;
 
         case SDL_K_ARG_NOCOPY:
@@ -549,11 +558,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgCopyright].present = true;
                 args[ArgCopyright].on = false;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --nocopy  or --copy
-             * on command line
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--copy|--nocopy");
+                retVal = EINVAL;
+            }
             break;
 
         case SDL_K_ARG_NOHEADER:
@@ -562,11 +574,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgHeader].present = true;
                 args[ArgHeader].on = false;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --noheader  or
-             * --header on command line
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--header|--noheader");
+                retVal = EINVAL;
+            }
             break;
 
         case SDL_K_ARG_B64:
@@ -575,11 +590,11 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgWordSize].present = true;
                 args[ArgWordSize].value = 64;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --b32 or --b64 on
-             * command line
-             */
+            else
+            {
+                sdl_set_message(msgVec, 1, SDL_CONFLDUPLQ, "--b32|--b64");
+                retVal = EINVAL;
+            }
             break;
 
         case SDL_K_ARG_NOLIST:
@@ -601,11 +616,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgMemberAlign].present = true;
                 args[ArgMemberAlign].on = false;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --nomember or
-             * --member on command line
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--member|--nomember");
+                retVal = EINVAL;
+            }
             break;
 
         case SDL_K_ARG_NOMODULE:
@@ -619,26 +637,66 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
             break;
 
         case SDL_K_ARG_NOSUPPRESS:
-            if (args[ArgSuppressPrefix].present == false)
+            if (arg != NULL)
+            {
+                char *ptr = strchr(arg, ',');
+                char *first = arg;
+                char *second = NULL;
+                size_t firstLen = strlen(first);
+                size_t secondLen = 0;
+
+                if (ptr != NULL)
+                {
+                    second = ptr + 1;
+                    secondLen = strlen(second);
+                    firstLen = ptr - arg;
+                }
+                if (strncmp(first, "prefix", firstLen) == 0)
+                {
+                    args[ArgSuppressPrefix].present = true;
+                    args[ArgSuppressPrefix].on = false;
+                }
+                else if (strncmp(first, "tag", firstLen) == 0)
+                {
+                    args[ArgSuppressTag].present = true;
+                    args[ArgSuppressTag].on = false;
+                }
+                else
+                {
+                    sdl_set_message(msgVec,
+                                    1,
+                                    SDL_INVQUAL,
+                                    "--nosuppress");
+                    retVal = EINVAL;
+                }
+                if ((second != NULL) &&
+                    (strncmp(second, "prefix", secondLen) == 0))
+                {
+                    args[ArgSuppressPrefix].present = true;
+                    args[ArgSuppressPrefix].on = false;
+                }
+                else if ((second != NULL) &&
+                         (strncmp(second, "tag", secondLen) == 0))
+                {
+                    args[ArgSuppressTag].present = true;
+                    args[ArgSuppressTag].on = false;
+                }
+                else if (second != NULL)
+                {
+                    sdl_set_message(msgVec,
+                                    1,
+                                    SDL_INVQUAL,
+                                    "--nosuppress");
+                    retVal = EINVAL;
+                }
+            }
+            else
             {
                 args[ArgSuppressPrefix].present = true;
                 args[ArgSuppressPrefix].on = false;
-            }
-
-            /*
-             * TODO: Need to determine error when multiple --nosuppress  or
-             * --suppress on command line
-             */
-            if (args[ArgSuppressTag].present == false)
-            {
                 args[ArgSuppressTag].present = true;
                 args[ArgSuppressTag].on = false;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --nosuppress  or
-             * --suppress on command line
-             */
             break;
 
         case 'C':
@@ -665,20 +723,23 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                     strcpy(&args[ArgCopyrightFile].fileName[jj],
                            "copyright.sdl");
                     free(path);
+                    if (access(args[ArgCopyrightFile].fileName, R_OK) != 0)
+                    {
+                        sdl_set_message(msgVec,
+                                        1,
+                                        SDL_NOCOPYFIL);
+                        retVal = EACCES;
+                    }
                 }
             }
-
-            /*
-             * TODO: Need to determine error when multiple --nocopy  or
-             * --copy on command line.
-             *
-             * TODO: If a copyright file is specified, then we need to have
-             * read access to it.
-             *
-             * TODO: This needs to be updated. We should always look for the
-             * copyright file in the same place or make sure that it is in the
-             * same directory with the opensdl image.
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--copy|--nocopy");
+                retVal = EINVAL;
+            }
             break;
 
         case 'H':
@@ -687,11 +748,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgHeader].present = true;
                 args[ArgHeader].on = true;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --noheader  or
-             * --header on command line
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--header|--noheader");
+                retVal = EINVAL;
+            }
             break;
 
         case 'L':
@@ -719,70 +783,65 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
             break;
 
         case 'S':
-
-            /*
-             * TODO: This needs some work.
-             */
             if (arg != NULL)
             {
-                char *ptr;
+                char *ptr = strchr(arg, ',');
+                char *first = arg;
+                char *second = NULL;
+                size_t firstLen = strlen(first);
+                size_t secondLen = 0;
 
-                ptr = strchr(arg, ':');
                 if (ptr != NULL)
                 {
-                    ptr++;
-                    if (strncasecmp(ptr, "prefix", 6) == 0)
-                    {
-                        args[ArgSuppressPrefix].present = true;
-                        args[ArgSuppressPrefix].on = true;
-                    }
-                    else if (strncasecmp(ptr, "tag", 3) == 0)
-                    {
-                        args[ArgSuppressTag].present = true;
-                        args[ArgSuppressTag].on = true;
-                    }
-                    else
-                    {
-                        sdl_set_message(msgVec,
-                                        1,
-                                        SDL_INVQUAL,
-                                        "-S|--suppress");
-                        retVal = EINVAL;
-                    }
-                    if (retVal == 0)
-                    {
-                        ptr = strchr(arg, ',');
-                        if (ptr != NULL)
-                        {
-                            ptr++;
-                            if (strncasecmp(ptr, "prefix", 6) == 0)
-                            {
-                                args[ArgSuppressPrefix].present = true;
-                                args[ArgSuppressPrefix].on = true;
-                            }
-                            else if (strncasecmp(ptr, "tag", 3) == 0)
-                            {
-                                args[ArgSuppressTag].present = true;
-                                args[ArgSuppressTag].on = true;
-                            }
-                            else
-                            {
-                                sdl_set_message(msgVec,
-                                                1,
-                                                SDL_INVQUAL,
-                                                "-S|--suppress");
-                                retVal = ARGP_ERR_UNKNOWN;
-                            }
-                        }
-                    }
+                    second = ptr + 1;
+                    secondLen = strlen(second);
+                    firstLen = ptr - arg;
                 }
-                else
+                if (strncmp(first, "prefix", firstLen) == 0)
                 {
                     args[ArgSuppressPrefix].present = true;
                     args[ArgSuppressPrefix].on = true;
+                }
+                else if (strncmp(first, "tag", firstLen) == 0)
+                {
                     args[ArgSuppressTag].present = true;
                     args[ArgSuppressTag].on = true;
                 }
+                else
+                {
+                    sdl_set_message(msgVec,
+                                    1,
+                                    SDL_INVQUAL,
+                                    "--suppress");
+                    retVal = EINVAL;
+                }
+                if ((second != NULL) &&
+                    (strncmp(second, "prefix", secondLen) == 0))
+                {
+                    args[ArgSuppressPrefix].present = true;
+                    args[ArgSuppressPrefix].on = true;
+                }
+                else if ((second != NULL) &&
+                         (strncmp(second, "tag", secondLen) == 0))
+                {
+                    args[ArgSuppressTag].present = true;
+                    args[ArgSuppressTag].on = true;
+                }
+                else if (second != NULL)
+                {
+                    sdl_set_message(msgVec,
+                                    1,
+                                    SDL_INVQUAL,
+                                    "--suppress");
+                    retVal = EINVAL;
+                }
+            }
+            else
+            {
+                args[ArgSuppressPrefix].present = true;
+                args[ArgSuppressPrefix].on = true;
+                args[ArgSuppressTag].present = true;
+                args[ArgSuppressTag].on = true;
             }
             break;
 
@@ -804,14 +863,16 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 if (args[ArgAlignment].present == false)
                 {
                     args[ArgAlignment].present = true;
-                    args[ArgAlignment].value = strtol(arg,
-                                                                   NULL,
-                                                                   10);
+                    args[ArgAlignment].value = strtol(arg, NULL, 10);
                 }
-
-                /*
-                 * TODO: Need to determine error when multiple -a on command line
-                 */
+                else
+                {
+                    sdl_set_message(msgVec,
+                                    1,
+                                    SDL_CONFLDUPLQ,
+                                    "--align|--noalign");
+                    retVal = EINVAL;
+                }
             }
             else
             {
@@ -826,11 +887,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgComments].present = true;
                 args[ArgComments].on = true;
             }
-
-            /*
-             * TODO: Need to determine error when both -c and --nocomments on
-             * command line
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--comments|--nocomments");
+                retVal = EINVAL;
+            }
             break;
 
         case 'k':
@@ -839,10 +903,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgCheckAlignment].present = true;
                 args[ArgCheckAlignment].on = true;
             }
-
-            /*
-             * TODO: Need to determine error when multiple -k on command line
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--check|--nocheck");
+                retVal = EINVAL;
+            }
             break;
 
         case 'l':
@@ -895,8 +963,13 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                     retVal = EINVAL;
                 }
             }
-
-            /* TODO: Need to error out that a language was NOT specified. */
+            if (args[ArgLanguage].present == false)
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_NOOUTPUT);
+                retVal = EINVAL;
+            }
             break;
 
         case 'm':
@@ -905,11 +978,14 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
                 args[ArgMemberAlign].present = true;
                 args[ArgMemberAlign].on = true;
             }
-
-            /*
-             * TODO: Need to determine error when multiple --nomember or
-             * --member on command line
-             */
+            else
+            {
+                sdl_set_message(msgVec,
+                                1,
+                                SDL_CONFLDUPLQ,
+                                "--member|--nomember");
+                retVal = EINVAL;
+            }
             break;
 
         case 'p':
@@ -1201,9 +1277,7 @@ int main(int argc, char *argv[])
     /*
      * Set the message vector to a success value.
      */
-    msgVec[0].msgCode.msgCode = SDL_NORMAL;
-    msgVec[1].faoCount = 0;
-    msgVec[1].faoInfo = 0;
+    sdl_set_message(msgVec, 1, SDL_NORMAL);
 
     /*
      * Parse out the command line arguments.

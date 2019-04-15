@@ -1,5 +1,5 @@
 /*
- * Copyright (C) Jonathan D. Belanger 2018.
+ * Copyright (C) Jonathan D. Belanger 2018-2019.
  *
  *  OpenSDL is free software: you can redistribute it and/or modify it under
  *  the terms of the GNU General Public License as published by the Free
@@ -26,6 +26,9 @@
  *
  *  V01.001 06-SEP-2018 Jonathan D. Belanger
  *  Updated the copyright to be GNUGPL V3 compliant.
+ *
+ *  V01.002 14-APR-2019 Jonathan D. Belanger
+ *  Updated to a shared library to be used as a plugin for OpenSDL.
  */
 #include <errno.h>
 #include <stdio.h>
@@ -37,8 +40,25 @@
 #include "lib/lang/opensdl_lang.h"
 #include "lib/util/opensdl_utility.h"
 #include "lib/util/opensdl_message.h"
-#include "tool/opensdl_main.h"
+#include "lib/lang/opensdl_plugin.h"
 
+static FILE *fp = NULL;
+static SDL_MSG_VECTOR *msgVec;
+static bool *trace;
+static char *sdl_months_str[] =
+{
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC"};
 static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 {
     /*  signed          unsigned */
@@ -259,8 +279,28 @@ static char *_types[SDL_K_BASE_TYPE_MAX][2][2] =
 /*
  * Local Prototypes
  */
-static uint32_t _sdl_c_output_alignment(FILE *fp,
-                                        int alignment,
+static uint32_t sdl_c_close(void);
+static uint32_t sdl_c_literal(char *line);
+static uint32_t sdl_c_commentStars(void);
+static uint32_t sdl_c_createdByInfo(struct tm *timeInfo);
+static uint32_t sdl_c_fileInfo(struct tm *timeInfo, char *fullFilePath);
+static uint32_t sdl_c_comment(char *comment,
+                              bool lineComment,
+                              bool startComment,
+                              bool middleComment,
+                              bool endComment);
+static uint32_t sdl_c_module(SDL_CONTEXT *context);
+static uint32_t sdl_c_module_end(SDL_CONTEXT *context);
+static uint32_t sdl_c_item(SDL_ITEM *item, SDL_CONTEXT *context);
+static uint32_t sdl_c_constant(SDL_CONSTANT *constant, SDL_CONTEXT *context);
+static uint32_t sdl_c_aggregate(void *param,
+                                SDL_LANG_AGGR_TYPE type,
+                                bool ending,
+                                int depth,
+                                SDL_CONTEXT *context);
+static uint32_t sdl_c_entry(SDL_ENTRY *entry, SDL_CONTEXT *context);
+static uint32_t sdl_c_enumerate(SDL_ENUMERATE *_enum, SDL_CONTEXT *context);
+static uint32_t _sdl_c_output_alignment(int alignment,
                                         SDL_CONTEXT *context);
 static char *_sdl_c_generate_name(char *name,
                                   char *prefix,
@@ -274,14 +314,168 @@ static char *_sdl_c_typeidStr(int typeID,
 static char *_sdl_c_leading_spaces(int depth);
 
 /*
- * sdl_c_comment_stars
- *  This function is called to output a comment at the start of the output file
- *  that is composed of all stars, except the first and last, which start and
- *  end the comment, respectively.  This is the first and fourth comment lines.
+ * onLoad
+ *  The address of this function is loaded into the opensdl image and called
+ *  with a transfer vector where information about where to call into this
+ *  shared library can be returned by this function.  This function is called
+ *  twice.  The first time for the version and message vector are supplied, and
+ *  this function returns the addresses of all the functions opensdl needs to
+ *  call to perform the necessary steps to generate the output.  The second
+ *  time is so that the output file pointer can be provided.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
+ *  tv:
+ *      A pointer to a transfer vector with the API version and address of the
+ *      message vector.
+ *
+ * Output Parameters:
+ *  tv:
+ *      A pointer to a transfer vector to receive the addresses of the
+ *      functions that need to be called by opensdl.
+ *
+ * Return Values:
+ *  SDL_NORMAL      - Normal successful completion
+ *  SDL_REVCHECK    - Front-end/back-end version mismatch. Check installation.
+ */
+uint32_t onLoad(SDL_API_TV *tv)
+{
+    uint32_t retVal = SDL_NORMAL;
+    uint32_t ii = 0;
+
+    /*
+     * Loop through the transfer vector.
+     */
+    while (tv[ii].tag != SDL_API_NULL)
+    {
+        switch (tv[ii].tag)
+        {
+            case SDL_API_PROTOCOL_VER:
+                if ((tv[ii].sdl_tv_version.type != SDL_VER_TYPE_TEST) ||
+                    (tv[ii].sdl_tv_version.major != SDL_API_VERSION_MAJOR) ||
+                    (tv[ii].sdl_tv_version.minor != SDL_API_VERSION_MINOR) ||
+                    (tv[ii].sdl_tv_version.patch != SDL_API_VERSION_PATCH))
+                {
+                    retVal = SDL_REVCHECK;
+                }
+                break;
+
+            case SDL_API_MESSAGE_VECTOR:
+                msgVec = tv[ii].sdl_tv_msgVec;
+                break;
+
+            case SDL_API_TRACE_PTR:
+                trace = tv[ii].sdl_tv_boolean;
+                break;
+
+            case SDL_API_OUTPUT_FP:
+                fp = tv[ii].sdl_tv_fp;
+                break;
+
+            case SDL_API_COMMENT_STAR:
+                tv[ii].sdl_tv_commentStars = sdl_c_commentStars;
+                break;
+
+            case SDL_API_CREATED_BY:
+                tv[ii].sdl_tv_createdByInfo = sdl_c_createdByInfo;
+                break;
+
+            case SDL_API_FILE_INFO:
+                tv[ii].sdl_tv_fileInfo = sdl_c_fileInfo;
+                break;
+
+            case SDL_API_COMMENT:
+                tv[ii].sdl_tv_comment = sdl_c_comment;
+                break;
+
+            case SDL_API_MODULE:
+                tv[ii].sdl_tv_module = sdl_c_module;
+                break;
+
+            case SDL_API_MODULE_END:
+                tv[ii].sdl_tv_moduleEnd = sdl_c_module_end;
+                break;
+
+            case SDL_API_ITEM:
+                tv[ii].sdl_tv_item = sdl_c_item;
+                break;
+
+            case SDL_API_CONSTANT:
+                tv[ii].sdl_tv_constant = sdl_c_constant;
+                break;
+
+            case SDL_API_ENUMERATE:
+                tv[ii].sdl_tv_enumerate = sdl_c_enumerate;
+                break;
+
+            case SDL_API_AGGREGATE:
+                tv[ii].sdl_tv_aggregate = sdl_c_aggregate;
+                break;
+
+            case SDL_API_ENTRY:
+                tv[ii].sdl_tv_entry = sdl_c_entry;
+                break;
+
+            case SDL_API_FILE_EXTENSION:
+                tv[ii].sdl_tv_string = strdup("h");
+                break;
+
+            case SDL_API_LITERAL:
+                tv[ii].sdl_tv_literal = sdl_c_literal;
+                break;
+
+            case SDL_API_CLOSE:
+                tv[ii].sdl_tv_close = sdl_c_close;
+                break;
+
+            default:
+                break;
+        }
+        ii++;
+    }
+
+    /*
+     * Return back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_c_close
+ *  This function is called to close the output file for this language.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  SDL_NORMAL:     Normal Successful Completion.
+ */
+static uint32_t sdl_c_close(void)
+{
+    uint32_t retVal = SDL_NORMAL;
+
+    /*
+     * Call the system routine to close the output file.
+     */
+    fclose(fp);
+
+    /*
+     * Return back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_c_literal
+ *  This function is called to write out a literal string to the output file.
+ *  There is no parsing or interpretation of the string.  It is written out as
+ *  is.
+ *
+ * Input Parameters:
+ *  line:
+ *      A pointer to a null terminated string to be written out.
  *
  * Output Parameters:
  *  None.
@@ -291,7 +485,54 @@ static char *_sdl_c_leading_spaces(int depth);
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_commentStars(FILE *fp)
+static uint32_t sdl_c_literal(char *line)
+{
+    uint32_t retVal = SDL_NORMAL;
+
+    /*
+     * If tracing is turned on, write out this call (calls only, no returns).
+     */
+    if (*trace == true)
+    {
+        printf("%s:%d:sdl_c_literal\n", __FILE__, __LINE__);
+    }
+
+    if (fprintf(fp, "%s\n", line) < 0)
+    {
+        retVal = SDL_ABORT;
+        if (sdl_set_message(msgVec,
+                            2,
+                            retVal,
+                            errno) != SDL_NORMAL)
+        {
+            retVal = SDL_ERREXIT;
+        }
+    }
+
+    /*
+     * Return back to the caller.
+     */
+    return(retVal);
+}
+
+/*
+ * sdl_c_comment_stars
+ *  This function is called to output a comment at the start of the output file
+ *  that is composed of all stars, except the first and last, which start and
+ *  end the comment, respectively.  This is the first and fourth comment lines.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  SDL_NORMAL:     Normal Successful Completion.
+ *  SDL_ABORT:      An unexpected error occurred.
+ *  SDL_ERREXIT:    Error exit.
+ */
+static uint32_t sdl_c_commentStars(void)
 {
     char str[SDL_K_COMMENT_LEN];
     uint32_t retVal = SDL_NORMAL;
@@ -300,7 +541,7 @@ uint32_t sdl_c_commentStars(FILE *fp)
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_commentStars\n", __FILE__, __LINE__);
     }
@@ -346,8 +587,6 @@ uint32_t sdl_c_commentStars(FILE *fp)
  *  file.  This is the second comment line.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  timeInfo:
  *    A pointer to the time information associated when the utility was
  *    executed.
@@ -360,7 +599,7 @@ uint32_t sdl_c_commentStars(FILE *fp)
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
+static uint32_t sdl_c_createdByInfo(struct tm *timeInfo)
 {
     char str[SDL_K_COMMENT_LEN];
     char *timeFmt = "/* Created %02d-%s-%04d %02d:%02d:%02d by OpenSDL "
@@ -371,7 +610,7 @@ uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_createdByInfo\n", __FILE__, __LINE__);
     }
@@ -382,7 +621,7 @@ uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
     len = sprintf(str,
                   timeFmt,
                   timeInfo->tm_mday,
-                  sdl_months[timeInfo->tm_mon],
+                  sdl_months_str[timeInfo->tm_mon],
                   (1900 + timeInfo->tm_year),
                   timeInfo->tm_hour,
                   timeInfo->tm_min,
@@ -430,8 +669,6 @@ uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
  *  processed.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  timeInfo:
  *    A pointer to the time information associated when the utility was
  *    executed.
@@ -446,7 +683,7 @@ uint32_t sdl_c_createdByInfo(FILE *fp, struct tm *timeInfo)
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
+static uint32_t sdl_c_fileInfo(struct tm *timeInfo, char *fullFilePath)
 {
     char str[SDL_K_COMMENT_LEN];
     char *sourceFmt = "/* Source: %02d-%s-%04d %02d:%02d:%02d ";
@@ -457,7 +694,7 @@ uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_fileInfo\n", __FILE__, __LINE__);
     }
@@ -477,7 +714,7 @@ uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
     len = sprintf(str,
                   sourceFmt,
                   timeInfo->tm_mday,
-                  sdl_months[timeInfo->tm_mon],
+                  sdl_months_str[timeInfo->tm_mon],
                   (1900 + timeInfo->tm_year),
                   timeInfo->tm_hour,
                   timeInfo->tm_min,
@@ -537,10 +774,8 @@ uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
  *  C++ supports using '//' as a line-comment, but not all versions of C
  *  support this.  Therefore, we will not be generating the line-comment in
  *  this implementation.
-  *
+ *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  comment:
  *    A pointer to the comment string to be output.
  *  lineComment:
@@ -561,12 +796,11 @@ uint32_t sdl_c_fileInfo(FILE *fp, struct tm *timeInfo, char *fullFilePath)
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_comment(FILE *fp,
-                       char *comment,
-                       bool lineComment,
-                       bool startComment,
-                       bool middleComment,
-                       bool endComment)
+static uint32_t sdl_c_comment(char *comment,
+                              bool lineComment,
+                              bool startComment,
+                              bool middleComment,
+                              bool endComment)
 {
     uint32_t retVal = SDL_NORMAL;
     char *whichComment;
@@ -574,7 +808,7 @@ uint32_t sdl_c_comment(FILE *fp,
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_comment\n", __FILE__, __LINE__);
     }
@@ -656,8 +890,6 @@ uint32_t sdl_c_comment(FILE *fp,
  *  with the MODULE statement.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  context:
  *    A pointer to the parser context where the module name and ident
  *    information are stored.
@@ -670,14 +902,14 @@ uint32_t sdl_c_comment(FILE *fp,
  *  SDL_ABORT:      An error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
+static uint32_t sdl_c_module(SDL_CONTEXT *context)
 {
     uint32_t retVal = SDL_NORMAL;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_module\n", __FILE__, __LINE__);
     }
@@ -800,8 +1032,6 @@ uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
  *  definitions.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  context:
  *    A pointer to the parser context where the module name information is
  *    stored.
@@ -814,14 +1044,14 @@ uint32_t sdl_c_module(FILE *fp, SDL_CONTEXT *context)
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
+static uint32_t sdl_c_module_end(SDL_CONTEXT *context)
 {
     uint32_t retVal = SDL_NORMAL;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_cmodule_end\n", __FILE__, __LINE__);
     }
@@ -856,8 +1086,6 @@ uint32_t sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
  *  declaration consistent with the information provided on the ITEM.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  item:
  *      A pointer to the ITEM record.
  *  context:
@@ -872,7 +1100,7 @@ uint32_t sdl_c_module_end(FILE *fp, SDL_CONTEXT *context)
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
+static uint32_t sdl_c_item(SDL_ITEM *item, SDL_CONTEXT *context)
 {
     SDL_MEMBERS dummy = { .type = item->type };
     char *type = NULL;
@@ -886,7 +1114,7 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_item\n", __FILE__, __LINE__);
     }
@@ -1042,7 +1270,7 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
          */
         if ((retVal == SDL_NORMAL) && (item->parentAlignment == false))
         {
-            retVal = _sdl_c_output_alignment(fp, item->alignment, context);
+            retVal = _sdl_c_output_alignment(item->alignment, context);
         }
 
         /*
@@ -1091,8 +1319,6 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
  *  declaration consistent with the information provided on the CONSTANT.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  constant:
  *      A pointer to the CONSTANT record.
  *  context:
@@ -1108,7 +1334,7 @@ uint32_t sdl_c_item(FILE *fp, SDL_ITEM *item, SDL_CONTEXT *context)
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
+static uint32_t sdl_c_constant(SDL_CONSTANT *constant, SDL_CONTEXT *context)
 {
     char *prefix = constant->prefix;
     char *name = _sdl_c_generate_name(constant->id,
@@ -1121,7 +1347,7 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_constant\n", __FILE__, __LINE__);
     }
@@ -1302,8 +1528,6 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
  *  function.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  param:
  *    A pointer to the AGGREGATE, subaggregate, or ITEM record
  *  type:
@@ -1338,12 +1562,11 @@ uint32_t sdl_c_constant(FILE *fp, SDL_CONSTANT *constant, SDL_CONTEXT *context)
  *  SDL_ABORT:      An error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_aggregate(FILE *fp,
-                         void *param,
-                         SDL_LANG_AGGR_TYPE type,
-                         bool ending,
-                         int depth,
-                         SDL_CONTEXT *context)
+static uint32_t sdl_c_aggregate(void *param,
+                                SDL_LANG_AGGR_TYPE type,
+                                bool ending,
+                                int depth,
+                                SDL_CONTEXT *context)
 {
     char *name = NULL;
     char *spaces = _sdl_c_leading_spaces(depth);
@@ -1355,7 +1578,7 @@ uint32_t sdl_c_aggregate(FILE *fp,
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_aggregate\n", __FILE__, __LINE__);
     }
@@ -1434,8 +1657,7 @@ uint32_t sdl_c_aggregate(FILE *fp,
                         if ((retVal == SDL_NORMAL) &&
                             (my.aggr->alignmentPresent == true))
                         {
-                            retVal = _sdl_c_output_alignment(fp,
-                                                             my.aggr->alignment,
+                            retVal = _sdl_c_output_alignment(my.aggr->alignment,
                                                              context);
                         }
                         if ((retVal == SDL_NORMAL) &&
@@ -1554,8 +1776,7 @@ uint32_t sdl_c_aggregate(FILE *fp,
                     if ((retVal == SDL_NORMAL) &&
                         (my.subaggr->parentAlignment == false))
                     {
-                        retVal = _sdl_c_output_alignment(fp,
-                                                         my.subaggr->alignment,
+                        retVal = _sdl_c_output_alignment(my.subaggr->alignment,
                                                          context);
                     }
                     if ((retVal == SDL_NORMAL) &&
@@ -1627,13 +1848,12 @@ uint32_t sdl_c_aggregate(FILE *fp,
             break;
 
         case LangItem:
-            retVal = sdl_c_item(fp, my.item, context);
+            retVal = sdl_c_item(my.item, context);
             break;
 
         case LangComment:
             if (context->argument[ArgComments].on == true)
-            retVal = sdl_c_comment(fp,
-                                   my.comment->comment,
+            retVal = sdl_c_comment(my.comment->comment,
                                    my.comment->lineComment,
                                    my.comment->startComment,
                                    my.comment->middleComment,
@@ -1665,8 +1885,6 @@ uint32_t sdl_c_aggregate(FILE *fp,
  *  been processed.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  entry:
  *    A pointer to the ENTRY record
  *  context:
@@ -1680,7 +1898,7 @@ uint32_t sdl_c_aggregate(FILE *fp,
  *  SDL_ABORT:      An error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
+static uint32_t sdl_c_entry(SDL_ENTRY *entry, SDL_CONTEXT *context)
 {
     SDL_PARAMETER    *param = (SDL_PARAMETER *) entry->parameters.flink;
     char        *type;
@@ -1693,7 +1911,7 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
+    if (*trace == true)
     {
         printf("%s:%d:sdl_c_entry\n", __FILE__, __LINE__);
     }
@@ -1873,8 +2091,6 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
  *  an ENUMERATE argument has been processed.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  _enum:
  *    A pointer to the ENUMERATE record
  *  context:
@@ -1884,156 +2100,167 @@ uint32_t sdl_c_entry(FILE *fp, SDL_ENTRY *entry, SDL_CONTEXT *context)
  *  None.
  *
  * Return Values:
- *  SDL_NORMAL:        Normal Successful Completion.
- *  SDL_INVENUMNAM    Invalid enumeration name.
+ *  SDL_NORMAL:     Normal Successful Completion.
+ *  SDL_INVENUMNAM  Invalid enumeration name.
  *  SDL_ERREXIT:    Error exit.
- *  SDL_ABORT:        An unexpected error occurred.
+ *  SDL_ABORT:      An unexpected error occurred.
  */
-uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
+static uint32_t sdl_c_enumerate(SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
 {
-    SDL_ENUM_MEMBER    *myMem = (SDL_ENUM_MEMBER *) _enum->members.flink;
-    char        *name = _sdl_c_generate_name(
-                    _enum->id,
-                    _enum->prefix,
-                    _enum->tag,
-                    context);
-    uint32_t        retVal = SDL_NORMAL;
+    SDL_ENUM_MEMBER *myMem = (SDL_ENUM_MEMBER *) _enum->members.flink;
+    char *name = _sdl_c_generate_name(_enum->id,
+                                      _enum->prefix,
+                                      _enum->tag,
+                                      context);
+    uint32_t retVal = SDL_NORMAL;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
-    printf("%s:%d:sdl_c_enumerate\n", __FILE__, __LINE__);
+    if (*trace == true)
+    {
+        printf("%s:%d:sdl_c_enumerate\n", __FILE__, __LINE__);
+    }
 
     if (name != NULL)
     {
-    /*
-     * If typedef has been requested, then we need to start with that.
-     * Otherwise, we just start with an enum statement.
-     */
-    if (_enum->typeDef == true)
-    {
-        if (fprintf(fp, "typedef enum _%s\n{\n", name) < 0)
-        {
-        retVal = SDL_ABORT;
-        if (sdl_set_message(
-                msgVec,
-                2,
-                retVal,
-                errno) != SDL_NORMAL)
-            retVal = SDL_ERREXIT;
-        }
-    }
-    else
-    {
-        if (fprintf(fp, "enum %s\n{\n", name) < 0)
-        {
-        retVal = SDL_ABORT;
-        if (sdl_set_message(
-                msgVec,
-                2,
-                retVal,
-                errno) != SDL_NORMAL)
-            retVal = SDL_ERREXIT;
-        }
-    }
 
-    /*
-     * Loop through each of the entries in the member list.
-     */
-    while((retVal == SDL_NORMAL) &&
-          (myMem != (SDL_ENUM_MEMBER *) &_enum->members))
-    {
-        if (fprintf(fp, "    %s", myMem->id) < 0)
+        /*
+         * If typedef has been requested, then we need to start with that.
+         * Otherwise, we just start with an enum statement.
+         */
+        if (_enum->typeDef == true)
         {
-        retVal = SDL_ABORT;
-        if (sdl_set_message(
-                msgVec,
-                2,
-                retVal,
-                errno) != SDL_NORMAL)
-            retVal = SDL_ERREXIT;
+            if (fprintf(fp, "typedef enum _%s\n{\n", name) < 0)
+            {
+                retVal = SDL_ABORT;
+                if (sdl_set_message(msgVec,
+                                    2,
+                                    retVal,
+                                    errno) != SDL_NORMAL)
+                {
+                    retVal = SDL_ERREXIT;
+                }
+            }
         }
         else
         {
-        if (myMem->valueSet == true)
-        {
-            if (fprintf(fp, " = %ld,\n", myMem->value) < 0)
+            if (fprintf(fp, "enum %s\n{\n", name) < 0)
             {
+                retVal = SDL_ABORT;
+                if (sdl_set_message(msgVec,
+                                    2,
+                                    retVal,
+                                    errno) != SDL_NORMAL)
+                {
+                    retVal = SDL_ERREXIT;
+                }
+            }
+        }
+
+        /*
+         * Loop through each of the entries in the member list.
+         */
+        while((retVal == SDL_NORMAL) &&
+              (myMem != (SDL_ENUM_MEMBER *) &_enum->members))
+        {
+            if (fprintf(fp, "    %s", myMem->id) < 0)
+            {
+                retVal = SDL_ABORT;
+                if (sdl_set_message(msgVec,
+                                    2,
+                                    retVal,
+                                    errno) != SDL_NORMAL)
+                {
+                    retVal = SDL_ERREXIT;
+                }
+            }
+            else
+            {
+                if (myMem->valueSet == true)
+                {
+                    if (fprintf(fp, " = %ld,\n", myMem->value) < 0)
+                    {
+                        retVal = SDL_ABORT;
+                        if (sdl_set_message(msgVec,
+                                            2,
+                                            retVal,
+                                            errno) != SDL_NORMAL)
+                        {
+                            retVal = SDL_ERREXIT;
+                        }
+                    }
+                }
+                else if (fprintf(fp, ",\n") < 0)
+                {
+                    retVal = SDL_ABORT;
+                    if (sdl_set_message(msgVec,
+                                        2,
+                                        retVal,
+                                        errno) != SDL_NORMAL)
+                    {
+                        retVal = SDL_ERREXIT;
+                    }
+                }
+            }
+        }
+
+        /*
+         * Finally, we need to close of the enum definition.
+         */
+        if ((retVal == SDL_NORMAL) && (fprintf(fp, "}") < 0))
+        {
             retVal = SDL_ABORT;
-            if (sdl_set_message(
-                    msgVec,
-                    2,
-                    retVal,
-                    errno) != SDL_NORMAL)
+            if (sdl_set_message(msgVec,
+                                2,
+                                retVal,
+                                errno) != SDL_NORMAL)
+            {
                 retVal = SDL_ERREXIT;
             }
         }
-        else if (fprintf(fp, ",\n") < 0)
+        if ((retVal == SDL_NORMAL) && (_enum->typeDef == true))
+        {
+            if (fprintf(fp, " %s", name) < 0)
+            {
+                retVal = SDL_ABORT;
+                if (sdl_set_message(msgVec,
+                                    2,
+                                    retVal,
+                                    errno) != SDL_NORMAL)
+                {
+                    retVal = SDL_ERREXIT;
+                }
+            }
+        }
+        if (retVal == SDL_NORMAL)
+        {
+            retVal = _sdl_c_output_alignment(_enum->alignment,
+                                             context);
+        }
+        if ((retVal == SDL_NORMAL) && (fprintf(fp, ";\n") < 0))
         {
             retVal = SDL_ABORT;
-            if (sdl_set_message(
-                msgVec,
-                2,
-                retVal,
-                errno) != SDL_NORMAL)
-            retVal = SDL_ERREXIT;
+            if (sdl_set_message(msgVec,
+                                2,
+                                retVal,
+                                errno) != SDL_NORMAL)
+            {
+                retVal = SDL_ERREXIT;
+            }
         }
-        }
-    }
-
-    /*
-     * Finally, we need to close of the enum definition.
-     */
-    if ((retVal == SDL_NORMAL) && (fprintf(fp, "}") < 0))
-    {
-        retVal = SDL_ABORT;
-        if (sdl_set_message(
-            msgVec,
-            2,
-            retVal,
-            errno) != SDL_NORMAL)
-        retVal = SDL_ERREXIT;
-    }
-    if ((retVal == SDL_NORMAL) && (_enum->typeDef == true))
-    {
-        if (fprintf(fp, " %s", name) < 0)
-        {
-        retVal = SDL_ABORT;
-        if (sdl_set_message(
-                msgVec,
-                2,
-                retVal,
-                errno) != SDL_NORMAL)
-            retVal = SDL_ERREXIT;
-        }
-    }
-    if (retVal == SDL_NORMAL)
-        retVal = _sdl_c_output_alignment(
-                    fp,
-                    _enum->alignment,
-                    context);
-    if ((retVal == SDL_NORMAL) && (fprintf(fp, ";\n") < 0))
-    {
-        retVal = SDL_ABORT;
-        if (sdl_set_message(
-            msgVec,
-            2,
-            retVal,
-            errno) != SDL_NORMAL)
-        retVal = SDL_ERREXIT;
-    }
-    sdl_free(name);
+        sdl_free(name);
     }
     else
     {
-    retVal = SDL_INVENUMNAM;
-    if (sdl_set_message(
-            msgVec,
-            1,
-            retVal,
-            _enum->loc.first_line) != SDL_NORMAL)
-        retVal = SDL_ERREXIT;
+        retVal = SDL_INVENUMNAM;
+        if (sdl_set_message(msgVec,
+                            1,
+                            retVal,
+                            _enum->loc.first_line) != SDL_NORMAL)
+        {
+            retVal = SDL_ERREXIT;
+        }
     }
 
     /*
@@ -2051,8 +2278,6 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
  *  AGGREGATEs,and subaggregates.
  *
  * Input Parameters:
- *  fp:
- *    A pointer to the file pointer to write out the information.
  *  alignment:
  *      A value indicating the alignment requirement.
  *  context:
@@ -2067,59 +2292,59 @@ uint32_t sdl_c_enumerate(FILE *fp, SDL_ENUMERATE *_enum, SDL_CONTEXT *context)
  *  SDL_ERREXIT:    Error exit.
  *  SDL_ABORT:        An unexpected error occurred.
  */
-static uint32_t _sdl_c_output_alignment(
-        FILE *fp,
-        int alignment,
-        SDL_CONTEXT *context)
+static uint32_t _sdl_c_output_alignment(int alignment,
+                                        SDL_CONTEXT *context)
 {
     uint32_t    retVal = SDL_NORMAL;
 
     if (context->argument[ArgMemberAlign].on == true)
     {
-    switch(alignment)
-    {
-        case SDL_K_NOALIGN:
-        if (fprintf(fp, " __attribute__ ((__packed__))") < 0)
+        switch(alignment)
         {
-            retVal = SDL_ABORT;
-            if (sdl_set_message(
-                msgVec,
-                2,
-                retVal,
-                errno) != SDL_NORMAL)
-            retVal = SDL_ERREXIT;
-        }
-        break;
+            case SDL_K_NOALIGN:
+                if (fprintf(fp, " __attribute__ ((__packed__))") < 0)
+                {
+                    retVal = SDL_ABORT;
+                    if (sdl_set_message(msgVec,
+                                        2,
+                                        retVal,
+                                        errno) != SDL_NORMAL)
+                    {
+                        retVal = SDL_ERREXIT;
+                    }
+                }
+                break;
 
-        case SDL_K_ALIGN:
-        if (fprintf(fp, " __attribute__ ((aligned))") < 0)
-        {
-            retVal = SDL_ABORT;
-            if (sdl_set_message(
-                msgVec,
-                2,
-                retVal,
-                errno) != SDL_NORMAL)
-            retVal = SDL_ERREXIT;
-        }
-        break;
+            case SDL_K_ALIGN:
+                if (fprintf(fp, " __attribute__ ((aligned))") < 0)
+                {
+                    retVal = SDL_ABORT;
+                    if (sdl_set_message(msgVec,
+                                        2,
+                                        retVal,
+                                        errno) != SDL_NORMAL)
+                    {
+                        retVal = SDL_ERREXIT;
+                    }
+                }
+                break;
 
-        default:
-        if (fprintf(
-            fp,
-            " __attribute__ ((aligned (%d)))",
-            alignment) < 0)
-        {
-            retVal = SDL_ABORT;
-            if (sdl_set_message(
-                msgVec,
-                2,
-                retVal,
-                errno) != SDL_NORMAL)
-            retVal = SDL_ERREXIT;
+            default:
+                if (fprintf(fp,
+                            " __attribute__ ((aligned (%d)))",
+                            alignment) < 0)
+                {
+                    retVal = SDL_ABORT;
+                    if (sdl_set_message(msgVec,
+                                        2,
+                                        retVal,
+                                        errno) != SDL_NORMAL)
+                    {
+                        retVal = SDL_ERREXIT;
+                    }
+                }
+            break;
         }
-        break;
-    }
     }
 
     /*
@@ -2151,21 +2376,22 @@ static uint32_t _sdl_c_output_alignment(
  *  NULL:    An error occurred trying to allocate memory for the string.
  *  !NULL:    A pointer to the generated name.
  */
-static char *_sdl_c_generate_name(
-        char *name,
-        char *prefix,
-        char *tag,
-        SDL_CONTEXT *context)
+static char *_sdl_c_generate_name(char *name,
+                                  char *prefix,
+                                  char *tag,
+                                  SDL_CONTEXT *context)
 {
-    char    *retVal = NULL;
-    size_t    len = 1;
-    size_t    tagLen = 0;
+    char *retVal = NULL;
+    size_t len = 1;
+    size_t tagLen = 0;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
-    printf("%s:%d:_sdl_c_generate_name\n", __FILE__, __LINE__);
+    if (*trace == true)
+    {
+        printf("%s:%d:_sdl_c_generate_name\n", __FILE__, __LINE__);
+    }
 
     /*
      * First, if we have a prefix, let's get it's length.  Also, the presents
@@ -2174,22 +2400,26 @@ static char *_sdl_c_generate_name(
      */
     if (prefix != NULL)
     {
-    if (context->argument[ArgSuppressPrefix].on == false)
-        len += strlen(prefix);
+        if (context->argument[ArgSuppressPrefix].on == false)
+        {
+            len += strlen(prefix);\
+        }
 
-    /*
-     * Next look at the tag.  If is it null or zero length, then it is not
-     * concatenated to the current string.  Otherwise, it is (with an
-     * underscore between the prefix/tag and the name.
-     */
-    if ((tag != NULL) && (context->argument[ArgSuppressTag].on == false))
-    {
-        tagLen = strlen(tag);
+        /*
+         * Next look at the tag.  If is it null or zero length, then it is not
+         * concatenated to the current string.  Otherwise, it is (with an
+         * underscore between the prefix/tag and the name.
+         */
+        if ((tag != NULL) && (context->argument[ArgSuppressTag].on == false))
+        {
+            tagLen = strlen(tag);
 
-        len += tagLen;
-        if (tagLen > 0)
-        len++;
-    }
+            len += tagLen;
+            if (tagLen > 0)
+            {
+                len++;
+            }
+        }
     }
 
     /*
@@ -2201,19 +2431,23 @@ static char *_sdl_c_generate_name(
     len = 0;
     if (prefix != NULL)
     {
-    if (context->argument[ArgSuppressPrefix].on == false)
-    {
-        strcpy(&retVal[len], prefix);
-        if (sdl_all_lower(prefix) == true)
-        strlwr(&retVal[len]);
-        len += strlen(prefix);
-    }
-    if ((tag != NULL) && (tagLen > 0) && (context->argument[ArgSuppressTag].on == false))
-    {
-        strcpy(&retVal[len], tag);
-        len += tagLen;
-        retVal[len++] = '_';
-    }
+        if (context->argument[ArgSuppressPrefix].on == false)
+        {
+            strcpy(&retVal[len], prefix);
+            if (sdl_all_lower(prefix) == true)
+            {
+                strlwr(&retVal[len]);
+            }
+            len += strlen(prefix);
+        }
+        if ((tag != NULL) &&
+            (tagLen > 0) &&
+            (context->argument[ArgSuppressTag].on == false))
+        {
+            strcpy(&retVal[len], tag);
+            len += tagLen;
+            retVal[len++] = '_';
+        }
     }
     strcpy(&retVal[len], name);
 
@@ -2251,70 +2485,83 @@ static char *_sdl_c_generate_name(
  *  !NULL:    A pointer to the type string to be written out to the output
  *        file.
  */
-static char *_sdl_c_typeidStr(
-        int typeID,
-        int subType,
-        bool _unsigned,
-        SDL_CONTEXT *context,
-        bool *freeMe)
+static char *_sdl_c_typeidStr(int typeID,
+                              int subType,
+                              bool _unsigned,
+                              SDL_CONTEXT *context,
+                              bool *freeMe)
 {
-    char    *retVal = NULL;
-    int        bits = (context->argument[ArgWordSize].value / 32) - 1;    /* 0 = 32, 1 = 64 */
-    int        sign = (_unsigned ? 1 : 0);
+    char *retVal = NULL;
+    int bits = (context->argument[ArgWordSize].value / 32) - 1;/* 0=32, 1=64 */
+    int sign = (_unsigned ? 1 : 0);
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
-    printf("%s:%d:_sdl_c_typeidStr\n", __FILE__, __LINE__);
+    if (*trace == true)
+    {
+        printf("%s:%d:_sdl_c_typeidStr\n", __FILE__, __LINE__);
+    }
 
     *freeMe = false;
     if (typeID == SDL_K_TYPE_NONE)
-    retVal = _types[SDL_K_TYPE_VOID][bits][sign];
+    {
+        retVal = _types[SDL_K_TYPE_VOID][bits][sign];
+    }
     else if ((typeID >= SDL_K_BASE_TYPE_MIN) && (typeID <= SDL_K_BASE_TYPE_MAX))
     {
-    if ((typeID == SDL_K_TYPE_ADDR) || (typeID == SDL_K_TYPE_PTR))
-        retVal = _sdl_c_typeidStr(subType, 0, _unsigned, context, freeMe);
-    else
-        retVal = _types[typeID][bits][sign];
+        if ((typeID == SDL_K_TYPE_ADDR) || (typeID == SDL_K_TYPE_PTR))
+        {
+            retVal = _sdl_c_typeidStr(subType, 0, _unsigned, context, freeMe);
+        }
+        else
+        {
+            retVal = _types[typeID][bits][sign];
+        }
     }
     else if ((typeID >= SDL_K_DECLARE_MIN) && (typeID <= SDL_K_DECLARE_MAX))
     {
-    SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, typeID);
+        SDL_DECLARE *myDeclare = sdl_get_declare(&context->declares, typeID);
 
-    if (myDeclare != NULL)
-        retVal = _sdl_c_generate_name(
-                myDeclare->id,
-                myDeclare->prefix,
-                myDeclare->tag,
-                context);
-    if (retVal != NULL)
-        *freeMe = true;
+        if (myDeclare != NULL)
+        {
+            retVal = _sdl_c_generate_name(myDeclare->id,
+                                          myDeclare->prefix,
+                                          myDeclare->tag,
+                                          context);
+        }
+        if (retVal != NULL)
+        {
+            *freeMe = true;
+        }
     }
     else if ((typeID >= SDL_K_ITEM_MIN) && (typeID <= SDL_K_ITEM_MAX))
     {
-    SDL_ITEM *myItem = sdl_get_item(&context->items, typeID);
+        SDL_ITEM *myItem = sdl_get_item(&context->items, typeID);
 
-    if (myItem != NULL)
-        retVal = _sdl_c_typeidStr(
-                myItem->type,
-                subType,
-                _unsigned,
-                context,
-                freeMe);
+        if (myItem != NULL)
+        {
+            retVal = _sdl_c_typeidStr(myItem->type,
+                                      subType,
+                                      _unsigned,
+                                      context,
+                                      freeMe);
+        }
     }
-    else if ((typeID >= SDL_K_AGGREGATE_MIN) && (typeID <= SDL_K_AGGREGATE_MAX))
+    else if ((typeID >= SDL_K_AGGREGATE_MIN) &&
+             (typeID <= SDL_K_AGGREGATE_MAX))
     {
-    SDL_AGGREGATE *myAggregate =
-        sdl_get_aggregate(&context->aggregates, typeID);
+        SDL_AGGREGATE *myAggregate = sdl_get_aggregate(&context->aggregates,
+                                                       typeID);
 
-    if (myAggregate!= NULL)
-        retVal = _sdl_c_typeidStr(
-                myAggregate->type,
-                subType,
-                _unsigned,
-                context,
-                freeMe);
+        if (myAggregate!= NULL)
+        {
+            retVal = _sdl_c_typeidStr(myAggregate->type,
+                                      subType,
+                                      _unsigned,
+                                      context,
+                                      freeMe);
+        }
     }
 
     /*
@@ -2343,17 +2590,19 @@ static char *_sdl_c_typeidStr(
  */
 static char *_sdl_c_leading_spaces(int depth)
 {
-    char    *retVal = NULL;
-    int        spaces = depth * 4;
-    int        tabs = spaces / 8;
-    int        remaining = spaces - (tabs * 8);
-    int        ii;
+    char *retVal = NULL;
+    int spaces = depth * 4;
+    int tabs = spaces / 8;
+    int remaining = spaces - (tabs * 8);
+    int ii;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
      */
-    if (trace == true)
-    printf("%s:%d:_sdl_c_leading_spaces(%d)\n", __FILE__, __LINE__, depth);
+    if (*trace == true)
+    {
+        printf("%s:%d:_sdl_c_leading_spaces(%d)\n", __FILE__, __LINE__, depth);
+    }
 
     /*
      * Allocate enough memory for the return string.
@@ -2362,22 +2611,26 @@ static char *_sdl_c_leading_spaces(int depth)
     if (retVal != NULL)
     {
 
-    /*
-     * First, insert zero or more tabs.
-     */
-    for (ii = 0; ii < tabs; ii++)
-        retVal[ii] = '\t';
+        /*
+         * First, insert zero or more tabs.
+         */
+        for (ii = 0; ii < tabs; ii++)
+        {
+            retVal[ii] = '\t';
+        }
 
-    /*
-     * Next, insert zero to four spaces.
-     */
-    for (ii = tabs; ii < (tabs + remaining); ii++)
-        retVal[ii] = ' ';
+        /*
+         * Next, insert zero to four spaces.
+         */
+        for (ii = tabs; ii < (tabs + remaining); ii++)
+        {
+            retVal[ii] = ' ';
+        }
 
-    /*
-     * Finally, null-terminate the string.
-     */
-    retVal[tabs + remaining] = '\0';
+        /*
+         * Finally, null-terminate the string.
+         */
+        retVal[tabs + remaining] = '\0';
     }
 
     /*

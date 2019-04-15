@@ -97,6 +97,7 @@
 #include "lib/util/opensdl_blocks.h"
 #include "lib/lang/opensdl_lang.h"
 #include "lib/util/opensdl_message.h"
+#include "lib/lang/opensdl_plugin_funcs.h"
 
 /*
  * Function prototypes
@@ -119,41 +120,6 @@ int _verbose;
 #define SDL_K_STARS	0
 #define SDL_K_CREATED	1
 #define SDL_K_FILEINFO	2
-
-static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
-{
-
-/*
- * For the C/C++ languages.
- */
-{
-    (SDL_FUNC) &sdl_c_commentStars,
-    (SDL_FUNC) &sdl_c_createdByInfo,
-    (SDL_FUNC) &sdl_c_fileInfo,
-    (SDL_FUNC) NULL,
-    (SDL_FUNC) NULL,
-    (SDL_FUNC) NULL,
-    (SDL_FUNC) NULL,
-    (SDL_FUNC) NULL}};
-
-static char *_extensions[] =
-{"h", /* C */
-NULL};
-
-char *sdl_months[] =
-{
-    "JAN",
-    "FEB",
-    "MAR",
-    "APR",
-    "MAY",
-    "JUN",
-    "JUL",
-    "AUG",
-    "SEP",
-    "OCT",
-    "NOV",
-    "DEC"};
 
 /*
  * argp declarations
@@ -916,59 +882,109 @@ static error_t _sdl_parse_opt(int key, char *arg, struct argp_state *state)
         case 'l':
             if (arg != NULL)
             {
+                SDL_LANGUAGES *langs = args[ArgLanguage].languages;
                 char *ptr;
                 int jj = 0;
+                bool found = false;
 
-                while ((args[ArgLanguage].languages[jj].langStr !=
-                            NULL) &&
-                       (args[ArgLanguage].languages[jj].langVal !=
-                            -1) &&
-                       (retVal == 0))
+                /*
+                 * Find out if there was a output file specified with the
+                 * argument.  The file can be preceded by either an equals sign
+                 * or a colon.
+                 */
+                ptr = strchr(arg, '=');
+                if (ptr == NULL)
                 {
-                    ptr = strchr(arg, '=');
-                    if (ptr == NULL)
-                    {
-                        ptr = &arg[strlen(arg)];
-                    }
-                    if (strncasecmp(arg,
-                          args[ArgLanguage].languages[jj].langStr,
-                          (ptr - arg)) == 0)
-                    {
-                        int lang = args[ArgLanguage].languages[jj].langVal;
+                    ptr = strchr(arg, ':');
+                }
 
-                        if (args[ArgLanguage].languages[lang].langSpec == false)
+                /*
+                 * If the pointer is still NULL, then set it to the end of the
+                 * argument (which is the null character).  Otherwise, change
+                 * the character we found to a null character and move the
+                 * pointer to the first letter in the output file.
+                 */
+                if (ptr == NULL)
+                {
+                    ptr = &arg[strlen(arg)];
+                }
+                else
+                {
+                    *ptr = '\0';
+                    ptr++;
+                }
+
+                /*
+                 * Loop through the list of languages already specified and see
+                 * if we have already seen this one.  If we have, we return an
+                 * error.
+                 */
+                for (jj = 0;
+                     ((jj < context->languagesSpecified) && (found == false));
+                     jj++)
+                {
+                    if (strcasecmp(arg, langs[jj].langStr) == 0)
+                    {
+                        found = true;
+                    }
+                }
+
+                /*
+                 * If we didn't find the language already specified, then we
+                 * have some work to do.
+                 */
+                if (found == false)
+                {
+                    uint32_t status = SDL_NORMAL;
+
+                    /*
+                     * First, let's allocate a language item for this guy.
+                     */
+                    langs = realloc(langs,
+                                    ((context->languagesSpecified + 1) *
+                                     sizeof(SDL_LANGUAGES)));
+                    if (langs != NULL)
+                    {
+                        uint32_t index = context->languagesSpecified;
+
+                        context->languagesSpecified++;
+                        args[ArgLanguage].languages = langs;
+
+                        /*
+                         * Now let's do a bit of initialization of the new
+                         * entry.
+                         */
+                        langs[index].langStr = strdup(arg);
+
+                        /*
+                         * Try and load the shared library for this language.
+                         */
+                        status = sdl_load_plugin(arg,
+                                                 &langs[index].extension,
+                                                 &langs[index].langVal);
+                        if (status == SDL_NORMAL)
                         {
-                            args[ArgLanguage].languages[lang].langSpec = true;
-                            if (*ptr == '=')
+                            if (*ptr != '\0')
                             {
-                                args[ArgLanguage].languages[lang].outFileName =
-                                    sdl_strdup(&ptr[1]);
+                                langs[index].outFileName = sdl_strdup(ptr);
                             }
-                            args[ArgLanguage].present = true;
+                            else
+                            {
+                                langs[index].outFileName = NULL;
+                            }
                         }
                         else
                         {
-                            char lang[32];
-
-                            strncpy(lang, arg, (ptr - arg));
-                            sdl_set_message(msgVec, 1, SDL_DUPLANG, lang);
                             retVal = EINVAL;
                         }
                     }
-                    jj++;
+                    args[ArgLanguage].present = true;
                 }
-                if ((args[ArgLanguage].present == false) && (retVal == 0))
+                else
                 {
-                    sdl_set_message(msgVec, 1, SDL_INVQUAL, "-l|-lang");
+                    sdl_set_message(msgVec, 1, SDL_DUPLANG, arg);
                     retVal = EINVAL;
                 }
-            }
-            if (args[ArgLanguage].present == false)
-            {
-                sdl_set_message(msgVec,
-                                1,
-                                SDL_NOOUTPUT);
-                retVal = EINVAL;
             }
             break;
 
@@ -1198,7 +1214,7 @@ int main(int argc, char *argv[])
     char            *msgTxt = NULL;
     struct tm       *timeInfo;
     SDL_ARGUMENTS   *args = context.argument;
-    SDL_LANGUAGES   languages[SDL_K_LANG_MAX];
+    SDL_LANGUAGES   *languages;
     SDL_SYMBOL_LIST symbols;
     time_t          localTime;
     uint32_t        status;
@@ -1237,16 +1253,7 @@ int main(int argc, char *argv[])
     /*
      * Initialize the parsing context.
      */
-    for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
-    {
-        languages[ii].langStr = strdup("cc");
-        languages[ii].langVal = SDL_K_LANG_C;
-        languages[ii].langSpec = false;
-        languages[ii].langEna = true;
-        languages[ii].outFileName = NULL;
-        languages[ii].outFP = NULL;
-    }
-    args[ArgLanguage].languages = languages;
+    args[ArgLanguage].languages = NULL;
     args[ArgSymbols].symbol = &symbols;
     context.processingEnabled = true;
 
@@ -1273,6 +1280,8 @@ int main(int argc, char *argv[])
     context.langCondList.lang = NULL;
     context.langCondList.listSize = 0;
     context.langCondList.listUsed = 0;
+    context.langEnableVec = NULL;
+    context.languagesSpecified = 0;
 
     /*
      * Set the message vector to a success value.
@@ -1305,6 +1314,12 @@ int main(int argc, char *argv[])
     _verbose = args[ArgVerbose].on;
 
     /*
+     * We now know the languages for which we are going to be generating output
+     * files.
+     */
+    languages = args[ArgLanguage].languages;
+
+    /*
      * Initialize the parsing states.
      */
     context.state = Initial;
@@ -1313,6 +1328,7 @@ int main(int argc, char *argv[])
     context.condState.state[0] = CondNone;
     context.condState.top = 0;
     context.condState.bottom = SDL_K_COND_STATE_SIZE;
+    context.langEnableVec = calloc(context.languagesSpecified, sizeof(bool));
 
     /*
      * Initialize the context queues.
@@ -1413,180 +1429,149 @@ int main(int argc, char *argv[])
     /*
      * Loop through each of the supported languages.
      */
-    for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+    for (ii = 0; ii < context.languagesSpecified; ii++)
     {
+        FILE outFP;
 
-        /*
-         * If we are going to generate an output file for the language, then we
-         * have a number of things to do.
-         */
-        if (languages[ii].langSpec == true)
+        if (languages[ii].outFileName == NULL)
         {
+            bool addDot = false;
 
-            if (languages[ii].outFileName == NULL)
+            /*
+             * Go find the last '.' in the file name, this will be where the
+             * file extension starts.
+             */
+            for (jj = strlen(context.argument[ArgInputFile].fileName);
+                 jj >= 0;
+                 jj--)
             {
-                bool addDot = false;
-
-                /*
-                 * Go find the last '.' in the file name, this will be where
-                 * the file extension starts.
-                 */
-                for (jj = strlen(context.argument[ArgInputFile].fileName);
-                     jj >= 0;
-                     jj--)
+                if (context.argument[ArgInputFile].fileName[jj] == '.')
                 {
-                    if (context.argument[ArgInputFile].fileName[jj] == '.')
-                    {
-                        jj++;
-                        break;
-                    }
+                    jj++;
+                    break;
                 }
-
-                /*
-                 * If we ended up at the beginning of the file, then there was
-                 * no file extension specified.  Use the whole filename.
-                 */
-                if (jj <= 0)
-                {
-                    jj = strlen(args[ArgInputFile].fileName);
-                    addDot = true;
-                }
-
-                /*
-                 * Now allocate a buffer large enough for the file name,
-                 * extension, and null terminator.
-                 */
-                languages[ii].outFileName =
-                        sdl_calloc((jj + strlen(_extensions[ii]) + 2), 1);
-
-                /*
-                 * Copy the extension for this language after the last '.' (or
-                 * the one just added).
-                 */
-                strncpy(languages[ii].outFileName,
-                        args[ArgInputFile].fileName,
-                        jj);
-                if (addDot == true)
-                {
-                    languages[ii].outFileName[jj++] = '.';
-                }
-                strcpy(
-                    &languages[ii].outFileName[jj],
-                    _extensions[ii]);
             }
 
             /*
-             * Try and open the file for this language.  If it fails, we are
-             * done.
+             * If we ended up at the beginning of the file, then there was no
+             * file extension specified.  Use the whole filename.
              */
-            if ((languages[ii].outFP =
-                    fopen(
-                        languages[ii].outFileName,
-                        "w")) == NULL)
+            if (jj <= 0)
             {
-                status = sdl_set_message(msgVec,
-                                         2,
-                                         SDL_OUTFILOPN,
-                                         languages[ii].outFileName,
-                                         errno);
-                if (status == SDL_NORMAL)
-                {
-                    status = sdl_get_message(msgVec, &msgTxt);
-                }
-                if (status == SDL_NORMAL)
-                {
-                    fprintf(stderr, errFmt, msgTxt);
-                }
-                sdl_free(msgTxt);
-                return (-1);
+                jj = strlen(args[ArgInputFile].fileName);
+                addDot = true;
             }
-            else if (args[ArgHeader].on == true)
+
+            /*
+             * Now allocate a buffer large enough for the file name,
+             * extension, and null terminator.
+             */
+            languages[ii].outFileName =
+                    sdl_calloc((jj + strlen(languages[ii].extension) + 2), 1);
+
+            /*
+             * Copy the extension for this language after the last '.' (or
+             * the one just added).
+             */
+            strncpy(languages[ii].outFileName, args[ArgInputFile].fileName, jj);
+            if (addDot == true)
             {
+                languages[ii].outFileName[jj++] = '.';
+            }
+            strcpy(&languages[ii].outFileName[jj],
+                   languages[ii].extension);
+        }
+
+        /*
+         * Try and open the file for this language.  If it fails, we are
+         * done.
+         */
+        if ((outFP = fopen(languages[ii].outFileName, "w")) == NULL)
+        {
+            status = sdl_set_message(msgVec,
+                                     2,
+                                     SDL_OUTFILOPN,
+                                     languages[ii].outFileName,
+                                     errno);
+            if (status == SDL_NORMAL)
+            {
+                status = sdl_get_message(msgVec, &msgTxt);
+            }
+            if (status == SDL_NORMAL)
+            {
+                fprintf(stderr, errFmt, msgTxt);
+            }
+            sdl_free(msgTxt);
+            return (-1);
+        }
+        else
+        {
+            status = sdl_load_fp(ii, outFP);
+            if (status == SDL_NORMAL)
+            {
+                status = sdl_get_message(msgVec, &msgTxt);
+            }
+            if (status == SDL_NORMAL)
+            {
+                fprintf(stderr, errFmt, msgTxt);
+            }
+            sdl_free(msgTxt);
+            return (-1);
+        }
+    }
+    if (args[ArgHeader].on == true)
+    {
+
+        /*
+         * OK, we successfully opened the files.  Insert the header
+         * comments.  First starting with a row of '*'s.
+         */
+        if (sdl_call_commentStars() == SDL_NORMAL)
+        {
+
+            /*
+             * If we put the row of '*'s in, now put in information
+             * about OpenSDL.
+             */
+            if (sdl_call_createdByInfo(context.runTimeInfo) == SDL_NORMAL)
+            {
+                struct stat fileStats;
+
+                context.inputPath = realpath(args[ArgInputFile].fileName,
+                                             NULL);
+                if (context.inputPath == NULL)
+                {
+                    context.inputPath = strdup(args[ArgInputFile].fileName);
+                }
+                if (stat(context.inputPath, &fileStats) != 0)
+                {
+                    timeInfo->tm_year = -42;
+                    timeInfo->tm_mon = 10;
+                    timeInfo->tm_mday = 17;
+                    timeInfo->tm_hour = 0;
+                    timeInfo->tm_min = 0;
+                    timeInfo->tm_sec = 0;
+                }
+                else
+                    timeInfo = localtime(&fileStats.st_mtime);
 
                 /*
-                 * OK, we successfully opened this file.  Insert the header
-                 * comments.  First starting with a row of '*'s.
+                 * OK, if we put in the row of information about
+                 * OpenSDL, let's put in information about the file we
+                 * are about to parse.
                  */
-                if ((*_outputFuncs[ii][SDL_K_STARS])(
-                        languages[ii].outFP) ==
-                            SDL_NORMAL)
+                memcpy(&context.inputTimeInfo, timeInfo, sizeof(struct tm));
+                if (sdl_call_fileInfo(context.inputTimeInfo,
+                                      context.inputPath) == SDL_NORMAL)
                 {
 
                     /*
-                     * If we put the row of '*'s in, now put in information
-                     * about OpenSDL.
+                     * Finally, if we get here, we just need to output
+                     * another row of '*'s, and then can begin our
+                     * actual input file parsing and output file
+                     * generation.
                      */
-                    if ((*_outputFuncs[ii][SDL_K_CREATED])(
-                            languages[ii].outFP,
-                            context.runTimeInfo) == SDL_NORMAL)
-                    {
-                        struct stat fileStats;
-
-                        context.inputPath = realpath(
-                                args[ArgInputFile].fileName,
-                                NULL);
-                        if (context.inputPath == NULL)
-                        {
-                            context.inputPath = strdup(
-                                    args[ArgInputFile].fileName);
-                        }
-                        if (stat(context.inputPath, &fileStats) != 0)
-                        {
-                            timeInfo->tm_year = -42;
-                            timeInfo->tm_mon = 10;
-                            timeInfo->tm_mday = 17;
-                            timeInfo->tm_hour = 0;
-                            timeInfo->tm_min = 0;
-                            timeInfo->tm_sec = 0;
-                        }
-                        else
-                            timeInfo = localtime(&fileStats.st_mtime);
-
-                        /*
-                         * OK, if we put in the row of information about
-                         * OpenSDL, let's put in information about the file we
-                         * are about to parse.
-                         */
-                        memcpy(&context.inputTimeInfo,
-                               timeInfo,
-                               sizeof(struct tm));
-                        if ((*_outputFuncs[ii][SDL_K_FILEINFO])(
-                                    languages[ii].outFP,
-                                    context.inputTimeInfo,
-                                    context.inputPath) == SDL_NORMAL)
-                        {
-
-                            /*
-                             * Finally, if we get here, we just need to output
-                             * another row of '*'s, and then can begin our
-                             * actual input file parsing and output file
-                             * generation.
-                             */
-                            if ((_outputFuncs[ii][SDL_K_STARS])(
-                                    languages[ii].outFP) !=
-                                        SDL_NORMAL)
-                            {
-                                status = sdl_get_message(msgVec, &msgTxt);
-                                if (status == SDL_NORMAL)
-                                {
-                                    fprintf(stderr, errFmt, msgTxt);
-                                }
-                                sdl_free(msgTxt);
-                                return (-1);
-                            }
-                        }
-                        else
-                        {
-                            status = sdl_get_message(msgVec, &msgTxt);
-                            if (status == SDL_NORMAL)
-                            {
-                                fprintf(stderr, errFmt, msgTxt);
-                            }
-                            sdl_free(msgTxt);
-                            return (-1);
-                        }
-                    }
-                    else
+                    if (sdl_call_commentStars() == SDL_NORMAL)
                     {
                         status = sdl_get_message(msgVec, &msgTxt);
                         if (status == SDL_NORMAL)
@@ -1608,12 +1593,34 @@ int main(int argc, char *argv[])
                     return (-1);
                 }
             }
+            else
+            {
+                status = sdl_get_message(msgVec, &msgTxt);
+                if (status == SDL_NORMAL)
+                {
+                    fprintf(stderr, errFmt, msgTxt);
+                }
+                sdl_free(msgTxt);
+                return (-1);
+            }
         }
         else
         {
-            languages[ii].outFP = NULL;
+            status = sdl_get_message(msgVec, &msgTxt);
+            if (status == SDL_NORMAL)
+            {
+                fprintf(stderr, errFmt, msgTxt);
+            }
+            sdl_free(msgTxt);
+            return (-1);
         }
     }
+
+    /*
+     * If we get this far, then go and write out the header information to each
+     * languages output file.
+     */
+
     SDL_Q_INIT(&context.locals);
     context.module = NULL;
     context.ident = NULL;
@@ -1704,20 +1711,9 @@ int main(int argc, char *argv[])
     }
 
     /*
-     * Go close all the files.
+     * Go close all the output files.
      */
-    for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
-    {
-        if ((languages[ii].langSpec == true) &&
-            (languages[ii].outFP != NULL))
-        {
-            fclose(languages[ii].outFP);
-        }
-        if (languages[ii].outFileName != NULL)
-        {
-            sdl_free(languages[ii].outFileName);
-        }
-    }
+    sdl_call_close();
 
     /*
      * Return the results back to the caller.
@@ -1739,6 +1735,25 @@ int main(int argc, char *argv[])
     for (ii = 0; ii < args[ArgSymbols].symbol->listUsed; ii++)
     {
         sdl_free(args[ArgSymbols].symbol->symbols->symbol);
+    }
+    for (ii = 0; ii < context.languagesSpecified; ii++)
+    {
+        if (args[ArgLanguage].languages[ii].extension != NULL)
+        {
+            free(args[ArgLanguage].languages[ii].extension);
+        }
+        if (args[ArgLanguage].languages[ii].langStr != NULL)
+        {
+            free(args[ArgLanguage].languages[ii].langStr);
+        }
+        if (args[ArgLanguage].languages[ii].outFileName != NULL)
+        {
+            free(args[ArgLanguage].languages[ii].outFileName);
+        }
+    }
+    if (args[ArgLanguage].languages != NULL)
+    {
+        free(args[ArgLanguage].languages);
     }
     if (args[ArgSymbols].symbol->symbols != NULL)
     {

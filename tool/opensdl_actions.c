@@ -45,36 +45,7 @@
 #include "lib/util/opensdl_utility.h"
 #include "lib/util/opensdl_message.h"
 #include "tool/opensdl_main.h"
-
-/*
- * Define the language specific entry-points.
- */
-#define SDL_K_COMMENT_CB    0
-#define SDL_K_MODULE_CB     1
-#define SDL_K_END_MODULE_CB 2
-#define SDL_K_ITEM_CB       3
-#define SDL_K_CONSTANT_CB   4
-#define SDL_K_AGGREGATE_CB  5
-#define SDL_K_ENTRY_CB      6
-#define SDL_K_ENUM_CB       7
-
-static SDL_LANG_FUNC _outputFuncs[SDL_K_LANG_MAX] =
-{
-
-    /*
-     * For the C/C++ languages.
-     */
-    {
-        (SDL_FUNC) &sdl_c_comment,
-        (SDL_FUNC) &sdl_c_module,
-        (SDL_FUNC) &sdl_c_module_end,
-        (SDL_FUNC) &sdl_c_item,
-        (SDL_FUNC) &sdl_c_constant,
-        (SDL_FUNC) &sdl_c_aggregate,
-        (SDL_FUNC) &sdl_c_entry,
-        (SDL_FUNC) &sdl_c_enumerate
-    }
-};
+#include "lib/lang/opensdl_plugin_funcs.h"
 
 /*
  * The following defines the default tags for the various data types.
@@ -139,74 +110,63 @@ static char *_defaultTag[] =
 /*
  * Local Prototypes (found at the end of this module).
  */
-static uint32_t _sdl_aggregate_callback(
-        SDL_CONTEXT *context,
-        SDL_MEMBERS *member,
-        bool ending,
-        int depth);
+static uint32_t _sdl_aggregate_callback(SDL_CONTEXT *context,
+                                        SDL_MEMBERS *member,
+                                        bool ending,
+                                        int depth);
 static SDL_DECLARE *_sdl_get_declare(SDL_DECLARE_LIST *declare, char *name);
 static SDL_ITEM *_sdl_get_item(SDL_ITEM_LIST *item, char *name);
-static char *_sdl_get_tag(
-        SDL_CONTEXT *context,
-        char *tag,
-        int datatype,
-        bool lower);
-static SDL_CONSTANT *_sdl_create_constant(
-        char *id,
-        char *prefix,
-        char *tag,
-        char *comment,
-        char *typeName,
-        int radix,
-        int64_t value,
-        char *string,
-        int size,
-        SDL_YYLTYPE *loc);
-static uint32_t _sdl_queue_constant(
-        SDL_CONTEXT *context,
-        SDL_CONSTANT *myConst);
-static SDL_ENUMERATE *_sdl_create_enum(
-        SDL_CONTEXT *context,
-        char *id,
-        char *prefix,
-        char *tag,
-        bool typeDef,
-        SDL_YYLTYPE *loc);
+static char *_sdl_get_tag(SDL_CONTEXT *context,
+                          char *tag,
+                          int datatype,
+                          bool lower);
+static SDL_CONSTANT *_sdl_create_constant(char *id,
+                                          char *prefix,
+                                          char *tag,
+                                          char *comment,
+                                          char *typeName,
+                                          int radix,
+                                          int64_t value,
+                                          char *string,
+                                          int size,
+                                          SDL_YYLTYPE *loc);
+static uint32_t _sdl_queue_constant(SDL_CONTEXT *context,
+                                    SDL_CONSTANT *myConst);
+static SDL_ENUMERATE *_sdl_create_enum(SDL_CONTEXT *context,
+                                       char *id,
+                                       char *prefix,
+                                       char *tag,
+                                       bool typeDef,
+                                       SDL_YYLTYPE *loc);
 static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum);
 static void _sdl_reset_options(SDL_CONTEXT *context);
-static uint32_t _sdl_iterate_members(
-        SDL_CONTEXT *context,
-        SDL_MEMBERS *member,
-        void *qhead,
-        int (*callback)(),
-        int depth,
-        int count);
-static void _sdl_determine_offsets(
-        SDL_CONTEXT *context,
-        SDL_MEMBERS *member,
-        SDL_QUEUE *memberList,
-        bool parentIsUnion);
-static void _sdl_fill_bitfield(
-        SDL_QUEUE *memberList,
-        SDL_MEMBERS *member,
-        int bits,
-        int number,
-        SDL_YYLTYPE *loc);
-static int64_t _sdl_aggregate_size(
-        SDL_CONTEXT *context,
-        SDL_AGGREGATE *aggr,
-        SDL_SUBAGGR *subAggr);
+static uint32_t _sdl_iterate_members(SDL_CONTEXT *context,
+                                     SDL_MEMBERS *member,
+                                     void *qhead,
+                                     int (*callback)(),
+                                     int depth,
+                                     int count);
+static void _sdl_determine_offsets(SDL_CONTEXT *context,
+                                   SDL_MEMBERS *member,
+                                   SDL_QUEUE *memberList,
+                                   bool parentIsUnion);
+static void _sdl_fill_bitfield(SDL_QUEUE *memberList,
+                               SDL_MEMBERS *member,
+                               int bits,
+                               int number,
+                               SDL_YYLTYPE *loc);
+static int64_t _sdl_aggregate_size(SDL_CONTEXT *context,
+                                   SDL_AGGREGATE *aggr,
+                                   SDL_SUBAGGR *subAggr);
 static void _sdl_checkAndSetOrigin(SDL_CONTEXT *context, SDL_MEMBERS *member);
-static void _sdl_check_bitfieldSizes(
-        SDL_CONTEXT *context,
-        SDL_QUEUE *memberList,
-        SDL_MEMBERS *member,
-        int64_t length,
-        SDL_MEMBERS *newMember,
-        bool *updated);
-static uint32_t _sdl_create_bitfield_constants(
-        SDL_CONTEXT *context,
-        SDL_QUEUE *memberList);
+static void _sdl_check_bitfieldSizes(SDL_CONTEXT *context,
+                                     SDL_QUEUE *memberList,
+                                     SDL_MEMBERS *member,
+                                     int64_t length,
+                                     SDL_MEMBERS *newMember,
+                                     bool *updated);
+static uint32_t _sdl_create_bitfield_constants(SDL_CONTEXT *context,
+                                               SDL_QUEUE *memberList);
 
 /************************************************************************/
 /* Functions called to create definitions from the Grammar file        */
@@ -234,13 +194,11 @@ static uint32_t _sdl_create_bitfield_constants(
  *  SDL_ABORT:      An error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_comment_line(
-        SDL_CONTEXT *context,
-        char *comment,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_comment_line(SDL_CONTEXT *context,
+                          char *comment,
+                          SDL_YYLTYPE *loc)
 {
     uint32_t retVal = SDL_NORMAL;
-    int ii;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -287,29 +245,12 @@ uint32_t sdl_comment_line(
         }
         else
         {
-            SDL_ARGUMENTS *args = context->argument;
-
-            /*
-             * Loop through all the possible languages and call the appropriate
-             * output function for each of the enabled languages.
-             */
-            for (ii = 0;
-                 ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
-                 ii++)
-            {
-                if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-                    (args[ArgLanguage].languages[ii].langEna == true) &&
-                    (args[ArgComments].on == true))
-                {
-                    retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
-                                    args[ArgLanguage].languages[ii].outFP,
-                                    &comment[2],    /* ignore comment token */
-                                    true,
-                                    false,
-                                    false,
-                                    false);
-                }
-            }
+            retVal = sdl_call_comment(context->langEnableVec,
+                                      &comment[2],  /* ignore comment token */
+                                      true,
+                                      false,
+                                      false,
+                                      false);
         }
     }
 
@@ -342,14 +283,12 @@ uint32_t sdl_comment_line(
  *  SDL_ABORT:      An error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_comment_block(
-        SDL_CONTEXT *context,
-        char *comment,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_comment_block(SDL_CONTEXT *context,
+                           char *comment,
+                           SDL_YYLTYPE *loc)
 {
     char *ptr, *nl;
     uint32_t retVal = SDL_NORMAL;
-    int ii;
     bool start_comment, start_done = false;
     bool middle_comment;
     bool end_comment;
@@ -458,29 +397,12 @@ uint32_t sdl_comment_block(
             }
             else
             {
-                SDL_ARGUMENTS *args = context->argument;
-
-                /*
-                 * Loop through all the possible languages and call the
-                 * appropriate output function for each of the enabled
-                 * languages.
-                 */
-                for (ii = 0;
-                     ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
-                     ii++)
-                {
-                    if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-                        (args[ArgLanguage].languages[ii].langEna == true))
-                    {
-                        retVal = (*_outputFuncs[ii][SDL_K_COMMENT_CB])(
-                                args[ArgLanguage].languages[ii].outFP,
-                                ptr,
-                                false,
-                                start_comment,
-                                middle_comment,
-                                end_comment);
-                    }
-                }
+                retVal = sdl_call_comment(context->langEnableVec,
+                                          ptr,
+                                          false,
+                                          start_comment,
+                                          middle_comment,
+                                          end_comment);
             }
 
             /*
@@ -525,11 +447,10 @@ uint32_t sdl_comment_block(
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_set_local(
-        SDL_CONTEXT *context,
-        char *name,
-        int64_t value,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_set_local(SDL_CONTEXT *context,
+                       char *name,
+                       int64_t value,
+                       SDL_YYLTYPE *loc)
 {
     uint32_t retVal = SDL_NORMAL;
 
@@ -623,14 +544,12 @@ uint32_t sdl_set_local(
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_module(
-        SDL_CONTEXT *context,
-        char *moduleName,
-        char *identName,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_module(SDL_CONTEXT *context,
+                    char *moduleName,
+                    char *identName,
+                    SDL_YYLTYPE *loc)
 {
-    uint32_t    retVal = SDL_NORMAL;
-    int ii;
+    uint32_t retVal = SDL_NORMAL;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -657,20 +576,7 @@ uint32_t sdl_module(
      */
     context->ident = identName;
 
-    /*
-     * Loop through all the possible languages and call the appropriate output
-     * function for each of the enabled languages.
-     */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
-    {
-        if ((context->argument[ArgLanguage].languages[ii].langSpec == true) &&
-            (context->argument[ArgLanguage].languages[ii].langEna == true))
-        {
-            retVal = (*_outputFuncs[ii][SDL_K_MODULE_CB])(
-                        context->argument[ArgLanguage].languages[ii].outFP,
-                        context);
-        }
-    }
+    retVal = sdl_call_module(context->langEnableVec, context);
 
     /*
      * Return the results of this call back to the caller.
@@ -702,10 +608,9 @@ uint32_t sdl_module(
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_module_end(
-        SDL_CONTEXT *context,
-        char *moduleName,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_module_end(SDL_CONTEXT *context,
+                        char *moduleName,
+                        SDL_YYLTYPE *loc)
 {
     uint32_t retVal = SDL_NORMAL;
     int ii;
@@ -744,19 +649,10 @@ uint32_t sdl_module_end(
 
     /*
      * OK, time to write out the OpenSDL Parser's MODULE footer.
-     *
-     * Loop through all the possible languages and call the appropriate output
-     * function for each of the enabled languages.
      */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
+    if (retVal == SDL_NORMAL)
     {
-        if ((context->argument[ArgLanguage].languages[ii].langSpec == true) &&
-            (context->argument[ArgLanguage].languages[ii].langEna == true))
-        {
-            retVal = (*_outputFuncs[ii][SDL_K_END_MODULE_CB])(
-                            context->argument[ArgLanguage].languages[ii].outFP,
-                            context);
-        }
+        retVal = sdl_call_moduleEnd(context->langEnableVec, context);
     }
 
     /*
@@ -1133,11 +1029,10 @@ uint32_t sdl_module_end(
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_literal(
-        SDL_CONTEXT *context,
-        SDL_QUEUE *literals,
-        char *line,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_literal(SDL_CONTEXT *context,
+                     SDL_QUEUE *literals,
+                     char *line,
+                     SDL_YYLTYPE *loc)
 {
     SDL_LITERAL *literalLine;
     uint32_t retVal = SDL_NORMAL;
@@ -1227,14 +1122,12 @@ uint32_t sdl_literal(
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_literal_end(
-        SDL_CONTEXT *context,
-        SDL_QUEUE *literals,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_literal_end(SDL_CONTEXT *context,
+                         SDL_QUEUE *literals,
+                         SDL_YYLTYPE *loc)
 {
     SDL_LITERAL *literalLine;
     uint32_t retVal = SDL_NORMAL;
-    int ii;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -1260,32 +1153,8 @@ uint32_t sdl_literal_end(
             SDL_ARGUMENTS *args = context->argument;
             SDL_REMQUE(literals, literalLine);
 
-            /*
-             * Loop through each of the supported languages and if we are
-             * generating a file for the language, write out the line to it.
-             */
-            for (ii = 0;
-                 ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
-                 ii++)
-            {
-                if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-                    (args[ArgLanguage].languages[ii].langEna == true))
-                {
-                    if (fprintf(args[ArgLanguage].languages[ii].outFP,
-                                "%s\n",
-                                literalLine->line) < 0)
-                    {
-                        retVal = SDL_ABORT;
-                        if (sdl_set_message(msgVec,
-                                            2,
-                                            retVal,
-                                            errno) != SDL_NORMAL)
-                        {
-                            retVal = SDL_ERREXIT;
-                        }
-                    }
-                }
-            }
+            retVal = sdl_call_literal(context->langEnableVec,
+                                      literalLine->line);
 
             /*
              * Free up all the memory we allocated for this literal line.
@@ -1325,11 +1194,10 @@ uint32_t sdl_literal_end(
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_declare(
-        SDL_CONTEXT *context,
-        char *name,
-        int64_t sizeType,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_declare(SDL_CONTEXT *context,
+                     char *name,
+                     int64_t sizeType,
+                     SDL_YYLTYPE *loc)
 {
     uint32_t retVal = SDL_NORMAL;
 
@@ -1717,23 +1585,11 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
                     }
                 }
             }
-
-            /*
-             * Loop through all the possible languages and call the appropriate
-             * output function for each of the enabled languages.
-             */
-            for (ii = 0;
-                ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL));
-                 ii++)
+            if (retVal == SDL_NORMAL)
             {
-                if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-                    (args[ArgLanguage].languages[ii].langEna == true))
-                {
-                    retVal = (*_outputFuncs[ii][SDL_K_ITEM_CB])(
-                                    args[ArgLanguage].languages[ii].outFP,
-                                    myItem,
-                                    context);
-                }
+                retVal = sdl_call_item(context->langEnableVec,
+                                       myItem,
+                                       context);
             }
         }
     }
@@ -1771,12 +1627,11 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
  * Return Values:
  *  SDL_NORMAL:     Normal Successful Completion.
  */
-uint32_t sdl_constant(
-        SDL_CONTEXT *context,
-        char *id,
-        int64_t value,
-        char *valueStr,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_constant(SDL_CONTEXT *context,
+                      char *id,
+                      int64_t value,
+                      char *valueStr,
+                      SDL_YYLTYPE *loc)
 {
     uint32_t retVal = SDL_NORMAL;
 
@@ -2293,12 +2148,11 @@ uint32_t sdl_constant_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_aggregate(
-        SDL_CONTEXT *context,
-        char *name,
-        int64_t datatype,
-        int aggType,
-        SDL_YYLTYPE *loc)
+uint32_t sdl_aggregate(SDL_CONTEXT *context,
+                       char *name,
+                       int64_t datatype,
+                       int aggType,
+                       SDL_YYLTYPE *loc)
 {
     uint32_t retVal = SDL_NORMAL;
 
@@ -2398,16 +2252,15 @@ uint32_t sdl_aggregate(
  *  SDL_ABORT:      An unexpected error occurred.
  *  SDL_ERREXIT:    Error exit.
  */
-uint32_t sdl_aggregate_member(
-        SDL_CONTEXT *context,
-        char *name,
-        int64_t datatype,
-        int aggType,
-        SDL_YYLTYPE *loc,
-        bool lineComment,
-        bool startComment,
-        bool middleComment,
-        bool endComment)
+uint32_t sdl_aggregate_member(SDL_CONTEXT *context,
+                              char *name,
+                              int64_t datatype,
+                              int aggType,
+                              SDL_YYLTYPE *loc,
+                              bool lineComment,
+                              bool startComment,
+                              bool middleComment,
+                              bool endComment)
 {
     SDL_MEMBERS *myMember = NULL;
     SDL_AGGREGATE *myAggr = (context->aggregateDepth > 1 ?
@@ -3360,23 +3213,14 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc)
                 }
             }
 
-            /*
-             * Loop through all the possible languages and call the appropriate
-             * output function for each of the enabled languages.
-             */
-            for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
+            if (retVal == SDL_NORMAL)
             {
-                if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-                    (args[ArgLanguage].languages[ii].langEna == true))
-                {
-                    retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
-                                    args[ArgLanguage].languages[ii].outFP,
-                                    myAggr,
-                                    LangAggregate,
-                                    false,
-                                    0,
-                                    context);
-                }
+                retVal = sdl_call_aggregate(context->langEnableVec,
+                                            myAggr,
+                                            LangAggregate,
+                                            false,
+                                            0,
+                                            context);
             }
             if ((retVal == SDL_NORMAL) &&
                 (SDL_Q_EMPTY(&myAggr->members) == false))
@@ -3389,23 +3233,14 @@ uint32_t sdl_aggregate_compl(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc)
                                               1);
             }
 
-            /*
-             * Loop through all the possible languages and call the appropriate
-             * output function for each of the enabled languages.
-             */
-            for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
+            if (retVal == SDL_NORMAL)
             {
-                if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-                    (args[ArgLanguage].languages[ii].langEna == true))
-                {
-                    retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
-                                args[ArgLanguage].languages[ii].outFP,
-                                myAggr,
-                                LangAggregate,
-                                true,
-                                0,
-                                context);
-                }
+                retVal = sdl_call_aggregate(context->langEnableVec,
+                                            myAggr,
+                                            LangAggregate,
+                                            true,
+                                            0,
+                                            context);
             }
         }
 
@@ -3552,20 +3387,11 @@ uint32_t sdl_entry(SDL_CONTEXT *context, char *name, SDL_YYLTYPE *loc)
             context->parameterIdx = 0;
             SDL_INSQUE(&context->entries, &myEntry->header.queue);
 
-            /*
-             * Loop through all the possible languages and call the appropriate
-             * output function for each of the enabled languages.
-             */
-            for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
+            if (retVal == SDL_NORMAL)
             {
-                if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-                    (args[ArgLanguage].languages[ii].langEna == true))
-                {
-                    retVal = (*_outputFuncs[ii][SDL_K_ENTRY_CB])(
-                                    args[ArgLanguage].languages[ii].outFP,
-                                    myEntry,
-                                    context);
-                }
+                retVal = sdl_call_entry(context->langEnableVec,
+                                        myEntry,
+                                        context);
             }
         }
         else
@@ -3927,18 +3753,18 @@ uint32_t sdl_conditional(
                      * turn all languages off and if one is specified in the
                      * langs list, then we'll turn it back on.
                      */
-                    for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+                    for (ii = 0; ii < context->languagesSpecified; ii++)
                     {
-                        args[ArgLanguage].languages[ii].langEna = false;
+                        context->langEnableVec[ii] = false;
                     }
                     for (ii = 0; ii < langs->listUsed; ii++)
                     {
-                        for (jj = 0; jj < SDL_K_LANG_ENTRIES; jj++)
+                        for (jj = 0; jj < context->languagesSpecified; jj++)
                         {
                             if (strcasecmp(langs->lang[ii],
                                            args[ArgLanguage].languages[jj].langStr) == 0)
                             {
-                                args[ArgLanguage].languages[jj].langEna = true;
+                                context->langEnableVec[jj] = true;
                             }
                         }
                     }
@@ -4035,15 +3861,15 @@ uint32_t sdl_conditional(
                 SDL_POP_COND_STATE(context);
                 SDL_PUSH_COND_STATE(context, CondElse);
 
-                for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+                for (ii = 0; ii < context->languagesSpecified; ii++)
                 {
-                    if (args[ArgLanguage].languages[ii].langEna == true)
+                    if (context->langEnableVec[ii] == true)
                     {
-                        args[ArgLanguage].languages[ii].langEna = false;
+                        context->langEnableVec[ii] = false;
                     }
                     else
                     {
-                        args[ArgLanguage].languages[ii].langEna = true;
+                        context->langEnableVec[ii] = true;
                     }
                 }
             }
@@ -4124,10 +3950,9 @@ uint32_t sdl_conditional(
                     (SDL_CUR_COND_STATE(context) == CondElse))
                 {
                     SDL_POP_COND_STATE(context);
-                    for (ii = 0; ii < SDL_K_LANG_MAX; ii++)
+                    for (ii = 0; ii < context->languagesSpecified; ii++)
                     {
-                        args[ArgLanguage].languages[ii].langEna =
-                            args[ArgLanguage].languages[ii].langSpec;
+                        context->langEnableVec[ii] = true;
                     }
                 }
                 else
@@ -4344,7 +4169,6 @@ static uint32_t _sdl_aggregate_callback(
     void *param;
     SDL_LANG_AGGR_TYPE type;
     uint32_t retVal = SDL_NORMAL;
-    int ii;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4370,24 +4194,12 @@ static uint32_t _sdl_aggregate_callback(
         type = LangItem;
     }
 
-    /*
-     * Loop through all the possible languages and call the appropriate
-     * output function for each of the enabled languages.
-     */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
-    {
-        if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-            (args[ArgLanguage].languages[ii].langEna == true))
-        {
-            retVal = (*_outputFuncs[ii][SDL_K_AGGREGATE_CB])(
-                            args[ArgLanguage].languages[ii].outFP,
-                            param,
-                            type,
-                            ending,
-                            depth,
-                            context);
-        }
-    }
+    retVal = sdl_call_aggregate(context->langEnableVec,
+                                 param,
+                                 type,
+                                 ending,
+                                 depth,
+                                 context);
 
     /*
      * Return the results of this call back to the caller.
@@ -4819,7 +4631,6 @@ static uint32_t _sdl_queue_constant(
 {
     SDL_ARGUMENTS *args = context->argument;
     uint32_t retVal = SDL_NORMAL;
-    int ii;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4834,22 +4645,9 @@ static uint32_t _sdl_queue_constant(
      */
     SDL_INSQUE(&context->constants, &myConst->header.queue);
 
-    /*
-     * Loop through all the possible languages and call the
-     * appropriate output function for each of the enabled
-     * languages.
-     */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
-    {
-        if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-            (args[ArgLanguage].languages[ii].langEna == true))
-        {
-            retVal = (*_outputFuncs[ii][SDL_K_CONSTANT_CB])(
-                            args[ArgLanguage].languages[ii].outFP,
-                            myConst,
-                            context);
-        }
-    }
+    retVal = sdl_call_constant(context->langEnableVec,
+                               myConst,
+                               context);
 
     /*
      * Return the results back to the caller.
@@ -4954,7 +4752,6 @@ static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
 {
     SDL_ARGUMENTS *args = context->argument;
     uint32_t retVal = SDL_NORMAL;
-    int ii;
 
     /*
      * If tracing is turned on, write out this call (calls only, no returns).
@@ -4964,22 +4761,9 @@ static uint32_t _sdl_enum_compl(SDL_CONTEXT *context, SDL_ENUMERATE *myEnum)
         printf("%s:%d:_sdl_enum_compl\n", __FILE__, __LINE__);
     }
 
-    /*
-     * Loop through all the possible languages and call the
-     * appropriate output function for each of the enabled
-     * languages.
-     */
-    for (ii = 0; ((ii < SDL_K_LANG_MAX) && (retVal == SDL_NORMAL)); ii++)
-    {
-        if ((args[ArgLanguage].languages[ii].langSpec == true) &&
-            (args[ArgLanguage].languages[ii].langEna == true))
-        {
-            retVal = (*_outputFuncs[ii][SDL_K_ENUM_CB])(
-                            args[ArgLanguage].languages[ii].outFP,
-                            myEnum,
-                            context);
-        }
-    }
+    retVal = sdl_call_enumerate(context->langEnableVec,
+                                myEnum,
+                                context);
 
     /*
      * Return the results back to the caller.

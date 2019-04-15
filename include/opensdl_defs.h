@@ -628,11 +628,8 @@ typedef struct
 } SDL_OPTION;
 
 /*
- * Supported languages and other useful definitions.
+ * Other useful definitions.
  */
-#define SDL_K_LANG_C            0
-#define SDL_K_LANG_MAX          1
-#define SDL_K_LANG_ENTRIES      2
 #define SDL_TIMESTR_LEN         20 + 1      /* dd-MMM-yyyy hh:mm:ss        */
 #define SDL_K_SUBAGG_MAX        8 + 1
 
@@ -726,12 +723,10 @@ typedef struct
 } SDL_LANGUAGE_LIST;
 typedef struct
 {
-    char            *langStr;
-    char            *outFileName;
-    FILE            *outFP;
-    int             langVal;
-    bool            langSpec;
-    bool            langEna;
+    char *langStr;
+    char *outFileName;
+    char *extension;
+    int langVal;
 } SDL_LANGUAGES;
 
 /*
@@ -760,12 +755,12 @@ typedef struct
  */
 typedef struct
 {
-    bool            present;
+    bool present;
     union
     {
-        char    *fileName;
-        bool    on;
-        int     value;
+        char *fileName;
+        bool on;
+        int value;
         SDL_SYMBOL_LIST *symbol;
         SDL_LANGUAGES *languages;
     };
@@ -804,6 +799,7 @@ typedef struct
     char            *module;
     char            *inputPath;
     void            *currentAggr;
+    bool            *langEnableVec;
     SDL_ARGUMENTS   argument[SDL_MAX_ARGS];
     SDL_DIMENSION   dimensions[SDL_K_MAX_DIMENSIONS];
     SDL_OPTION      *options;
@@ -826,6 +822,7 @@ typedef struct
     struct tm       runTimeInfo;
     int64_t         precision;
     int64_t         scale;
+    uint32_t        languagesSpecified;
     int             aggregateDepth;
     int             fillerCount;
     int             optionsIdx;

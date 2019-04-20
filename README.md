@@ -10,7 +10,7 @@ MODULE <id> IDENT <quoted_string> ;
 CONSTANT <id> EQUALS <value> PREFIX <prefix> TAG <tag>;
   {
   { will generate a constant definition :
-  {define <prefix>_$K_<tag>_<id>	<value>
+  {define <prefix>_K_<tag>_<id>	<value>
   {
 
 CONSTANT (
@@ -21,10 +21,10 @@ CONSTANT (
 ) EUQALS 1 <value> PREFIX <prefix> TAG <tag> INCREMENT <inc> RADIX DEC|OCT|HEX|BIN;
 
   {will generate a set of definitions:
-  {#define <prefix>_$K_<tag>_<id>	<value>
-  {#define <prefix>_$K_<tag>_<id>	<value> + <inc>
-  {#define <prefix>_$K_<tag>_<id>	<value3>
-  {#define <prefix>_$K_<tag>_<id>	<value3>+<inc>
+  {#define <prefix>_K_<tag>_<id>	<value>
+  {#define <prefix>_K_<tag>_<id>	<value> + <inc>
+  {#define <prefix>_K_<tag>_<id>	<value3>
+  {#define <prefix>_K_<tag>_<id>	<value3>+<inc>
   {
 
 LITERAL;

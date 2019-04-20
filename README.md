@@ -1,6 +1,14 @@
-# SDL - A portable processor for Structure Definition Language (a child of the OpenVMS SDL)
+# OpenSDL - A portable processor for Structure Definition Language (a rewrite of the OpenVMS SDL)
 
-A short description of the language follows:
+The Open Structure Definition Language (OpenSDL) is used to write source statements that
+describe data structures and that can be translated to source statements in other languages.
+You can include the resulting output files in a corresponding target language program for
+subsequent compilation.
+
+Because OpenSDL is compiler- and language-independent, it is particularly useful for maintaining
+multilanguage implementations.  For example, you can create and later modify a single
+HP SDL source file that can be translated to multilanguage output files; any number of these
+output files can then be included in one or several multilanguage programming applications.
 
 ```
 MODULE <id> IDENT <quoted_string> ;

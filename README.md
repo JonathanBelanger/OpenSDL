@@ -18,7 +18,7 @@ CONSTANT (
   <id2>,
   <id3> = <value3>
   <id4>
-) EUQALS 1 <value> PREFIX <prefix> TAG <tag> INCREMENT <inc> RADIX DEC|OCT|HEX|BIN;
+) EUQALS 1 <value> PREFIX <prefix> TAG <tag> INCREMENT <inc> RADIX DEC|OCT|HEX;
 
   {will generate a set of definitions:
   {#define <prefix>_K_<tag>_<id>	<value>
@@ -38,8 +38,9 @@ END <id>;
   agg_opts:
     PREFIX <quoted_string>
     TAG <quoted_string>
-    ALIGN [BYTE, WORD, LONG, QUAD, OCTA, PAGE]
+    ALIGN
     NOALIGN
+    BASEALIGN 0|1|2|3|4|5|6
     
   
   type_spec:

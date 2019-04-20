@@ -1,7 +1,8 @@
-#SDL - A portable processor for Structure Definition Language (a child of the OpenVMS SDL)
+# SDL - A portable processor for Structure Definition Language (a child of the OpenVMS SDL)
 
 A short description of the language follows:
 
+```
 MODULE <id> IDENT <quoted_string> ;
 
 CONSTANT <id> EQUALS <value> PREFIX <prefix> TAG <tag>;
@@ -44,3 +45,4 @@ END <id>;
     STRUCT, UNION 
 	
 END_MODULE;
+```

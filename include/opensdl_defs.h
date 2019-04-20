@@ -41,7 +41,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
-#include "lib/util/opensdl_queue.h"
+
+#include "library/common/opensdl_queue.h"
 
 #ifdef _WIN64
 #define PATH_SEP    '\\'

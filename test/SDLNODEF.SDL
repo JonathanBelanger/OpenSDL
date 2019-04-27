@@ -15,270 +15,274 @@
 {
 {++
 {
-{ FACILITY:	VAX-11 SDL (Structure Definition Language)
+{ FACILITY:     VAX-11 SDL (Structure Definition Language)
 {
 { ABSTRACT:
 {
-{	Contains the definition for an SDL intermediary tree node.
+{       Contains the definition for an SDL intermediary tree node.
 {
-{ ENVIRONMENT:	VAX/VMS user mode
+{ ENVIRONMENT:  VAX/VMS user mode
 {
-{ AUTHOR:	C.T.Pacy		CREATION DATE:	?
+{ AUTHOR:       C.T.Pacy            CREATION DATE:        ?
 {
 { MODIFIED BY:
 {
-{	revised 22-DEC-1981	ctp
-{	revised 02-Feb-1984	kd
-{	revised 09-Apr-1984	kd
+{       revised 22-DEC-1981        ctp
+{       revised 02-Feb-1984        kd
+{       revised 09-Apr-1984        kd
 {--
 
-{			C H A N G E    L O G
+{                       C H A N G E    L O G
 
-{      Date	! Name	! Description
+{      Date     ! Name  ! Description
 {_______________!_______!______________________________________________________
-{   07-Jan-1982	!  PHH	! Change log added.  Changed NOD$W_FLAGS to NOD$L_FLAGS.
+{   07-Jan-1982 !  PHH  ! Change log added.  Changed NOD$W_FLAGS to NOD$L_FLAGS.
 {_______________!_______!______________________________________________________
-{		!	! Added NOD$V_GENERATED and NOD$W_UNUSED_1.
+{               !       ! Added NOD$V_GENERATED and NOD$W_UNUSED_1.
 {_______________!_______!______________________________________________________
-{   02-Feb-1984 |  kd	| Add fixflags longword for the SDLOUTTRE routine.
+{   02-Feb-1984 |  kd   | Add fixflags longword for the SDLOUTTRE routine.
 {_______________!_______!______________________________________________________
-{   09-Apr-1984	|  kd	| Change the character length of the tag field from 4 to 32.
+{   09-Apr-1984 |  kd   | Change the character length of the tag field from 4
+{               !       ! to 32.
 {_______________!_______!______________________________________________________
-{   13-Nov-1984	|  kd	| Add nod$t_typename field.
+{   13-Nov-1984 |  kd   | Add nod$t_typename field.
 {_______________!_______!______________________________________________________
-{   14-May-1985	|  kd	| 3-0 Add the nod$v_module flag for ADA and Pascal.
+{   14-May-1985 |  kd   | 3-0 Add the nod$v_module flag for ADA and Pascal.
 {_______________!_______!______________________________________________________
-{   21-Jun-1985	|  kd	| 3-1 Forgot the quotes around typename.
+{   21-Jun-1985 |  kd   | 3-1 Forgot the quotes around typename.
 {_______________!_______!______________________________________________________
-{   23-Mar-1986	|  pc	| 3-2 added the LIST flag to the end of flagstruc.
+{   23-Mar-1986 |  pc   | 3-2 added the LIST flag to the end of flagstruc.
 {_______________!_______!______________________________________________________
-{   20-Mar-1987	|  jw	| 3-3 (SDL T3.1) Added the RTL_STR_DESC flag to the
-{		|	|                end of flagstruc; also, put double
-{		|	|		 quotation marks around LIST.
+{   20-Mar-1987 |  jw   | 3-3 (SDL T3.1) Added the RTL_STR_DESC flag to the
+{               |       |                end of flagstruc; also, put double
+{               |       |                quotation marks around LIST.
 {_______________!_______!______________________________________________________
-{    2-Apr-1987	|  jw	| X3.1-0 Bumped version edit level and switched to X.
+{    2-Apr-1987 |  jw   | X3.1-0 Bumped version edit level and switched to X.
 {_______________!_______!______________________________________________________
-{    7-Apr-1987	|  jw	| X3.1-1 Added COMPLEX flag to the end of flagstruc
+{    7-Apr-1987 |  jw   | X3.1-1 Added COMPLEX flag to the end of flagstruc
 {_______________!_______!______________________________________________________
-{   04-May-1987	|  jw	| X3.1-2 Added nod$t_return_name field
+{   04-May-1987 |  jw   | X3.1-2 Added nod$t_return_name field
 {_______________!_______!______________________________________________________
-{   14-Jan-1988	|  jg	| X3.2-0 Added TYPEDEF flag to the end of flagstruc
+{   14-Jan-1988 |  jg   | X3.2-0 Added TYPEDEF flag to the end of flagstruc
 {_______________!_______!______________________________________________________
-{   22-Jan-1988	|  jg	| X3.2-1 Added DECLARED flag to the end of flagstruc
+{   22-Jan-1988 |  jg   | X3.2-1 Added DECLARED flag to the end of flagstruc
 {_______________!_______!______________________________________________________
-{   15-Feb-1988	|  jg	| X3.2-2 Added condnode and litnode node types
-{		|	|	 Added endnode to enable removal of magic
-{		|	|	 number from sdlouttre and sdlintree
+{   15-Feb-1988 |  jg   | X3.2-2 Added condnode and litnode node types
+{               |       |        Added endnode to enable removal of magic
+{               |       |        number from sdlouttre and sdlintree
 {_______________!_______!______________________________________________________
-{   04-May-1988	|  jg	| X3.2-3 Added FORWARD flag to the end of flagstruc
+{   04-May-1988 |  jg   | X3.2-3 Added FORWARD flag to the end of flagstruc
 {_______________!_______!______________________________________________________
 {   14-Feb-1990 |  lw   | X3.2-4 Added SYMBNODE type for IFSYMBOL statement
 {_______________!_______!______________________________________________________
-{   27-Sep-1990 |  dlm  | X3.2-4 Added maskstr to hold character string for mask
+{   27-Sep-1990 |  dlm  | X3.2-4 Added maskstr to hold character string for
+{               !       !        mask
 {_______________!_______!______________________________________________________
-{   13-Mar-1992 |  jak  | EV1-2 Added "align" flag and "boundary" field to nod$_node
+{   13-Mar-1992 |  jak  | EV1-2 Added "align" flag and "boundary" field to
+{               !       !       nod$_node
 {_______________!_______!______________________________________________________
 {   15-Apr-1992 |  jak  | EV1-4 Added "rootversnode" node type .
 {_______________!_______!______________________________________________________
 {    5-May-1992 |  jak  | EV1-8 Backed out "rootversion".  Added field "nodeid".
-{		|	|	Shuffled fields for alignment.
+{               |       |       Shuffled fields for alignment.
 {_______________!_______!______________________________________________________
-{   20-May-1992 |  jak	| EV1-10 Defined sdl$k_node_rev.
+{   20-May-1992 |  jak  | EV1-10 Defined sdl$k_node_rev.
 {_______________|_______|______________________________________________________
-{   17-Nov-1992 |  jak	| EV1-19 Defined exp$stack and _op and _val constants.
+{   17-Nov-1992 |  jak  | EV1-19 Defined exp$stack and _op and _val constants.
 {_______________|_______|______________________________________________________
-{   23-Dec-1992 |  jak	| EV1-20 Defined "a_" variants and new flags for expression 
-{		|	|	values.  Defined HAS_OBJECT flag.
+{   23-Dec-1992 |  jak  | EV1-20 Defined "a_" variants and new flags for
+{               |       |        expression values.  Defined HAS_OBJECT flag.
 {_______________|_______|______________________________________________________
-{   18-Feb-1993	|  jak	| EV1-21 Removed "local_val", added "expr_val" instead.
-{		|	|	Revoved exp$ offset and lineno (unused).
+{   18-Feb-1993 |  jak  | EV1-21 Removed "local_val", added "expr_val" instead.
+{               |       |        Removed exp$ offset and lineno (unused).
 {_______________|_______|______________________________________________________
-{   18-Mar-1993	|  jak	| EV1-21A Added flag "offset_ref" to mark dummy nodes.
+{   18-Mar-1993 |  jak  | EV1-21A Added flag "offset_ref" to mark dummy nodes.
 {_______________|_______|______________________________________________________
-{   12-Oct-2000	|  LJK	| EV1-65 Added node "readnode" to record the name of
-{		|	|	a module included by READ.  This information
-{		|	|	is required for languages like Ada that use
-{		|	|	SDL output by full separate compilation rather
-{		|	|	than by simple lexical insertion.
-{		|	|
-{		|	|	Add comments documenting use of fields related
-{		|	|	to "DIMENSION" and "INITIAL".
-{		|	|	
-{		|	|	Change copyright notice to Compaq format.
+{   12-Oct-2000 |  LJK  | EV1-65 Added node "readnode" to record the name of
+{               |       |        a module included by READ.  This information
+{               |       |        is required for languages like Ada that use
+{               |       |        SDL output by full separate compilation rather
+{               |       |        than by simple lexical insertion.
+{               |       |
+{               |       |        Add comments documenting use of fields related
+{               |       |        to "DIMENSION" and "INITIAL".
+{               |       |        
+{               |       |        Change copyright notice to Compaq format.
 {_______________|_______|______________________________________________________
 
 module $nodef ident "EV1-21A";
 
-	constant sdl$k_node_rev equals 1;
+    constant sdl$k_node_rev equals 1;
 
-	aggregate  nod$_node structure prefix nod$;
-		flink address;
-		blink address;
-		parent address;
-		child address;
-		comment address;
-		info union;
-			typeinfo longword;
-			typeinfo address;
-			end;
-		info2 union;
-			typeinfo2 longword;
-			typeinfo2 address;
-			symtab address;
-			end;
-		type byte;	{ node type 
-		boundary byte;	{ required alignment boundary (or 0)
-		datatype word;
-		offset longword;
-		fldsiz union;
-			fldsiz longword;
-			fldsiz address;
-			end;
-		/* Flags nod$v_%%dim indicate module SDLACTION.PLI
-		/* has cached a pointer to an expression that cannot
-		/* be evaluated yet.  Those flags will be cleared as
-		/* SDLACTION.PLI finishes parsing the aggregate that
-		/* contains the item.
-		hidim union;	/* A single longword used for two purposes
-			hidim longword;	/* generally used as integer, but
-			hidim address;	/* SDLACTION.PLI caches a pointer.
-			end;
-		lodim union;	/* A single longword used for two purposes
-			lodim longword;	/* generally used as integer, but
-			lodim address;	/* SDLACTION.PLI caches a pointer.
-			end;
-		/* Flag nod$v_initial indicate module SDLACTION.PLI
-		/* has cached a pointer to an expression that cannot
-		/* be evaluated yet.  That flag will be cleared as
-		/* SDLACTION.PLI finishes parsing the aggregate that
-		/* contains the item.
-		initial union;	/* A single longword used for two purposes
-			initial longword; /* generally used as integer, but
-			initial address;  /* SDLACTION.PLI caches a pointer.
+    aggregate nod$_node structure prefix nod$;
+        flink address;
+        blink address;
+        parent address;
+        child address;
+        comment address;
+        info union;
+            typeinfo longword;
+            typeinfo address;
+        end;
+        info2 union;
+            typeinfo2 longword;
+            typeinfo2 address;
+            symtab address;
+        end;
+        type byte;                  { node type 
+        boundary byte;              { required alignment boundary (or 0)
+        datatype word;
+        offset longword;
+        fldsiz union;
+            fldsiz longword;
+            fldsiz address;
+        end;
+        /* Flags nod$v_%%dim indicate module SDLACTION.PLI
+        /* has cached a pointer to an expression that cannot
+        /* be evaluated yet.  Those flags will be cleared as
+        /* SDLACTION.PLI finishes parsing the aggregate that
+        /* contains the item.
+        hidim union;                /* A single longword used for two purposes
+            hidim longword;         /* generally used as integer, but
+            hidim address;          /* SDLACTION.PLI caches a pointer.
+        end;
+        lodim union;                /* A single longword used for two purposes
+            lodim longword;         /* generally used as integer, but
+            lodim address;          /* SDLACTION.PLI caches a pointer.
+        end;
+        /* Flag nod$v_initial indicate module SDLACTION.PLI
+        /* has cached a pointer to an expression that cannot
+        /* be evaluated yet.  That flag will be cleared as
+        /* SDLACTION.PLI finishes parsing the aggregate that
+        /* contains the item.
+        initial union;              /* A single longword used for two purposes
+            initial longword;       /* generally used as integer, but
+            initial address;        /* SDLACTION.PLI caches a pointer.
 
-			end;
-		srcline longword;
-		nodeid longword;
-		flagunion union;
-			flags longword unsigned;
-			fixflags longword;
-			flagstruc structure;
-				"value" bitfield mask;
-				"mask" bitfield mask;
-				"unsigned" bitfield mask;
-				"common" bitfield mask;
-				"global" bitfield mask;
-				"varying" bitfield mask;
-				"variable" bitfield mask;
-				"based" bitfield mask;
-				desc bitfield mask;
-				dimen bitfield mask;	/* is dimensioned
-				"in" bitfield mask;
-				"out" bitfield mask;
-				bottom bitfield mask;
-				bound bitfield mask;
-				"ref" bitfield mask;
-				userfill bitfield mask;
-				"alias" bitfield mask;
-				"default" bitfield mask;	/* DEFAULT
-				vardim bitfield mask;	/* "DIMENSION *"
-				link bitfield mask;
-				"optional" bitfield mask;
-				"signed" bitfield mask;
-				fixed_fldsiz bitfield mask;
-				generated bitfield mask;
-				"module" bitfield mask;
-				"list" bitfield mask;
-				"rtl_str_desc" bitfield mask;
-				"complex" bitfield mask;
-				"typedef" bitfield mask;
-				"declared" bitfield mask;
-				"forward" bitfield mask;
-				"align" bitfield mask;	{ align this (and its members, if struc/union)
-				end;
-			end;
-		flags2union union;
-			flags2 longword unsigned;
-			fixflags2 longword;
-			flags2struc structure;
-				"has_object"	    bitfield; {1
-				"offset_fixed"	    bitfield; {2
-				"length"	    bitfield; {3
-				"hidim"		    bitfield; {4
-				"lodim"		    bitfield; {5
-				"initial"	    bitfield; {6
-				"base_align"	    bitfield; {7
-				"offset_ref"	    bitfield; {8
-				end;
-			end;
-		naked character length 34 varying;
-		name character length 34 varying;
-		return_name character length 34 varying;
-		"prefix" character length 32 varying;
-		"marker" character length 32 varying;
-		"tag" character length 32 varying;
-		"typename" character length 32 varying;
-                maskstr character length 32 varying;
-	    { any new fields to the node structure must be put after this point if
-	    { old backends are to be usable with new frontend.
-	#length=:;
-constant nodesize equals #length prefix nod$;
-		end;
+        end;
+        srcline longword;
+        nodeid longword;
+        flagunion union;
+            flags longword unsigned;
+            fixflags longword;
+            flagstruc structure;
+                "value" bitfield mask;
+                "mask" bitfield mask;
+                "unsigned" bitfield mask;
+                "common" bitfield mask;
+                "global" bitfield mask;
+                "varying" bitfield mask;
+                "variable" bitfield mask;
+                "based" bitfield mask;
+                desc bitfield mask;
+                dimen bitfield mask;        /* is dimensioned
+                "in" bitfield mask;
+                "out" bitfield mask;
+                bottom bitfield mask;
+                bound bitfield mask;
+                "ref" bitfield mask;
+                userfill bitfield mask;
+                "alias" bitfield mask;
+                "default" bitfield mask;    /* DEFAULT
+                vardim bitfield mask;       /* "DIMENSION *"
+                link bitfield mask;
+                "optional" bitfield mask;
+                "signed" bitfield mask;
+                fixed_fldsiz bitfield mask;
+                generated bitfield mask;
+                "module" bitfield mask;
+                "list" bitfield mask;
+                "rtl_str_desc" bitfield mask;
+                "complex" bitfield mask;
+                "typedef" bitfield mask;
+                "declared" bitfield mask;
+                "forward" bitfield mask;
+                "align" bitfield mask;      { align this (and its members, if
+                                            { struct/union)
+            end;
+        end;
+        flags2union union;
+            flags2 longword unsigned;
+            fixflags2 longword;
+            flags2struc structure;
+                "has_object"    bitfield;   {1
+                "offset_fixed"  bitfield;   {2
+                "length"        bitfield;   {3
+                "hidim"         bitfield;   {4
+                "lodim"         bitfield;   {5
+                "initial"       bitfield;   {6
+                "base_align"    bitfield;   {7
+                "offset_ref"    bitfield;   {8
+            end;
+        end;
+        naked character length 34 varying;
+        name character length 34 varying;
+        return_name character length 34 varying;
+        "prefix" character length 32 varying;
+        "marker" character length 32 varying;
+        "tag" character length 32 varying;
+        "typename" character length 32 varying;
+        maskstr character length 32 varying;
+        { any new fields to the node structure must be put after this point if
+        { old backends are to be usable with new frontend.
+        #length=:;
+    constant nodesize equals #length prefix nod$;
+    end;
  
 
-constant (
-	rootnode , {1
-	commnode , {2
-	constnode , {3
-	entrynode , {4
-	itemnode , {5
-	modulnode , {6
-	parmnode , {7
-	dummynode, {8
-	objnode , {9
-	headnode , {10
-	typnode , {11
-	endnode,  {12
-	condnode, {13
-	litnode,  {14
-	symbnode, {15
-	readnode, {16 - EV1-65 name of a module included by READ
-	) equals 1 increment 1 prefix nod$;
+    constant (
+        rootnode , {1
+        commnode , {2
+        constnode , {3
+        entrynode , {4
+        itemnode , {5
+        modulnode , {6
+        parmnode , {7
+        dummynode, {8
+        objnode , {9
+        headnode , {10
+        typnode , {11
+        endnode,  {12
+        condnode, {13
+        litnode,  {14
+        symbnode, {15
+        readnode, {16 - EV1-65 name of a module included by READ
+        ) equals 1 increment 1 prefix nod$;
  
 
-aggregate exp$node structure prefix exp$;
-	next	address; { linked list
-	union_1 union;
-	    ref_node	address;
-	    expr_list	address;
-	    end;
-	"value" longword;
-	kind	word;	{kind of terminal value
-	op	word;	{arithmetic operation
-	end;
+    aggregate exp$node structure prefix exp$;
+        next    address;    { linked list
+        union_1 union;
+            ref_node    address;
+            expr_list   address;
+            end;
+        "value" longword;
+        kind    word;        {kind of terminal value
+        op      word;        {arithmetic operation
+    end;
 
-	{ offset expression operators
-constant (
-	minus_op,
-	add_op,
-	sub_op,
-	mul_op,
-	div_op,
-	shift_op,
-	and_op,
-	or_op
-	) equals 1 increment 1;
+    { offset expression operators
+    constant (
+        minus_op,
+        add_op,
+        sub_op,
+        mul_op,
+        div_op,
+        shift_op,
+        and_op,
+        or_op
+        ) equals 1 increment 1;
 
-	{ offset expression kinds of terminal values
- constant (
-	op_val,		{  opcode
-	integer_val,	{  integer constant
-	origin_val,	{  origin_offset relative value
-	byteoff_val,	{  byte_offset relative value
-	bitoff_val,	{  bit offset value
-	constant_val,	{  value of constant symbol
-	expr_val,	{  subexpression value
-	bitmask_val	{  value of a bitfield mask
-	) equals 1 increment 1;
+    { offset expression kinds of terminal values
+    constant (
+        op_val,                 {  opcode
+        integer_val,            {  integer constant
+        origin_val,             {  origin_offset relative value
+        byteoff_val,            {  byte_offset relative value
+        bitoff_val,             {  bit offset value
+        constant_val,           {  value of constant symbol
+        expr_val,               {  subexpression value
+        bitmask_val             {  value of a bitfield mask
+        ) equals 1 increment 1;
 
 end_module;

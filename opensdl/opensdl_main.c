@@ -248,7 +248,7 @@ static struct argp_option options[] =
         "list",
         'L',
         "[=filespec]",
-        0,
+        OPTION_ARG_OPTIONAL,
         "Generate a listing file.",
         0
     },

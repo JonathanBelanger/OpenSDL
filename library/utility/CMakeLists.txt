@@ -9,3 +9,11 @@ add_library(${PROJECT_NAME}_utility STATIC
 target_include_directories(${PROJECT_NAME}_utility PUBLIC
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR})
+
+set_source_files_properties(opensdl_listing.c PROPERTIES
+    COMPILE_FLAGS "-Wno-format-overflow")
+
+set_source_files_properties(opensdl_plugin.c PROPERTIES
+    COMPILE_FLAGS "-Wno-format-overflow -Wno-unused-result")
+
+

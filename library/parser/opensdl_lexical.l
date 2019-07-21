@@ -30,6 +30,7 @@
  */
 #include <stdio.h>
 #include <ctype.h>
+#include <stdint.h>
 #include "opensdl_defs.h"
 #include "opensdl_parser.h"
 #include "library/common/opensdl_blocks.h"
@@ -204,7 +205,7 @@ LITERAL[ \t\v\f\n\r]*[;] {
     /*
      * Make a duplication of yytext, and upcase it.
      */
-    yycopy = strupr(sdl_strdup(yytext));
+    yycopy = sdl_strupr(sdl_strdup(yytext));
 
     /*
      * Look for the uppercase END_LITERAL in the copy of yytext.
@@ -1109,3 +1110,5 @@ static int _sdl_pop_start_state(void)
      */
     return(retVal);
 }
+
+

@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include "opensdl_defs.h"
@@ -994,7 +995,7 @@ static uint32_t sdl_c_module(SDL_CONTEXT *context)
     {
         char *moduleName = sdl_strdup(context->module);
 
-        strupr(moduleName);
+        sdl_strupr(moduleName);
         if (fprintf(fp,
                     "\n#ifndef _%s_\n#define _%s_ 1\n",
                     moduleName,
@@ -1073,7 +1074,7 @@ static uint32_t sdl_c_module_end(SDL_CONTEXT *context)
      */
     if (fprintf(fp,
                 "\n#ifdef __cplusplus\n}\n#endif\n#endif /* _%s_ */\n",
-                strupr(context->module)) < 0)
+                sdl_strupr(context->module)) < 0)
     {
         retVal = SDL_ABORT;
         if (sdl_set_message(msgVec,
@@ -2460,7 +2461,7 @@ static char *_sdl_c_generate_name(char *name,
             }
             if (isLower == true)
             {
-                strlwr(&retVal[len]);
+                sdl_strlwr(&retVal[len]);
             }
             len += strlen(prefix);
         }
@@ -2686,3 +2687,7 @@ static char *_sdl_c_leading_spaces(int depth)
      */
     return(retVal);
 }
+
+
+
+

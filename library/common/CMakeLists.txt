@@ -6,3 +6,7 @@ add_library(${PROJECT_NAME}_common STATIC
 
 target_include_directories(${PROJECT_NAME}_common PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
+
+set_source_files_properties(opensdl_blocks.c PROPERTIES
+    COMPILE_FLAGS "-Wno-discarded-qualifiers")
+

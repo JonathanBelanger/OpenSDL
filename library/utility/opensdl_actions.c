@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
@@ -1471,7 +1472,7 @@ uint32_t sdl_item_compl(SDL_CONTEXT *context, SDL_YYLTYPE *loc)
     int ii;
     int storage = 0;
     int basealign = 0;
-    int dimension;
+    int dimension = 0;
 
     /*
      * If processing is not turned off because of an IFSYMBOL..ELSE_IFSYMBOL..
@@ -5565,8 +5566,8 @@ static int64_t _sdl_aggregate_size(
     SDL_MEMBERS *member = NULL;
     SDL_QUEUE *memberList = NULL;
     SDL_CONSTANT *constDef;
-    char *name;
-    char *prefix;
+    char *name = NULL;
+    char *prefix = NULL;
     SDL_YYLTYPE loc = {0, 0, 0, 0};
     int64_t retVal = 0;
     int64_t size = 0;
@@ -6301,3 +6302,7 @@ static uint32_t _sdl_create_bitfield_constants(
      */
     return(retVal);
 }
+
+
+
+

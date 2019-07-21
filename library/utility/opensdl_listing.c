@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include "opensdl_defs.h"
@@ -555,3 +556,4 @@ static void _sdl_msg_list(FILE *fp)
      */
     return;
 }
+

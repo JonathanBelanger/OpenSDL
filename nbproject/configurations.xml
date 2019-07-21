@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="100">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="build">
+        <df name="library">
+          <df name="parser">
+            <in>opensdl_lexical.c</in>
+            <in>opensdl_parser.c</in>
+          </df>
+        </df>
+      </df>
+      <df name="library">
+        <df name="common">
+          <in>opensdl_blocks.c</in>
+          <in>opensdl_message.c</in>
+        </df>
+        <df name="language">
+          <in>opensdl_c.c</in>
+        </df>
+        <df name="utility">
+          <in>opensdl_actions.c</in>
+          <in>opensdl_listing.c</in>
+          <in>opensdl_plugin.c</in>
+          <in>opensdl_utility.c</in>
+        </df>
+      </df>
+      <df name="opensdl">
+        <in>opensdl_main.c</in>
+      </df>
+      <df name="test">
+        <in>struct_test.c</in>
+      </df>
+    </df>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>CMakeLists.txt</itemPath>
+      <itemPath>Makefile</itemPath>
+      <itemPath>nbproject/private/launcher.properties</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>.</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <flagsDictionary>
+        <element flagsID="0"
+                 commonFlags="-m64 -mtune=generic -march=x86-64 -g -std=gnu99"/>
+        <element flagsID="1" commonFlags="-mtune=generic -march=x86-64 -g"/>
+      </flagsDictionary>
+      <codeAssistance>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>.</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath></executablePath>
+        </makeTool>
+        <preBuild>
+          <preBuildCommandWorkingDir>.</preBuildCommandWorkingDir>
+          <preBuildCommand>${CMAKE} -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=${IDE_CC} -DCMAKE_CXX_COMPILER=${IDE_CXX} -DCMAKE_C_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_CXX_FLAGS_DEBUG="-g3 -gdwarf-2" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .</preBuildCommand>
+        </preBuild>
+      </makefileType>
+      <item path="build/library/parser/opensdl_lexical.c"
+            ex="false"
+            tool="0"
+            flavor2="3">
+        <cTool flags="1">
+          <incDir>
+            <pElem>build/library/parser</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <item path="build/library/parser/opensdl_parser.c"
+            ex="false"
+            tool="0"
+            flavor2="3">
+        <cTool flags="1">
+          <incDir>
+            <pElem>include/opensdl</pElem>
+            <pElem>build/library/parser</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <folder path="0/build">
+        <cTool>
+          <incDir>
+            <pElem>library/parser</pElem>
+            <pElem>/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include</pElem>
+            <pElem>/usr/include/cygwin</pElem>
+            <pElem>include/library/common</pElem>
+            <pElem>include</pElem>
+          </incDir>
+        </cTool>
+      </folder>
+      <folder path="0/library/common">
+        <cTool>
+          <incDir>
+            <pElem>library/common</pElem>
+            <pElem>/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include</pElem>
+            <pElem>/usr/include/cygwin</pElem>
+            <pElem>include/library/common</pElem>
+            <pElem>include</pElem>
+            <pElem>build/library/common</pElem>
+          </incDir>
+        </cTool>
+      </folder>
+      <folder path="0/library/language">
+        <cTool>
+          <incDir>
+            <pElem>library/language</pElem>
+            <pElem>/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include</pElem>
+            <pElem>/usr/include/cygwin</pElem>
+            <pElem>include/library/common</pElem>
+            <pElem>include</pElem>
+            <pElem>include/library/language</pElem>
+            <pElem>include/library/utility</pElem>
+            <pElem>build/library/language</pElem>
+          </incDir>
+        </cTool>
+      </folder>
+      <folder path="0/library/utility">
+        <cTool>
+          <incDir>
+            <pElem>library/utility</pElem>
+            <pElem>/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include</pElem>
+            <pElem>/usr/include/cygwin</pElem>
+            <pElem>include/library/common</pElem>
+            <pElem>include</pElem>
+          </incDir>
+        </cTool>
+      </folder>
+      <folder path="0/opensdl">
+        <cTool>
+          <incDir>
+            <pElem>opensdl</pElem>
+            <pElem>/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include</pElem>
+            <pElem>/usr/include/cygwin</pElem>
+            <pElem>include/library/common</pElem>
+            <pElem>include</pElem>
+            <pElem>build/opensdl</pElem>
+          </incDir>
+        </cTool>
+      </folder>
+      <folder path="0/test">
+        <cTool>
+          <incDir>
+            <pElem>test</pElem>
+            <pElem>/usr/lib/gcc/x86_64-pc-cygwin/7.4.0/include</pElem>
+            <pElem>build/test</pElem>
+          </incDir>
+        </cTool>
+      </folder>
+      <item path="library/common/opensdl_blocks.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="library/common/opensdl_message.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+        </cTool>
+      </item>
+      <item path="library/language/opensdl_c.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="1">
+        </cTool>
+      </item>
+      <item path="library/utility/opensdl_actions.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+          <incDir>
+            <pElem>include/library/language</pElem>
+            <pElem>include/opensdl</pElem>
+            <pElem>build/library/utility</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <item path="library/utility/opensdl_listing.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+          <incDir>
+            <pElem>include/opensdl</pElem>
+            <pElem>build/library/utility</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <item path="library/utility/opensdl_plugin.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+          <incDir>
+            <pElem>include/library/language</pElem>
+            <pElem>include/library/utility</pElem>
+            <pElem>include/opensdl</pElem>
+            <pElem>build/library/utility</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <item path="library/utility/opensdl_utility.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="0">
+          <incDir>
+            <pElem>include/opensdl</pElem>
+            <pElem>build/library/utility</pElem>
+          </incDir>
+        </cTool>
+      </item>
+      <item path="opensdl/opensdl_main.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="1">
+        </cTool>
+      </item>
+      <item path="test/struct_test.c" ex="false" tool="0" flavor2="3">
+        <cTool flags="1">
+        </cTool>
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

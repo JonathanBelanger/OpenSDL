@@ -30,6 +30,7 @@
  *  V01.000	103-Apr-2019 Jonathan D. Belanger
  *  Initially written.
  */
+#include <stdint.h>
 #include "opensdl_defs.h"
 #include "library/common/opensdl_blocks.h"
 #include "library/utility/opensdl_plugin.h"
@@ -1048,3 +1049,4 @@ uint32_t sdl_call_close(void)
      */
     return(retVal);
 }
+

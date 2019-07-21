@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include "opensdl_defs.h"
@@ -669,6 +670,74 @@ void sdl_deallocate_block(SDL_HEADER *block)
 }
 
 /*
+ * sdl_strlwr
+ *  This function is called to convert a string to all lowercase.  This
+ *  function does not allocate memory, but down-cases the string in place.
+ *
+ * Input Parameters:
+ *  string:
+ *    A pointer to the string to be downcased.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  !NULL:          The lowercase string.
+ */
+char *sdl_strlwr(const char *string)
+{
+
+    /*
+     * We only need to do anything if we are supplied with a string.
+     */
+    if(string != NULL)
+    {
+        char *p = string;
+
+        while(*p)
+        {
+            *p = tolower(*p);
+            p++;
+        }
+    }
+    return(string);
+}
+
+/*
+ * sdl_strupr
+ *  This function is called to convert a string to all uppercase.  This
+ *  function does not allocate memory, but up-cases the string in place.
+ *
+ * Input Parameters:
+ *  string:
+ *    A pointer to the string to be uppercased.
+ *
+ * Output Parameters:
+ *  None.
+ *
+ * Return Values:
+ *  !NULL:          The uppercase string.
+ */
+char *sdl_strupr(const char *string)
+{
+
+    /*
+     * We only need to do anything if we are supplied with a string.
+     */
+    if(string != NULL)
+    {
+        char *p = string;
+
+        while(*p)
+        {
+            *p = toupper(*p);
+            p++;
+        }
+    }
+    return(string);
+}
+
+/*
  * sdl_strdup
  *  This function is called to duplicate the memory associated with a string.
  *  We have this function so that we can keep track of allocated and
@@ -701,7 +770,7 @@ char *sdl_strdup(const char *string)
      * a buffer to hold a zero length, null-terminated string.
      */
     if (string != NULL)
-    length += strlen(string);
+        length += strlen(string);
 
     /*
      * Allocate a buffer large enough for the supplied string to be copied.
@@ -1048,3 +1117,6 @@ void sdl_free(void *ptr)
      */
     return;
 }
+
+
+

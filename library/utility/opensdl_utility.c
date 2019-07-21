@@ -27,6 +27,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include "opensdl_defs.h"
@@ -2356,3 +2357,4 @@ static SDL_STATE _sdl_pop_state(SDL_CONTEXT *context)
      */
     return(retVal);
 }
+

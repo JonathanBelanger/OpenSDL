@@ -33,9 +33,13 @@ void *sdl_allocate_block(
 		SDL_HEADER *parent,
 		SDL_YYLTYPE *loc);
 void sdl_deallocate_block(SDL_HEADER *block);
+char *sdl_strupr(const char *string);
+char *sdl_strlwr(const char *string);
 char *sdl_strdup(const char *string);
 void *sdl_calloc(size_t count, size_t size);
 void *sdl_realloc(void *ptr, size_t newSize);
 void sdl_free(void *ptr);
 
 #endif /* _OPENSDL_BLOCKS_H_ */
+
+

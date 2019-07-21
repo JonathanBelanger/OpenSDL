@@ -61,6 +61,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
 #include <errno.h>
 #include <unistd.h>
 #include <math.h>
@@ -1429,3 +1430,4 @@ language_list
     ;
 
 %%    /* End Grammar rules */
+

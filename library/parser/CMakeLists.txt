@@ -30,3 +30,7 @@ add_library(${PROJECT_NAME}_lexical STATIC
 
 target_include_directories(${PROJECT_NAME}_lexical PUBLIC
     ${PROJECT_SOURCE_DIR}/include)
+
+set_source_files_properties(opensdl_parser.c PROPERTIES
+    COMPILE_FLAGS "-Wno-format-security")
+

@@ -10,3 +10,7 @@ set_target_properties(${PROJECT_NAME}_c PROPERTIES
 
 target_link_libraries(${PROJECT_NAME}_c PRIVATE
     ${PROJECT_NAME}_common)
+
+set_source_files_properties(opensdl_c.c PROPERTIES
+    COMPILE_FLAGS "-Wno-format-security")
+

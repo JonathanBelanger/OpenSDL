@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
@@ -986,3 +987,4 @@ uint32_t sdl_get_message(SDL_MSG_VECTOR *msgVector, char **msgStr)
      */
     return(retVal);
 }
+
